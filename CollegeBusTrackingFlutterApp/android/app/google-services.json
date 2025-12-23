@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "296707770806",
+    "project_id": "busapp-dbc4d",
+    "storage_bucket": "busapp-dbc4d.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:296707770806:android:d726b5087ac0fd477bd917",
+        "android_client_info": {
+          "package_name": "com.example.collegebus"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA_66AR83OpytB5SO20cnXvZBUqL5XIiRI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
