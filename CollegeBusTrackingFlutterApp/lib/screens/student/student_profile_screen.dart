@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:collegebus/services/auth_service.dart';
 import 'package:collegebus/utils/constants.dart';
 import 'package:collegebus/widgets/app_drawer.dart';
+import 'package:collegebus/services/theme_service.dart';
 
 class StudentProfileScreen extends StatelessWidget {
   const StudentProfileScreen({super.key});
@@ -18,11 +19,11 @@ class StudentProfileScreen extends StatelessWidget {
     }
 
     return Scaffold(
-      backgroundColor: Colors.grey[100],
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       drawer: AppDrawer(user: user, authService: authService),
       appBar: AppBar(
-        backgroundColor: AppColors.primary,
-        foregroundColor: AppColors.onPrimary,
+        backgroundColor: Theme.of(context).primaryColor,
+        foregroundColor: Theme.of(context).colorScheme.onPrimary,
         elevation: 0,
       ),
       body: SingleChildScrollView(
@@ -32,8 +33,8 @@ class StudentProfileScreen extends StatelessWidget {
             Container(
               width: double.infinity,
               padding: const EdgeInsets.only(bottom: 32),
-              decoration: const BoxDecoration(
-                color: AppColors.primary,
+              decoration: BoxDecoration(
+                color: Theme.of(context).primaryColor,
                 borderRadius: BorderRadius.only(
                   bottomLeft: Radius.circular(32),
                   bottomRight: Radius.circular(32),
@@ -44,25 +45,25 @@ class StudentProfileScreen extends StatelessWidget {
                   const SizedBox(height: 16),
                   CircleAvatar(
                     radius: 50,
-                    backgroundColor: Colors.white,
+                    backgroundColor: Theme.of(context).colorScheme.surface,
                     child: Text(
                       user.fullName.isNotEmpty
                           ? user.fullName.substring(0, 1).toUpperCase()
                           : 'U',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 36,
                         fontWeight: FontWeight.bold,
-                        color: AppColors.primary,
+                        color: Theme.of(context).primaryColor,
                       ),
                     ),
                   ),
                   const SizedBox(height: 16),
                   Text(
                     user.fullName,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 24,
                       fontWeight: FontWeight.bold,
-                      color: Colors.white,
+                      color: Theme.of(context).colorScheme.onPrimary,
                     ),
                   ),
                   const SizedBox(height: 8),
@@ -70,7 +71,9 @@ class StudentProfileScreen extends StatelessWidget {
                     user.email,
                     style: TextStyle(
                       fontSize: 14,
-                      color: Colors.white.withOpacity(0.8),
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.onPrimary.withValues(alpha: 0.8),
                     ),
                   ),
                 ],
@@ -85,15 +88,18 @@ class StudentProfileScreen extends StatelessWidget {
               child: Column(
                 children: [
                   _buildProfileCard(
+                    context: context,
                     title: 'Account Information',
                     children: [
                       _buildProfileItem(
+                        context: context,
                         icon: Icons.badge,
                         title: 'Role',
                         value: user.role.displayName,
                       ),
                       const SizedBox(height: 16),
                       _buildProfileItem(
+                        context: context,
                         icon: Icons.school,
                         title: 'College ID',
                         value: user.collegeId.isNotEmpty
@@ -102,9 +108,59 @@ class StudentProfileScreen extends StatelessWidget {
                       ),
                       const SizedBox(height: 16),
                       _buildProfileItem(
+                        context: context,
                         icon: Icons.phone,
                         title: 'Phone',
                         value: user.phoneNumber ?? 'Not provided',
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 24),
+
+                  const SizedBox(height: 24),
+
+                  // Settings Section
+                  _buildProfileCard(
+                    context: context,
+                    title: 'Settings',
+                    children: [
+                      Consumer<ThemeService>(
+                        builder: (context, themeService, _) {
+                          return SwitchListTile(
+                            contentPadding: EdgeInsets.zero,
+                            title: Text(
+                              'Dark Mode',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w500,
+                                color: Theme.of(
+                                  context,
+                                ).textTheme.bodyLarge?.color,
+                              ),
+                            ),
+                            secondary: Container(
+                              padding: const EdgeInsets.all(10),
+                              decoration: BoxDecoration(
+                                color: Theme.of(
+                                  context,
+                                ).primaryColor.withValues(alpha: 0.1),
+                                shape: BoxShape.circle,
+                              ),
+                              child: Icon(
+                                themeService.isDarkMode
+                                    ? Icons.dark_mode
+                                    : Icons.light_mode,
+                                color: Theme.of(context).primaryColor,
+                                size: 20,
+                              ),
+                            ),
+                            value: themeService.isDarkMode,
+                            onChanged: (value) {
+                              themeService.toggleTheme(value);
+                            },
+                          );
+                        },
                       ),
                     ],
                   ),
@@ -124,8 +180,8 @@ class StudentProfileScreen extends StatelessWidget {
                       icon: const Icon(Icons.logout),
                       label: const Text('Logout'),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.red,
-                        foregroundColor: Colors.white,
+                        backgroundColor: Theme.of(context).colorScheme.error,
+                        foregroundColor: Theme.of(context).colorScheme.onError,
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         textStyle: const TextStyle(
                           fontSize: 16,
@@ -147,6 +203,7 @@ class StudentProfileScreen extends StatelessWidget {
   }
 
   Widget _buildProfileCard({
+    required BuildContext context,
     required String title,
     required List<Widget> children,
   }) {
@@ -155,21 +212,26 @@ class StudentProfileScreen extends StatelessWidget {
       children: [
         Text(
           title,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.bold,
-            color: AppColors.textPrimary,
+            color:
+                Theme.of(context).textTheme.titleLarge?.color ??
+                Theme.of(context).colorScheme.onSurface,
           ),
         ),
         const SizedBox(height: 12),
         Container(
           padding: const EdgeInsets.all(16),
+
           decoration: BoxDecoration(
-            color: Colors.white,
+            color:
+                Theme.of(context).cardTheme.color ??
+                Theme.of(context).colorScheme.surface,
             borderRadius: BorderRadius.circular(16),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.05),
+                color: Colors.black.withValues(alpha: 0.05),
                 blurRadius: 10,
                 offset: const Offset(0, 4),
               ),
@@ -182,6 +244,7 @@ class StudentProfileScreen extends StatelessWidget {
   }
 
   Widget _buildProfileItem({
+    required BuildContext context,
     required IconData icon,
     required String title,
     required String value,
@@ -191,10 +254,10 @@ class StudentProfileScreen extends StatelessWidget {
         Container(
           padding: const EdgeInsets.all(10),
           decoration: BoxDecoration(
-            color: AppColors.primary.withOpacity(0.1),
+            color: Theme.of(context).primaryColor.withValues(alpha: 0.1),
             shape: BoxShape.circle,
           ),
-          child: Icon(icon, color: AppColors.primary, size: 20),
+          child: Icon(icon, color: Theme.of(context).primaryColor, size: 20),
         ),
         const SizedBox(width: 16),
         Expanded(
@@ -203,18 +266,24 @@ class StudentProfileScreen extends StatelessWidget {
             children: [
               Text(
                 title,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 12,
-                  color: AppColors.textSecondary,
+                  color:
+                      Theme.of(context).textTheme.bodyMedium?.color ??
+                      Theme.of(
+                        context,
+                      ).colorScheme.onSurface.withValues(alpha: 0.6),
                 ),
               ),
               const SizedBox(height: 4),
               Text(
                 value,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w500,
-                  color: AppColors.textPrimary,
+                  color:
+                      Theme.of(context).textTheme.bodyLarge?.color ??
+                      Theme.of(context).colorScheme.onSurface,
                 ),
               ),
             ],

@@ -192,7 +192,7 @@ class _BusScheduleScreenState extends State<BusScheduleScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       drawer: AppDrawer(
         user: Provider.of<AuthService>(context).currentUserModel,
         authService: Provider.of<AuthService>(context),
@@ -202,13 +202,15 @@ class _BusScheduleScreenState extends State<BusScheduleScreen>
           kToolbarHeight + kTextTabBarHeight,
         ),
         child: AppBar(
-          backgroundColor: AppColors.primary,
-          foregroundColor: AppColors.onPrimary,
+          backgroundColor: Theme.of(context).primaryColor,
+          foregroundColor: Theme.of(context).colorScheme.onPrimary,
           bottom: TabBar(
             controller: _tabController,
-            labelColor: AppColors.onPrimary,
-            unselectedLabelColor: AppColors.onPrimary.withValues(alpha: 0.7),
-            indicatorColor: AppColors.onPrimary,
+            labelColor: Theme.of(context).colorScheme.onPrimary,
+            unselectedLabelColor: Theme.of(
+              context,
+            ).colorScheme.onPrimary.withValues(alpha: 0.7),
+            indicatorColor: Theme.of(context).colorScheme.onPrimary,
             tabs: const [
               Tab(text: '1st Shift', icon: Icon(Icons.wb_sunny)),
               Tab(text: '2nd Shift', icon: Icon(Icons.nights_stay)),
@@ -221,7 +223,7 @@ class _BusScheduleScreenState extends State<BusScheduleScreen>
           // Filter Panel
           Container(
             padding: const EdgeInsets.all(AppSizes.paddingMedium),
-            color: AppColors.surface,
+            color: Theme.of(context).colorScheme.surface,
             child: Column(
               children: [
                 Row(
@@ -229,6 +231,7 @@ class _BusScheduleScreenState extends State<BusScheduleScreen>
                     Expanded(
                       child: DropdownButtonFormField<String>(
                         value: _selectedBusNumber,
+                        isExpanded: true,
                         decoration: const InputDecoration(
                           labelText: 'Bus Number',
                           border: OutlineInputBorder(),
@@ -261,6 +264,7 @@ class _BusScheduleScreenState extends State<BusScheduleScreen>
                     Expanded(
                       child: DropdownButtonFormField<String>(
                         value: _selectedRoute,
+                        isExpanded: true,
                         decoration: const InputDecoration(
                           labelText: 'Route',
                           border: OutlineInputBorder(),
@@ -297,6 +301,7 @@ class _BusScheduleScreenState extends State<BusScheduleScreen>
                     Expanded(
                       child: DropdownButtonFormField<String>(
                         value: _selectedStop,
+                        isExpanded: true,
                         decoration: const InputDecoration(
                           labelText: 'Stop',
                           border: OutlineInputBorder(),
@@ -364,7 +369,9 @@ class _BusScheduleScreenState extends State<BusScheduleScreen>
             Icon(
               shift == '1st' ? Icons.wb_sunny : Icons.nights_stay,
               size: 64,
-              color: AppColors.textSecondary,
+              color: Theme.of(
+                context,
+              ).colorScheme.onSurface.withValues(alpha: 0.6),
             ),
             const SizedBox(height: AppSizes.paddingMedium),
             Text(
@@ -373,9 +380,11 @@ class _BusScheduleScreenState extends State<BusScheduleScreen>
                       _selectedStop != null
                   ? 'No schedules match your filters'
                   : 'No $shift shift schedules available',
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 18,
-                color: AppColors.textSecondary,
+                color: Theme.of(
+                  context,
+                ).colorScheme.onSurface.withValues(alpha: 0.6),
               ),
             ),
           ],
@@ -418,11 +427,11 @@ class _BusScheduleScreenState extends State<BusScheduleScreen>
           margin: const EdgeInsets.only(bottom: AppSizes.paddingMedium),
           child: ExpansionTile(
             leading: CircleAvatar(
-              backgroundColor: AppColors.primary,
+              backgroundColor: Theme.of(context).primaryColor,
               child: Text(
                 bus.busNumber.replaceAll('Bus ', ''),
-                style: const TextStyle(
-                  color: AppColors.onPrimary,
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onPrimary,
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -437,9 +446,11 @@ class _BusScheduleScreenState extends State<BusScheduleScreen>
                 Text('Route: ${route.displayName}'),
                 Text(
                   '${route.startPoint} → ${route.endPoint}',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 12,
-                    color: AppColors.textSecondary,
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.onSurface.withValues(alpha: 0.6),
                   ),
                 ),
               ],
@@ -453,8 +464,8 @@ class _BusScheduleScreenState extends State<BusScheduleScreen>
               icon: const Icon(Icons.location_on, size: 16),
               label: const Text('Track Live'),
               style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.success,
-                foregroundColor: AppColors.onPrimary,
+                backgroundColor: Theme.of(context).colorScheme.secondary,
+                foregroundColor: Theme.of(context).colorScheme.onSecondary,
                 padding: const EdgeInsets.symmetric(
                   horizontal: 12,
                   vertical: 8,
@@ -518,8 +529,8 @@ class _BusScheduleScreenState extends State<BusScheduleScreen>
                                 padding: const EdgeInsets.all(8),
                                 child: Text(
                                   stopSchedule.arrivalTime,
-                                  style: const TextStyle(
-                                    color: AppColors.primary,
+                                  style: TextStyle(
+                                    color: Theme.of(context).primaryColor,
                                     fontWeight: FontWeight.w500,
                                   ),
                                 ),
@@ -528,8 +539,10 @@ class _BusScheduleScreenState extends State<BusScheduleScreen>
                                 padding: const EdgeInsets.all(8),
                                 child: Text(
                                   stopSchedule.departureTime,
-                                  style: const TextStyle(
-                                    color: AppColors.secondary,
+                                  style: TextStyle(
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.secondary,
                                     fontWeight: FontWeight.w500,
                                   ),
                                 ),

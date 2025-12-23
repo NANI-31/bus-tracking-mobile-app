@@ -35,16 +35,22 @@ class _AdminDashboardState extends State<AdminDashboard>
   }
 
   Future<void> _loadAllUsers() async {
-    final firestoreService = Provider.of<FirestoreService>(context, listen: false);
+    final firestoreService = Provider.of<FirestoreService>(
+      context,
+      listen: false,
+    );
     firestoreService.getAllUsers().listen((users) {
-    setState(() {
+      setState(() {
         _allUsers = users;
       });
     });
   }
 
   Future<void> _loadAllColleges() async {
-    final firestoreService = Provider.of<FirestoreService>(context, listen: false);
+    final firestoreService = Provider.of<FirestoreService>(
+      context,
+      listen: false,
+    );
     firestoreService.getAllColleges().listen((colleges) {
       setState(() {
         _allColleges = colleges;
@@ -58,11 +64,11 @@ class _AdminDashboardState extends State<AdminDashboard>
     final user = authService.currentUserModel;
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: Text('Admin Panel - ${user?.fullName ?? 'Admin'}'),
-        backgroundColor: AppColors.primary,
-        foregroundColor: AppColors.onPrimary,
+        backgroundColor: Theme.of(context).primaryColor,
+        foregroundColor: Theme.of(context).colorScheme.onPrimary,
         actions: [
           IconButton(
             icon: const Icon(Icons.logout),
@@ -77,7 +83,7 @@ class _AdminDashboardState extends State<AdminDashboard>
         bottom: TabBar(
           controller: _tabController,
           labelColor: AppColors.onPrimary,
-                          unselectedLabelColor: AppColors.onPrimary.withValues(alpha: 0.7),
+          unselectedLabelColor: AppColors.onPrimary.withValues(alpha: 0.7),
           indicatorColor: AppColors.onPrimary,
           tabs: const [
             Tab(text: 'Overview', icon: Icon(Icons.dashboard)),
@@ -95,16 +101,16 @@ class _AdminDashboardState extends State<AdminDashboard>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
+                Text(
                   'System Overview',
                   style: TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.bold,
-                    color: AppColors.textPrimary,
+                    color: Theme.of(context).colorScheme.onSurface,
                   ),
                 ),
                 const SizedBox(height: AppSizes.paddingLarge),
-                
+
                 // Statistics Cards
                 Row(
                   children: [
@@ -113,7 +119,7 @@ class _AdminDashboardState extends State<AdminDashboard>
                         'Total Colleges',
                         _allColleges.length.toString(),
                         Icons.school,
-                        AppColors.primary,
+                        Theme.of(context).primaryColor,
                       ),
                     ),
                     const SizedBox(width: AppSizes.paddingMedium),
@@ -122,14 +128,14 @@ class _AdminDashboardState extends State<AdminDashboard>
                         'Verified Colleges',
                         _allColleges.where((c) => c.verified).length.toString(),
                         Icons.verified,
-                        AppColors.success,
+                        Theme.of(context).colorScheme.secondary,
                       ),
                     ),
                   ],
                 ),
-                
+
                 const SizedBox(height: AppSizes.paddingMedium),
-                
+
                 Row(
                   children: [
                     Expanded(
@@ -137,16 +143,19 @@ class _AdminDashboardState extends State<AdminDashboard>
                         'Total Users',
                         _allUsers.length.toString(),
                         Icons.people,
-                        AppColors.secondary,
+                        Theme.of(context).colorScheme.secondary,
                       ),
                     ),
                     const SizedBox(width: AppSizes.paddingMedium),
                     Expanded(
                       child: _buildStatCard(
                         'Pending Approvals',
-                        _allUsers.where((u) => u.needsManualApproval).length.toString(),
+                        _allUsers
+                            .where((u) => u.needsManualApproval)
+                            .length
+                            .toString(),
                         Icons.pending,
-                        AppColors.warning,
+                        Theme.of(context).colorScheme.error,
                       ),
                     ),
                   ],
@@ -154,7 +163,7 @@ class _AdminDashboardState extends State<AdminDashboard>
               ],
             ),
           ),
-          
+
           // Colleges Tab
           _allColleges.isEmpty
               ? const Center(
@@ -183,13 +192,17 @@ class _AdminDashboardState extends State<AdminDashboard>
                   itemBuilder: (context, index) {
                     final college = _allColleges[index];
                     return Card(
-                      margin: const EdgeInsets.only(bottom: AppSizes.paddingMedium),
+                      margin: const EdgeInsets.only(
+                        bottom: AppSizes.paddingMedium,
+                      ),
                       child: ListTile(
                         leading: CircleAvatar(
-                          backgroundColor: college.verified ? AppColors.success : AppColors.warning,
+                          backgroundColor: college.verified
+                              ? Theme.of(context).colorScheme.secondary
+                              : Theme.of(context).colorScheme.error,
                           child: Icon(
                             college.verified ? Icons.verified : Icons.pending,
-                            color: AppColors.onPrimary,
+                            color: Theme.of(context).colorScheme.onSecondary,
                           ),
                         ),
                         title: Text(
@@ -199,11 +212,15 @@ class _AdminDashboardState extends State<AdminDashboard>
                         subtitle: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text('Domains: ${college.allowedDomains.join(', ')}'),
+                            Text(
+                              'Domains: ${college.allowedDomains.join(', ')}',
+                            ),
                             Text(
                               'Status: ${college.verified ? 'Verified' : 'Pending Verification'}',
                               style: TextStyle(
-                                color: college.verified ? AppColors.success : AppColors.warning,
+                                color: college.verified
+                                    ? Theme.of(context).colorScheme.secondary
+                                    : Theme.of(context).colorScheme.error,
                                 fontWeight: FontWeight.w500,
                               ),
                             ),
@@ -211,7 +228,12 @@ class _AdminDashboardState extends State<AdminDashboard>
                         ),
                         trailing: !college.verified
                             ? IconButton(
-                                icon: const Icon(Icons.check, color: AppColors.success),
+                                icon: Icon(
+                                  Icons.check,
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.secondary,
+                                ),
                                 onPressed: () {
                                   // College verification will be implemented in future updates
                                 },
@@ -222,26 +244,26 @@ class _AdminDashboardState extends State<AdminDashboard>
                     );
                   },
                 ),
-          
+
           // Users Tab
           _allUsers.isEmpty
               ? const Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  Icons.people_outlined,
-                  size: 64,
-                  color: AppColors.textSecondary,
-                ),
-                SizedBox(height: AppSizes.paddingMedium),
-                Text(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.people_outlined,
+                        size: 64,
+                        color: AppColors.textSecondary,
+                      ),
+                      SizedBox(height: AppSizes.paddingMedium),
+                      Text(
                         'No users found',
-                  style: TextStyle(
-                    fontSize: 18,
-                    color: AppColors.textSecondary,
-                  ),
-                ),
+                        style: TextStyle(
+                          fontSize: 18,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
                     ],
                   ),
                 )
@@ -251,13 +273,17 @@ class _AdminDashboardState extends State<AdminDashboard>
                   itemBuilder: (context, index) {
                     final user = _allUsers[index];
                     return Card(
-                      margin: const EdgeInsets.only(bottom: AppSizes.paddingMedium),
+                      margin: const EdgeInsets.only(
+                        bottom: AppSizes.paddingMedium,
+                      ),
                       child: ListTile(
                         leading: CircleAvatar(
-                          backgroundColor: user.approved ? AppColors.success : AppColors.warning,
+                          backgroundColor: user.approved
+                              ? Theme.of(context).colorScheme.secondary
+                              : Theme.of(context).colorScheme.error,
                           child: Icon(
                             user.approved ? Icons.check : Icons.pending,
-                            color: AppColors.onPrimary,
+                            color: Theme.of(context).colorScheme.onSecondary,
                           ),
                         ),
                         title: Text(
@@ -268,19 +294,22 @@ class _AdminDashboardState extends State<AdminDashboard>
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(user.email),
-                            if (user.phoneNumber != null && user.phoneNumber!.isNotEmpty)
+                            if (user.phoneNumber != null &&
+                                user.phoneNumber!.isNotEmpty)
                               Text('Phone: ${user.phoneNumber}'),
                             Text(
                               'Role: ${user.role.displayName}',
-                              style: const TextStyle(
-                                color: AppColors.primary,
+                              style: TextStyle(
+                                color: Theme.of(context).primaryColor,
                                 fontWeight: FontWeight.w500,
                               ),
                             ),
                             Text(
                               'Status: ${user.approved ? 'Approved' : 'Pending'}',
                               style: TextStyle(
-                                color: user.approved ? AppColors.success : AppColors.warning,
+                                color: user.approved
+                                    ? Theme.of(context).colorScheme.secondary
+                                    : Theme.of(context).colorScheme.error,
                                 fontWeight: FontWeight.w500,
                               ),
                             ),
@@ -290,23 +319,24 @@ class _AdminDashboardState extends State<AdminDashboard>
                       ),
                     );
                   },
-          ),
+                ),
         ],
       ),
     );
   }
 
-  Widget _buildStatCard(String title, String value, IconData icon, Color color) {
+  Widget _buildStatCard(
+    String title,
+    String value,
+    IconData icon,
+    Color color,
+  ) {
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(AppSizes.paddingMedium),
         child: Column(
           children: [
-            Icon(
-              icon,
-              size: 32,
-              color: color,
-            ),
+            Icon(icon, size: 32, color: color),
             const SizedBox(height: AppSizes.paddingSmall),
             Text(
               value,
@@ -319,9 +349,11 @@ class _AdminDashboardState extends State<AdminDashboard>
             const SizedBox(height: AppSizes.paddingSmall),
             Text(
               title,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 14,
-                color: AppColors.textSecondary,
+                color: Theme.of(
+                  context,
+                ).colorScheme.onSurface.withValues(alpha: 0.6),
               ),
               textAlign: TextAlign.center,
             ),

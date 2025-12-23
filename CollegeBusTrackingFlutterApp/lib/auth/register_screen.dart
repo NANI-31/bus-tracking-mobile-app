@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import 'package:email_validator/email_validator.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:collegebus/services/auth_service.dart';
 import 'package:collegebus/services/firestore_service.dart';
 import 'package:collegebus/widgets/custom_input_field.dart';
@@ -269,9 +270,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
         height: isFullWidth ? 80 : 135,
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: Theme.of(context).colorScheme.surface,
           border: Border.all(
-            color: isSelected ? AppColors.primary : Colors.grey.shade200,
+            color: isSelected
+                ? Theme.of(context).primaryColor
+                : Theme.of(
+                    context,
+                  ).colorScheme.onSurface.withValues(alpha: 0.1),
             width: isSelected ? 2 : 1,
           ),
           borderRadius: BorderRadius.circular(16),
@@ -302,10 +307,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     children: [
                       Text(
                         label ?? role.displayName,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 14,
-                          color: AppColors.textPrimary,
+                          color: Theme.of(context).colorScheme.onSurface,
                         ),
                       ),
                       if (subLabel != null)
@@ -313,7 +318,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           subLabel,
                           style: TextStyle(
                             fontSize: 12,
-                            color: Colors.grey[600],
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurface.withValues(alpha: 0.6),
                           ),
                         ),
                     ],
@@ -353,10 +360,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   const SizedBox(height: 8),
                   Text(
                     label ?? role.displayName,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontWeight: FontWeight.w600,
                       fontSize: 14,
-                      color: AppColors.textPrimary,
+                      color: Theme.of(context).colorScheme.onSurface,
                     ),
                   ),
                 ],
@@ -368,7 +375,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SingleChildScrollView(
         child: Column(
           children: [
@@ -383,7 +390,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   width: double.infinity,
                   decoration: const BoxDecoration(
                     image: DecorationImage(
-                      image: NetworkImage(
+                      image: CachedNetworkImageProvider(
                         'https://lh3.googleusercontent.com/aida-public/AB6AXuBJItvO1MgqjYaxS_PfHAyRmbVhVWYpLXUl8F4KCUTCh4_c_itizw_oquqb5HY7la0sDtQ9HLqA9IKUFzmL9yULoXzIOVLeIiVFwpzx7XqL_ng2ylqv2J4hwd0Wagvhyv0X064b8Wu7tjLGDgW-LzwRaTxVYYiGQ3xOn4_5_D9WaLw5NxQGPXhSz3MyyVKu1tGRPOrYtRkoT9yWxa5T_CXnz-wUJcVF79QNONhwV87nLeP3Efjd81tkpq0g8l5qKG7lfyr5aQ4jC25B',
                       ),
                       fit: BoxFit.cover,
@@ -399,8 +406,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             0.3,
                           ), // For back button visibility
                           Colors.transparent,
-                          AppColors.background.withOpacity(0.2),
-                          AppColors.background,
+                          Theme.of(
+                            context,
+                          ).scaffoldBackgroundColor.withValues(alpha: 0.2),
+                          Theme.of(context).scaffoldBackgroundColor,
                         ],
                         stops: const [0.0, 0.4, 0.8, 1.0],
                       ),
@@ -415,7 +424,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     width: 70,
                     height: 70,
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: Theme.of(context).colorScheme.surface,
                       borderRadius: BorderRadius.circular(16),
                       boxShadow: [
                         BoxShadow(
@@ -460,25 +469,27 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // Headline
-                    const Center(
+                    Center(
                       child: Text(
                         'Create Account',
                         style: TextStyle(
                           fontSize: 32, // Large as requested
                           fontWeight: FontWeight.bold,
-                          color: AppColors.textPrimary,
+                          color: Theme.of(context).colorScheme.onBackground,
                           letterSpacing: -0.5,
                         ),
                       ),
                     ),
                     const SizedBox(height: 8),
-                    const Center(
+                    Center(
                       child: Text(
                         'Join to track your college bus in real-time.',
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           fontSize: 15,
-                          color: AppColors.textSecondary,
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.onSurface.withValues(alpha: 0.6),
                           height: 1.4,
                         ),
                       ),
@@ -489,12 +500,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     const SizedBox(height: 32),
 
                     // Role Selection Grid
-                    const Text(
+                    Text(
                       'Who are you?',
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
-                        color: AppColors.textPrimary,
+                        color: Theme.of(context).colorScheme.onBackground,
                       ),
                     ),
                     const SizedBox(height: 16),
@@ -532,12 +543,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text(
+                          Text(
                             'College',
                             style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w500,
-                              color: AppColors.textPrimary,
+                              color: Theme.of(context).colorScheme.onBackground,
                             ),
                           ),
                           const SizedBox(height: 8),
@@ -589,13 +600,18 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                           Icons.school_outlined,
                                         ),
                                         filled: true,
-                                        fillColor: Colors.white,
+                                        fillColor: Theme.of(
+                                          context,
+                                        ).colorScheme.surface,
                                         border: OutlineInputBorder(
                                           borderRadius: BorderRadius.circular(
                                             12,
                                           ),
                                           borderSide: BorderSide(
-                                            color: Colors.grey.shade300,
+                                            color: Theme.of(context)
+                                                .colorScheme
+                                                .onSurface
+                                                .withValues(alpha: 0.1),
                                             width: 1,
                                           ),
                                         ),
@@ -604,7 +620,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                             12,
                                           ),
                                           borderSide: BorderSide(
-                                            color: Colors.grey.shade300,
+                                            color: Theme.of(context)
+                                                .colorScheme
+                                                .onSurface
+                                                .withValues(alpha: 0.1),
                                             width: 1,
                                           ),
                                         ),
@@ -612,8 +631,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                           borderRadius: BorderRadius.circular(
                                             12,
                                           ),
-                                          borderSide: const BorderSide(
-                                            color: AppColors.primary,
+                                          borderSide: BorderSide(
+                                            color: Theme.of(
+                                              context,
+                                            ).primaryColor,
                                             width: 1.5,
                                           ),
                                         ),

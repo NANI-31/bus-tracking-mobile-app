@@ -49,15 +49,17 @@ class StudentMapTab extends StatelessWidget {
         Container(
           padding: const EdgeInsets.all(AppSizes.paddingMedium),
           color: currentLocation != null
-              ? AppColors.primary.withValues(alpha: 0.1)
-              : AppColors.textSecondary.withValues(alpha: 0.1),
+              ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.1)
+              : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.1),
           child: Row(
             children: [
               Icon(
                 Icons.location_on,
                 color: currentLocation != null
-                    ? AppColors.primary
-                    : AppColors.textSecondary,
+                    ? Theme.of(context).colorScheme.primary
+                    : Theme.of(
+                        context,
+                      ).colorScheme.onSurface.withValues(alpha: 0.6),
               ),
               const SizedBox(width: AppSizes.paddingSmall),
               Expanded(
@@ -67,9 +69,10 @@ class StudentMapTab extends StatelessWidget {
                       : 'Acquiring location...',
                   style: TextStyle(
                     color: currentLocation != null
-                        ? AppColors.primary
-                        : AppColors
-                              .textSecondary, // Change from warning color to neutral
+                        ? Theme.of(context).colorScheme.primary
+                        : Theme.of(
+                            context,
+                          ).colorScheme.onSurface.withValues(alpha: 0.6),
                     fontWeight: FontWeight.w500,
                   ),
                 ),
@@ -81,7 +84,7 @@ class StudentMapTab extends StatelessWidget {
         // Filter Controls
         Container(
           padding: const EdgeInsets.all(AppSizes.paddingMedium),
-          color: AppColors.surface,
+          color: Theme.of(context).colorScheme.surface,
           child: Column(
             children: [
               Row(
@@ -90,6 +93,7 @@ class StudentMapTab extends StatelessWidget {
                     child: DropdownButtonFormField<String>(
                       isExpanded: true,
                       value: selectedRouteType,
+                      dropdownColor: Theme.of(context).colorScheme.surface,
                       decoration: const InputDecoration(
                         labelText: 'Route Type',
                         border: OutlineInputBorder(),
@@ -116,7 +120,10 @@ class StudentMapTab extends StatelessWidget {
                   Expanded(
                     child: DropdownButtonFormField<String>(
                       isExpanded: true,
-                      value: selectedStop,
+                      value: allStops.contains(selectedStop)
+                          ? selectedStop
+                          : null,
+                      dropdownColor: Theme.of(context).colorScheme.surface,
                       decoration: const InputDecoration(
                         labelText: 'Bus Stop',
                         border: OutlineInputBorder(),
@@ -146,7 +153,10 @@ class StudentMapTab extends StatelessWidget {
                   Expanded(
                     child: DropdownButtonFormField<String>(
                       isExpanded: true,
-                      value: selectedBusNumber,
+                      value: allBusNumbers.contains(selectedBusNumber)
+                          ? selectedBusNumber
+                          : null,
+                      dropdownColor: Theme.of(context).colorScheme.surface,
                       decoration: const InputDecoration(
                         labelText: 'Bus Number',
                         border: OutlineInputBorder(),
@@ -179,8 +189,12 @@ class StudentMapTab extends StatelessWidget {
                       icon: const Icon(Icons.clear),
                       label: const Text('Clear'),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.warning,
-                        foregroundColor: AppColors.onPrimary,
+                        backgroundColor: Theme.of(
+                          context,
+                        ).colorScheme.secondary,
+                        foregroundColor: Theme.of(
+                          context,
+                        ).colorScheme.onSecondary,
                       ),
                     ),
                 ],
@@ -191,8 +205,10 @@ class StudentMapTab extends StatelessWidget {
                 const SizedBox(height: AppSizes.paddingSmall),
                 Text(
                   '$filteredBusesCount bus(es) found',
-                  style: const TextStyle(
-                    color: AppColors.textSecondary,
+                  style: TextStyle(
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.onSurface.withValues(alpha: 0.6),
                     fontSize: 12,
                   ),
                 ),
@@ -224,9 +240,9 @@ class StudentMapTab extends StatelessWidget {
         if (selectedBus != null)
           Container(
             padding: const EdgeInsets.all(AppSizes.paddingMedium),
-            decoration: const BoxDecoration(
-              color: AppColors.surface,
-              borderRadius: BorderRadius.only(
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.surface,
+              borderRadius: const BorderRadius.only(
                 topLeft: Radius.circular(AppSizes.radiusLarge),
                 topRight: Radius.circular(AppSizes.radiusLarge),
               ),
@@ -237,10 +253,10 @@ class StudentMapTab extends StatelessWidget {
                 Row(
                   children: [
                     CircleAvatar(
-                      backgroundColor: AppColors.primary,
-                      child: const Icon(
+                      backgroundColor: Theme.of(context).primaryColor,
+                      child: Icon(
                         Icons.directions_bus,
-                        color: AppColors.onPrimary,
+                        color: Theme.of(context).colorScheme.onPrimary,
                       ),
                     ),
                     const SizedBox(width: AppSizes.paddingMedium),
@@ -257,10 +273,12 @@ class StudentMapTab extends StatelessWidget {
                           ),
                           const SizedBox(height: 4),
                           // Note: We can expand this later with more details if needed
-                          const Text(
+                          Text(
                             'Selected Bus',
                             style: TextStyle(
-                              color: AppColors.textSecondary,
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.onSurface.withValues(alpha: 0.6),
                               fontSize: 14,
                             ),
                           ),

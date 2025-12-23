@@ -10,6 +10,8 @@ import 'package:collegebus/utils/constants.dart';
 import 'package:collegebus/utils/router.dart';
 import 'package:collegebus/screens/splash_screen.dart';
 
+import 'package:collegebus/services/theme_service.dart';
+
 void main() {
   runApp(const AppInitializer());
 }
@@ -74,24 +76,21 @@ class MyApp extends StatelessWidget {
 
         Provider(create: (_) => LocationService()),
         Provider(create: (_) => NotificationService()),
+        ChangeNotifierProvider(create: (_) => ThemeService()),
       ],
-      child: MaterialApp.router(
-        title: 'Upasthit',
-        theme: ThemeData(
-          primarySwatch: Colors.blue,
-          useMaterial3: true,
-          colorScheme: ColorScheme.fromSeed(
-            seedColor: AppColors.primary,
-            brightness: Brightness.light,
-          ),
-          appBarTheme: const AppBarTheme(
-            backgroundColor: Colors.transparent,
-            elevation: 0,
-            centerTitle: true,
-          ),
-        ),
-        routerConfig: AppRouter.router,
-        debugShowCheckedModeBanner: false,
+      child: Consumer<ThemeService>(
+        builder: (context, themeService, child) {
+          return MaterialApp.router(
+            title: 'Upasthit',
+            theme: AppTheme.lightTheme,
+            darkTheme: AppTheme.darkTheme,
+            themeMode: themeService.isDarkMode
+                ? ThemeMode.dark
+                : ThemeMode.light,
+            routerConfig: AppRouter.router,
+            debugShowCheckedModeBanner: false,
+          );
+        },
       ),
     );
   }

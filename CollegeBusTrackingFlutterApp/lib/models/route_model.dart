@@ -30,14 +30,22 @@ class RouteModel {
       id: id,
       routeName: map['routeName'] ?? '',
       routeType: map['routeType'] ?? 'pickup',
-      startPoint: map['startPoint'] ?? '',
-      endPoint: map['endPoint'] ?? '',
-      stopPoints: List<String>.from(map['stopPoints'] ?? []),
+      startPoint: map['startPoint'] is Map
+          ? map['startPoint']['name'] ?? ''
+          : map['startPoint'] ?? '',
+      endPoint: map['endPoint'] is Map
+          ? map['endPoint']['name'] ?? ''
+          : map['endPoint'] ?? '',
+      stopPoints: (map['stopPoints'] as List? ?? [])
+          .map((e) => e is Map ? e['name'] as String : e.toString())
+          .toList(),
       collegeId: map['collegeId'] ?? '',
       createdBy: map['createdBy'] ?? '',
       isActive: map['isActive'] ?? true,
       createdAt: DateTime.parse(map['createdAt']),
-      updatedAt: map['updatedAt'] != null ? DateTime.parse(map['updatedAt']) : null,
+      updatedAt: map['updatedAt'] != null
+          ? DateTime.parse(map['updatedAt'])
+          : null,
     );
   }
 

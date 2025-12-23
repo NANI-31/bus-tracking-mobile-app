@@ -1,19 +1,94 @@
 import 'package:flutter/material.dart';
 
 class AppColors {
-  static const Color primary = Color(0xFF2196F3);
-  static const Color secondary = Color(0xFF03DAC6);
+  static const Color primary = Color(0xFF197FE6);
+  static const Color secondary = Color(
+    0xFF03DAC6,
+  ); // Keeping secondary as is for now if not specified
   static const Color error = Color(0xFFB00020);
   static const Color success = Color(0xFF4CAF50);
   static const Color warning = Color(0xFFFF9800);
-  static const Color background = Color(0xFFF5F5F5);
-  static const Color surface = Color(0xFFFFFFFF);
+
+  // Light Theme Colors
+  static const Color background = Color(0xFFF6F7F8); // background-light
+  static const Color surface = Color(0xFFFFFFFF); // surface-light
   static const Color onPrimary = Color(0xFFFFFFFF);
   static const Color onSecondary = Color(0xFF000000);
-  static const Color onBackground = Color(0xFF000000);
-  static const Color onSurface = Color(0xFF000000);
-  static const Color textPrimary = Color(0xFF212121);
-  static const Color textSecondary = Color(0xFF757575);
+  static const Color onBackground = Color(
+    0xFF111418,
+  ); // text-main-light (using main text as onBackground)
+  static const Color onSurface = Color(0xFF111418); // text-main-light
+  static const Color textPrimary = Color(0xFF111418); // text-main-light
+  static const Color textSecondary = Color(0xFF637588); // text-sub-light
+
+  // Dark Mode Colors
+  static const Color darkBackground = Color(0xFF111921); // background-dark
+  static const Color darkSurface = Color(0xFF1A2632); // surface-dark
+  static const Color darkOnSurface = Color(0xFFFFFFFF); // text-main-dark
+  static const Color darkTextPrimary = Color(0xFFFFFFFF); // text-main-dark
+  static const Color darkTextSecondary = Color(0xFF93ADC8); // text-sub-dark
+}
+
+class AppTheme {
+  static final lightTheme = ThemeData(
+    useMaterial3: true,
+    brightness: Brightness.light,
+    primaryColor: AppColors.primary,
+    scaffoldBackgroundColor: AppColors.background,
+    colorScheme: ColorScheme.light(
+      primary: AppColors.primary,
+      secondary: AppColors.secondary,
+      surface: AppColors.surface,
+      onPrimary: AppColors.onPrimary,
+      onSecondary: AppColors.onSecondary,
+      onSurface: AppColors.onSurface,
+      error: AppColors.error,
+    ),
+    appBarTheme: const AppBarTheme(
+      backgroundColor: Colors.transparent,
+      elevation: 0,
+      centerTitle: true,
+      foregroundColor: AppColors.textPrimary,
+    ),
+    textTheme: const TextTheme(
+      bodyLarge: TextStyle(color: AppColors.textPrimary),
+      bodyMedium: TextStyle(color: AppColors.textPrimary),
+      titleLarge: TextStyle(color: AppColors.textPrimary),
+      titleMedium: TextStyle(color: AppColors.textPrimary),
+      labelLarge: TextStyle(color: AppColors.textPrimary),
+    ),
+    iconTheme: const IconThemeData(color: AppColors.textPrimary),
+  );
+
+  static final ThemeData darkTheme = ThemeData(
+    useMaterial3: true,
+    brightness: Brightness.dark,
+    primaryColor: AppColors.primary,
+    scaffoldBackgroundColor: AppColors.darkBackground,
+    colorScheme: ColorScheme.dark(
+      primary: AppColors.primary,
+      secondary: AppColors.secondary,
+      surface: AppColors.darkSurface,
+      onPrimary: AppColors.onPrimary,
+      onSecondary: AppColors.onSecondary,
+      onSurface: AppColors.darkOnSurface,
+      error: AppColors.error,
+    ),
+    appBarTheme: const AppBarTheme(
+      backgroundColor: Colors.transparent,
+      elevation: 0,
+      centerTitle: true,
+      foregroundColor: AppColors.darkTextPrimary,
+    ),
+    textTheme: const TextTheme(
+      bodyLarge: TextStyle(color: AppColors.darkTextPrimary),
+      bodyMedium: TextStyle(color: AppColors.darkTextPrimary),
+      titleLarge: TextStyle(color: AppColors.darkTextPrimary),
+      titleMedium: TextStyle(color: AppColors.darkTextPrimary),
+      labelLarge: TextStyle(color: AppColors.darkTextPrimary),
+    ),
+    iconTheme: const IconThemeData(color: AppColors.darkTextPrimary),
+  );
 }
 
 class AppSizes {

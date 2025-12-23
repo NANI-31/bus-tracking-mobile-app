@@ -45,8 +45,14 @@ class _StudentDashboardState extends State<StudentDashboard>
   StreamSubscription? _busesListSubscription;
   StreamSubscription? _routesSubscription;
 
-  // Get unique stops from all buses
-  List<String> get _allStops {
+  // Cached lists for filters
+  List<String> _cachedExposedStops = [];
+  List<String> _cachedExposedBusNumbers = [];
+
+  List<String> get _allStops => _cachedExposedStops;
+  List<String> get _allBusNumbers => _cachedExposedBusNumbers;
+
+  void _updateCachedFilterLists() {
     final stops = <String>{};
     for (final bus in _allBuses) {
       final route = _routes.firstWhere(
@@ -68,12 +74,10 @@ class _StudentDashboardState extends State<StudentDashboard>
       stops.add(route.endPoint);
       stops.addAll(route.stopPoints);
     }
-    return stops.toList()..sort();
-  }
+    _cachedExposedStops = stops.toList()..sort();
 
-  // Get unique bus numbers
-  List<String> get _allBusNumbers {
-    return _allBuses.map((bus) => bus.busNumber).toSet().toList()..sort();
+    _cachedExposedBusNumbers =
+        _allBuses.map((bus) => bus.busNumber).toSet().toList()..sort();
   }
 
   @override
@@ -206,13 +210,14 @@ class _StudentDashboardState extends State<StudentDashboard>
             if (mounted) {
               setState(() {
                 _allBuses = buses;
+                _updateCachedFilterLists();
                 _applyFilters();
                 _updateMarkers();
               });
             }
 
-            // Set up location listeners for each bus
-            _setupBusLocationListeners(buses, firestoreService);
+            // Set up location listeners (ONE stream for all buses)
+            _setupBusLocationListeners(collegeId, firestoreService);
           });
     }
   }
@@ -232,6 +237,9 @@ class _StudentDashboardState extends State<StudentDashboard>
             if (mounted) {
               setState(() {
                 _routes = routes;
+                _updateCachedFilterLists();
+                _applyFilters();
+                _updateMarkers();
               });
             }
           });
@@ -239,19 +247,44 @@ class _StudentDashboardState extends State<StudentDashboard>
   }
 
   void _setupBusLocationListeners(
-    List<BusModel> buses,
+    String collegeId,
     FirestoreService firestoreService,
   ) {
-    for (final bus in buses) {
-      final subscription = firestoreService.getBusLocation(bus.id).listen((
-        location,
-      ) {
-        if (mounted) {
-          _updateBusMarker(bus, location);
-        }
-      });
-      _busLocationSubscriptions[bus.id] = subscription;
+    // Cancel any existing subscription first
+    // We only need ONE subscription now for ALL buses
+    for (final subscription in _busLocationSubscriptions.values) {
+      subscription.cancel();
     }
+    _busLocationSubscriptions.clear();
+
+    final subscription = firestoreService
+        .getCollegeBusLocationsStream(collegeId)
+        .listen((locations) {
+          if (!mounted) return;
+
+          // Update all markers
+          for (final location in locations) {
+            final bus = _allBuses.firstWhere(
+              (b) => b.id == location.busId,
+              orElse: () => BusModel(
+                id: '',
+                busNumber: '',
+                driverId: '',
+                routeId: '',
+                collegeId: '',
+                isActive: false,
+                createdAt: DateTime.now(),
+              ),
+            );
+
+            if (bus.id.isNotEmpty) {
+              _updateBusMarker(bus, location);
+            }
+          }
+        });
+
+    // Store with a key 'all' since it covers everything
+    _busLocationSubscriptions['all'] = subscription;
   }
 
   void _updateBusMarker(BusModel bus, BusLocationModel? location) {
@@ -284,6 +317,15 @@ class _StudentDashboardState extends State<StudentDashboard>
       _markers.removeWhere((m) => m.markerId.value == 'bus_${bus.id}');
       _markers.add(marker);
     });
+
+    // Auto-follow selected bus
+    if (_selectedBus?.id == bus.id &&
+        location != null &&
+        _mapController != null) {
+      _mapController!.animateCamera(
+        CameraUpdate.newLatLng(location.currentLocation),
+      );
+    }
   }
 
   void _applyFilters() {
@@ -359,7 +401,7 @@ class _StudentDashboardState extends State<StudentDashboard>
           markerId: const MarkerId('current_location'),
           position: _currentLocation!,
           infoWindow: const InfoWindow(title: 'Your Location'),
-          icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueBlue),
+          icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
         ),
       );
     }
@@ -461,7 +503,8 @@ class _StudentDashboardState extends State<StudentDashboard>
       context,
       listen: false,
     );
-    firestoreService.getBusLocation(bus.id).listen((location) {
+    // Use first (one-shot) to move camera immediately without creating a persistent leaky listener
+    firestoreService.getBusLocation(bus.id).first.then((location) {
       if (location != null && _mapController != null) {
         _mapController!.animateCamera(
           CameraUpdate.newLatLngZoom(location.currentLocation, 16.0),
@@ -515,7 +558,7 @@ class _StudentDashboardState extends State<StudentDashboard>
     final user = authService.currentUserModel;
 
     return Scaffold(
-      backgroundColor: Colors.grey[100],
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       drawer: AppDrawer(user: user, authService: authService),
       appBar: StudentDashboardAppBar(
         user: user,
@@ -524,6 +567,7 @@ class _StudentDashboardState extends State<StudentDashboard>
       ),
       body: TabBarView(
         controller: _tabController,
+        physics: const NeverScrollableScrollPhysics(),
         children: [
           // Map Tab
           StudentMapTab(

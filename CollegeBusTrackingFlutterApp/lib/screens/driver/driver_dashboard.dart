@@ -54,15 +54,15 @@ class _DriverDashboardState extends State<DriverDashboard>
     final prefs = await SharedPreferences.getInstance();
     final authService = Provider.of<AuthService>(context, listen: false);
     final userId = authService.currentUserModel?.id;
-    
+
     if (userId != null) {
       final savedBusNumber = prefs.getString('driver_${userId}_bus_number');
       final savedRouteId = prefs.getString('driver_${userId}_route_id');
-      
+
       if (savedBusNumber != null) {
         setState(() => _selectedBusNumber = savedBusNumber);
       }
-      
+
       if (savedRouteId != null) {
         final route = _routes.firstWhere(
           (r) => r.id == savedRouteId,
@@ -90,10 +90,13 @@ class _DriverDashboardState extends State<DriverDashboard>
     final prefs = await SharedPreferences.getInstance();
     final authService = Provider.of<AuthService>(context, listen: false);
     final userId = authService.currentUserModel?.id;
-    
+
     if (userId != null) {
       if (_selectedBusNumber != null) {
-        await prefs.setString('driver_${userId}_bus_number', _selectedBusNumber!);
+        await prefs.setString(
+          'driver_${userId}_bus_number',
+          _selectedBusNumber!,
+        );
       }
       if (_selectedRoute != null) {
         await prefs.setString('driver_${userId}_route_id', _selectedRoute!.id);
@@ -102,7 +105,10 @@ class _DriverDashboardState extends State<DriverDashboard>
   }
 
   Future<void> _getCurrentLocation() async {
-    final locationService = Provider.of<LocationService>(context, listen: false);
+    final locationService = Provider.of<LocationService>(
+      context,
+      listen: false,
+    );
     final location = await locationService.getCurrentLocation();
     if (location != null) {
       setState(() {
@@ -114,7 +120,10 @@ class _DriverDashboardState extends State<DriverDashboard>
 
   Future<void> _loadBusNumbers() async {
     final authService = Provider.of<AuthService>(context, listen: false);
-    final firestoreService = Provider.of<FirestoreService>(context, listen: false);
+    final firestoreService = Provider.of<FirestoreService>(
+      context,
+      listen: false,
+    );
     final collegeId = authService.currentUserModel?.collegeId;
     if (collegeId != null) {
       firestoreService.getBusNumbers(collegeId).listen((busNumbers) {
@@ -127,10 +136,15 @@ class _DriverDashboardState extends State<DriverDashboard>
 
   Future<void> _loadRoutes() async {
     final authService = Provider.of<AuthService>(context, listen: false);
-    final firestoreService = Provider.of<FirestoreService>(context, listen: false);
+    final firestoreService = Provider.of<FirestoreService>(
+      context,
+      listen: false,
+    );
     final currentUser = authService.currentUserModel;
     if (currentUser != null) {
-      firestoreService.getRoutesByCollege(currentUser.collegeId).listen((routes) {
+      firestoreService.getRoutesByCollege(currentUser.collegeId).listen((
+        routes,
+      ) {
         setState(() {
           _routes = routes;
         });
@@ -140,8 +154,11 @@ class _DriverDashboardState extends State<DriverDashboard>
 
   Future<void> _loadMyBus() async {
     final authService = Provider.of<AuthService>(context, listen: false);
-    final firestoreService = Provider.of<FirestoreService>(context, listen: false);
-    
+    final firestoreService = Provider.of<FirestoreService>(
+      context,
+      listen: false,
+    );
+
     final currentUser = authService.currentUserModel;
     if (currentUser != null) {
       final bus = await firestoreService.getBusByDriver(currentUser.id);
@@ -189,33 +206,43 @@ class _DriverDashboardState extends State<DriverDashboard>
     // Add route markers and polyline if route is selected
     if (_selectedRoute != null && _selectedRoute!.id.isNotEmpty) {
       final routePoints = <LatLng>[];
-      
+
       // Start point (green)
-      final startCoord = _getMockCoordinateForLocation(_selectedRoute!.startPoint);
+      final startCoord = _getMockCoordinateForLocation(
+        _selectedRoute!.startPoint,
+      );
       routePoints.add(startCoord);
       newMarkers.add(
         Marker(
           markerId: const MarkerId('start_point'),
           position: startCoord,
           infoWindow: InfoWindow(title: 'Start: ${_selectedRoute!.startPoint}'),
-          icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen),
+          icon: BitmapDescriptor.defaultMarkerWithHue(
+            BitmapDescriptor.hueGreen,
+          ),
         ),
       );
-      
+
       // Stop points (yellow)
       for (int i = 0; i < _selectedRoute!.stopPoints.length; i++) {
-        final stopCoord = _getMockCoordinateForLocation(_selectedRoute!.stopPoints[i]);
+        final stopCoord = _getMockCoordinateForLocation(
+          _selectedRoute!.stopPoints[i],
+        );
         routePoints.add(stopCoord);
         newMarkers.add(
           Marker(
             markerId: MarkerId('stop_$i'),
             position: stopCoord,
-            infoWindow: InfoWindow(title: 'Stop: ${_selectedRoute!.stopPoints[i]}'),
-            icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueYellow),
+            infoWindow: InfoWindow(
+              title: 'Stop: ${_selectedRoute!.stopPoints[i]}',
+            ),
+            icon: BitmapDescriptor.defaultMarkerWithHue(
+              BitmapDescriptor.hueYellow,
+            ),
           ),
         );
       }
-      
+
       // End point (red)
       final endCoord = _getMockCoordinateForLocation(_selectedRoute!.endPoint);
       routePoints.add(endCoord);
@@ -227,7 +254,7 @@ class _DriverDashboardState extends State<DriverDashboard>
           icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
         ),
       );
-      
+
       // Add polyline
       if (routePoints.length > 1) {
         newPolylines.add(
@@ -261,8 +288,10 @@ class _DriverDashboardState extends State<DriverDashboard>
       'Residential Area': const LatLng(12.9806, 77.6036),
       'Park': const LatLng(12.9816, 77.6046),
     };
-    
-    return mockCoords[location] ?? _currentLocation ?? const LatLng(12.9716, 77.5946);
+
+    return mockCoords[location] ??
+        _currentLocation ??
+        const LatLng(12.9716, 77.5946);
   }
 
   Future<void> _toggleLocationSharing() async {
@@ -276,14 +305,20 @@ class _DriverDashboardState extends State<DriverDashboard>
       return;
     }
 
-    final locationService = Provider.of<LocationService>(context, listen: false);
-    final firestoreService = Provider.of<FirestoreService>(context, listen: false);
+    final locationService = Provider.of<LocationService>(
+      context,
+      listen: false,
+    );
+    final firestoreService = Provider.of<FirestoreService>(
+      context,
+      listen: false,
+    );
 
     if (_isSharing) {
       // Stop sharing location
       locationService.stopLocationTracking();
       setState(() => _isSharing = false);
-      
+
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Location sharing stopped'),
@@ -294,21 +329,23 @@ class _DriverDashboardState extends State<DriverDashboard>
       // Start sharing location
       await locationService.startLocationTracking(
         onLocationUpdate: (location) async {
-          print('DEBUG: Driver location update: ${location.latitude}, ${location.longitude}');
-          
+          print(
+            'DEBUG: Driver location update: ${location.latitude}, ${location.longitude}',
+          );
+
           final busLocation = BusLocationModel(
             busId: _myBus!.id,
             currentLocation: location,
             timestamp: DateTime.now(),
           );
-          
+
           try {
             await firestoreService.updateBusLocation(_myBus!.id, busLocation);
             print('DEBUG: Location saved to Firestore successfully');
           } catch (e) {
             print('DEBUG: Error saving location to Firestore: $e');
           }
-          
+
           // Update current location and markers
           if (mounted) {
             setState(() {
@@ -319,7 +356,7 @@ class _DriverDashboardState extends State<DriverDashboard>
         },
       );
       setState(() => _isSharing = true);
-      
+
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Location sharing started'),
@@ -335,11 +372,11 @@ class _DriverDashboardState extends State<DriverDashboard>
     final user = authService.currentUserModel;
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: Text('Welcome, ${user?.fullName ?? 'Driver'}'),
-        backgroundColor: AppColors.primary,
-        foregroundColor: AppColors.onPrimary,
+        backgroundColor: Theme.of(context).primaryColor,
+        foregroundColor: Theme.of(context).colorScheme.onPrimary,
         actions: [
           IconButton(
             icon: const Icon(Icons.notifications),
@@ -359,9 +396,11 @@ class _DriverDashboardState extends State<DriverDashboard>
         ],
         bottom: TabBar(
           controller: _tabController,
-          labelColor: AppColors.onPrimary,
-          unselectedLabelColor: AppColors.onPrimary.withValues(alpha: 0.7),
-          indicatorColor: AppColors.onPrimary,
+          labelColor: Theme.of(context).colorScheme.onPrimary,
+          unselectedLabelColor: Theme.of(
+            context,
+          ).colorScheme.onPrimary.withValues(alpha: 0.7),
+          indicatorColor: Theme.of(context).colorScheme.onPrimary,
           tabs: const [
             Tab(text: 'Bus Setup', icon: Icon(Icons.settings)),
             Tab(text: 'Live Tracking', icon: Icon(Icons.map)),
@@ -377,14 +416,18 @@ class _DriverDashboardState extends State<DriverDashboard>
               // Location display
               Container(
                 padding: const EdgeInsets.all(AppSizes.paddingMedium),
-                color: _currentLocation != null 
-                    ? AppColors.primary.withValues(alpha: 0.1)
-                    : AppColors.warning.withValues(alpha: 0.1),
+                color: _currentLocation != null
+                    ? Theme.of(context).primaryColor.withValues(alpha: 0.1)
+                    : Theme.of(
+                        context,
+                      ).colorScheme.error.withValues(alpha: 0.1),
                 child: Row(
                   children: [
                     Icon(
-                      Icons.location_on, 
-                      color: _currentLocation != null ? AppColors.primary : AppColors.warning
+                      Icons.location_on,
+                      color: _currentLocation != null
+                          ? Theme.of(context).primaryColor
+                          : Theme.of(context).colorScheme.error,
                     ),
                     const SizedBox(width: AppSizes.paddingSmall),
                     Expanded(
@@ -393,7 +436,9 @@ class _DriverDashboardState extends State<DriverDashboard>
                             ? 'Your Location: ${_currentLocation!.latitude.toStringAsFixed(4)}, ${_currentLocation!.longitude.toStringAsFixed(4)}'
                             : 'Location not available. Please enable location services.',
                         style: TextStyle(
-                          color: _currentLocation != null ? AppColors.primary : AppColors.warning,
+                          color: _currentLocation != null
+                              ? Theme.of(context).primaryColor
+                              : Theme.of(context).colorScheme.error,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
@@ -401,30 +446,34 @@ class _DriverDashboardState extends State<DriverDashboard>
                   ],
                 ),
               ),
-              
+
               Expanded(
                 child: Padding(
                   padding: const EdgeInsets.all(AppSizes.paddingMedium),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
+                      Text(
                         'Bus & Route Selection',
                         style: TextStyle(
                           fontSize: 24,
                           fontWeight: FontWeight.bold,
-                          color: AppColors.textPrimary,
+                          color: Theme.of(context).colorScheme.onSurface,
                         ),
                       ),
                       const SizedBox(height: AppSizes.paddingLarge),
-                      
+
                       if (_myBus == null) ...[
                         DropdownButtonFormField<String>(
                           value: _selectedBusNumber,
-                          items: _busNumbers.map((busNumber) => DropdownMenuItem(
-                            value: busNumber,
-                            child: Text(busNumber),
-                          )).toList(),
+                          items: _busNumbers
+                              .map(
+                                (busNumber) => DropdownMenuItem(
+                                  value: busNumber,
+                                  child: Text(busNumber),
+                                ),
+                              )
+                              .toList(),
                           onChanged: (busNumber) {
                             setState(() {
                               _selectedBusNumber = busNumber;
@@ -439,10 +488,16 @@ class _DriverDashboardState extends State<DriverDashboard>
                         const SizedBox(height: AppSizes.paddingMedium),
                         DropdownButtonFormField<RouteModel>(
                           value: _selectedRoute,
-                          items: _routes.map((route) => DropdownMenuItem(
-                            value: route,
-                            child: Text('${route.routeName} (${route.routeType.toUpperCase()})'),
-                          )).toList(),
+                          items: _routes
+                              .map(
+                                (route) => DropdownMenuItem(
+                                  value: route,
+                                  child: Text(
+                                    '${route.routeName} (${route.routeType.toUpperCase()})',
+                                  ),
+                                ),
+                              )
+                              .toList(),
                           onChanged: (route) {
                             setState(() {
                               _selectedRoute = route;
@@ -459,31 +514,45 @@ class _DriverDashboardState extends State<DriverDashboard>
                         SizedBox(
                           width: double.infinity,
                           child: ElevatedButton.icon(
-                            onPressed: (_selectedRoute != null && _selectedBusNumber != null)
+                            onPressed:
+                                (_selectedRoute != null &&
+                                    _selectedBusNumber != null)
                                 ? () async {
-                                    final authService = Provider.of<AuthService>(context, listen: false);
-                                    final firestoreService = Provider.of<FirestoreService>(context, listen: false);
-                                    final currentUser = authService.currentUserModel;
+                                    final authService =
+                                        Provider.of<AuthService>(
+                                          context,
+                                          listen: false,
+                                        );
+                                    final firestoreService =
+                                        Provider.of<FirestoreService>(
+                                          context,
+                                          listen: false,
+                                        );
+                                    final currentUser =
+                                        authService.currentUserModel;
                                     if (currentUser == null) return;
-                                    
+
                                     final newBus = BusModel(
-                                      id: DateTime.now().millisecondsSinceEpoch.toString(),
+                                      id: DateTime.now().millisecondsSinceEpoch
+                                          .toString(),
                                       busNumber: _selectedBusNumber!,
                                       driverId: currentUser.id,
                                       routeId: _selectedRoute!.id,
                                       collegeId: currentUser.collegeId,
                                       createdAt: DateTime.now(),
                                     );
-                                    
+
                                     await firestoreService.createBus(newBus);
                                     await _saveSelections();
                                     if (!mounted) return;
                                     setState(() => _myBus = newBus);
                                     _updateMarkers();
-                                    
+
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       const SnackBar(
-                                        content: Text('Bus assigned successfully!'),
+                                        content: Text(
+                                          'Bus assigned successfully!',
+                                        ),
                                         backgroundColor: AppColors.success,
                                       ),
                                     );
@@ -492,8 +561,10 @@ class _DriverDashboardState extends State<DriverDashboard>
                             icon: const Icon(Icons.directions_bus),
                             label: const Text('Assign Bus'),
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.primary,
-                              foregroundColor: AppColors.onPrimary,
+                              backgroundColor: Theme.of(context).primaryColor,
+                              foregroundColor: Theme.of(
+                                context,
+                              ).colorScheme.onPrimary,
                               padding: const EdgeInsets.symmetric(vertical: 16),
                             ),
                           ),
@@ -501,27 +572,50 @@ class _DriverDashboardState extends State<DriverDashboard>
                       ] else ...[
                         Card(
                           child: Padding(
-                            padding: const EdgeInsets.all(AppSizes.paddingMedium),
+                            padding: const EdgeInsets.all(
+                              AppSizes.paddingMedium,
+                            ),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
                                   'Bus: ${_myBus!.busNumber}',
-                                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+                                  style: const TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w600,
+                                  ),
                                 ),
                                 const SizedBox(height: AppSizes.paddingSmall),
                                 if (_selectedRoute != null) ...[
                                   Text(
                                     'Route: ${_selectedRoute!.routeName}',
-                                    style: const TextStyle(fontSize: 16, color: AppColors.textSecondary),
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .onSurface
+                                          .withValues(alpha: 0.6),
+                                    ),
                                   ),
                                   Text(
                                     'Type: ${_selectedRoute!.routeType.toUpperCase()}',
-                                    style: const TextStyle(fontSize: 14, color: AppColors.textSecondary),
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .onSurface
+                                          .withValues(alpha: 0.6),
+                                    ),
                                   ),
                                   Text(
                                     '${_selectedRoute!.startPoint} → ${_selectedRoute!.endPoint}',
-                                    style: const TextStyle(fontSize: 14, color: AppColors.textSecondary),
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .onSurface
+                                          .withValues(alpha: 0.6),
+                                    ),
                                   ),
                                 ],
                                 const SizedBox(height: AppSizes.paddingMedium),
@@ -529,18 +623,34 @@ class _DriverDashboardState extends State<DriverDashboard>
                                   width: double.infinity,
                                   child: ElevatedButton.icon(
                                     onPressed: () async {
-                                      final firestoreService = Provider.of<FirestoreService>(context, listen: false);
-                                      await firestoreService.deleteBus(_myBus!.id);
-                                      
+                                      final firestoreService =
+                                          Provider.of<FirestoreService>(
+                                            context,
+                                            listen: false,
+                                          );
+                                      await firestoreService.deleteBus(
+                                        _myBus!.id,
+                                      );
+
                                       // Clear saved selections
-                                      final prefs = await SharedPreferences.getInstance();
-                                      final authService = Provider.of<AuthService>(context, listen: false);
-                                      final userId = authService.currentUserModel?.id;
+                                      final prefs =
+                                          await SharedPreferences.getInstance();
+                                      final authService =
+                                          Provider.of<AuthService>(
+                                            context,
+                                            listen: false,
+                                          );
+                                      final userId =
+                                          authService.currentUserModel?.id;
                                       if (userId != null) {
-                                        await prefs.remove('driver_${userId}_bus_number');
-                                        await prefs.remove('driver_${userId}_route_id');
+                                        await prefs.remove(
+                                          'driver_${userId}_bus_number',
+                                        );
+                                        await prefs.remove(
+                                          'driver_${userId}_route_id',
+                                        );
                                       }
-                                      
+
                                       if (!mounted) return;
                                       setState(() {
                                         _myBus = null;
@@ -548,19 +658,29 @@ class _DriverDashboardState extends State<DriverDashboard>
                                         _selectedRoute = null;
                                       });
                                       _updateMarkers();
-                                      
-                                      ScaffoldMessenger.of(context).showSnackBar(
-                                        const SnackBar(
-                                          content: Text('Bus assignment removed'),
-                                          backgroundColor: AppColors.warning,
+
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
+                                        SnackBar(
+                                          content: Text(
+                                            'Bus assignment removed',
+                                          ),
+                                          backgroundColor: Theme.of(
+                                            context,
+                                          ).colorScheme.secondary,
                                         ),
                                       );
                                     },
                                     icon: const Icon(Icons.remove_circle),
                                     label: const Text('Remove Assignment'),
                                     style: ElevatedButton.styleFrom(
-                                      backgroundColor: AppColors.error,
-                                      foregroundColor: AppColors.onPrimary,
+                                      backgroundColor: Theme.of(
+                                        context,
+                                      ).colorScheme.error,
+                                      foregroundColor: Theme.of(
+                                        context,
+                                      ).colorScheme.onError,
                                     ),
                                   ),
                                 ),
@@ -575,7 +695,7 @@ class _DriverDashboardState extends State<DriverDashboard>
               ),
             ],
           ),
-          
+
           // Live Tracking Tab
           Column(
             children: [
@@ -597,16 +717,14 @@ class _DriverDashboardState extends State<DriverDashboard>
                         myLocationButtonEnabled: true,
                         mapType: MapType.normal,
                       )
-                    : const Center(
-                        child: CircularProgressIndicator(),
-                      ),
+                    : const Center(child: CircularProgressIndicator()),
               ),
-              
+
               // Controls
               Container(
                 padding: const EdgeInsets.all(AppSizes.paddingMedium),
-                decoration: const BoxDecoration(
-                  color: AppColors.surface,
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.surface,
                   borderRadius: BorderRadius.only(
                     topLeft: Radius.circular(AppSizes.radiusLarge),
                     topRight: Radius.circular(AppSizes.radiusLarge),
@@ -642,24 +760,32 @@ class _DriverDashboardState extends State<DriverDashboard>
                       ],
                       const SizedBox(height: AppSizes.paddingMedium),
                     ],
-                    
+
                     CustomButton(
-                      text: _isSharing ? 'Stop Sharing Location' : 'Start Sharing Location',
+                      text: _isSharing
+                          ? 'Stop Sharing Location'
+                          : 'Start Sharing Location',
                       onPressed: _toggleLocationSharing,
-                      backgroundColor: _isSharing ? AppColors.error : AppColors.success,
+                      backgroundColor: _isSharing
+                          ? Theme.of(context).colorScheme.error
+                          : Theme.of(context).colorScheme.secondary,
                       icon: Icon(
                         _isSharing ? Icons.stop : Icons.play_arrow,
-                        color: AppColors.onPrimary,
+                        color: _isSharing
+                            ? Theme.of(context).colorScheme.onError
+                            : Theme.of(context).colorScheme.onSecondary,
                       ),
                     ),
-                    
+
                     if (_isSharing) ...[
                       const SizedBox(height: AppSizes.paddingMedium),
                       Container(
                         padding: const EdgeInsets.all(AppSizes.paddingMedium),
                         decoration: BoxDecoration(
                           color: AppColors.success.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
+                          borderRadius: BorderRadius.circular(
+                            AppSizes.radiusMedium,
+                          ),
                         ),
                         child: Row(
                           children: [

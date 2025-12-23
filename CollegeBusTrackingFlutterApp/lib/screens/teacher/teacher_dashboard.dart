@@ -93,18 +93,20 @@ class _TeacherDashboardState extends State<TeacherDashboard>
     final prefs = await SharedPreferences.getInstance();
     final authService = Provider.of<AuthService>(context, listen: false);
     final userId = authService.currentUserModel?.id;
-    
+
     if (userId != null) {
       final savedStop = prefs.getString('teacher_${userId}_selected_stop');
       final savedBusNumber = prefs.getString('teacher_${userId}_selected_bus');
-      final savedRouteType = prefs.getString('teacher_${userId}_selected_route_type');
-      
+      final savedRouteType = prefs.getString(
+        'teacher_${userId}_selected_route_type',
+      );
+
       setState(() {
         _selectedStop = savedStop;
         _selectedBusNumber = savedBusNumber;
         _selectedRouteType = savedRouteType;
       });
-      
+
       _applyFilters();
     }
   }
@@ -113,22 +115,31 @@ class _TeacherDashboardState extends State<TeacherDashboard>
     final prefs = await SharedPreferences.getInstance();
     final authService = Provider.of<AuthService>(context, listen: false);
     final userId = authService.currentUserModel?.id;
-    
+
     if (userId != null) {
       if (_selectedStop != null) {
-        await prefs.setString('teacher_${userId}_selected_stop', _selectedStop!);
+        await prefs.setString(
+          'teacher_${userId}_selected_stop',
+          _selectedStop!,
+        );
       } else {
         await prefs.remove('teacher_${userId}_selected_stop');
       }
-      
+
       if (_selectedBusNumber != null) {
-        await prefs.setString('teacher_${userId}_selected_bus', _selectedBusNumber!);
+        await prefs.setString(
+          'teacher_${userId}_selected_bus',
+          _selectedBusNumber!,
+        );
       } else {
         await prefs.remove('teacher_${userId}_selected_bus');
       }
-      
+
       if (_selectedRouteType != null) {
-        await prefs.setString('teacher_${userId}_selected_route_type', _selectedRouteType!);
+        await prefs.setString(
+          'teacher_${userId}_selected_route_type',
+          _selectedRouteType!,
+        );
       } else {
         await prefs.remove('teacher_${userId}_selected_route_type');
       }
@@ -136,7 +147,10 @@ class _TeacherDashboardState extends State<TeacherDashboard>
   }
 
   Future<void> _getCurrentLocation() async {
-    final locationService = Provider.of<LocationService>(context, listen: false);
+    final locationService = Provider.of<LocationService>(
+      context,
+      listen: false,
+    );
     final location = await locationService.getCurrentLocation();
     if (location != null) {
       setState(() {
@@ -148,8 +162,11 @@ class _TeacherDashboardState extends State<TeacherDashboard>
 
   Future<void> _loadBuses() async {
     final authService = Provider.of<AuthService>(context, listen: false);
-    final firestoreService = Provider.of<FirestoreService>(context, listen: false);
-    
+    final firestoreService = Provider.of<FirestoreService>(
+      context,
+      listen: false,
+    );
+
     final collegeId = authService.currentUserModel?.collegeId;
     if (collegeId != null) {
       firestoreService.getBusesByCollege(collegeId).listen((buses) {
@@ -158,13 +175,13 @@ class _TeacherDashboardState extends State<TeacherDashboard>
           subscription.cancel();
         }
         _busLocationSubscriptions.clear();
-        
+
         setState(() {
           _allBuses = buses;
           _applyFilters();
           _updateMarkers();
         });
-        
+
         // Set up location listeners for each bus
         _setupBusLocationListeners(buses, firestoreService);
       });
@@ -173,13 +190,18 @@ class _TeacherDashboardState extends State<TeacherDashboard>
 
   Future<void> _loadPendingStudents() async {
     final authService = Provider.of<AuthService>(context, listen: false);
-    final firestoreService = Provider.of<FirestoreService>(context, listen: false);
-    
+    final firestoreService = Provider.of<FirestoreService>(
+      context,
+      listen: false,
+    );
+
     final collegeId = authService.currentUserModel?.collegeId;
     if (collegeId != null) {
       firestoreService.getPendingApprovals(collegeId).listen((students) {
         setState(() {
-          _pendingStudents = students.where((user) => user.role == UserRole.student).toList();
+          _pendingStudents = students
+              .where((user) => user.role == UserRole.student)
+              .toList();
         });
       });
     }
@@ -187,7 +209,10 @@ class _TeacherDashboardState extends State<TeacherDashboard>
 
   Future<void> _loadRoutes() async {
     final authService = Provider.of<AuthService>(context, listen: false);
-    final firestoreService = Provider.of<FirestoreService>(context, listen: false);
+    final firestoreService = Provider.of<FirestoreService>(
+      context,
+      listen: false,
+    );
     final collegeId = authService.currentUserModel?.collegeId;
     if (collegeId != null) {
       firestoreService.getRoutesByCollege(collegeId).listen((routes) {
@@ -198,9 +223,14 @@ class _TeacherDashboardState extends State<TeacherDashboard>
     }
   }
 
-  void _setupBusLocationListeners(List<BusModel> buses, FirestoreService firestoreService) {
+  void _setupBusLocationListeners(
+    List<BusModel> buses,
+    FirestoreService firestoreService,
+  ) {
     for (final bus in buses) {
-      final subscription = firestoreService.getBusLocation(bus.id).listen((location) {
+      final subscription = firestoreService.getBusLocation(bus.id).listen((
+        location,
+      ) {
         if (mounted) {
           _updateBusMarker(bus, location);
         }
@@ -228,14 +258,21 @@ class _TeacherDashboardState extends State<TeacherDashboard>
 
     final marker = Marker(
       markerId: MarkerId('bus_${bus.id}'),
-      position: location?.currentLocation ?? _getMockCoordinateForLocation(route.startPoint),
+      position:
+          location?.currentLocation ??
+          _getMockCoordinateForLocation(route.startPoint),
       infoWindow: InfoWindow(
-        title: 'Bus ${bus.busNumber} ${location != null ? "(Live)" : "(Not Live)"}',
-        snippet: '${route.startPoint} → ${route.endPoint}\n${location != null ? 'Last updated: ${location.timestamp.toString().substring(11, 16)}' : 'Status: Offline'}',
+        title:
+            'Bus ${bus.busNumber} ${location != null ? "(Live)" : "(Not Live)"}',
+        snippet:
+            '${route.startPoint} → ${route.endPoint}\n${location != null ? 'Last updated: ${location.timestamp.toString().substring(11, 16)}' : 'Status: Offline'}',
       ),
       icon: BitmapDescriptor.defaultMarkerWithHue(
-        _selectedBus?.id == bus.id ? BitmapDescriptor.hueRed : 
-        location != null ? BitmapDescriptor.hueGreen : BitmapDescriptor.hueOrange,
+        _selectedBus?.id == bus.id
+            ? BitmapDescriptor.hueRed
+            : location != null
+            ? BitmapDescriptor.hueGreen
+            : BitmapDescriptor.hueOrange,
       ),
       onTap: () => _selectBus(bus),
     );
@@ -290,20 +327,22 @@ class _TeacherDashboardState extends State<TeacherDashboard>
           ),
         );
         return route.startPoint == _selectedStop ||
-               route.endPoint == _selectedStop ||
-               route.stopPoints.contains(_selectedStop);
+            route.endPoint == _selectedStop ||
+            route.stopPoints.contains(_selectedStop);
       }).toList();
     }
 
     // Filter by selected bus number
     if (_selectedBusNumber != null) {
-      filtered = filtered.where((bus) => bus.busNumber == _selectedBusNumber).toList();
+      filtered = filtered
+          .where((bus) => bus.busNumber == _selectedBusNumber)
+          .toList();
     }
 
     setState(() {
       _filteredBuses = filtered;
     });
-    
+
     _saveFilters();
   }
 
@@ -357,48 +396,55 @@ class _TeacherDashboardState extends State<TeacherDashboard>
         createdAt: DateTime.now(),
       ),
     );
-    
+
     final routePoints = <LatLng>[];
     final startCoord = _getMockCoordinateForLocation(route.startPoint);
     routePoints.add(startCoord);
-    
+
     for (final stop in route.stopPoints) {
       routePoints.add(_getMockCoordinateForLocation(stop));
     }
-    
+
     final endCoord = _getMockCoordinateForLocation(route.endPoint);
     routePoints.add(endCoord);
-    
+
     final polyline = Polyline(
       polylineId: PolylineId('route_${bus.id}'),
       points: routePoints,
       color: Colors.blue,
       width: 4,
     );
-    
+
     setState(() {
       _polylines = {polyline};
     });
-    
+
     // Add stop markers
     for (int i = 0; i < routePoints.length; i++) {
-      final stopName = i == 0 ? route.startPoint : 
-                      i == routePoints.length - 1 ? route.endPoint :
-                      route.stopPoints[i - 1];
-      
+      final stopName = i == 0
+          ? route.startPoint
+          : i == routePoints.length - 1
+          ? route.endPoint
+          : route.stopPoints[i - 1];
+
       _markers.add(
         Marker(
           markerId: MarkerId('stop_${bus.id}_$i'),
           position: routePoints[i],
           infoWindow: InfoWindow(
             title: stopName,
-            snippet: i == 0 ? 'Start Point' : 
-                    i == routePoints.length - 1 ? 'End Point' : 'Stop',
+            snippet: i == 0
+                ? 'Start Point'
+                : i == routePoints.length - 1
+                ? 'End Point'
+                : 'Stop',
           ),
           icon: BitmapDescriptor.defaultMarkerWithHue(
-            i == 0 ? BitmapDescriptor.hueGreen : 
-            i == routePoints.length - 1 ? BitmapDescriptor.hueRed :
-            BitmapDescriptor.hueYellow
+            i == 0
+                ? BitmapDescriptor.hueGreen
+                : i == routePoints.length - 1
+                ? BitmapDescriptor.hueRed
+                : BitmapDescriptor.hueYellow,
           ),
         ),
       );
@@ -419,8 +465,10 @@ class _TeacherDashboardState extends State<TeacherDashboard>
       'Residential Area': const LatLng(12.9806, 77.6036),
       'Park': const LatLng(12.9816, 77.6046),
     };
-    
-    return mockCoords[location] ?? _currentLocation ?? const LatLng(12.9716, 77.5946);
+
+    return mockCoords[location] ??
+        _currentLocation ??
+        const LatLng(12.9716, 77.5946);
   }
 
   void _addBusMarker(BusModel bus, Set<Marker> markers) {
@@ -439,7 +487,7 @@ class _TeacherDashboardState extends State<TeacherDashboard>
         createdAt: DateTime.now(),
       ),
     );
-    
+
     // Show bus at start point initially (will be updated by location listener)
     final startLocation = _getMockCoordinateForLocation(route.startPoint);
     final marker = Marker(
@@ -452,7 +500,7 @@ class _TeacherDashboardState extends State<TeacherDashboard>
       icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueOrange),
       onTap: () => _selectBus(bus),
     );
-    
+
     markers.add(marker);
   }
 
@@ -460,9 +508,12 @@ class _TeacherDashboardState extends State<TeacherDashboard>
     setState(() {
       _selectedBus = bus;
     });
-    
+
     // Move camera to bus location if available
-    final firestoreService = Provider.of<FirestoreService>(context, listen: false);
+    final firestoreService = Provider.of<FirestoreService>(
+      context,
+      listen: false,
+    );
     firestoreService.getBusLocation(bus.id).listen((location) {
       if (location != null && _mapController != null) {
         _mapController!.animateCamera(
@@ -510,12 +561,15 @@ class _TeacherDashboardState extends State<TeacherDashboard>
 
   Future<void> _approveStudent(UserModel student) async {
     final authService = Provider.of<AuthService>(context, listen: false);
-    final firestoreService = Provider.of<FirestoreService>(context, listen: false);
-    
+    final firestoreService = Provider.of<FirestoreService>(
+      context,
+      listen: false,
+    );
+
     final currentUser = authService.currentUserModel;
     if (currentUser != null) {
       await firestoreService.approveUser(student.id, currentUser.id);
-      
+
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -528,12 +582,15 @@ class _TeacherDashboardState extends State<TeacherDashboard>
 
   Future<void> _rejectStudent(UserModel student) async {
     final authService = Provider.of<AuthService>(context, listen: false);
-    final firestoreService = Provider.of<FirestoreService>(context, listen: false);
-    
+    final firestoreService = Provider.of<FirestoreService>(
+      context,
+      listen: false,
+    );
+
     final currentUser = authService.currentUserModel;
     if (currentUser != null) {
       await firestoreService.rejectUser(student.id, currentUser.id);
-      
+
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -550,11 +607,11 @@ class _TeacherDashboardState extends State<TeacherDashboard>
     final user = authService.currentUserModel;
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: Text('Welcome, ${user?.fullName ?? 'Teacher'}'),
-        backgroundColor: AppColors.primary,
-        foregroundColor: AppColors.onPrimary,
+        backgroundColor: Theme.of(context).primaryColor,
+        foregroundColor: Theme.of(context).colorScheme.onPrimary,
         actions: [
           IconButton(
             icon: const Icon(Icons.notifications),
@@ -578,9 +635,11 @@ class _TeacherDashboardState extends State<TeacherDashboard>
         ],
         bottom: TabBar(
           controller: _tabController,
-          labelColor: AppColors.onPrimary,
-          unselectedLabelColor: AppColors.onPrimary.withValues(alpha: 0.7),
-          indicatorColor: AppColors.onPrimary,
+          labelColor: Theme.of(context).colorScheme.onPrimary,
+          unselectedLabelColor: Theme.of(
+            context,
+          ).colorScheme.onPrimary.withValues(alpha: 0.7),
+          indicatorColor: Theme.of(context).colorScheme.onPrimary,
           tabs: const [
             Tab(text: 'Track Buses', icon: Icon(Icons.map)),
             Tab(text: 'Bus List', icon: Icon(Icons.list)),
@@ -598,14 +657,18 @@ class _TeacherDashboardState extends State<TeacherDashboard>
               // Location display
               Container(
                 padding: const EdgeInsets.all(AppSizes.paddingMedium),
-                color: _currentLocation != null 
-                    ? AppColors.primary.withValues(alpha: 0.1)
-                    : AppColors.warning.withValues(alpha: 0.1),
+                color: _currentLocation != null
+                    ? Theme.of(context).primaryColor.withValues(alpha: 0.1)
+                    : Theme.of(
+                        context,
+                      ).colorScheme.error.withValues(alpha: 0.1),
                 child: Row(
                   children: [
                     Icon(
-                      Icons.location_on, 
-                      color: _currentLocation != null ? AppColors.primary : AppColors.warning
+                      Icons.location_on,
+                      color: _currentLocation != null
+                          ? Theme.of(context).primaryColor
+                          : Theme.of(context).colorScheme.error,
                     ),
                     const SizedBox(width: AppSizes.paddingSmall),
                     Expanded(
@@ -614,7 +677,9 @@ class _TeacherDashboardState extends State<TeacherDashboard>
                             ? 'Your Location: ${_currentLocation!.latitude.toStringAsFixed(4)}, ${_currentLocation!.longitude.toStringAsFixed(4)}'
                             : 'Location not available. Please enable location services.',
                         style: TextStyle(
-                          color: _currentLocation != null ? AppColors.primary : AppColors.warning,
+                          color: _currentLocation != null
+                              ? Theme.of(context).primaryColor
+                              : Theme.of(context).colorScheme.error,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
@@ -622,11 +687,11 @@ class _TeacherDashboardState extends State<TeacherDashboard>
                   ],
                 ),
               ),
-              
+
               // Filter Controls
               Container(
                 padding: const EdgeInsets.all(AppSizes.paddingMedium),
-                color: AppColors.surface,
+                color: Theme.of(context).colorScheme.surface,
                 child: Column(
                   children: [
                     Row(
@@ -637,7 +702,10 @@ class _TeacherDashboardState extends State<TeacherDashboard>
                             decoration: const InputDecoration(
                               labelText: 'Route Type',
                               border: OutlineInputBorder(),
-                              contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                              contentPadding: EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 8,
+                              ),
                             ),
                             items: const [
                               DropdownMenuItem<String>(
@@ -663,17 +731,22 @@ class _TeacherDashboardState extends State<TeacherDashboard>
                             decoration: const InputDecoration(
                               labelText: 'Bus Stop',
                               border: OutlineInputBorder(),
-                              contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                              contentPadding: EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 8,
+                              ),
                             ),
                             items: [
                               const DropdownMenuItem<String>(
                                 value: null,
                                 child: Text('All Stops'),
                               ),
-                              ..._allStops.map((stop) => DropdownMenuItem(
-                                value: stop,
-                                child: Text(stop),
-                              )),
+                              ..._allStops.map(
+                                (stop) => DropdownMenuItem(
+                                  value: stop,
+                                  child: Text(stop),
+                                ),
+                              ),
                             ],
                             onChanged: _onStopSelected,
                           ),
@@ -689,40 +762,55 @@ class _TeacherDashboardState extends State<TeacherDashboard>
                             decoration: const InputDecoration(
                               labelText: 'Bus Number',
                               border: OutlineInputBorder(),
-                              contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                              contentPadding: EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 8,
+                              ),
                             ),
                             items: [
                               const DropdownMenuItem<String>(
                                 value: null,
                                 child: Text('All Buses'),
                               ),
-                              ..._allBusNumbers.map((busNumber) => DropdownMenuItem(
-                                value: busNumber,
-                                child: Text(busNumber),
-                              )),
+                              ..._allBusNumbers.map(
+                                (busNumber) => DropdownMenuItem(
+                                  value: busNumber,
+                                  child: Text(busNumber),
+                                ),
+                              ),
                             ],
                             onChanged: _onBusNumberSelected,
                           ),
                         ),
                         const SizedBox(width: AppSizes.paddingSmall),
-                        if (_selectedStop != null || _selectedBusNumber != null || _selectedRouteType != null)
+                        if (_selectedStop != null ||
+                            _selectedBusNumber != null ||
+                            _selectedRouteType != null)
                           ElevatedButton.icon(
                             onPressed: _clearFilters,
                             icon: const Icon(Icons.clear),
                             label: const Text('Clear'),
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.warning,
-                              foregroundColor: AppColors.onPrimary,
+                              backgroundColor: Theme.of(
+                                context,
+                              ).colorScheme.secondary,
+                              foregroundColor: Theme.of(
+                                context,
+                              ).colorScheme.onSecondary,
                             ),
                           ),
                       ],
                     ),
-                    if (_selectedStop != null || _selectedBusNumber != null || _selectedRouteType != null) ...[
+                    if (_selectedStop != null ||
+                        _selectedBusNumber != null ||
+                        _selectedRouteType != null) ...[
                       const SizedBox(height: AppSizes.paddingSmall),
                       Text(
                         '${_filteredBuses.length} bus(es) found',
-                        style: const TextStyle(
-                          color: AppColors.textSecondary,
+                        style: TextStyle(
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.onSurface.withValues(alpha: 0.6),
                           fontSize: 12,
                         ),
                       ),
@@ -730,14 +818,16 @@ class _TeacherDashboardState extends State<TeacherDashboard>
                   ],
                 ),
               ),
-              
+
               // Map
               Expanded(
                 child: _currentLocation != null
                     ? GoogleMap(
                         onMapCreated: (GoogleMapController controller) {
                           _mapController = controller;
-                          print('DEBUG: Teacher GoogleMap created successfully');
+                          print(
+                            'DEBUG: Teacher GoogleMap created successfully',
+                          );
                         },
                         initialCameraPosition: CameraPosition(
                           target: _currentLocation!,
@@ -749,18 +839,16 @@ class _TeacherDashboardState extends State<TeacherDashboard>
                         myLocationButtonEnabled: true,
                         mapType: MapType.normal,
                       )
-                    : const Center(
-                        child: CircularProgressIndicator(),
-                      ),
+                    : const Center(child: CircularProgressIndicator()),
               ),
-              
+
               // Selected bus info
               if (_selectedBus != null)
                 Container(
                   padding: const EdgeInsets.all(AppSizes.paddingMedium),
-                  decoration: const BoxDecoration(
-                    color: AppColors.surface,
-                    borderRadius: BorderRadius.only(
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.surface,
+                    borderRadius: const BorderRadius.only(
                       topLeft: Radius.circular(AppSizes.radiusLarge),
                       topRight: Radius.circular(AppSizes.radiusLarge),
                     ),
@@ -771,10 +859,10 @@ class _TeacherDashboardState extends State<TeacherDashboard>
                       Row(
                         children: [
                           CircleAvatar(
-                            backgroundColor: AppColors.primary,
-                            child: const Icon(
+                            backgroundColor: Theme.of(context).primaryColor,
+                            child: Icon(
                               Icons.directions_bus,
-                              color: AppColors.onPrimary,
+                              color: Theme.of(context).colorScheme.onPrimary,
                             ),
                           ),
                           const SizedBox(width: AppSizes.paddingMedium),
@@ -784,17 +872,28 @@ class _TeacherDashboardState extends State<TeacherDashboard>
                               children: [
                                 Text(
                                   'Bus ${_selectedBus!.busNumber}',
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontSize: 20,
                                     fontWeight: FontWeight.bold,
-                                    color: AppColors.textPrimary,
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.onSurface,
                                   ),
                                 ),
                                 Text(
-                                  'Route: ${_routes.firstWhere((r) => r.id == _selectedBus!.routeId, orElse: () => RouteModel(id: '', routeName: 'N/A', routeType: '', startPoint: '', endPoint: '', stopPoints: [], collegeId: '', createdBy: '', isActive: false, createdAt: DateTime.now(),)).startPoint} → ${_routes.firstWhere((r) => r.id == _selectedBus!.routeId, orElse: () => RouteModel(id: '', routeName: 'N/A', routeType: '', startPoint: '', endPoint: '', stopPoints: [], collegeId: '', createdBy: '', isActive: false, createdAt: DateTime.now(),)).endPoint}',
-                                  style: const TextStyle(
+                                  'Route: ${_routes.firstWhere(
+                                    (r) => r.id == _selectedBus!.routeId,
+                                    orElse: () => RouteModel(id: '', routeName: 'N/A', routeType: '', startPoint: '', endPoint: '', stopPoints: [], collegeId: '', createdBy: '', isActive: false, createdAt: DateTime.now()),
+                                  ).startPoint} → ${_routes.firstWhere(
+                                    (r) => r.id == _selectedBus!.routeId,
+                                    orElse: () => RouteModel(id: '', routeName: 'N/A', routeType: '', startPoint: '', endPoint: '', stopPoints: [], collegeId: '', createdBy: '', isActive: false, createdAt: DateTime.now()),
+                                  ).endPoint}',
+                                  style: TextStyle(
                                     fontSize: 16,
-                                    color: AppColors.textSecondary,
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .onSurface
+                                        .withValues(alpha: 0.6),
                                   ),
                                 ),
                               ],
@@ -809,7 +908,9 @@ class _TeacherDashboardState extends State<TeacherDashboard>
                               _updateMarkers();
                             },
                             icon: const Icon(Icons.close),
-                            color: AppColors.textSecondary,
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurface.withValues(alpha: 0.6),
                           ),
                         ],
                       ),
@@ -818,7 +919,9 @@ class _TeacherDashboardState extends State<TeacherDashboard>
                         padding: const EdgeInsets.all(AppSizes.paddingSmall),
                         decoration: BoxDecoration(
                           color: AppColors.primary.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(AppSizes.radiusSmall),
+                          borderRadius: BorderRadius.circular(
+                            AppSizes.radiusSmall,
+                          ),
                         ),
                         child: Row(
                           children: [
@@ -833,20 +936,42 @@ class _TeacherDashboardState extends State<TeacherDashboard>
                                 'Tap on the map to see live bus location. The bus marker will update in real-time as the driver moves.',
                                 style: TextStyle(
                                   fontSize: 12,
-                                  color: AppColors.primary,
+                                  color: Theme.of(context).primaryColor,
                                 ),
                               ),
                             ),
                           ],
                         ),
                       ),
-                      if ((_routes.firstWhere((r) => r.id == _selectedBus!.routeId, orElse: () => RouteModel(id: '', routeName: 'N/A', routeType: '', startPoint: '', endPoint: '', stopPoints: [], collegeId: '', createdBy: '', isActive: false, createdAt: DateTime.now(),)).stopPoints.isNotEmpty)) ...[
+                      if ((_routes
+                          .firstWhere(
+                            (r) => r.id == _selectedBus!.routeId,
+                            orElse: () => RouteModel(
+                              id: '',
+                              routeName: 'N/A',
+                              routeType: '',
+                              startPoint: '',
+                              endPoint: '',
+                              stopPoints: [],
+                              collegeId: '',
+                              createdBy: '',
+                              isActive: false,
+                              createdAt: DateTime.now(),
+                            ),
+                          )
+                          .stopPoints
+                          .isNotEmpty)) ...[
                         const SizedBox(height: AppSizes.paddingMedium),
                         Text(
-                          'Stops: ${_routes.firstWhere((r) => r.id == _selectedBus!.routeId, orElse: () => RouteModel(id: '', routeName: 'N/A', routeType: '', startPoint: '', endPoint: '', stopPoints: [], collegeId: '', createdBy: '', isActive: false, createdAt: DateTime.now(),)).stopPoints.join(' → ')}',
-                          style: const TextStyle(
+                          'Stops: ${_routes.firstWhere(
+                            (r) => r.id == _selectedBus!.routeId,
+                            orElse: () => RouteModel(id: '', routeName: 'N/A', routeType: '', startPoint: '', endPoint: '', stopPoints: [], collegeId: '', createdBy: '', isActive: false, createdAt: DateTime.now()),
+                          ).stopPoints.join(' → ')}',
+                          style: TextStyle(
                             fontSize: 14,
-                            color: AppColors.textSecondary,
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurface.withValues(alpha: 0.6),
                           ),
                         ),
                       ],
@@ -855,26 +980,32 @@ class _TeacherDashboardState extends State<TeacherDashboard>
                 ),
             ],
           ),
-          
+
           // Bus List Tab
           _filteredBuses.isEmpty
               ? Center(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Icon(
+                      Icon(
                         Icons.directions_bus_outlined,
                         size: 64,
-                        color: AppColors.textSecondary,
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.onSurface.withValues(alpha: 0.6),
                       ),
                       const SizedBox(height: AppSizes.paddingMedium),
                       Text(
-                        _selectedStop != null || _selectedBusNumber != null || _selectedRouteType != null
+                        _selectedStop != null ||
+                                _selectedBusNumber != null ||
+                                _selectedRouteType != null
                             ? 'No buses found for selected filters'
                             : 'No buses available',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 18,
-                          color: AppColors.textSecondary,
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.onSurface.withValues(alpha: 0.6),
                         ),
                       ),
                     ],
@@ -901,23 +1032,31 @@ class _TeacherDashboardState extends State<TeacherDashboard>
                         createdAt: DateTime.now(),
                       ),
                     );
-                    
+
                     return Card(
-                      margin: const EdgeInsets.only(bottom: AppSizes.paddingMedium),
-                      color: isSelected ? AppColors.primary.withValues(alpha: 0.1) : null,
+                      margin: const EdgeInsets.only(
+                        bottom: AppSizes.paddingMedium,
+                      ),
+                      color: isSelected
+                          ? AppColors.primary.withValues(alpha: 0.1)
+                          : null,
                       child: ListTile(
                         leading: CircleAvatar(
-                          backgroundColor: isSelected ? AppColors.primary : AppColors.success,
-                          child: const Icon(
+                          backgroundColor: isSelected
+                              ? AppColors.primary
+                              : Theme.of(context).colorScheme.secondary,
+                          child: Icon(
                             Icons.directions_bus,
-                            color: AppColors.onPrimary,
+                            color: Theme.of(context).colorScheme.onPrimary,
                           ),
                         ),
                         title: Text(
                           'Bus ${bus.busNumber}',
                           style: TextStyle(
                             fontWeight: FontWeight.w600,
-                            color: isSelected ? AppColors.primary : null,
+                            color: isSelected
+                                ? Theme.of(context).primaryColor
+                                : null,
                           ),
                         ),
                         subtitle: Column(
@@ -928,12 +1067,15 @@ class _TeacherDashboardState extends State<TeacherDashboard>
                             if (route.stopPoints.isNotEmpty)
                               Text(
                                 'Stops: ${route.stopPoints.join(', ')}',
-                                style: const TextStyle(fontSize: 12),
+                                style: TextStyle(fontSize: 12),
                               ),
                           ],
                         ),
                         trailing: isSelected
-                            ? const Icon(Icons.check_circle, color: AppColors.primary)
+                            ? Icon(
+                                Icons.check_circle,
+                                color: Theme.of(context).primaryColor,
+                              )
                             : const Icon(Icons.arrow_forward_ios),
                         onTap: () {
                           _selectBus(bus);
@@ -944,24 +1086,28 @@ class _TeacherDashboardState extends State<TeacherDashboard>
                     );
                   },
                 ),
-          
+
           // Approvals Tab
           _pendingStudents.isEmpty
-              ? const Center(
+              ? Center(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Icon(
                         Icons.check_circle_outline,
                         size: 64,
-                        color: AppColors.textSecondary,
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.onSurface.withValues(alpha: 0.6),
                       ),
                       SizedBox(height: AppSizes.paddingMedium),
                       Text(
                         'No pending student approvals',
                         style: TextStyle(
                           fontSize: 18,
-                          color: AppColors.textSecondary,
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.onSurface.withValues(alpha: 0.6),
                         ),
                       ),
                     ],
@@ -973,28 +1119,35 @@ class _TeacherDashboardState extends State<TeacherDashboard>
                   itemBuilder: (context, index) {
                     final student = _pendingStudents[index];
                     return Card(
-                      margin: const EdgeInsets.only(bottom: AppSizes.paddingMedium),
+                      margin: const EdgeInsets.only(
+                        bottom: AppSizes.paddingMedium,
+                      ),
                       child: ListTile(
-                        leading: const CircleAvatar(
-                          backgroundColor: AppColors.primary,
-                          child: Icon(Icons.person, color: AppColors.onPrimary),
+                        leading: CircleAvatar(
+                          backgroundColor: Theme.of(context).primaryColor,
+                          child: Icon(
+                            Icons.person,
+                            color: Theme.of(context).colorScheme.onPrimary,
+                          ),
                         ),
                         title: Text(
                           student.fullName,
-                          style: const TextStyle(fontWeight: FontWeight.w600),
+                          style: TextStyle(fontWeight: FontWeight.w600),
                         ),
                         subtitle: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(student.email),
-                            if (student.phoneNumber != null && student.phoneNumber!.isNotEmpty)
+                            if (student.phoneNumber != null &&
+                                student.phoneNumber!.isNotEmpty)
                               Text('Phone: ${student.phoneNumber}'),
-                            if (student.rollNumber != null && student.rollNumber!.isNotEmpty)
+                            if (student.rollNumber != null &&
+                                student.rollNumber!.isNotEmpty)
                               Text('Roll: ${student.rollNumber}'),
                             Text(
                               'Role: ${student.role.displayName}',
-                              style: const TextStyle(
-                                color: AppColors.primary,
+                              style: TextStyle(
+                                color: Theme.of(context).primaryColor,
                                 fontWeight: FontWeight.w500,
                               ),
                             ),
@@ -1004,11 +1157,17 @@ class _TeacherDashboardState extends State<TeacherDashboard>
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             IconButton(
-                              icon: const Icon(Icons.check, color: AppColors.success),
+                              icon: Icon(
+                                Icons.check,
+                                color: Theme.of(context).colorScheme.secondary,
+                              ),
                               onPressed: () => _approveStudent(student),
                             ),
                             IconButton(
-                              icon: const Icon(Icons.close, color: AppColors.error),
+                              icon: Icon(
+                                Icons.close,
+                                color: Theme.of(context).colorScheme.error,
+                              ),
                               onPressed: () => _rejectStudent(student),
                             ),
                           ],
@@ -1018,54 +1177,74 @@ class _TeacherDashboardState extends State<TeacherDashboard>
                     );
                   },
                 ),
-          
+
           // Bus Info Tab
           Padding(
             padding: const EdgeInsets.all(AppSizes.paddingMedium),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
+                Text(
                   'Available Bus Numbers',
                   style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
-                    color: AppColors.textPrimary,
+                    color: Theme.of(context).colorScheme.onSurface,
                   ),
                 ),
                 const SizedBox(height: AppSizes.paddingMedium),
                 Expanded(
                   child: _allBusNumbers.isEmpty
-                      ? const Center(
+                      ? Center(
                           child: Text(
                             'No bus numbers available',
-                            style: TextStyle(color: AppColors.textSecondary),
+                            style: TextStyle(
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.onSurface.withValues(alpha: 0.6),
+                            ),
                           ),
                         )
                       : ListView.builder(
                           itemCount: _allBusNumbers.length,
                           itemBuilder: (context, index) {
                             final busNumber = _allBusNumbers[index];
-                            final isAssigned = _allBuses.any((bus) => bus.busNumber == busNumber);
-                            
+                            final isAssigned = _allBuses.any(
+                              (bus) => bus.busNumber == busNumber,
+                            );
+
                             return Card(
-                              margin: const EdgeInsets.only(bottom: AppSizes.paddingSmall),
+                              margin: const EdgeInsets.only(
+                                bottom: AppSizes.paddingSmall,
+                              ),
                               child: ListTile(
                                 leading: CircleAvatar(
-                                  backgroundColor: isAssigned ? AppColors.success : AppColors.warning,
+                                  backgroundColor: isAssigned
+                                      ? Theme.of(context).colorScheme.secondary
+                                      : Theme.of(context).colorScheme.error,
                                   child: Icon(
-                                    isAssigned ? Icons.check : Icons.directions_bus,
-                                    color: AppColors.onPrimary,
+                                    isAssigned
+                                        ? Icons.check
+                                        : Icons.directions_bus,
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.onPrimary,
                                   ),
                                 ),
                                 title: Text(
                                   busNumber,
-                                  style: const TextStyle(fontWeight: FontWeight.w600),
+                                  style: TextStyle(fontWeight: FontWeight.w600),
                                 ),
                                 subtitle: Text(
-                                  isAssigned ? 'Assigned to driver' : 'Available',
+                                  isAssigned
+                                      ? 'Assigned to driver'
+                                      : 'Available',
                                   style: TextStyle(
-                                    color: isAssigned ? AppColors.success : AppColors.warning,
+                                    color: isAssigned
+                                        ? Theme.of(
+                                            context,
+                                          ).colorScheme.secondary
+                                        : Theme.of(context).colorScheme.error,
                                     fontWeight: FontWeight.w500,
                                   ),
                                 ),
@@ -1075,21 +1254,25 @@ class _TeacherDashboardState extends State<TeacherDashboard>
                         ),
                 ),
                 const SizedBox(height: AppSizes.paddingMedium),
-                const Text(
+                Text(
                   'All Stops',
                   style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
-                    color: AppColors.textPrimary,
+                    color: Theme.of(context).colorScheme.onSurface,
                   ),
                 ),
                 const SizedBox(height: AppSizes.paddingMedium),
                 Expanded(
                   child: _allStops.isEmpty
-                      ? const Center(
+                      ? Center(
                           child: Text(
                             'No stops available',
-                            style: TextStyle(color: AppColors.textSecondary),
+                            style: TextStyle(
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.onSurface.withValues(alpha: 0.6),
+                            ),
                           ),
                         )
                       : ListView.builder(
@@ -1097,23 +1280,34 @@ class _TeacherDashboardState extends State<TeacherDashboard>
                           itemBuilder: (context, index) {
                             final stop = _allStops[index];
                             return Card(
-                              margin: const EdgeInsets.only(bottom: AppSizes.paddingSmall),
+                              margin: const EdgeInsets.only(
+                                bottom: AppSizes.paddingSmall,
+                              ),
                               child: ListTile(
                                 leading: CircleAvatar(
-                                  backgroundColor: AppColors.primary,
-                                  child: const Icon(
+                                  backgroundColor: Theme.of(
+                                    context,
+                                  ).primaryColor,
+                                  child: Icon(
                                     Icons.location_on,
-                                    color: AppColors.onPrimary,
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.onPrimary,
                                   ),
                                 ),
                                 title: Text(
                                   stop,
-                                  style: const TextStyle(fontWeight: FontWeight.w600),
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                  ),
                                 ),
-                                subtitle: const Text(
+                                subtitle: Text(
                                   'Bus stop location',
                                   style: TextStyle(
-                                    color: AppColors.textSecondary,
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .onSurface
+                                        .withValues(alpha: 0.6),
                                     fontSize: 12,
                                   ),
                                 ),

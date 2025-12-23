@@ -20,19 +20,26 @@ class StudentBusListTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (filteredBuses.isEmpty) {
-      return const Center(
+      return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(
               Icons.directions_bus_outlined,
               size: 64,
-              color: AppColors.textSecondary,
+              color: Theme.of(
+                context,
+              ).colorScheme.onSurface.withValues(alpha: 0.4),
             ),
-            SizedBox(height: AppSizes.paddingMedium),
+            const SizedBox(height: AppSizes.paddingMedium),
             Text(
               'No buses found',
-              style: TextStyle(fontSize: 18, color: AppColors.textSecondary),
+              style: TextStyle(
+                fontSize: 18,
+                color: Theme.of(
+                  context,
+                ).colorScheme.onSurface.withValues(alpha: 0.4),
+              ),
             ),
           ],
         ),
@@ -63,16 +70,18 @@ class StudentBusListTab extends StatelessWidget {
         );
 
         return Card(
-          color: Colors.white,
+          color: Theme.of(context).colorScheme.surface,
           margin: const EdgeInsets.only(bottom: AppSizes.paddingMedium),
           child: ListTile(
             leading: CircleAvatar(
               backgroundColor: isSelected
-                  ? AppColors.primary
-                  : AppColors.primary.withValues(alpha: 0.1),
+                  ? Theme.of(context).primaryColor
+                  : Theme.of(context).primaryColor.withValues(alpha: 0.1),
               child: Icon(
                 Icons.directions_bus,
-                color: isSelected ? AppColors.onPrimary : AppColors.primary,
+                color: isSelected
+                    ? Theme.of(context).colorScheme.onPrimary
+                    : Theme.of(context).primaryColor,
               ),
             ),
             title: Text(
@@ -82,12 +91,20 @@ class StudentBusListTab extends StatelessWidget {
             subtitle: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(route.routeName),
+                Text(
+                  route.routeName,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
                 Text(
                   '${route.startPoint} → ${route.endPoint}',
-                  style: const TextStyle(
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
                     fontSize: 12,
-                    color: AppColors.textSecondary,
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.onSurface.withValues(alpha: 0.6),
                   ),
                 ),
               ],

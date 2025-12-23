@@ -6,7 +6,7 @@ class SplashScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -22,8 +22,10 @@ class SplashScreen extends StatelessWidget {
             SizedBox(
               width: 120,
               child: LinearProgressIndicator(
-                backgroundColor: Colors.grey[300],
-                color: Colors.blue,
+                backgroundColor: Theme.of(
+                  context,
+                ).colorScheme.onSurface.withValues(alpha: 0.1),
+                color: Theme.of(context).primaryColor,
                 minHeight: 6,
               ),
             ),

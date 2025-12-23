@@ -3,9 +3,10 @@ import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import 'package:collegebus/services/auth_service.dart';
 import 'package:collegebus/widgets/custom_input_field.dart';
-import 'package:collegebus/widgets/custom_button.dart';
+
 import 'package:collegebus/utils/constants.dart';
 import 'package:collegebus/widgets/api_error_modal.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -17,9 +18,9 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController(
-    text: 'chundu.siva2k03@gmail.com',
+    text: 'darkbutterflystar31@gmail.com',
   );
-  final _passwordController = TextEditingController(text: 'nanini');
+  final _passwordController = TextEditingController(text: 'a');
   bool _isLoading = false;
   String? _pendingApprovalMessage;
   String? _lastTriedEmail;
@@ -142,7 +143,7 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SingleChildScrollView(
         child: Column(
           children: [
@@ -157,7 +158,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   width: double.infinity,
                   decoration: const BoxDecoration(
                     image: DecorationImage(
-                      image: NetworkImage(
+                      image: CachedNetworkImageProvider(
                         'https://lh3.googleusercontent.com/aida-public/AB6AXuAhoVjzOMAAtG2ZhYD-_E4cE8rln6afXo2yCEcciNGD-ETd6sJlt_OR5iE5TVIWrcY0JwmrUmn8VEV2Zlcmu-4aT3JKaN2lWbBU_AOLHjKFAtKYbJWGQ1cAtLiEc4-roVY0L5XDKurzZXwWHlHbGCzQMHxWCMzzfYc3yfLkok2ulqHzUdm39kVAqaSy9_4pKylchOvtBqv2qJQGzbd38cEODfoaAjfJCsln4aXfowd69XBQLr4Sbx8-33NOJjziZW-FFtvvuAUOmJke',
                       ),
                       fit: BoxFit.cover,

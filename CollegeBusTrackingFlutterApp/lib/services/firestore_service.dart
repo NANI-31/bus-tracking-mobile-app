@@ -168,10 +168,19 @@ class FirestoreService {
   }
 
   Stream<BusLocationModel?> getBusLocation(String busId) {
-    // Poll for location updates
+    // Deprecated: Use getCollegeBusLocationsStream for dashboard
+    // Keeping simple one-shot or polling for detail view if needed, but optimally should reuse bulk data
     return Stream.periodic(
       const Duration(seconds: 4),
     ).asyncMap((_) => _apiService.getBusLocation(busId));
+  }
+
+  Stream<List<BusLocationModel>> getCollegeBusLocationsStream(
+    String collegeId,
+  ) {
+    return Stream.periodic(
+      const Duration(seconds: 4),
+    ).asyncMap((_) => _apiService.getCollegeBusLocations(collegeId));
   }
 
   // Notification operations

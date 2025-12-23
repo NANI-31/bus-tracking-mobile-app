@@ -11,7 +11,7 @@ class ApiService {
   final Dio _dio = Dio(
     BaseOptions(
       baseUrl:
-          // 'https://collegebustrackingflutterapp.onrender.com/api', // Use 10.0.2.2 for Android Emulator, localhost for iOS/Web
+          // 'https://college-bus-tracking-server.onrender.com/api', // Use 10.0.2.2 for Android Emulator, localhost for iOS/Web
           'http://192.168.29.27:5000/api', // Use 10.0.2.2 for Android Emulator, localhost for iOS/Web
       connectTimeout: const Duration(seconds: 15),
       receiveTimeout: const Duration(seconds: 15),
@@ -201,6 +201,20 @@ class ApiService {
       return BusLocationModel.fromMap(response.data, busId);
     } catch (e) {
       return null;
+    }
+  }
+
+  Future<List<BusLocationModel>> getCollegeBusLocations(
+    String collegeId,
+  ) async {
+    try {
+      final response = await _dio.get('/buses/college/$collegeId/locations');
+      return (response.data as List)
+          .map((data) => BusLocationModel.fromMap(data, data['busId']))
+          .toList();
+    } catch (e) {
+      print('Error fetching college bus locations: $e');
+      return [];
     }
   }
 

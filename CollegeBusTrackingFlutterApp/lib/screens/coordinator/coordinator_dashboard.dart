@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:go_router/go_router.dart';
+
 import 'package:collegebus/services/auth_service.dart';
 import 'package:collegebus/services/firestore_service.dart';
 import 'package:collegebus/models/user_model.dart';
@@ -180,7 +180,7 @@ class _CoordinatorDashboardState extends State<CoordinatorDashboard>
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('${driver.fullName} has been approved as a driver'),
-          backgroundColor: AppColors.success,
+          backgroundColor: Theme.of(context).colorScheme.secondary,
         ),
       );
     }
@@ -201,7 +201,7 @@ class _CoordinatorDashboardState extends State<CoordinatorDashboard>
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('${driver.fullName} has been rejected'),
-          backgroundColor: AppColors.error,
+          backgroundColor: Theme.of(context).colorScheme.error,
         ),
       );
     }
@@ -424,7 +424,7 @@ class _CoordinatorDashboardState extends State<CoordinatorDashboard>
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text('Bus number $busNumber added successfully'),
-                      backgroundColor: AppColors.success,
+                      backgroundColor: Theme.of(context).colorScheme.secondary,
                     ),
                   );
                 }
@@ -443,19 +443,21 @@ class _CoordinatorDashboardState extends State<CoordinatorDashboard>
     final user = authService.currentUserModel;
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       drawer: AppDrawer(user: user, authService: authService),
       appBar: AppBar(
-        backgroundColor: AppColors.primary,
-        foregroundColor: AppColors.onPrimary,
+        backgroundColor: Theme.of(context).primaryColor,
+        foregroundColor: Theme.of(context).colorScheme.onPrimary,
         actions: [
           // Actions moved to Sidebar
         ],
         bottom: TabBar(
           controller: _tabController,
-          labelColor: AppColors.onPrimary,
-          unselectedLabelColor: AppColors.onPrimary.withValues(alpha: 0.7),
-          indicatorColor: AppColors.onPrimary,
+          labelColor: Theme.of(context).colorScheme.onPrimary,
+          unselectedLabelColor: Theme.of(
+            context,
+          ).colorScheme.onPrimary.withValues(alpha: 0.7),
+          indicatorColor: Theme.of(context).colorScheme.onPrimary,
           isScrollable: true,
           tabs: const [
             Tab(text: 'Overview', icon: Icon(Icons.dashboard)),
@@ -475,12 +477,12 @@ class _CoordinatorDashboardState extends State<CoordinatorDashboard>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
+                Text(
                   'System Overview',
                   style: TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.bold,
-                    color: AppColors.textPrimary,
+                    color: Theme.of(context).colorScheme.onSurface,
                   ),
                 ),
                 const SizedBox(height: AppSizes.paddingLarge),
@@ -493,7 +495,7 @@ class _CoordinatorDashboardState extends State<CoordinatorDashboard>
                         'Total Routes',
                         _routes.length.toString(),
                         Icons.route,
-                        AppColors.primary,
+                        Theme.of(context).primaryColor,
                       ),
                     ),
                     const SizedBox(width: AppSizes.paddingMedium),
@@ -502,7 +504,7 @@ class _CoordinatorDashboardState extends State<CoordinatorDashboard>
                         'Active Buses',
                         _buses.where((b) => b.isActive).length.toString(),
                         Icons.directions_bus,
-                        AppColors.success,
+                        Theme.of(context).colorScheme.secondary,
                       ),
                     ),
                   ],
@@ -517,7 +519,7 @@ class _CoordinatorDashboardState extends State<CoordinatorDashboard>
                         'Pending Drivers',
                         _pendingDrivers.length.toString(),
                         Icons.pending,
-                        AppColors.warning,
+                        Theme.of(context).colorScheme.error,
                       ),
                     ),
                     const SizedBox(width: AppSizes.paddingMedium),
@@ -526,7 +528,7 @@ class _CoordinatorDashboardState extends State<CoordinatorDashboard>
                         'Bus Numbers',
                         _busNumbers.length.toString(),
                         Icons.confirmation_number,
-                        AppColors.secondary,
+                        Theme.of(context).colorScheme.secondary,
                       ),
                     ),
                   ],
@@ -537,21 +539,25 @@ class _CoordinatorDashboardState extends State<CoordinatorDashboard>
 
           // Driver Approvals Tab
           _pendingDrivers.isEmpty
-              ? const Center(
+              ? Center(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Icon(
                         Icons.check_circle_outline,
                         size: 64,
-                        color: AppColors.textSecondary,
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.onSurface.withValues(alpha: 0.5),
                       ),
                       SizedBox(height: AppSizes.paddingMedium),
                       Text(
                         'No pending driver approvals',
                         style: TextStyle(
                           fontSize: 18,
-                          color: AppColors.textSecondary,
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.onSurface.withValues(alpha: 0.5),
                         ),
                       ),
                     ],
@@ -567,11 +573,11 @@ class _CoordinatorDashboardState extends State<CoordinatorDashboard>
                         bottom: AppSizes.paddingMedium,
                       ),
                       child: ListTile(
-                        leading: const CircleAvatar(
-                          backgroundColor: AppColors.primary,
+                        leading: CircleAvatar(
+                          backgroundColor: Theme.of(context).primaryColor,
                           child: Icon(
                             Icons.drive_eta,
-                            color: AppColors.onPrimary,
+                            color: Theme.of(context).colorScheme.onPrimary,
                           ),
                         ),
                         title: Text(
@@ -587,8 +593,10 @@ class _CoordinatorDashboardState extends State<CoordinatorDashboard>
                               Text('Phone: ${driver.phoneNumber}'),
                             Text(
                               'Applied: ${driver.createdAt.toString().substring(0, 10)}',
-                              style: const TextStyle(
-                                color: AppColors.textSecondary,
+                              style: TextStyle(
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onSurface.withValues(alpha: 0.6),
                                 fontSize: 12,
                               ),
                             ),
@@ -598,16 +606,16 @@ class _CoordinatorDashboardState extends State<CoordinatorDashboard>
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             IconButton(
-                              icon: const Icon(
+                              icon: Icon(
                                 Icons.check,
-                                color: AppColors.success,
+                                color: Theme.of(context).colorScheme.secondary,
                               ),
                               onPressed: () => _approveDriver(driver),
                             ),
                             IconButton(
-                              icon: const Icon(
+                              icon: Icon(
                                 Icons.close,
-                                color: AppColors.error,
+                                color: Theme.of(context).colorScheme.error,
                               ),
                               onPressed: () => _rejectDriver(driver),
                             ),
@@ -639,8 +647,10 @@ class _CoordinatorDashboardState extends State<CoordinatorDashboard>
                       icon: const Icon(Icons.add),
                       label: const Text('Create Route'),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primary,
-                        foregroundColor: AppColors.onPrimary,
+                        backgroundColor: Theme.of(context).primaryColor,
+                        foregroundColor: Theme.of(
+                          context,
+                        ).colorScheme.onPrimary,
                       ),
                     ),
                   ],
@@ -648,14 +658,16 @@ class _CoordinatorDashboardState extends State<CoordinatorDashboard>
               ),
               Expanded(
                 child: _routes.isEmpty
-                    ? const Center(
+                    ? Center(
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Icon(
                               Icons.route_outlined,
                               size: 64,
-                              color: AppColors.textSecondary,
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.onSurface.withValues(alpha: 0.6),
                             ),
                             SizedBox(height: AppSizes.paddingMedium),
                             Text(
@@ -691,13 +703,15 @@ class _CoordinatorDashboardState extends State<CoordinatorDashboard>
                             child: ListTile(
                               leading: CircleAvatar(
                                 backgroundColor: route.routeType == 'pickup'
-                                    ? AppColors.success
-                                    : AppColors.primary,
+                                    ? Theme.of(context).colorScheme.secondary
+                                    : Theme.of(context).primaryColor,
                                 child: Icon(
                                   route.routeType == 'pickup'
                                       ? Icons.arrow_upward
                                       : Icons.arrow_downward,
-                                  color: AppColors.onPrimary,
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onPrimary,
                                 ),
                               ),
                               title: Text(
@@ -734,13 +748,15 @@ class _CoordinatorDashboardState extends State<CoordinatorDashboard>
                                       ],
                                     ),
                                   ),
-                                  const PopupMenuItem(
+                                  PopupMenuItem(
                                     value: 'delete',
                                     child: Row(
                                       children: [
                                         Icon(
                                           Icons.delete,
-                                          color: AppColors.error,
+                                          color: Theme.of(
+                                            context,
+                                          ).colorScheme.error,
                                         ),
                                         SizedBox(width: 8),
                                         Text('Delete'),
@@ -770,7 +786,9 @@ class _CoordinatorDashboardState extends State<CoordinatorDashboard>
                                             onPressed: () =>
                                                 Navigator.of(context).pop(true),
                                             style: ElevatedButton.styleFrom(
-                                              backgroundColor: AppColors.error,
+                                              backgroundColor: Theme.of(
+                                                context,
+                                              ).colorScheme.error,
                                             ),
                                             child: const Text('Delete'),
                                           ),
@@ -1168,9 +1186,11 @@ class _CoordinatorDashboardState extends State<CoordinatorDashboard>
             const SizedBox(height: AppSizes.paddingSmall),
             Text(
               title,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 14,
-                color: AppColors.textSecondary,
+                color: Theme.of(
+                  context,
+                ).colorScheme.onSurface.withValues(alpha: 0.6),
               ),
               textAlign: TextAlign.center,
             ),
@@ -1185,21 +1205,24 @@ class _CoordinatorDashboardState extends State<CoordinatorDashboard>
       leading: Container(
         padding: const EdgeInsets.all(8),
         decoration: BoxDecoration(
-          color: AppColors.primary.withValues(alpha: 0.1),
+          color: Theme.of(context).primaryColor.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(8),
         ),
-        child: Icon(icon, color: AppColors.primary, size: 20),
+        child: Icon(icon, color: Theme.of(context).primaryColor, size: 20),
       ),
       title: Text(
         title,
-        style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+        style: TextStyle(
+          fontSize: 12,
+          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+        ),
       ),
       subtitle: Text(
         value,
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 16,
           fontWeight: FontWeight.w500,
-          color: AppColors.textPrimary,
+          color: Theme.of(context).colorScheme.onSurface,
         ),
       ),
     );

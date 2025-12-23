@@ -20,21 +20,13 @@ class StudentInfoTab extends StatelessWidget {
         children: [
           const Text(
             'Information',
-            style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-              color: AppColors.textPrimary,
-            ),
+            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: AppSizes.paddingLarge),
 
           const Text(
             'Available Bus Numbers',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: AppColors.textPrimary,
-            ),
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: AppSizes.paddingMedium),
 
@@ -48,7 +40,9 @@ class StudentInfoTab extends StatelessWidget {
                   .map(
                     (busNumber) => Chip(
                       label: Text(busNumber),
-                      backgroundColor: AppColors.primary.withValues(alpha: 0.1),
+                      backgroundColor: Theme.of(
+                        context,
+                      ).primaryColor.withValues(alpha: 0.1),
                     ),
                   )
                   .toList(),
@@ -58,11 +52,7 @@ class StudentInfoTab extends StatelessWidget {
 
           const Text(
             'All Stops',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: AppColors.textPrimary,
-            ),
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: AppSizes.paddingMedium),
 
@@ -76,12 +66,12 @@ class StudentInfoTab extends StatelessWidget {
               itemBuilder: (context, index) {
                 final stop = allStops[index];
                 return Card(
-                  color: Colors.white,
+                  color: Theme.of(context).colorScheme.surface,
                   margin: const EdgeInsets.only(bottom: AppSizes.paddingSmall),
                   child: ListTile(
-                    leading: const Icon(
+                    leading: Icon(
                       Icons.place,
-                      color: AppColors.secondary,
+                      color: Theme.of(context).colorScheme.secondary,
                     ),
                     title: Text(stop),
                   ),

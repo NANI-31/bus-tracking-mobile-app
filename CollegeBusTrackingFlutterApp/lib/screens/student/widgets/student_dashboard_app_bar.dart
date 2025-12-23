@@ -20,16 +20,18 @@ class StudentDashboardAppBar extends StatelessWidget
   @override
   Widget build(BuildContext context) {
     return AppBar(
-      backgroundColor: AppColors.primary,
-      foregroundColor: AppColors.onPrimary,
+      backgroundColor: Theme.of(context).primaryColor,
+      foregroundColor: Theme.of(context).colorScheme.onPrimary,
       actions: [
         // Actions moved to Sidebar (AppDrawer)
       ],
       bottom: TabBar(
         controller: tabController,
-        labelColor: AppColors.onPrimary,
-        unselectedLabelColor: AppColors.onPrimary.withValues(alpha: 0.7),
-        indicatorColor: AppColors.onPrimary,
+        labelColor: Theme.of(context).colorScheme.onPrimary,
+        unselectedLabelColor: Theme.of(
+          context,
+        ).colorScheme.onPrimary.withValues(alpha: 0.7),
+        indicatorColor: Theme.of(context).colorScheme.onPrimary,
         tabs: const [
           Tab(text: 'Track Buses', icon: Icon(Icons.map)),
           Tab(text: 'Bus List', icon: Icon(Icons.list)),

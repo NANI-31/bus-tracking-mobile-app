@@ -155,7 +155,9 @@ class _ScheduleManagementScreenState extends State<ScheduleManagementScreen>
                       Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: AppColors.primary.withValues(alpha: 0.1),
+                          color: Theme.of(
+                            context,
+                          ).primaryColor.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Column(
@@ -194,7 +196,9 @@ class _ScheduleManagementScreenState extends State<ScheduleManagementScreen>
                       Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: AppColors.success.withValues(alpha: 0.1),
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.secondary.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: const Column(
@@ -275,7 +279,9 @@ class _ScheduleManagementScreenState extends State<ScheduleManagementScreen>
                               content: Text(
                                 '$shift shift timetable created successfully',
                               ),
-                              backgroundColor: AppColors.success,
+                              backgroundColor: Theme.of(
+                                context,
+                              ).colorScheme.secondary,
                             ),
                           );
                         }
@@ -293,19 +299,21 @@ class _ScheduleManagementScreenState extends State<ScheduleManagementScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       drawer: AppDrawer(
         user: Provider.of<AuthService>(context).currentUserModel,
         authService: Provider.of<AuthService>(context),
       ),
       appBar: AppBar(
-        backgroundColor: AppColors.primary,
-        foregroundColor: AppColors.onPrimary,
+        backgroundColor: Theme.of(context).primaryColor,
+        foregroundColor: Theme.of(context).colorScheme.onPrimary,
         bottom: TabBar(
           controller: _tabController,
-          labelColor: AppColors.onPrimary,
-          unselectedLabelColor: AppColors.onPrimary.withValues(alpha: 0.7),
-          indicatorColor: AppColors.onPrimary,
+          labelColor: Theme.of(context).colorScheme.onPrimary,
+          unselectedLabelColor: Theme.of(
+            context,
+          ).colorScheme.onPrimary.withValues(alpha: 0.7),
+          indicatorColor: Theme.of(context).colorScheme.onPrimary,
           tabs: const [
             Tab(text: '1st Shift', icon: Icon(Icons.wb_sunny)),
             Tab(text: '2nd Shift', icon: Icon(Icons.nights_stay)),
@@ -324,8 +332,8 @@ class _ScheduleManagementScreenState extends State<ScheduleManagementScreen>
           final currentShift = _tabController.index == 0 ? '1st' : '2nd';
           _showCreateScheduleDialog(currentShift);
         },
-        backgroundColor: AppColors.primary,
-        foregroundColor: AppColors.onPrimary,
+        backgroundColor: Theme.of(context).primaryColor,
+        foregroundColor: Theme.of(context).colorScheme.onPrimary,
         icon: const Icon(Icons.add),
         label: const Text('Create Timetable'),
       ),
@@ -341,20 +349,29 @@ class _ScheduleManagementScreenState extends State<ScheduleManagementScreen>
             Icon(
               shift == '1st' ? Icons.wb_sunny : Icons.nights_stay,
               size: 64,
-              color: AppColors.textSecondary,
+              color: Theme.of(
+                context,
+              ).colorScheme.onSurface.withValues(alpha: 0.6),
             ),
             const SizedBox(height: AppSizes.paddingMedium),
             Text(
               'No $shift shift timetables created yet',
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 18,
-                color: AppColors.textSecondary,
+                color: Theme.of(
+                  context,
+                ).colorScheme.onSurface.withValues(alpha: 0.6),
               ),
             ),
             const SizedBox(height: AppSizes.paddingSmall),
-            const Text(
+            Text(
               'Tap the + button to create a timetable',
-              style: TextStyle(fontSize: 14, color: AppColors.textSecondary),
+              style: TextStyle(
+                fontSize: 14,
+                color: Theme.of(
+                  context,
+                ).colorScheme.onSurface.withValues(alpha: 0.6),
+              ),
             ),
           ],
         ),
@@ -396,10 +413,10 @@ class _ScheduleManagementScreenState extends State<ScheduleManagementScreen>
           margin: const EdgeInsets.only(bottom: AppSizes.paddingMedium),
           child: ExpansionTile(
             leading: CircleAvatar(
-              backgroundColor: AppColors.primary,
+              backgroundColor: Theme.of(context).primaryColor,
               child: Icon(
                 shift == '1st' ? Icons.wb_sunny : Icons.nights_stay,
-                color: AppColors.onPrimary,
+                color: Theme.of(context).colorScheme.onPrimary,
               ),
             ),
             title: Text(
@@ -416,11 +433,14 @@ class _ScheduleManagementScreenState extends State<ScheduleManagementScreen>
             ),
             trailing: PopupMenuButton(
               itemBuilder: (context) => [
-                const PopupMenuItem(
+                PopupMenuItem(
                   value: 'delete',
                   child: Row(
                     children: [
-                      Icon(Icons.delete, color: AppColors.error),
+                      Icon(
+                        Icons.delete,
+                        color: Theme.of(context).colorScheme.error,
+                      ),
                       SizedBox(width: 8),
                       Text('Delete'),
                     ],
@@ -444,7 +464,9 @@ class _ScheduleManagementScreenState extends State<ScheduleManagementScreen>
                         ElevatedButton(
                           onPressed: () => Navigator.of(context).pop(true),
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.error,
+                            backgroundColor: Theme.of(
+                              context,
+                            ).colorScheme.error,
                           ),
                           child: const Text('Delete'),
                         ),
@@ -459,9 +481,11 @@ class _ScheduleManagementScreenState extends State<ScheduleManagementScreen>
                     await firestoreService.deleteSchedule(schedule.id);
                     if (!mounted) return;
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
+                      SnackBar(
                         content: Text('Timetable deleted successfully'),
-                        backgroundColor: AppColors.success,
+                        backgroundColor: Theme.of(
+                          context,
+                        ).colorScheme.secondary,
                       ),
                     );
                   }
@@ -499,17 +523,23 @@ class _ScheduleManagementScreenState extends State<ScheduleManagementScreen>
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
                             color: isStart
-                                ? AppColors.success.withValues(alpha: 0.1)
+                                ? Theme.of(
+                                    context,
+                                  ).colorScheme.secondary.withValues(alpha: 0.1)
                                 : isEnd
-                                ? AppColors.error.withValues(alpha: 0.1)
-                                : AppColors.warning.withValues(alpha: 0.1),
+                                ? Theme.of(
+                                    context,
+                                  ).colorScheme.error.withValues(alpha: 0.1)
+                                : Theme.of(
+                                    context,
+                                  ).colorScheme.tertiary.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(8),
                             border: Border.all(
                               color: isStart
-                                  ? AppColors.success
+                                  ? Theme.of(context).colorScheme.secondary
                                   : isEnd
-                                  ? AppColors.error
-                                  : AppColors.warning,
+                                  ? Theme.of(context).colorScheme.error
+                                  : Theme.of(context).colorScheme.tertiary,
                             ),
                           ),
                           child: Row(
@@ -521,10 +551,10 @@ class _ScheduleManagementScreenState extends State<ScheduleManagementScreen>
                                     ? Icons.stop
                                     : Icons.location_on,
                                 color: isStart
-                                    ? AppColors.success
+                                    ? Theme.of(context).colorScheme.secondary
                                     : isEnd
-                                    ? AppColors.error
-                                    : AppColors.warning,
+                                    ? Theme.of(context).colorScheme.error
+                                    : Theme.of(context).colorScheme.tertiary,
                               ),
                               const SizedBox(width: 12),
                               Expanded(
@@ -547,10 +577,16 @@ class _ScheduleManagementScreenState extends State<ScheduleManagementScreen>
                                       style: TextStyle(
                                         fontSize: 12,
                                         color: isStart
-                                            ? AppColors.success
+                                            ? Theme.of(
+                                                context,
+                                              ).colorScheme.secondary
                                             : isEnd
-                                            ? AppColors.error
-                                            : AppColors.warning,
+                                            ? Theme.of(
+                                                context,
+                                              ).colorScheme.error
+                                            : Theme.of(
+                                                context,
+                                              ).colorScheme.tertiary,
                                       ),
                                     ),
                                   ],
