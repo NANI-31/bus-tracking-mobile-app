@@ -5,10 +5,12 @@ import {
   sendOtp,
   verifyOtp,
   resetPassword,
-} from "../controllers/authController";
+} from "../controllers/auth";
+// import { AuthController } from "../controllers/auth";
 
 const router = express.Router();
 
+// router.post("/login", AuthController.loginUser);
 router.post("/register", register);
 router.post("/login", login);
 router.post("/send-otp", sendOtp);

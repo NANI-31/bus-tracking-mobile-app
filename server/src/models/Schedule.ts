@@ -36,12 +36,12 @@ const StopScheduleSchema: Schema = new Schema(
 );
 
 const ScheduleSchema: Schema = new Schema({
-  routeId: { type: String, required: true },
-  busId: { type: String, required: true },
+  routeId: { type: Schema.Types.ObjectId, required: true, ref: "Route" },
+  busId: { type: Schema.Types.ObjectId, required: true, ref: "Bus" },
   shift: { type: String, enum: ["1st", "2nd"], default: "1st" },
   stopSchedules: [StopScheduleSchema],
-  collegeId: { type: String, required: true },
-  createdBy: { type: String, required: true },
+  collegeId: { type: Schema.Types.ObjectId, required: true, ref: "College" },
+  createdBy: { type: String, required: true, ref: "User" },
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date },
   isActive: { type: Boolean, default: true },

@@ -11,8 +11,8 @@ export interface INotification extends Document {
 }
 
 const NotificationSchema: Schema = new Schema({
-  senderId: { type: String, required: true },
-  receiverId: { type: String, required: true },
+  senderId: { type: String, required: true, ref: "User" },
+  receiverId: { type: String, required: true, ref: "User" },
   message: { type: String, required: true },
   type: { type: String, required: true },
   timestamp: { type: Date, default: Date.now },

@@ -5,12 +5,14 @@ import {
   getAllBuses,
   updateBusLocation,
   getBusLocation,
+  getCollegeBusLocations,
 } from "../controllers/busController";
 
 const router = express.Router();
 
 router.post("/", createBus);
 router.get("/", getAllBuses);
+router.get("/college/:collegeId/locations", getCollegeBusLocations);
 router.get("/:id", getBus);
 router.post("/location", updateBusLocation);
 router.get("/:busId/location", getBusLocation);

@@ -63,3 +63,29 @@ export const getBusLocation = async (req: Request, res: Response) => {
     res.status(500).json({ message: (error as Error).message });
   }
 };
+
+export const getCollegeBusLocations = async (req: Request, res: Response) => {
+  try {
+    const { collegeId } = req.params;
+    // 1. Get all active buses for this college
+    const buses = await Bus.find({ collegeId, isActive: true });
+
+    // 2. Get latest location for each bus
+    // This can be optimized with aggregation but simple Promise.all is fine for N < 100
+    const locations = await Promise.all(
+      buses.map(async (bus) => {
+        const location = await BusLocation.findOne({ busId: bus._id })
+          .sort({ timestamp: -1 })
+          .lean();
+        return location ? { ...location, busId: bus._id } : null;
+      })
+    );
+
+    // Filter out nulls
+    const validLocations = locations.filter((l) => l !== null);
+
+    res.status(200).json(validLocations);
+  } catch (error) {
+    res.status(500).json({ message: (error as Error).message });
+  }
+};

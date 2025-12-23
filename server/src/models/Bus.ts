@@ -12,14 +12,15 @@ export interface IBus extends Document {
 
 const BusSchema: Schema = new Schema({
   busNumber: { type: String, required: true },
-  driverId: { type: String, required: true },
-  routeId: { type: String },
-  collegeId: { type: String, required: true },
+  driverId: { type: String, required: true, ref: "User" },
+  routeId: { type: Schema.Types.ObjectId, ref: "Route" },
+  collegeId: { type: Schema.Types.ObjectId, required: true, ref: "College" },
   isActive: { type: Boolean, default: true },
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date },
 });
 
+BusSchema.index({ collegeId: 1, busNumber: 1 }, { unique: true });
 export const Bus = mongoose.model<IBus>("Bus", BusSchema);
 
 export interface IBusLocation extends Document {
