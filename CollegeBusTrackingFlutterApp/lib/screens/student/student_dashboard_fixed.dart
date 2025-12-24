@@ -18,7 +18,6 @@ import 'tabs/student_info_tab.dart';
 import 'utils/student_map_helper.dart';
 import 'widgets/student_dashboard_app_bar.dart';
 import 'package:collegebus/widgets/app_drawer.dart';
-import 'student_profile_screen.dart';
 
 class StudentDashboard extends StatefulWidget {
   const StudentDashboard({super.key});
@@ -41,7 +40,6 @@ class _StudentDashboardState extends State<StudentDashboard>
   String? _selectedBusNumber;
   String? _selectedRouteType;
   List<RouteModel> _routes = [];
-  int _bottomNavIndex = 0;
   Map<String, StreamSubscription> _busLocationSubscriptions = {};
 
   // Stream subscriptions
@@ -520,135 +518,79 @@ class _StudentDashboardState extends State<StudentDashboard>
       builder: (context, themeService, _) {
         return Scaffold(
           backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-          // Remove Sidebar if Bottom Navigation is enabled
-          drawer: themeService.useBottomNavigation
-              ? null
-              : AppDrawer(user: user, authService: authService),
-
-          // AppBar Logic
+          drawer: AppDrawer(user: user, authService: authService),
           appBar: themeService.useBottomNavigation
-              ? (_bottomNavIndex == 3
-                    ? null // Hide AppBar for Profile tab as it has its own
-                    : AppBar(
-                        backgroundColor: Theme.of(context).primaryColor,
-                        foregroundColor: Theme.of(
-                          context,
-                        ).colorScheme.onPrimary,
-                        title: const Text('College Bus Tracking'),
-                        actions: [
-                          IconButton(
-                            icon: const Icon(Icons.refresh),
-                            onPressed: () {
-                              _loadBuses();
-                              _loadRoutes();
-                            },
-                          ),
-                        ],
-                      ))
+              ? AppBar(
+                  backgroundColor: Theme.of(context).primaryColor,
+                  foregroundColor: Theme.of(context).colorScheme.onPrimary,
+                  title: const Text('College Bus Tracking'),
+                  actions: [
+                    IconButton(
+                      icon: const Icon(Icons.refresh),
+                      onPressed: () {
+                        _loadBuses();
+                        _loadRoutes();
+                      },
+                    ),
+                  ],
+                )
               : StudentDashboardAppBar(
                   user: user,
                   tabController: _tabController,
                   authService: authService,
                 ),
+          body: TabBarView(
+            controller: _tabController,
+            physics: themeService.useBottomNavigation
+                ? const NeverScrollableScrollPhysics() // Disable swipe on bottom nav usually? Or keep it?
+                : const NeverScrollableScrollPhysics(), // Already disabled in original
+            children: [
+              // Map Tab
+              StudentMapTab(
+                currentLocation: _currentLocation,
+                markers: _markers,
+                polylines: _polylines,
+                selectedBus: _selectedBus,
+                selectedRouteType: _selectedRouteType,
+                selectedBusNumber: _selectedBusNumber,
+                allBusNumbers: _allBusNumbers,
+                filteredBusesCount: _filteredBuses.length,
+                onMapCreated: (controller) => _mapController = controller,
+                onRouteTypeSelected: _onRouteTypeSelected,
+                onBusNumberSelected: _onBusNumberSelected,
+                onClearFilters: _clearFilters,
+                onBusSelected: (bus) {
+                  setState(() {
+                    _selectedBus = bus;
+                  });
+                  if (bus == null) {
+                    _updateMarkers();
+                  }
+                },
+              ),
 
-          // Body Logic
-          body: themeService.useBottomNavigation
-              ? IndexedStack(
-                  index: _bottomNavIndex,
-                  children: [
-                    // Map Tab
-                    StudentMapTab(
-                      currentLocation: _currentLocation,
-                      markers: _markers,
-                      polylines: _polylines,
-                      selectedBus: _selectedBus,
-                      selectedRouteType: _selectedRouteType,
-                      selectedBusNumber: _selectedBusNumber,
-                      allBusNumbers: _allBusNumbers,
-                      filteredBusesCount: _filteredBuses.length,
-                      onMapCreated: (controller) => _mapController = controller,
-                      onRouteTypeSelected: _onRouteTypeSelected,
-                      onBusNumberSelected: _onBusNumberSelected,
-                      onClearFilters: _clearFilters,
-                      onBusSelected: (bus) {
-                        setState(() {
-                          _selectedBus = bus;
-                        });
-                        if (bus == null) {
-                          _updateMarkers();
-                        }
-                      },
-                    ),
+              // Bus List Tab
+              StudentBusListTab(
+                filteredBuses: _filteredBuses,
+                routes: _routes,
+                selectedBus: _selectedBus,
+                onBusSelected: (bus) => _selectBus(bus),
+                selectedStop: _selectedStop,
+                onClearFilters: _clearFilters,
+              ),
 
-                    // Bus List Tab
-                    StudentBusListTab(
-                      filteredBuses: _filteredBuses,
-                      routes: _routes,
-                      selectedBus: _selectedBus,
-                      onBusSelected: (bus) => _selectBus(bus),
-                      selectedStop: _selectedStop,
-                      onClearFilters: _clearFilters,
-                    ),
-
-                    // Bus Info Tab
-                    StudentInfoTab(
-                      allBusNumbers: _allBusNumbers,
-                      allStops: _allStops,
-                    ),
-
-                    // Profile Tab
-                    const StudentProfileScreen(),
-                  ],
-                )
-              : TabBarView(
-                  controller: _tabController,
-                  physics: const NeverScrollableScrollPhysics(),
-                  children: [
-                    StudentMapTab(
-                      currentLocation: _currentLocation,
-                      markers: _markers,
-                      polylines: _polylines,
-                      selectedBus: _selectedBus,
-                      selectedRouteType: _selectedRouteType,
-                      selectedBusNumber: _selectedBusNumber,
-                      allBusNumbers: _allBusNumbers,
-                      filteredBusesCount: _filteredBuses.length,
-                      onMapCreated: (controller) => _mapController = controller,
-                      onRouteTypeSelected: _onRouteTypeSelected,
-                      onBusNumberSelected: _onBusNumberSelected,
-                      onClearFilters: _clearFilters,
-                      onBusSelected: (bus) {
-                        setState(() {
-                          _selectedBus = bus;
-                        });
-                        if (bus == null) {
-                          _updateMarkers();
-                        }
-                      },
-                    ),
-                    StudentBusListTab(
-                      filteredBuses: _filteredBuses,
-                      routes: _routes,
-                      selectedBus: _selectedBus,
-                      onBusSelected: (bus) => _selectBus(bus),
-                      selectedStop: _selectedStop,
-                      onClearFilters: _clearFilters,
-                    ),
-                    StudentInfoTab(
-                      allBusNumbers: _allBusNumbers,
-                      allStops: _allStops,
-                    ),
-                  ],
-                ),
-
-          // Bottom Navigation Bar Logic
+              // Bus Info Tab
+              StudentInfoTab(
+                allBusNumbers: _allBusNumbers,
+                allStops: _allStops,
+              ),
+            ],
+          ),
           bottomNavigationBar: themeService.useBottomNavigation
               ? NavigationBar(
-                  selectedIndex: _bottomNavIndex,
+                  selectedIndex: _tabController.index,
                   onDestinationSelected: (index) {
-                    setState(() {
-                      _bottomNavIndex = index;
-                    });
+                    _tabController.animateTo(index);
                   },
                   destinations: const [
                     NavigationDestination(
@@ -664,12 +606,7 @@ class _StudentDashboardState extends State<StudentDashboard>
                     NavigationDestination(
                       icon: Icon(Icons.info_outline),
                       selectedIcon: Icon(Icons.info),
-                      label: 'Schedule',
-                    ),
-                    NavigationDestination(
-                      icon: Icon(Icons.person_outline),
-                      selectedIcon: Icon(Icons.person),
-                      label: 'Profile',
+                      label: 'Info',
                     ),
                   ],
                 )

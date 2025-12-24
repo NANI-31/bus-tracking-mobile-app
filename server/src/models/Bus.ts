@@ -6,6 +6,8 @@ export interface IBus extends Document {
   routeId?: string;
   collegeId: string;
   isActive: boolean;
+  status: "on-time" | "delayed" | "not-running";
+  delay?: number;
   createdAt: Date;
   updatedAt?: Date;
 }
@@ -16,6 +18,12 @@ const BusSchema: Schema = new Schema({
   routeId: { type: Schema.Types.ObjectId, ref: "Route" },
   collegeId: { type: Schema.Types.ObjectId, required: true, ref: "College" },
   isActive: { type: Boolean, default: true },
+  status: {
+    type: String,
+    enum: ["on-time", "delayed", "not-running"],
+    default: "on-time",
+  },
+  delay: { type: Number, default: 0 },
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date },
 });

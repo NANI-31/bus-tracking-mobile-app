@@ -869,6 +869,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         ),
                       ],
                     ),
+                    const SizedBox(height: AppSizes.paddingXLarge),
+                    const SizedBox(height: AppSizes.paddingMedium),
                   ],
                 ),
               ),

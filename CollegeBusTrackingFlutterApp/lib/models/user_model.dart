@@ -14,6 +14,7 @@ class UserModel {
   final DateTime? updatedAt;
   final String? phoneNumber;
   final String? rollNumber;
+  final String? preferredStop;
 
   UserModel({
     required this.id,
@@ -29,6 +30,7 @@ class UserModel {
     this.updatedAt,
     this.phoneNumber,
     this.rollNumber,
+    this.preferredStop,
   });
 
   factory UserModel.fromMap(Map<String, dynamic> map, String id) {
@@ -53,6 +55,7 @@ class UserModel {
       updatedAt: map['updatedAt'] != null ? parseDate(map['updatedAt']) : null,
       phoneNumber: map['phoneNumber'],
       rollNumber: map['rollNumber'],
+      preferredStop: map['preferredStop'],
     );
   }
 
@@ -71,6 +74,7 @@ class UserModel {
       'updatedAt': updatedAt?.toIso8601String(),
       'phoneNumber': phoneNumber,
       'rollNumber': rollNumber,
+      'preferredStop': preferredStop,
     };
   }
 
@@ -88,6 +92,7 @@ class UserModel {
     DateTime? updatedAt,
     String? phoneNumber,
     String? rollNumber,
+    String? preferredStop,
   }) {
     return UserModel(
       id: id ?? this.id,
@@ -103,6 +108,7 @@ class UserModel {
       updatedAt: updatedAt ?? this.updatedAt,
       phoneNumber: phoneNumber ?? this.phoneNumber,
       rollNumber: rollNumber ?? this.rollNumber,
+      preferredStop: preferredStop ?? this.preferredStop,
     );
   }
 }

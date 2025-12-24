@@ -30,3 +30,12 @@ export const getSchedulesByRoute = async (req: Request, res: Response) => {
     res.status(500).json({ message: (error as Error).message });
   }
 };
+
+export const getSchedulesByCollege = async (req: Request, res: Response) => {
+  try {
+    const schedules = await Schedule.find({ collegeId: req.params.collegeId });
+    res.status(200).json(schedules);
+  } catch (error) {
+    res.status(500).json({ message: (error as Error).message });
+  }
+};

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:collegebus/models/user_model.dart';
 import 'package:collegebus/models/bus_model.dart';
 import 'package:collegebus/models/route_model.dart';
@@ -80,13 +81,31 @@ class FirestoreService {
     // User dashboard expects live updates if new buses are added, but maybe less critical.
     // Bus location is critical.
     // Let's do a simple poll for lists too, but longer interval.
-    return Stream.periodic(const Duration(seconds: 15))
-        .asyncMap((_) => _apiService.getAllBuses())
-        .map(
-          (buses) => buses
+    // Emit immediately, then periodically
+    return Stream.multi((controller) {
+      Future<void> fetch() async {
+        try {
+          final buses = await _apiService.getAllBuses();
+          final filtered = buses
               .where((b) => b.collegeId == collegeId && b.isActive)
-              .toList(),
-        );
+              .toList();
+          if (!controller.isClosed) controller.add(filtered);
+        } catch (e) {
+          // Keep stream alive on error? or add error
+          if (!controller.isClosed) controller.addError(e);
+        }
+      }
+
+      // Initial fetch
+      fetch();
+
+      // Periodic fetch
+      final timer = Timer.periodic(const Duration(seconds: 15), (_) => fetch());
+
+      controller.onCancel = () {
+        timer.cancel();
+      };
+    });
   }
 
   Future<BusModel?> getBusByDriver(String driverId) async {
@@ -132,8 +151,7 @@ class FirestoreService {
   }
 
   Stream<List<ScheduleModel>> getSchedulesByCollege(String collegeId) {
-    // API gap
-    return Stream.value([]);
+    return Stream.fromFuture(_apiService.getSchedulesByCollege(collegeId));
   }
 
   Future<void> deleteSchedule(String scheduleId) async {
@@ -170,17 +188,39 @@ class FirestoreService {
   Stream<BusLocationModel?> getBusLocation(String busId) {
     // Deprecated: Use getCollegeBusLocationsStream for dashboard
     // Keeping simple one-shot or polling for detail view if needed, but optimally should reuse bulk data
-    return Stream.periodic(
-      const Duration(seconds: 4),
-    ).asyncMap((_) => _apiService.getBusLocation(busId));
+    return Stream.multi((controller) {
+      Future<void> fetch() async {
+        try {
+          final location = await _apiService.getBusLocation(busId);
+          if (!controller.isClosed) controller.add(location);
+        } catch (e) {
+          if (!controller.isClosed) controller.addError(e);
+        }
+      }
+
+      fetch();
+      final timer = Timer.periodic(const Duration(seconds: 4), (_) => fetch());
+      controller.onCancel = () => timer.cancel();
+    });
   }
 
   Stream<List<BusLocationModel>> getCollegeBusLocationsStream(
     String collegeId,
   ) {
-    return Stream.periodic(
-      const Duration(seconds: 4),
-    ).asyncMap((_) => _apiService.getCollegeBusLocations(collegeId));
+    return Stream.multi((controller) {
+      Future<void> fetch() async {
+        try {
+          final locations = await _apiService.getCollegeBusLocations(collegeId);
+          if (!controller.isClosed) controller.add(locations);
+        } catch (e) {
+          if (!controller.isClosed) controller.addError(e);
+        }
+      }
+
+      fetch();
+      final timer = Timer.periodic(const Duration(seconds: 4), (_) => fetch());
+      controller.onCancel = () => timer.cancel();
+    });
   }
 
   // Notification operations

@@ -9,14 +9,11 @@ class StudentMapTab extends StatelessWidget {
   final Set<Polyline> polylines;
   final BusModel? selectedBus;
   final String? selectedRouteType;
-  final String? selectedStop;
   final String? selectedBusNumber;
-  final List<String> allStops;
   final List<String> allBusNumbers;
   final int filteredBusesCount;
   final Function(GoogleMapController) onMapCreated;
   final Function(String?) onRouteTypeSelected;
-  final Function(String?) onStopSelected;
   final Function(String?) onBusNumberSelected;
   final VoidCallback onClearFilters;
   final Function(BusModel?) onBusSelected;
@@ -28,14 +25,11 @@ class StudentMapTab extends StatelessWidget {
     required this.polylines,
     required this.selectedBus,
     required this.selectedRouteType,
-    required this.selectedStop,
     required this.selectedBusNumber,
-    required this.allStops,
     required this.allBusNumbers,
     required this.filteredBusesCount,
     required this.onMapCreated,
     required this.onRouteTypeSelected,
-    required this.onStopSelected,
     required this.onBusNumberSelected,
     required this.onClearFilters,
     required this.onBusSelected,
@@ -120,39 +114,6 @@ class StudentMapTab extends StatelessWidget {
                   Expanded(
                     child: DropdownButtonFormField<String>(
                       isExpanded: true,
-                      value: allStops.contains(selectedStop)
-                          ? selectedStop
-                          : null,
-                      dropdownColor: Theme.of(context).colorScheme.surface,
-                      decoration: const InputDecoration(
-                        labelText: 'Bus Stop',
-                        border: OutlineInputBorder(),
-                        contentPadding: EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 8,
-                        ),
-                      ),
-                      items: [
-                        const DropdownMenuItem<String>(
-                          value: null,
-                          child: Text('All Stops'),
-                        ),
-                        ...allStops.map(
-                          (stop) =>
-                              DropdownMenuItem(value: stop, child: Text(stop)),
-                        ),
-                      ],
-                      onChanged: onStopSelected,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: AppSizes.paddingSmall),
-              Row(
-                children: [
-                  Expanded(
-                    child: DropdownButtonFormField<String>(
-                      isExpanded: true,
                       value: allBusNumbers.contains(selectedBusNumber)
                           ? selectedBusNumber
                           : null,
@@ -180,37 +141,36 @@ class StudentMapTab extends StatelessWidget {
                       onChanged: onBusNumberSelected,
                     ),
                   ),
-                  const SizedBox(width: AppSizes.paddingSmall),
-                  if (selectedStop != null ||
-                      selectedBusNumber != null ||
-                      selectedRouteType != null)
-                    ElevatedButton.icon(
-                      onPressed: onClearFilters,
-                      icon: const Icon(Icons.clear),
-                      label: const Text('Clear'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Theme.of(
-                          context,
-                        ).colorScheme.secondary,
-                        foregroundColor: Theme.of(
-                          context,
-                        ).colorScheme.onSecondary,
-                      ),
-                    ),
                 ],
               ),
-              if (selectedStop != null ||
-                  selectedBusNumber != null ||
-                  selectedRouteType != null) ...[
+              const SizedBox(height: AppSizes.paddingSmall),
+
+              if (selectedBusNumber != null || selectedRouteType != null) ...[
                 const SizedBox(height: AppSizes.paddingSmall),
-                Text(
-                  '$filteredBusesCount bus(es) found',
-                  style: TextStyle(
-                    color: Theme.of(
-                      context,
-                    ).colorScheme.onSurface.withValues(alpha: 0.6),
-                    fontSize: 12,
-                  ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      '$filteredBusesCount bus(es) found',
+                      style: TextStyle(
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.onSurface.withValues(alpha: 0.6),
+                        fontSize: 12,
+                      ),
+                    ),
+                    TextButton.icon(
+                      onPressed: onClearFilters,
+                      icon: const Icon(Icons.clear, size: 16),
+                      label: const Text('Clear Filters'),
+                      style: TextButton.styleFrom(
+                        visualDensity: VisualDensity.compact,
+                        foregroundColor: Theme.of(
+                          context,
+                        ).colorScheme.secondary,
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ],

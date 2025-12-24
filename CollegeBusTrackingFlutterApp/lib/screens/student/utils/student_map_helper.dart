@@ -53,7 +53,7 @@ class StudentMapHelper {
             ? BitmapDescriptor.hueRed
             : location != null
             ? BitmapDescriptor.hueGreen
-            : BitmapDescriptor.hueOrange,
+            : BitmapDescriptor.hueRed,
       ),
       onTap: onTap,
     );

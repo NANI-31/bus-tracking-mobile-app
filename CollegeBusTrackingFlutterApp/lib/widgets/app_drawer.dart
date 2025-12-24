@@ -17,7 +17,8 @@ class AppDrawer extends StatelessWidget {
     final theme = Theme.of(context);
 
     return Drawer(
-      backgroundColor: Colors.white,
+      backgroundColor:
+          theme.drawerTheme.backgroundColor ?? theme.scaffoldBackgroundColor,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.only(
           topRight: Radius.circular(0),
@@ -269,13 +270,16 @@ class AppDrawer extends StatelessWidget {
     required VoidCallback onTap,
     bool isDestructive = false,
   }) {
+    final theme = Theme.of(context);
     final color = isDestructive
         ? AppColors.error
-        : (isSelected ? AppColors.primary : AppColors.textPrimary);
+        : (isSelected
+              ? theme.primaryColor
+              : theme.textTheme.bodyLarge?.color ?? AppColors.textPrimary);
 
     final backgroundColor = isDestructive
         ? AppColors.error.withAlpha(20)
-        : (isSelected ? AppColors.primary.withAlpha(25) : Colors.transparent);
+        : (isSelected ? theme.primaryColor.withAlpha(25) : Colors.transparent);
 
     return Container(
       margin: const EdgeInsets.only(bottom: 4),

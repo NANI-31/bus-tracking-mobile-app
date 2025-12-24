@@ -69,12 +69,16 @@ export const seedTransport = async (
     });
 
     // 4. Create Bus
+    const statuses = ["on-time", "delayed", "not-running"];
+    const randomStatus = statuses[Math.floor(Math.random() * statuses.length)];
+
     const bus = await Bus.create({
       busNumber: routeData.busNumber,
       driverId: driverId,
       routeId: route._id,
       collegeId: collegeId,
       isActive: true,
+      status: randomStatus,
     });
 
     // 5. Create Schedule

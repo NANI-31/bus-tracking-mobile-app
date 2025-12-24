@@ -88,6 +88,7 @@ class MyApp extends StatelessWidget {
                 ? ThemeMode.dark
                 : ThemeMode.light,
             routerConfig: AppRouter.router,
+            themeAnimationDuration: Duration.zero,
             debugShowCheckedModeBanner: false,
           );
         },

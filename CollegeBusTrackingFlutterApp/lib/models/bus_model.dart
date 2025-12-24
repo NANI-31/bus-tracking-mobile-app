@@ -7,6 +7,8 @@ class BusModel {
   final String? routeId;
   final String collegeId;
   final bool isActive;
+  final String status;
+  final int delay;
   final DateTime createdAt;
   final DateTime? updatedAt;
 
@@ -17,6 +19,8 @@ class BusModel {
     this.routeId,
     required this.collegeId,
     this.isActive = true,
+    this.status = 'on-time',
+    this.delay = 0,
     required this.createdAt,
     this.updatedAt,
   });
@@ -29,8 +33,12 @@ class BusModel {
       routeId: map['routeId'],
       collegeId: map['collegeId'] ?? '',
       isActive: map['isActive'] ?? true,
+      status: map['status'] ?? 'on-time',
+      delay: map['delay'] ?? 0,
       createdAt: DateTime.parse(map['createdAt']),
-      updatedAt: map['updatedAt'] != null ? DateTime.parse(map['updatedAt']) : null,
+      updatedAt: map['updatedAt'] != null
+          ? DateTime.parse(map['updatedAt'])
+          : null,
     );
   }
 
@@ -41,6 +49,8 @@ class BusModel {
       'routeId': routeId,
       'collegeId': collegeId,
       'isActive': isActive,
+      'status': status,
+      'delay': delay,
       'createdAt': createdAt.toIso8601String(),
       'updatedAt': updatedAt?.toIso8601String(),
     };
@@ -53,6 +63,8 @@ class BusModel {
     String? routeId,
     String? collegeId,
     bool? isActive,
+    String? status,
+    int? delay,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -63,6 +75,8 @@ class BusModel {
       routeId: routeId ?? this.routeId,
       collegeId: collegeId ?? this.collegeId,
       isActive: isActive ?? this.isActive,
+      status: status ?? this.status,
+      delay: delay ?? this.delay,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );

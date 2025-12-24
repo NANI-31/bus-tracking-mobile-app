@@ -174,4 +174,9 @@ class AuthService extends ChangeNotifier {
     _currentUserModel = null;
     notifyListeners();
   }
+
+  void updateCurrentUser(UserModel user) {
+    _currentUserModel = user;
+    notifyListeners();
+  }
 }

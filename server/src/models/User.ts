@@ -25,6 +25,7 @@ export interface IUser extends Document {
   updatedAt?: Date;
   phoneNumber?: string;
   rollNumber?: string;
+  preferredStop?: string;
 }
 
 const UserSchema: Schema = new Schema({
@@ -49,6 +50,7 @@ const UserSchema: Schema = new Schema({
   updatedAt: { type: Date },
   phoneNumber: { type: String },
   rollNumber: { type: String },
+  preferredStop: { type: String },
 });
 
 export default mongoose.model<IUser>("User", UserSchema);

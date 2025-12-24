@@ -66,6 +66,16 @@ export const seedUsers = async (collegeId: string) => {
       approved: true,
       emailVerified: true,
     },
+    {
+      _id: crypto.randomUUID(),
+      fullName: "Admin",
+      email: "ad@ad.com",
+      password: passwordHash,
+      role: UserRole.Admin,
+      collegeId,
+      approved: true,
+      emailVerified: true,
+    },
   ];
 
   const createdUsers = await User.insertMany(users);
