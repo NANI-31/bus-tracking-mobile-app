@@ -12,6 +12,8 @@ import 'package:collegebus/models/bus_model.dart';
 import 'package:collegebus/models/route_model.dart';
 import 'package:collegebus/models/user_model.dart';
 import 'package:collegebus/utils/constants.dart';
+import 'package:collegebus/utils/map_style_helper.dart';
+import 'package:collegebus/services/theme_service.dart';
 
 class TeacherDashboard extends StatefulWidget {
   const TeacherDashboard({super.key});
@@ -77,6 +79,21 @@ class _TeacherDashboardState extends State<TeacherDashboard>
     _loadBuses();
     _loadPendingStudents();
     _loadSavedFilters();
+
+    // Add theme listener for map styling
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Provider.of<ThemeService>(
+        context,
+        listen: false,
+      ).addListener(_handleThemeChange);
+    });
+  }
+
+  void _handleThemeChange() {
+    if (_mapController != null && mounted) {
+      final themeService = Provider.of<ThemeService>(context, listen: false);
+      MapStyleHelper.applyStyle(_mapController, themeService.isDarkMode);
+    }
   }
 
   @override
@@ -87,6 +104,13 @@ class _TeacherDashboardState extends State<TeacherDashboard>
       subscription.cancel();
     }
     _busLocationSubscriptions.clear();
+
+    // Remove theme listener
+    Provider.of<ThemeService>(
+      context,
+      listen: false,
+    ).removeListener(_handleThemeChange);
+
     super.dispose();
   }
 
@@ -806,6 +830,14 @@ class _TeacherDashboardState extends State<TeacherDashboard>
                     ? GoogleMap(
                         onMapCreated: (GoogleMapController controller) {
                           _mapController = controller;
+                          final themeService = Provider.of<ThemeService>(
+                            context,
+                            listen: false,
+                          );
+                          MapStyleHelper.applyStyle(
+                            controller,
+                            themeService.isDarkMode,
+                          );
                           print(
                             'DEBUG: Teacher GoogleMap created successfully',
                           );

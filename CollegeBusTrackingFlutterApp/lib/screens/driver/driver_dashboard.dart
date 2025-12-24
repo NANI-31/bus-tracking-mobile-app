@@ -11,6 +11,8 @@ import 'package:collegebus/models/bus_model.dart';
 import 'package:collegebus/models/route_model.dart';
 import 'package:collegebus/widgets/custom_button.dart';
 import 'package:collegebus/utils/constants.dart';
+import 'package:collegebus/utils/map_style_helper.dart';
+import 'package:collegebus/services/theme_service.dart';
 
 class DriverDashboard extends StatefulWidget {
   const DriverDashboard({super.key});
@@ -43,11 +45,33 @@ class _DriverDashboardState extends State<DriverDashboard>
     _loadBusNumbers();
     _loadMyBus();
     _loadSavedSelections();
+
+    // Add theme listener for map styling
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Provider.of<ThemeService>(
+        context,
+        listen: false,
+      ).addListener(_handleThemeChange);
+    });
+  }
+
+  void _handleThemeChange() {
+    if (_mapController != null && mounted) {
+      final themeService = Provider.of<ThemeService>(context, listen: false);
+      MapStyleHelper.applyStyle(_mapController, themeService.isDarkMode);
+    }
   }
 
   @override
   void dispose() {
     _tabController.dispose();
+
+    // Remove theme listener
+    Provider.of<ThemeService>(
+      context,
+      listen: false,
+    ).removeListener(_handleThemeChange);
+
     super.dispose();
   }
 
@@ -642,6 +666,14 @@ class _DriverDashboardState extends State<DriverDashboard>
                     ? GoogleMap(
                         onMapCreated: (GoogleMapController controller) {
                           _mapController = controller;
+                          final themeService = Provider.of<ThemeService>(
+                            context,
+                            listen: false,
+                          );
+                          MapStyleHelper.applyStyle(
+                            controller,
+                            themeService.isDarkMode,
+                          );
                           print('DEBUG: Driver GoogleMap created successfully');
                         },
                         initialCameraPosition: CameraPosition(

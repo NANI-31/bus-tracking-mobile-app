@@ -16,6 +16,7 @@ import 'tabs/student_map_tab.dart';
 import 'tabs/student_bus_list_tab.dart';
 import 'tabs/student_info_tab.dart';
 import 'utils/student_map_helper.dart';
+import 'package:collegebus/utils/map_style_helper.dart';
 import 'widgets/student_dashboard_app_bar.dart';
 import 'package:collegebus/widgets/app_drawer.dart';
 import 'student_profile_screen.dart';
@@ -96,6 +97,21 @@ class _StudentDashboardState extends State<StudentDashboard>
     _getCurrentLocation();
     _loadRoutes();
     _loadBuses();
+
+    // Add theme listener for map styling
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Provider.of<ThemeService>(
+        context,
+        listen: false,
+      ).addListener(_handleThemeChange);
+    });
+  }
+
+  void _handleThemeChange() {
+    if (_mapController != null && mounted) {
+      final themeService = Provider.of<ThemeService>(context, listen: false);
+      MapStyleHelper.applyStyle(_mapController, themeService.isDarkMode);
+    }
   }
 
   @override
@@ -122,6 +138,12 @@ class _StudentDashboardState extends State<StudentDashboard>
     // Cancel main subscriptions
     _busesListSubscription?.cancel();
     _routesSubscription?.cancel();
+
+    // Remove theme listener
+    Provider.of<ThemeService>(
+      context,
+      listen: false,
+    ).removeListener(_handleThemeChange);
 
     super.dispose();
   }
@@ -566,7 +588,17 @@ class _StudentDashboardState extends State<StudentDashboard>
                       selectedBusNumber: _selectedBusNumber,
                       allBusNumbers: _allBusNumbers,
                       filteredBusesCount: _filteredBuses.length,
-                      onMapCreated: (controller) => _mapController = controller,
+                      onMapCreated: (controller) {
+                        _mapController = controller;
+                        final themeService = Provider.of<ThemeService>(
+                          context,
+                          listen: false,
+                        );
+                        MapStyleHelper.applyStyle(
+                          controller,
+                          themeService.isDarkMode,
+                        );
+                      },
                       onRouteTypeSelected: _onRouteTypeSelected,
                       onBusNumberSelected: _onBusNumberSelected,
                       onClearFilters: _clearFilters,
@@ -613,7 +645,17 @@ class _StudentDashboardState extends State<StudentDashboard>
                       selectedBusNumber: _selectedBusNumber,
                       allBusNumbers: _allBusNumbers,
                       filteredBusesCount: _filteredBuses.length,
-                      onMapCreated: (controller) => _mapController = controller,
+                      onMapCreated: (controller) {
+                        _mapController = controller;
+                        final themeService = Provider.of<ThemeService>(
+                          context,
+                          listen: false,
+                        );
+                        MapStyleHelper.applyStyle(
+                          controller,
+                          themeService.isDarkMode,
+                        );
+                      },
                       onRouteTypeSelected: _onRouteTypeSelected,
                       onBusNumberSelected: _onBusNumberSelected,
                       onClearFilters: _clearFilters,
