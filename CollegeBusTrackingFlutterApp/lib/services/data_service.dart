@@ -8,10 +8,15 @@ import 'package:collegebus/models/schedule_model.dart';
 import 'package:collegebus/utils/constants.dart';
 import 'package:collegebus/services/api_service.dart';
 
-class FirestoreService {
+class DataService {
   final ApiService _apiService;
 
-  FirestoreService(this._apiService);
+  // In-memory cache
+  List<CollegeModel>? _cachedColleges;
+  final Map<String, List<RouteModel>> _cachedRoutes = {};
+  final Map<String, List<String>> _cachedBusNumbers = {};
+
+  DataService(this._apiService);
 
   // User operations
   Future<UserModel?> getUser(String userId) async {
@@ -53,9 +58,14 @@ class FirestoreService {
 
   // College operations
   Future<CollegeModel?> getCollege(String collegeId) async {
-    // Basic implementation: fetch all and find
-    // Using API efficiently would require a specific endpoint
-    final colleges = await _apiService.getAllColleges();
+    if (_cachedColleges != null) {
+      try {
+        return _cachedColleges!.firstWhere((c) => c.id == collegeId);
+      } catch (_) {
+        // Not in cache, proceed to fetch
+      }
+    }
+    final colleges = await getAllColleges().first;
     try {
       return colleges.firstWhere((c) => c.id == collegeId);
     } catch (_) {
@@ -63,8 +73,16 @@ class FirestoreService {
     }
   }
 
-  Stream<List<CollegeModel>> getAllColleges() {
-    return Stream.fromFuture(_apiService.getAllColleges());
+  Stream<List<CollegeModel>> getAllColleges({bool forceRefresh = false}) {
+    if (!forceRefresh && _cachedColleges != null) {
+      return Stream.value(_cachedColleges!);
+    }
+    return Stream.fromFuture(
+      _apiService.getAllColleges().then((colleges) {
+        _cachedColleges = colleges;
+        return colleges;
+      }),
+    );
   }
 
   // Bus operations
@@ -124,18 +142,34 @@ class FirestoreService {
   // Route operations
   Future<void> createRoute(RouteModel route) async {
     await _apiService.createRoute(route);
+    _cachedRoutes.remove(route.collegeId);
   }
 
   Future<void> updateRoute(String routeId, Map<String, dynamic> data) async {
     await _apiService.updateRoute(routeId, data);
+    // Invalidate for all as we don't easily know which collegeId it belongs to without fetching
+    // Optimally, we'd pass collegeId or find it in cache
+    _cachedRoutes.clear();
   }
 
-  Stream<List<RouteModel>> getRoutesByCollege(String collegeId) {
-    return Stream.fromFuture(_apiService.getRoutesByCollege(collegeId));
+  Stream<List<RouteModel>> getRoutesByCollege(
+    String collegeId, {
+    bool forceRefresh = false,
+  }) {
+    if (!forceRefresh && _cachedRoutes.containsKey(collegeId)) {
+      return Stream.value(_cachedRoutes[collegeId]!);
+    }
+    return Stream.fromFuture(
+      _apiService.getRoutesByCollege(collegeId).then((routes) {
+        _cachedRoutes[collegeId] = routes;
+        return routes;
+      }),
+    );
   }
 
   Future<void> deleteRoute(String routeId) async {
     await _apiService.deleteRoute(routeId);
+    _cachedRoutes.clear();
   }
 
   // Schedule operations
@@ -161,14 +195,27 @@ class FirestoreService {
   // Bus number operations
   Future<void> addBusNumber(String collegeId, String busNumber) async {
     await _apiService.addBusNumber(collegeId, busNumber);
+    _cachedBusNumbers.remove(collegeId);
   }
 
   Future<void> removeBusNumber(String collegeId, String busNumber) async {
     await _apiService.removeBusNumber(collegeId, busNumber);
+    _cachedBusNumbers.remove(collegeId);
   }
 
-  Stream<List<String>> getBusNumbers(String collegeId) {
-    return Stream.fromFuture(_apiService.getBusNumbers(collegeId));
+  Stream<List<String>> getBusNumbers(
+    String collegeId, {
+    bool forceRefresh = false,
+  }) {
+    if (!forceRefresh && _cachedBusNumbers.containsKey(collegeId)) {
+      return Stream.value(_cachedBusNumbers[collegeId]!);
+    }
+    return Stream.fromFuture(
+      _apiService.getBusNumbers(collegeId).then((numbers) {
+        _cachedBusNumbers[collegeId] = numbers;
+        return numbers;
+      }),
+    );
   }
 
   // Bus location operations

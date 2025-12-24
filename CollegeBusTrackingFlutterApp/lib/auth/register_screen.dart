@@ -3,7 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import 'package:email_validator/email_validator.dart';
 import 'package:collegebus/services/auth_service.dart';
-import 'package:collegebus/services/firestore_service.dart';
+import 'package:collegebus/services/data_service.dart';
 import 'package:collegebus/widgets/custom_input_field.dart';
 import 'package:collegebus/widgets/custom_button.dart';
 import 'package:collegebus/utils/constants.dart';
@@ -11,6 +11,8 @@ import 'package:collegebus/models/college_model.dart';
 import 'package:collegebus/widgets/api_error_modal.dart';
 import 'package:collegebus/widgets/success_modal.dart';
 import 'package:velocity_x/velocity_x.dart';
+import 'package:collegebus/l10n/signup/auth_signup_localizations.dart';
+import 'package:collegebus/widgets/language_selector.dart';
 
 // Import New Widgets
 import 'package:collegebus/auth/widgets/register_header.dart';
@@ -54,10 +56,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   Future<void> _fetchColleges() async {
     setState(() => _isLoadingColleges = true);
-    final firestoreService = Provider.of<FirestoreService>(
-      context,
-      listen: false,
-    );
+    final firestoreService = Provider.of<DataService>(context, listen: false);
     firestoreService.getAllColleges().listen((colleges) {
       if (mounted) {
         setState(() {
@@ -109,17 +108,18 @@ class _RegisterScreenState extends State<RegisterScreen> {
           final allowedDomains = _selectedCollege!.allowedDomains;
 
           if (!allowedDomains.contains(domain)) {
+            final l10n = SignupLocalizations.of(context)!;
             final shouldContinue = await showDialog<bool>(
               context: context,
               builder: (context) => ApiErrorModal(
-                title: 'Personal Email Detected',
+                title: l10n.personalEmailDetected,
                 message:
-                    'You are using a personal email address. Your account will need to be approved by ${_selectedRole == UserRole.student ? 'a teacher' : 'a coordinator'} before you can access the app.\n\nCollege domains: ${allowedDomains.join(", ")}\n\nDo you want to continue?',
+                    '${l10n.personalEmailMessage}\n\nCollege domains: ${allowedDomains.join(", ")}\n\nDo you want to continue?',
                 icon: Icons.warning_amber_rounded,
                 baseColor: Colors.orange,
-                primaryActionText: 'Continue',
+                primaryActionText: l10n.continueText,
                 onPrimaryAction: () => Navigator.of(context).pop(true),
-                secondaryActionText: 'Cancel',
+                secondaryActionText: l10n.cancel,
                 onSecondaryAction: () => Navigator.of(context).pop(false),
               ),
             );
@@ -168,7 +168,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
       }
     } catch (e) {
       if (!mounted) return;
-      _showErrorSnackBar('An error occurred. Please try again.');
+      final l10n = SignupLocalizations.of(context)!;
+      _showErrorSnackBar(l10n.genericError);
     } finally {
       setState(() => _isLoading = false);
     }
@@ -179,26 +180,35 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
 
   void _showSuccessDialog(String message) {
+    final l10n = SignupLocalizations.of(context)!;
     SuccessModal.show(
       context: context,
-      title: 'Registration Successful',
+      title: l10n.registrationSuccessful,
       message: message,
       icon: Icons.check_circle_rounded,
       onPrimaryAction: () {
         Navigator.pop(context);
         context.go('/login');
       },
-      primaryActionText: 'Login Now',
+      primaryActionText: l10n.loginNow,
     );
   }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = SignupLocalizations.of(context)!;
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: VStack([
         // Header Section
-        const RegisterHeader(),
+        ZStack([
+          const RegisterHeader(),
+          Positioned(
+            top: MediaQuery.of(context).padding.top + 10,
+            right: 16,
+            child: const LanguageSelector(),
+          ),
+        ]),
 
         50.heightBox, // Space for floating icon
 
@@ -206,16 +216,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
           key: _formKey,
           child: VStack([
             // Headline
-            'Create Account'.text
+            l10n.createAccount.text
                 .size(32)
                 .bold
-                .color(Theme.of(context).colorScheme.onBackground)
+                .color(Theme.of(context).colorScheme.onSurface)
                 .letterSpacing(-0.5)
                 .makeCentered(),
 
             8.heightBox,
 
-            'Join to track your college bus in real-time.'.text
+            l10n.joinToTrack.text
                 .size(15)
                 .color(
                   Theme.of(
@@ -229,10 +239,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
             32.heightBox,
 
             // Role Selection
-            'Who are you?'.text
+            l10n.whoAreYou.text
                 .size(16)
                 .semiBold
-                .color(Theme.of(context).colorScheme.onBackground)
+                .color(Theme.of(context).colorScheme.onSurface)
                 .make(),
             16.heightBox,
             RoleSelectionGrid(
@@ -245,12 +255,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
             // 1. College Selection / Coordinate College Field
             if (_selectedRole == UserRole.busCoordinator)
               CustomInputField(
-                label: 'College Name',
-                hint: AppStrings.collegeHint,
+                label: l10n.collegeName,
+                hint: l10n.collegeHint,
                 controller: _collegeController,
                 prefixIcon: const Icon(Icons.school_outlined),
                 validator: (value) => (value == null || value.isEmpty)
-                    ? 'Please enter your college name'
+                    ? l10n.requiredField
                     : null,
               )
             else
@@ -263,7 +273,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     _selectedCollege = college;
                     if (college != null) {
                       _emailDomainHint =
-                          'College domains: ${college.allowedDomains.join(", ")}';
+                          '${l10n.collegeDomains}: ${college.allowedDomains.join(", ")}';
                     } else {
                       _emailDomainHint = null;
                     }
@@ -275,16 +285,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
             // 2. Full Name
             CustomInputField(
-              label: 'Full Name',
-              hint: 'e.g. John Doe',
+              label: l10n.fullName,
+              hint: l10n.fullNameHint,
               controller: _nameController,
               prefixIcon: const Icon(Icons.person_outline_rounded),
               validator: (value) {
                 if (value == null || value.isEmpty) {
-                  return 'Please enter your full name';
-                }
-                if (value.length < 2) {
-                  return 'Name must be at least 2 characters';
+                  return l10n.requiredField;
                 }
                 return null;
               },
@@ -295,14 +302,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
             // 3. Roll Number (Student Only)
             if (_selectedRole == UserRole.student) ...[
               CustomInputField(
-                label: 'Roll Number / ID',
-                hint: 'e.g. 21CSE102',
+                label: l10n.rollNumber,
+                hint: l10n.rollNumberHint,
                 controller: _rollNumberController,
                 prefixIcon: const Icon(Icons.badge_outlined),
                 validator: (value) {
                   if (_selectedRole != UserRole.student) return null;
                   if (value == null || value.isEmpty) {
-                    return 'Please enter your roll number';
+                    return l10n.requiredField;
                   }
                   return null;
                 },
@@ -319,8 +326,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
             else
               VStack([
                 CustomInputField(
-                  label: 'Email Address',
-                  hint: 'john@example.com',
+                  label: l10n.emailAddress,
+                  hint: l10n.emailAddressHint,
                   controller: _emailController,
                   keyboardType: TextInputType.emailAddress,
                   prefixIcon: const Icon(Icons.email_outlined),
@@ -329,15 +336,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       if (value != null &&
                           value.isNotEmpty &&
                           !EmailValidator.validate(value)) {
-                        return 'Please enter a valid email';
+                        return l10n.genericError;
                       }
                       return null;
                     }
                     if (value == null || value.isEmpty) {
-                      return 'Please enter your email';
+                      return l10n.requiredField;
                     }
                     if (!EmailValidator.validate(value)) {
-                      return 'Please enter a valid email';
+                      return l10n.genericError;
                     }
                     return null;
                   },
@@ -356,17 +363,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
             // 5. Phone Number
             CustomInputField(
-              label: 'Phone Number',
-              hint: '+1 234 567 8900',
+              label: l10n.phoneNumber,
+              hint: l10n.phoneNumberHint,
               controller: _phoneController,
               keyboardType: TextInputType.phone,
               prefixIcon: const Icon(Icons.phone_outlined),
               validator: (value) {
                 if (value == null || value.isEmpty) {
-                  return 'Please enter your phone number';
-                }
-                if (value.length < 8) {
-                  return 'Enter a valid phone number';
+                  return l10n.requiredField;
                 }
                 return null;
               },
@@ -376,17 +380,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
             // 6. Password
             CustomInputField(
-              label: 'Password',
+              label: l10n.password,
               hint: '••••••••',
               controller: _passwordController,
               isPassword: true,
               prefixIcon: const Icon(Icons.lock_outline_rounded),
               validator: (value) {
                 if (value == null || value.isEmpty) {
-                  return 'Please enter your password';
-                }
-                if (value.length < 6) {
-                  return 'Password must be at least 6 characters';
+                  return l10n.requiredField;
                 }
                 return null;
               },
@@ -396,17 +397,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
             // 7. Confirm Password
             CustomInputField(
-              label: 'Confirm Password',
+              label: l10n.confirmPassword,
               hint: '••••••••',
               controller: _confirmPasswordController,
               isPassword: true,
               prefixIcon: const Icon(Icons.lock_reset_rounded),
               validator: (value) {
                 if (value == null || value.isEmpty) {
-                  return 'Please confirm your password';
+                  return l10n.requiredField;
                 }
                 if (value != _passwordController.text) {
-                  return 'Passwords do not match';
+                  return l10n.passwordsDoNotMatch;
                 }
                 return null;
               },
@@ -416,7 +417,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
             // Register button
             CustomButton(
-              text: AppStrings.registerButton,
+              text: l10n.register,
               onPressed: _handleRegister,
               isLoading: _isLoading,
             ),
@@ -425,13 +426,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
             // Sign in link
             HStack([
-              AppStrings.alreadyHaveAccount.text
+              l10n.alreadyHaveAccount.text
                   .color(AppColors.textSecondary)
                   .make(),
-              AppStrings.signIn.text.semiBold
-                  .color(AppColors.primary)
-                  .make()
-                  .onInkTap(() => context.go('/login')),
+              GestureDetector(
+                onTap: () => context.go('/login'),
+                child: l10n.signIn.text.semiBold
+                    .color(AppColors.primary)
+                    .make(),
+              ),
             ], alignment: MainAxisAlignment.center).centered(),
 
             AppSizes.paddingXLarge.heightBox,

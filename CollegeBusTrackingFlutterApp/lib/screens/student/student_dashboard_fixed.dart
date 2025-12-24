@@ -3,12 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:collegebus/services/auth_service.dart';
-import 'package:collegebus/services/firestore_service.dart';
+import 'package:collegebus/services/data_service.dart';
 import 'package:collegebus/services/location_service.dart';
-import 'package:collegebus/services/api_service.dart';
 import 'package:collegebus/models/bus_model.dart';
 import 'package:collegebus/models/route_model.dart';
-import 'package:collegebus/utils/constants.dart';
 import 'package:collegebus/services/theme_service.dart';
 
 // Import the new modules
@@ -151,10 +149,7 @@ class _StudentDashboardState extends State<StudentDashboard>
 
   Future<void> _loadBuses() async {
     final authService = Provider.of<AuthService>(context, listen: false);
-    final firestoreService = Provider.of<FirestoreService>(
-      context,
-      listen: false,
-    );
+    final firestoreService = Provider.of<DataService>(context, listen: false);
 
     final collegeId = authService.currentUserModel?.collegeId;
     if (collegeId != null) {
@@ -189,10 +184,7 @@ class _StudentDashboardState extends State<StudentDashboard>
 
   Future<void> _loadRoutes() async {
     final authService = Provider.of<AuthService>(context, listen: false);
-    final firestoreService = Provider.of<FirestoreService>(
-      context,
-      listen: false,
-    );
+    final firestoreService = Provider.of<DataService>(context, listen: false);
     final collegeId = authService.currentUserModel?.collegeId;
     if (collegeId != null) {
       await _routesSubscription?.cancel();
@@ -213,7 +205,7 @@ class _StudentDashboardState extends State<StudentDashboard>
 
   void _setupBusLocationListeners(
     String collegeId,
-    FirestoreService firestoreService,
+    DataService firestoreService,
   ) {
     // Cancel any existing subscription first
     // We only need ONE subscription now for ALL buses
@@ -464,10 +456,7 @@ class _StudentDashboardState extends State<StudentDashboard>
     });
 
     // Move camera to bus location if available
-    final firestoreService = Provider.of<FirestoreService>(
-      context,
-      listen: false,
-    );
+    final firestoreService = Provider.of<DataService>(context, listen: false);
     // Use first (one-shot) to move camera immediately without creating a persistent leaky listener
     firestoreService.getBusLocation(bus.id).first.then((location) {
       if (location != null && _mapController != null) {

@@ -6,7 +6,7 @@ import 'package:collegebus/models/bus_model.dart';
 import 'package:collegebus/models/route_model.dart';
 import 'package:collegebus/models/schedule_model.dart';
 import 'package:collegebus/services/auth_service.dart';
-import 'package:collegebus/services/firestore_service.dart';
+import 'package:collegebus/services/data_service.dart';
 import 'package:collegebus/utils/constants.dart';
 import 'package:collegebus/widgets/app_drawer.dart';
 
@@ -50,10 +50,7 @@ class _ScheduleManagementScreenState extends State<ScheduleManagementScreen>
 
   Future<void> _loadData() async {
     final authService = Provider.of<AuthService>(context, listen: false);
-    final firestoreService = Provider.of<FirestoreService>(
-      context,
-      listen: false,
-    );
+    final firestoreService = Provider.of<DataService>(context, listen: false);
     final collegeId = authService.currentUserModel?.collegeId;
 
     if (collegeId == null) return;
@@ -208,11 +205,10 @@ class _ScheduleManagementScreenState extends State<ScheduleManagementScreen>
                             context,
                             listen: false,
                           );
-                          final firestoreService =
-                              Provider.of<FirestoreService>(
-                                context,
-                                listen: false,
-                              );
+                          final firestoreService = Provider.of<DataService>(
+                            context,
+                            listen: false,
+                          );
 
                           // Create stop schedules without specific times
                           final stopSchedules = <StopSchedule>[];
@@ -432,7 +428,7 @@ class _ScheduleManagementScreenState extends State<ScheduleManagementScreen>
                     ),
                   );
                   if (confirmed == true) {
-                    final firestoreService = Provider.of<FirestoreService>(
+                    final firestoreService = Provider.of<DataService>(
                       context,
                       listen: false,
                     );

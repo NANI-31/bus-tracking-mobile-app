@@ -6,7 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:velocity_x/velocity_x.dart';
 import 'package:collegebus/services/auth_service.dart';
-import 'package:collegebus/services/firestore_service.dart';
+import 'package:collegebus/services/data_service.dart';
 import 'package:collegebus/services/location_service.dart';
 import 'package:collegebus/models/bus_model.dart';
 import 'package:collegebus/models/route_model.dart';
@@ -187,10 +187,7 @@ class _TeacherDashboardState extends State<TeacherDashboard>
 
   Future<void> _loadBuses() async {
     final authService = Provider.of<AuthService>(context, listen: false);
-    final firestoreService = Provider.of<FirestoreService>(
-      context,
-      listen: false,
-    );
+    final firestoreService = Provider.of<DataService>(context, listen: false);
 
     final collegeId = authService.currentUserModel?.collegeId;
     if (collegeId != null) {
@@ -215,10 +212,7 @@ class _TeacherDashboardState extends State<TeacherDashboard>
 
   Future<void> _loadPendingStudents() async {
     final authService = Provider.of<AuthService>(context, listen: false);
-    final firestoreService = Provider.of<FirestoreService>(
-      context,
-      listen: false,
-    );
+    final firestoreService = Provider.of<DataService>(context, listen: false);
 
     final collegeId = authService.currentUserModel?.collegeId;
     if (collegeId != null) {
@@ -234,10 +228,7 @@ class _TeacherDashboardState extends State<TeacherDashboard>
 
   Future<void> _loadRoutes() async {
     final authService = Provider.of<AuthService>(context, listen: false);
-    final firestoreService = Provider.of<FirestoreService>(
-      context,
-      listen: false,
-    );
+    final firestoreService = Provider.of<DataService>(context, listen: false);
     final collegeId = authService.currentUserModel?.collegeId;
     if (collegeId != null) {
       firestoreService.getRoutesByCollege(collegeId).listen((routes) {
@@ -250,7 +241,7 @@ class _TeacherDashboardState extends State<TeacherDashboard>
 
   void _setupBusLocationListeners(
     List<BusModel> buses,
-    FirestoreService firestoreService,
+    DataService firestoreService,
   ) {
     for (final bus in buses) {
       final subscription = firestoreService.getBusLocation(bus.id).listen((
@@ -535,10 +526,7 @@ class _TeacherDashboardState extends State<TeacherDashboard>
     });
 
     // Move camera to bus location if available
-    final firestoreService = Provider.of<FirestoreService>(
-      context,
-      listen: false,
-    );
+    final firestoreService = Provider.of<DataService>(context, listen: false);
     firestoreService.getBusLocation(bus.id).listen((location) {
       if (location != null && _mapController != null) {
         _mapController!.animateCamera(
@@ -586,10 +574,7 @@ class _TeacherDashboardState extends State<TeacherDashboard>
 
   Future<void> _approveStudent(UserModel student) async {
     final authService = Provider.of<AuthService>(context, listen: false);
-    final firestoreService = Provider.of<FirestoreService>(
-      context,
-      listen: false,
-    );
+    final firestoreService = Provider.of<DataService>(context, listen: false);
 
     final currentUser = authService.currentUserModel;
     if (currentUser != null) {
@@ -607,10 +592,7 @@ class _TeacherDashboardState extends State<TeacherDashboard>
 
   Future<void> _rejectStudent(UserModel student) async {
     final authService = Provider.of<AuthService>(context, listen: false);
-    final firestoreService = Provider.of<FirestoreService>(
-      context,
-      listen: false,
-    );
+    final firestoreService = Provider.of<DataService>(context, listen: false);
 
     final currentUser = authService.currentUserModel;
     if (currentUser != null) {

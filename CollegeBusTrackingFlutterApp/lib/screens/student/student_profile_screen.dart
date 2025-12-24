@@ -5,10 +5,13 @@ import 'package:collegebus/services/auth_service.dart';
 import 'package:collegebus/utils/constants.dart';
 import 'package:collegebus/widgets/app_drawer.dart';
 import 'package:collegebus/services/theme_service.dart';
-import 'package:collegebus/services/firestore_service.dart';
-import 'package:collegebus/services/api_service.dart';
-import 'package:collegebus/models/route_model.dart';
+import 'package:collegebus/services/locale_service.dart';
 import 'package:velocity_x/velocity_x.dart';
+import 'package:flutter_tailwind_css_colors/flutter_tailwind_css_colors.dart';
+
+// New standalone widgets
+import 'widgets/profile/profile_section_card.dart';
+import 'widgets/profile/profile_list_item.dart';
 
 class StudentProfileScreen extends StatefulWidget {
   const StudentProfileScreen({super.key});
@@ -18,43 +21,9 @@ class StudentProfileScreen extends StatefulWidget {
 }
 
 class _StudentProfileScreenState extends State<StudentProfileScreen> {
-  String? _updatingStop;
-
-  Future<void> _updatePreferredStop(
-    String stop,
-    String userId,
-    ApiService apiService,
-    AuthService authService,
-  ) async {
-    setState(() => _updatingStop = stop);
-    try {
-      final updatedUser = await apiService.updateUser(userId, {
-        'preferredStop': stop,
-      });
-      authService.updateCurrentUser(updatedUser);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Preferred stop updated successfully')),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Error updating stop: $e')));
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _updatingStop = null);
-      }
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final authService = Provider.of<AuthService>(context);
-    final firestoreService = Provider.of<FirestoreService>(context);
-    final apiService = Provider.of<ApiService>(context);
     final user = authService.currentUserModel;
 
     if (user == null) {
@@ -122,209 +91,167 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
 
             24.heightBox,
 
-            // Details Section
+            // Sections
             VStack([
-              _buildProfileCard(
-                context: context,
+              // 1. Account Information
+              ProfileSectionCard(
                 title: 'Account Information',
                 children: [
-                  _buildProfileItem(
-                    context: context,
-                    icon: Icons.badge,
+                  ProfileListItem(
+                    leadingIcon: Icons.badge,
+                    iconColor: TwColors.blue.i400,
                     title: 'Role',
-                    value: user.role.displayName,
+                    subtitle: 'Your current access level',
+                    trailing: user.role.displayName.text.bold
+                        .color(Theme.of(context).colorScheme.onSurface)
+                        .make(),
+                    showDivider: true,
                   ),
-                  16.heightBox,
-                  _buildProfileItem(
-                    context: context,
-                    icon: Icons.school,
+                  ProfileListItem(
+                    leadingIcon: Icons.school,
+                    iconColor: TwColors.purple.i400,
                     title: 'College ID',
-                    value: user.collegeId.isNotEmpty ? user.collegeId : 'N/A',
+                    subtitle: 'Institution identifier',
+                    trailing:
+                        (user.collegeId.isNotEmpty ? user.collegeId : 'N/A')
+                            .text
+                            .bold
+                            .color(Theme.of(context).colorScheme.onSurface)
+                            .make(),
+                    showDivider: true,
                   ),
-                  16.heightBox,
-                  _buildProfileItem(
-                    context: context,
-                    icon: Icons.phone,
+                  ProfileListItem(
+                    leadingIcon: Icons.phone,
+                    iconColor: TwColors.teal.i400,
                     title: 'Phone',
-                    value: user.phoneNumber ?? 'Not provided',
+                    subtitle: 'Contact number for updates',
+                    trailing: (user.phoneNumber ?? 'Not provided').text.bold
+                        .color(Theme.of(context).colorScheme.onSurface)
+                        .make(),
+                    showDivider: false,
                   ),
                 ],
               ),
 
               24.heightBox,
 
-              // Travel Preference Section
-              _buildProfileCard(
-                context: context,
-                title: 'Travel Preference',
+              // 2. Preferences Section
+              ProfileSectionCard(
+                title: 'Preferences',
                 children: [
-                  8.heightBox,
-                  StreamBuilder<List<RouteModel>>(
-                    stream: firestoreService.getRoutesByCollege(user.collegeId),
-                    builder: (context, snapshot) {
-                      if (!snapshot.hasData) {
-                        return const CircularProgressIndicator().centered();
-                      }
-
-                      final stops = <String>{};
-                      for (final route in snapshot.data!) {
-                        stops.add(route.startPoint);
-                        stops.add(route.endPoint);
-                        stops.addAll(route.stopPoints);
-                      }
-                      final allStops = stops.toList()..sort();
-
-                      return VStack([
-                        'My Bus Stop'.text
-                            .size(14)
-                            .medium
-                            .color(Theme.of(context).textTheme.bodySmall?.color)
-                            .make(),
-                        8.heightBox,
-                        DropdownButtonFormField<String>(
-                          value: allStops.contains(user.preferredStop)
-                              ? user.preferredStop
-                              : null,
-                          hint: const Text('Select your stop'),
-                          isExpanded: true,
-                          decoration: InputDecoration(
-                            prefixIcon: const Icon(Icons.location_on),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                            ),
-                          ),
-                          items: allStops.map((stop) {
-                            return DropdownMenuItem(
-                              value: stop,
-                              child: Text(
-                                stop,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            );
-                          }).toList(),
-                          onChanged: _updatingStop != null
-                              ? null
-                              : (value) {
-                                  if (value != null) {
-                                    _updatePreferredStop(
-                                      value,
-                                      user.id,
-                                      apiService,
-                                      authService,
-                                    );
-                                  }
-                                },
-                        ),
-                        if (_updatingStop != null) ...[
-                          8.heightBox,
-                          const LinearProgressIndicator(),
-                        ],
-                      ]);
-                    },
+                  ProfileListItem(
+                    leadingIcon: Icons.notifications_active_outlined,
+                    iconColor: TwColors.blue.i400,
+                    title: 'Notifications',
+                    subtitle: 'Receive alerts about bus arrival',
+                    trailing: Switch(
+                      value: true,
+                      activeColor: Colors.blue,
+                      onChanged: (val) {},
+                    ),
+                    showDivider: true,
                   ),
-                ],
-              ),
-
-              24.heightBox,
-
-              // Settings Section
-              _buildProfileCard(
-                context: context,
-                title: 'Settings',
-                children: [
-                  Consumer<ThemeService>(
-                    builder: (context, themeService, _) {
-                      return SwitchListTile(
-                        contentPadding: EdgeInsets.zero,
-                        title: 'Dark Mode'.text
-                            .size(16)
-                            .medium
-                            .color(Theme.of(context).textTheme.bodyLarge?.color)
-                            .make(),
-                        secondary:
-                            VxBox(
-                                  child: Icon(
-                                    themeService.isDarkMode
-                                        ? Icons.dark_mode
-                                        : Icons.light_mode,
-                                    color: Theme.of(context).primaryColor,
-                                    size: 20,
-                                  ),
-                                ).p12
-                                .color(
-                                  Theme.of(
-                                    context,
-                                  ).primaryColor.withValues(alpha: 0.1),
-                                )
-                                .roundedFull
-                                .make(),
-                        value: themeService.isDarkMode,
-                        onChanged: (value) {
-                          themeService.toggleTheme(value);
-                        },
-                      );
-                    },
+                  _buildLanguageSelector(context),
+                  ProfileListItem(
+                    leadingIcon: Icons.location_on_outlined,
+                    iconColor: TwColors.indigo.i400,
+                    title: 'Bus Stop',
+                    subtitle: 'Manage your preferred pickup point',
+                    trailing: Icon(
+                      Icons.chevron_right_rounded,
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.onSurface.withValues(alpha: 0.5),
+                    ),
+                    onTap: () => context.push('/student/bus-stop'),
+                    showDivider: true,
                   ),
-                  const Divider(),
-                  Consumer<ThemeService>(
-                    builder: (context, themeService, _) {
-                      return SwitchListTile(
-                        contentPadding: EdgeInsets.zero,
-                        title: 'Bottom Navigation'.text
-                            .size(16)
-                            .medium
-                            .color(Theme.of(context).textTheme.bodyLarge?.color)
-                            .make(),
-                        secondary:
-                            VxBox(
-                                  child: Icon(
-                                    Icons.view_column_rounded,
-                                    color: Theme.of(context).primaryColor,
-                                    size: 20,
-                                  ),
-                                ).p12
-                                .color(
-                                  Theme.of(
-                                    context,
-                                  ).primaryColor.withValues(alpha: 0.1),
-                                )
-                                .roundedFull
-                                .make(),
-                        value: themeService.useBottomNavigation,
-                        onChanged: (value) {
-                          if (value) {
-                            themeService.toggleNavigationMode(true);
-                            switch (user.role) {
-                              case UserRole.busCoordinator:
-                                context.go('/coordinator');
-                                break;
-                              case UserRole.driver:
-                                context.go('/driver');
-                                break;
-                              case UserRole.teacher:
-                                context.go('/teacher');
-                                break;
-                              case UserRole.admin:
-                                context.go('/admin');
-                                break;
-                              default:
-                                context.go('/student');
-                            }
-                          } else {
-                            context.push('/student/profile');
-                            themeService.toggleNavigationMode(false);
+                  ProfileListItem(
+                    leadingIcon: themeService.isDarkMode
+                        ? Icons.dark_mode
+                        : Icons.light_mode,
+                    iconColor: TwColors.purple.i400,
+                    title: 'Dark Mode',
+                    subtitle: 'Toggle dark or light theme',
+                    trailing: Switch(
+                      value: themeService.isDarkMode,
+                      activeColor: Colors.blue,
+                      onChanged: (val) => themeService.toggleTheme(val),
+                    ),
+                    showDivider: true,
+                  ),
+                  ProfileListItem(
+                    leadingIcon: Icons.view_column_rounded,
+                    iconColor: TwColors.teal.i400,
+                    title: 'Bottom Navigation',
+                    subtitle: 'Enable modern mobile navigation',
+                    trailing: Switch(
+                      value: themeService.useBottomNavigation,
+                      activeColor: Colors.blue,
+                      onChanged: (val) {
+                        if (val) {
+                          themeService.toggleNavigationMode(true);
+                          switch (user.role) {
+                            case UserRole.busCoordinator:
+                              context.go('/coordinator');
+                              break;
+                            case UserRole.driver:
+                              context.go('/driver');
+                              break;
+                            case UserRole.teacher:
+                              context.go('/teacher');
+                              break;
+                            case UserRole.admin:
+                              context.go('/admin');
+                              break;
+                            default:
+                              context.go('/student');
                           }
-                        },
-                      );
-                    },
+                        } else {
+                          context.push('/student/profile');
+                          themeService.toggleNavigationMode(false);
+                        }
+                      },
+                    ),
+                    showDivider: false,
                   ),
                 ],
               ),
 
               24.heightBox,
+
+              // 3. Account and Security Section
+              ProfileSectionCard(
+                title: 'Account and Security',
+                children: [
+                  ProfileListItem(
+                    leadingIcon: Icons.lock_outline_rounded,
+                    iconColor: TwColors.blue.i400,
+                    title: 'Change Password',
+                    subtitle: 'Update your login credentials',
+                    onTap: () => context.push('/student/change-password'),
+                    showDivider: true,
+                  ),
+                  ProfileListItem(
+                    leadingIcon: Icons.privacy_tip_outlined,
+                    iconColor: TwColors.teal.i400,
+                    title: 'Privacy Policy',
+                    subtitle: 'How we handle your data',
+                    onTap: () => context.push('/student/privacy-policy'),
+                    showDivider: true,
+                  ),
+                  ProfileListItem(
+                    leadingIcon: Icons.description_outlined,
+                    iconColor: TwColors.indigo.i400,
+                    title: 'Terms & Conditions',
+                    subtitle: 'Legal usage requirements',
+                    onTap: () => context.push('/student/terms-conditions'),
+                    showDivider: false,
+                  ),
+                ],
+              ),
+
+              32.heightBox,
 
               // Logout Button
               SizedBox(
@@ -359,70 +286,48 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
       },
     );
   }
-}
 
-Widget _buildProfileCard({
-  required BuildContext context,
-  required String title,
-  required List<Widget> children,
-}) {
-  return VStack([
-    title.text
-        .size(18)
-        .bold
-        .color(
-          Theme.of(context).textTheme.titleLarge?.color ??
-              Theme.of(context).colorScheme.onSurface,
-        )
-        .make(),
-    12.heightBox,
-    VxBox(child: VStack(children)).p16
-        .color(
-          Theme.of(context).cardTheme.color ??
-              Theme.of(context).colorScheme.surface,
-        )
-        .rounded
-        .withShadow([
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ])
-        .make(),
-  ]);
-}
+  Widget _buildLanguageSelector(BuildContext context) {
+    return Consumer<LocaleService>(
+      builder: (context, localeService, _) {
+        final currentCode = localeService.locale.languageCode;
+        final languageName = currentCode == 'en'
+            ? 'English'
+            : currentCode == 'te'
+            ? 'Telugu'
+            : 'Hindi';
 
-Widget _buildProfileItem({
-  required BuildContext context,
-  required IconData icon,
-  required String title,
-  required String value,
-}) {
-  return HStack([
-    VxBox(child: Icon(icon, color: Theme.of(context).primaryColor, size: 20))
-        .p12
-        .color(Theme.of(context).primaryColor.withValues(alpha: 0.1))
-        .roundedFull
-        .make(),
-    16.widthBox,
-    VStack([
-      title.text
-          .size(12)
-          .color(
-            Theme.of(context).textTheme.bodyMedium?.color ??
-                Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
-          )
-          .make(),
-      4.heightBox,
-      value.text
-          .size(16)
-          .medium
-          .color(
-            Theme.of(context).textTheme.bodyLarge?.color ??
-                Theme.of(context).colorScheme.onSurface,
-          )
-          .make(),
-    ]).expand(),
-  ]);
+        void cycleLanguage() {
+          if (currentCode == 'en') {
+            localeService.setLocale(const Locale('te'));
+          } else if (currentCode == 'te') {
+            localeService.setLocale(const Locale('hi'));
+          } else {
+            localeService.setLocale(const Locale('en'));
+          }
+        }
+
+        return ProfileListItem(
+          leadingIcon: Icons.language_rounded,
+          iconColor: TwColors.indigo.i400,
+          title: 'Language',
+          subtitle: 'Choose your preferred language',
+          onTap: cycleLanguage,
+          trailing: HStack([
+            languageName.text.bold
+                .color(Theme.of(context).colorScheme.onSurface)
+                .make(),
+            8.widthBox,
+            Icon(
+              Icons.keyboard_arrow_down_rounded,
+              color: Theme.of(
+                context,
+              ).colorScheme.onSurface.withValues(alpha: 0.5),
+            ),
+          ]),
+          showDivider: true,
+        );
+      },
+    );
+  }
 }

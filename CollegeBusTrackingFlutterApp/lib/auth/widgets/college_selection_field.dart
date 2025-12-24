@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:collegebus/models/college_model.dart';
-import 'package:collegebus/utils/constants.dart';
 import 'package:velocity_x/velocity_x.dart';
+import 'package:collegebus/l10n/signup/auth_signup_localizations.dart';
 
 class CollegeSelectionField extends StatelessWidget {
   final List<CollegeModel> colleges;
@@ -19,11 +19,12 @@ class CollegeSelectionField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = SignupLocalizations.of(context)!;
     return VStack([
-      'College'.text
+      l10n.college.text
           .size(16)
           .medium
-          .color(Theme.of(context).colorScheme.onBackground)
+          .color(Theme.of(context).colorScheme.onSurface)
           .make(),
       8.heightBox,
       LayoutBuilder(
@@ -56,7 +57,7 @@ class CollegeSelectionField extends StatelessWidget {
                   }).toList(),
                   onChanged: onChanged,
                   decoration: InputDecoration(
-                    hintText: 'Select your college',
+                    hintText: l10n.selectCollege,
                     prefixIcon: const Icon(Icons.school_outlined),
                     filled: true,
                     fillColor: Theme.of(context).colorScheme.surface,
@@ -91,7 +92,7 @@ class CollegeSelectionField extends StatelessWidget {
                     ),
                   ),
                   validator: (value) =>
-                      value == null ? 'Please select your college' : null,
+                      value == null ? l10n.pleaseSelectCollege : null,
                 );
         },
       ),

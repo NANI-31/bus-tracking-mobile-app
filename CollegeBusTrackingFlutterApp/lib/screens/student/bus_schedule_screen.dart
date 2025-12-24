@@ -2,7 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:collegebus/services/auth_service.dart';
-import 'package:collegebus/services/firestore_service.dart';
+import 'package:collegebus/services/data_service.dart';
 import 'package:collegebus/models/schedule_model.dart';
 import 'package:collegebus/models/route_model.dart';
 import 'package:collegebus/models/bus_model.dart';
@@ -11,7 +11,8 @@ import 'package:collegebus/widgets/app_drawer.dart';
 import 'package:velocity_x/velocity_x.dart';
 
 class BusScheduleScreen extends StatefulWidget {
-  const BusScheduleScreen({super.key});
+  final bool isTab;
+  const BusScheduleScreen({super.key, this.isTab = false});
 
   @override
   State<BusScheduleScreen> createState() => _BusScheduleScreenState();
@@ -55,10 +56,7 @@ class _BusScheduleScreenState extends State<BusScheduleScreen>
 
   Future<void> _loadData() async {
     final authService = Provider.of<AuthService>(context, listen: false);
-    final firestoreService = Provider.of<FirestoreService>(
-      context,
-      listen: false,
-    );
+    final firestoreService = Provider.of<DataService>(context, listen: false);
     final collegeId = authService.currentUserModel?.collegeId;
 
     if (collegeId != null) {
@@ -194,31 +192,53 @@ class _BusScheduleScreenState extends State<BusScheduleScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      drawer: AppDrawer(
-        user: Provider.of<AuthService>(context).currentUserModel,
-        authService: Provider.of<AuthService>(context),
-      ),
-      appBar: PreferredSize(
-        preferredSize: const Size.fromHeight(
-          kToolbarHeight + kTextTabBarHeight,
-        ),
-        child: AppBar(
-          backgroundColor: Theme.of(context).primaryColor,
-          foregroundColor: Theme.of(context).colorScheme.onPrimary,
-          bottom: TabBar(
-            controller: _tabController,
-            labelColor: Theme.of(context).colorScheme.onPrimary,
-            unselectedLabelColor: Theme.of(
-              context,
-            ).colorScheme.onPrimary.withValues(alpha: 0.7),
-            indicatorColor: Theme.of(context).colorScheme.onPrimary,
-            tabs: const [
-              Tab(text: '1st Shift', icon: Icon(Icons.wb_sunny)),
-              Tab(text: '2nd Shift', icon: Icon(Icons.nights_stay)),
-            ],
-          ),
-        ),
-      ),
+      drawer: widget.isTab
+          ? null
+          : AppDrawer(
+              user: Provider.of<AuthService>(context).currentUserModel,
+              authService: Provider.of<AuthService>(context),
+            ),
+      appBar: widget.isTab
+          ? PreferredSize(
+              preferredSize: const Size.fromHeight(kTextTabBarHeight),
+              child: Material(
+                color: Theme.of(context).primaryColor,
+                child: TabBar(
+                  controller: _tabController,
+                  labelColor: Theme.of(context).colorScheme.onPrimary,
+                  unselectedLabelColor: Theme.of(
+                    context,
+                  ).colorScheme.onPrimary.withValues(alpha: 0.7),
+                  indicatorColor: Theme.of(context).colorScheme.onPrimary,
+                  tabs: const [
+                    Tab(text: '1st Shift', icon: Icon(Icons.wb_sunny)),
+                    Tab(text: '2nd Shift', icon: Icon(Icons.nights_stay)),
+                  ],
+                ),
+              ),
+            )
+          : PreferredSize(
+              preferredSize: const Size.fromHeight(
+                kToolbarHeight + kTextTabBarHeight,
+              ),
+              child: AppBar(
+                backgroundColor: Theme.of(context).primaryColor,
+                foregroundColor: Theme.of(context).colorScheme.onPrimary,
+                title: const Text('Bus Schedule'),
+                bottom: TabBar(
+                  controller: _tabController,
+                  labelColor: Theme.of(context).colorScheme.onPrimary,
+                  unselectedLabelColor: Theme.of(
+                    context,
+                  ).colorScheme.onPrimary.withValues(alpha: 0.7),
+                  indicatorColor: Theme.of(context).colorScheme.onPrimary,
+                  tabs: const [
+                    Tab(text: '1st Shift', icon: Icon(Icons.wb_sunny)),
+                    Tab(text: '2nd Shift', icon: Icon(Icons.nights_stay)),
+                  ],
+                ),
+              ),
+            ),
       body: VStack([
         // Filter Panel
         VxBox(

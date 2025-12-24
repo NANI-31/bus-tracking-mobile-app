@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import 'package:collegebus/services/auth_service.dart';
-import 'package:collegebus/services/firestore_service.dart';
+import 'package:collegebus/services/data_service.dart';
 import 'package:collegebus/models/user_model.dart';
 import 'package:collegebus/models/bus_model.dart';
 import 'package:collegebus/models/college_model.dart';
@@ -66,10 +66,7 @@ class _CoordinatorDashboardState extends State<CoordinatorDashboard>
 
   Future<void> _loadPendingDrivers() async {
     final authService = Provider.of<AuthService>(context, listen: false);
-    final firestoreService = Provider.of<FirestoreService>(
-      context,
-      listen: false,
-    );
+    final firestoreService = Provider.of<DataService>(context, listen: false);
     final collegeId = authService.currentUserModel?.collegeId;
 
     if (collegeId != null) {
@@ -90,10 +87,7 @@ class _CoordinatorDashboardState extends State<CoordinatorDashboard>
 
   Future<void> _loadBuses() async {
     final authService = Provider.of<AuthService>(context, listen: false);
-    final firestoreService = Provider.of<FirestoreService>(
-      context,
-      listen: false,
-    );
+    final firestoreService = Provider.of<DataService>(context, listen: false);
     final collegeId = authService.currentUserModel?.collegeId;
 
     if (collegeId != null) {
@@ -112,10 +106,7 @@ class _CoordinatorDashboardState extends State<CoordinatorDashboard>
 
   Future<void> _loadRoutes() async {
     final authService = Provider.of<AuthService>(context, listen: false);
-    final firestoreService = Provider.of<FirestoreService>(
-      context,
-      listen: false,
-    );
+    final firestoreService = Provider.of<DataService>(context, listen: false);
     final collegeId = authService.currentUserModel?.collegeId;
 
     if (collegeId != null) {
@@ -134,10 +125,7 @@ class _CoordinatorDashboardState extends State<CoordinatorDashboard>
 
   Future<void> _loadCollege() async {
     final authService = Provider.of<AuthService>(context, listen: false);
-    final firestoreService = Provider.of<FirestoreService>(
-      context,
-      listen: false,
-    );
+    final firestoreService = Provider.of<DataService>(context, listen: false);
     final collegeId = authService.currentUserModel?.collegeId;
     if (collegeId != null && mounted) {
       final college = await firestoreService.getCollege(collegeId);
@@ -151,10 +139,7 @@ class _CoordinatorDashboardState extends State<CoordinatorDashboard>
 
   Future<void> _loadBusNumbers() async {
     final authService = Provider.of<AuthService>(context, listen: false);
-    final firestoreService = Provider.of<FirestoreService>(
-      context,
-      listen: false,
-    );
+    final firestoreService = Provider.of<DataService>(context, listen: false);
     final collegeId = authService.currentUserModel?.collegeId;
 
     if (collegeId != null) {
@@ -173,10 +158,7 @@ class _CoordinatorDashboardState extends State<CoordinatorDashboard>
 
   Future<void> _approveDriver(UserModel driver) async {
     final authService = Provider.of<AuthService>(context, listen: false);
-    final firestoreService = Provider.of<FirestoreService>(
-      context,
-      listen: false,
-    );
+    final firestoreService = Provider.of<DataService>(context, listen: false);
 
     final currentUser = authService.currentUserModel;
     if (currentUser != null) {
@@ -194,10 +176,7 @@ class _CoordinatorDashboardState extends State<CoordinatorDashboard>
 
   Future<void> _rejectDriver(UserModel driver) async {
     final authService = Provider.of<AuthService>(context, listen: false);
-    final firestoreService = Provider.of<FirestoreService>(
-      context,
-      listen: false,
-    );
+    final firestoreService = Provider.of<DataService>(context, listen: false);
 
     final currentUser = authService.currentUserModel;
     if (currentUser != null) {
@@ -315,7 +294,7 @@ class _CoordinatorDashboardState extends State<CoordinatorDashboard>
                 ),
                 ElevatedButton(
                   onPressed: () async {
-                    final firestoreService = Provider.of<FirestoreService>(
+                    final firestoreService = Provider.of<DataService>(
                       context,
                       listen: false,
                     );
@@ -401,7 +380,7 @@ class _CoordinatorDashboardState extends State<CoordinatorDashboard>
                   context,
                   listen: false,
                 );
-                final firestoreService = Provider.of<FirestoreService>(
+                final firestoreService = Provider.of<DataService>(
                   context,
                   listen: false,
                 );
@@ -835,11 +814,10 @@ class _CoordinatorDashboardState extends State<CoordinatorDashboard>
                               ),
                             );
                             if (confirmed == true) {
-                              final firestoreService =
-                                  Provider.of<FirestoreService>(
-                                    context,
-                                    listen: false,
-                                  );
+                              final firestoreService = Provider.of<DataService>(
+                                context,
+                                listen: false,
+                              );
                               await firestoreService.deleteRoute(route.id);
                               if (!mounted) return;
                               ScaffoldMessenger.of(context).showSnackBar(
@@ -983,11 +961,10 @@ class _CoordinatorDashboardState extends State<CoordinatorDashboard>
                               context,
                               listen: false,
                             );
-                            final firestoreService =
-                                Provider.of<FirestoreService>(
-                                  context,
-                                  listen: false,
-                                );
+                            final firestoreService = Provider.of<DataService>(
+                              context,
+                              listen: false,
+                            );
                             final collegeId =
                                 authService.currentUserModel?.collegeId;
 

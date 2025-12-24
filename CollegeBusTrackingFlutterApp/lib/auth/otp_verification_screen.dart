@@ -230,12 +230,14 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                         duration: 59,
                         onFinish: () => setState(() => _canResend = true),
                       )
-                    : 'Resend Code'.text
-                          .size(16)
-                          .bold
-                          .color(AppColors.primary)
-                          .make()
-                          .onInkTap(_handleResendOtp),
+                    : GestureDetector(
+                        onTap: _handleResendOtp,
+                        child: 'Resend Code'.text
+                            .size(16)
+                            .bold
+                            .color(AppColors.primary)
+                            .make(),
+                      ),
               ),
             ),
 
@@ -253,11 +255,13 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
             16.heightBox,
 
             // Change Number/Email
-            'Change Number/Email'.text.medium
-                .size(14)
-                .color(theme.colorScheme.onSurface.withValues(alpha: 0.5))
-                .make()
-                .onInkTap(() => context.pop()),
+            GestureDetector(
+              onTap: () => context.pop(),
+              child: 'Change Number/Email'.text.medium
+                  .size(14)
+                  .color(theme.colorScheme.onSurface.withValues(alpha: 0.5))
+                  .make(),
+            ),
           ], crossAlignment: CrossAxisAlignment.center),
         ),
       ),

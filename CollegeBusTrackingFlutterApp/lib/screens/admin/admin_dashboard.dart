@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import 'package:collegebus/services/auth_service.dart';
-import 'package:collegebus/services/firestore_service.dart';
+import 'package:collegebus/services/data_service.dart';
 import 'package:collegebus/models/user_model.dart';
 import 'package:collegebus/models/college_model.dart';
 import 'package:collegebus/utils/constants.dart';
@@ -36,10 +36,7 @@ class _AdminDashboardState extends State<AdminDashboard>
   }
 
   Future<void> _loadAllUsers() async {
-    final firestoreService = Provider.of<FirestoreService>(
-      context,
-      listen: false,
-    );
+    final firestoreService = Provider.of<DataService>(context, listen: false);
     firestoreService.getAllUsers().listen((users) {
       setState(() {
         _allUsers = users;
@@ -48,10 +45,7 @@ class _AdminDashboardState extends State<AdminDashboard>
   }
 
   Future<void> _loadAllColleges() async {
-    final firestoreService = Provider.of<FirestoreService>(
-      context,
-      listen: false,
-    );
+    final firestoreService = Provider.of<DataService>(context, listen: false);
     firestoreService.getAllColleges().listen((colleges) {
       setState(() {
         _allColleges = colleges;

@@ -90,10 +90,12 @@ class _StudentBusListTabState extends State<StudentBusListTab> {
                   .color(Theme.of(context).primaryColor)
                   .make()
                   .expand(),
-              'Clear'.text
-                  .color(Theme.of(context).primaryColor)
-                  .make()
-                  .onInkTap(widget.onClearFilters),
+              GestureDetector(
+                onTap: widget.onClearFilters,
+                child: 'Clear'.text
+                    .color(Theme.of(context).primaryColor)
+                    .make(),
+              ),
             ])
             .pSymmetric(h: 12, v: 8)
             .box
@@ -296,7 +298,7 @@ class _StudentBusListTabState extends State<StudentBusListTab> {
                         offset: const Offset(0, 4),
                       ),
                     ])
-                    .roundedLg
+                    .rounded
                     .make()
                     .onInkTap(() => widget.onBusSelected(bus))
                     .pOnly(bottom: AppSizes.paddingMedium);
@@ -307,31 +309,41 @@ class _StudentBusListTabState extends State<StudentBusListTab> {
 
   Widget _buildFilterButton(String status, String label) {
     final isSelected = _selectedStatus == status;
-    return VxBox(
-          child: label.text
-              .color(isSelected ? Colors.white : Theme.of(context).primaryColor)
-              .size(12)
-              .fontWeight(isSelected ? FontWeight.bold : FontWeight.normal)
-              .make(),
-        )
-        .padding(const EdgeInsets.symmetric(horizontal: 16, vertical: 8))
-        .color(
-          isSelected
-              ? Theme.of(context).primaryColor
-              : Theme.of(context).primaryColor.withValues(alpha: 0.1),
-        )
-        .roundedFull
-        .border(
-          color: isSelected
-              ? Theme.of(context).primaryColor
-              : Theme.of(context).primaryColor.withValues(alpha: 0.2),
-        )
-        .make()
-        .onInkTap(() {
-          setState(() {
-            _selectedStatus = status;
-          });
+
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          _selectedStatus = status;
         });
+      },
+      child:
+          VxBox(
+                child: label.text
+                    .color(
+                      isSelected
+                          ? Colors.white
+                          : Theme.of(context).primaryColor,
+                    )
+                    .size(12)
+                    .fontWeight(
+                      isSelected ? FontWeight.bold : FontWeight.normal,
+                    )
+                    .make(),
+              )
+              .padding(const EdgeInsets.symmetric(horizontal: 16, vertical: 8))
+              .color(
+                isSelected
+                    ? Theme.of(context).primaryColor
+                    : Theme.of(context).primaryColor.withOpacity(0.1),
+              )
+              .customRounded(BorderRadius.circular(24))
+              .border(
+                color: isSelected
+                    ? Theme.of(context).primaryColor
+                    : Theme.of(context).primaryColor.withOpacity(0.2),
+              )
+              .make(),
+    );
   }
 
   Widget _buildStatusBadge(String status) {
@@ -360,10 +372,11 @@ class _StudentBusListTabState extends State<StudentBusListTab> {
           VxBox().size(8, 8).color(color).roundedFull.make(),
           8.widthBox,
           label.text.size(13).bold.color(color.withValues(alpha: 0.9)).make(),
-        ]).box
+        ])
+        .pSymmetric(h: 12, v: 6)
+        .box
         .color(color.withValues(alpha: 0.1))
-        .roundedFull
-        .make()
-        .pSymmetric(h: 12, v: 6);
+        .rounded
+        .make();
   }
 }

@@ -88,16 +88,23 @@ class AppDrawer extends StatelessWidget {
         VStack([
           _buildDrawerItem(
             context: context,
+            icon: Icons.home_outlined,
+            activeIcon: Icons.home,
+            title: 'Home',
+            isSelected: _isRouteActive(
+              currentRoute,
+              '/student/home',
+              exact: true,
+            ),
+            onTap: () => _navigateTo(context, currentRoute, '/student/home'),
+          ),
+          _buildDrawerItem(
+            context: context,
             icon: Icons.dashboard_outlined,
             activeIcon: Icons.dashboard,
             title: 'Dashboard',
-            isSelected: _isRouteActive(
-              currentRoute,
-              _getHomeRoute(user?.role),
-              exact: true,
-            ),
-            onTap: () =>
-                _navigateTo(context, currentRoute, _getHomeRoute(user?.role)),
+            isSelected: _isRouteActive(currentRoute, '/student', exact: true),
+            onTap: () => _navigateTo(context, currentRoute, '/student'),
           ),
           _buildDrawerItem(
             context: context,

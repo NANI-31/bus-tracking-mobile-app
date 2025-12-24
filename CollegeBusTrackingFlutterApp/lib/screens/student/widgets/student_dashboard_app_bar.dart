@@ -33,9 +33,9 @@ class StudentDashboardAppBar extends StatelessWidget
         ).colorScheme.onPrimary.withValues(alpha: 0.7),
         indicatorColor: Theme.of(context).colorScheme.onPrimary,
         tabs: const [
-          Tab(text: 'Track Buses', icon: Icon(Icons.map)),
-          Tab(text: 'Bus List', icon: Icon(Icons.list)),
-          Tab(text: 'Bus Info', icon: Icon(Icons.info)),
+          Tab(text: 'Track', icon: Icon(Icons.map)),
+          Tab(text: 'Route', icon: Icon(Icons.show_chart)),
+          Tab(text: 'Info', icon: Icon(Icons.info_outline)),
         ],
       ),
     );

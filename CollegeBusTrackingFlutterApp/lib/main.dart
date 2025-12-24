@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 // import 'package:firebase_core/firebase_core.dart'; // REMOVED
 import 'package:provider/provider.dart';
 import 'package:collegebus/services/auth_service.dart';
-import 'package:collegebus/services/firestore_service.dart';
+import 'package:collegebus/services/data_service.dart';
 import 'package:collegebus/services/location_service.dart';
 import 'package:collegebus/services/notification_service.dart';
 import 'package:collegebus/services/api_service.dart';
@@ -11,6 +11,10 @@ import 'package:collegebus/utils/router.dart';
 import 'package:collegebus/screens/splash_screen.dart';
 
 import 'package:collegebus/services/theme_service.dart';
+import 'package:collegebus/services/locale_service.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:collegebus/l10n/login/auth_login_localizations.dart';
+import 'package:collegebus/l10n/signup/auth_signup_localizations.dart';
 
 void main() {
   runApp(const AppInitializer());
@@ -70,16 +74,17 @@ class MyApp extends StatelessWidget {
           update: (_, api, auth) => auth!..updateApiService(api),
         ),
 
-        ProxyProvider<ApiService, FirestoreService>(
-          update: (_, api, __) => FirestoreService(api),
+        ProxyProvider<ApiService, DataService>(
+          update: (_, api, __) => DataService(api),
         ),
 
         Provider(create: (_) => LocationService()),
         Provider(create: (_) => NotificationService()),
         ChangeNotifierProvider(create: (_) => ThemeService()),
+        ChangeNotifierProvider(create: (_) => LocaleService()),
       ],
-      child: Consumer<ThemeService>(
-        builder: (context, themeService, child) {
+      child: Consumer2<ThemeService, LocaleService>(
+        builder: (context, themeService, localeService, child) {
           return MaterialApp.router(
             title: 'Upasthit',
             theme: AppTheme.lightTheme,
@@ -87,6 +92,15 @@ class MyApp extends StatelessWidget {
             themeMode: themeService.isDarkMode
                 ? ThemeMode.dark
                 : ThemeMode.light,
+            locale: localeService.locale,
+            localizationsDelegates: const [
+              LoginLocalizations.delegate,
+              SignupLocalizations.delegate,
+              GlobalMaterialLocalizations.delegate,
+              GlobalWidgetsLocalizations.delegate,
+              GlobalCupertinoLocalizations.delegate,
+            ],
+            supportedLocales: const [Locale('en'), Locale('te'), Locale('hi')],
             routerConfig: AppRouter.router,
             themeAnimationDuration: Duration.zero,
             debugShowCheckedModeBanner: false,

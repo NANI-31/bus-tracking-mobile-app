@@ -10,6 +10,7 @@ class AppColors {
   static const Color error1 = Color(0xFFB00020);
   static const Color success1 = Color(0xFF4CAF50);
   static const Color warning1 = Color(0xFFFF9800);
+
   static final Color primary = TwColors.blue.i500;
   static final Color secondary = TwColors.teal.i500;
   static final Color error = TwColors.red.i500;
@@ -28,7 +29,7 @@ class AppColors {
   static const Color textPrimary1 = Color(0xFF111418); // text-main-light
   static const Color textSecondary1 = Color(0xFF637588); // text-sub-light
   // Light Theme Colors
-  static Color background = TwColors.slate.i50;
+  static Color background = TwColors.slate.i100;
   static Color surface = Colors.white;
   static Color onPrimary = Colors.white;
   static Color onSecondary = Colors.black;
@@ -45,7 +46,7 @@ class AppColors {
   static const Color darkTextSecondary1 = Color(0xFF93ADC8); // text-sub-dark
   // Dark Mode Colors
   static Color darkBackground = TwColors.slate.i950;
-  static Color darkSurface = TwColors.slate.i900;
+  static const Color darkSurface = Color.fromRGBO(18, 27, 45, 1);
   static Color darkOnSurface = Colors.white;
   static Color darkTextPrimary = Colors.white;
   static Color darkTextSecondary = TwColors.slate.i400;

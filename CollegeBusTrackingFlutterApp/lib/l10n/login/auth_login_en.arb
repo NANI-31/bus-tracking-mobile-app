@@ -1,0 +1,18 @@
+{
+  "trackYourRide": "Track your ride.",
+  "loginDescription": "Log in, view real-time bus schedules, campus routes.",
+  "email": "Email",
+  "emailOrPhone": "Email or Phone Number",
+  "requiredField": "Required",
+  "password": "Password",
+  "forgotPassword": "Forgot Password?",
+  "login": "Login",
+  "newHere": "New here? ",
+  "createAccount": "Create an Account",
+  "verifyEmail": "Verify Email",
+  "verifyEmailMessage": "Please verify your email address. Check your inbox.",
+  "ok": "OK",
+  "resendVerification": "Resend Verification",
+  "verificationEmailSent": "Verification email sent!",
+  "genericError": "An error occurred. Please try again."
+}

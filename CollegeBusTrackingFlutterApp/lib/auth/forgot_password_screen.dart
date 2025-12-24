@@ -137,10 +137,12 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
           AppSizes.paddingMedium.heightBox,
 
           // Back to login
-          'Back to Login'.text.semiBold
-              .color(AppColors.primary)
-              .makeCentered()
-              .onInkTap(() => context.go('/login')),
+          GestureDetector(
+            onTap: () => context.go('/login'),
+            child: 'Back to Login'.text.semiBold
+                .color(AppColors.primary)
+                .makeCentered(),
+          ),
 
           AppSizes.paddingXLarge.heightBox,
 

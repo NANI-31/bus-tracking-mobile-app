@@ -5,7 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:velocity_x/velocity_x.dart';
 import 'package:collegebus/services/auth_service.dart';
-import 'package:collegebus/services/firestore_service.dart';
+import 'package:collegebus/services/data_service.dart';
 import 'package:collegebus/services/location_service.dart';
 import 'package:collegebus/models/bus_model.dart';
 import 'package:collegebus/models/route_model.dart';
@@ -145,10 +145,7 @@ class _DriverDashboardState extends State<DriverDashboard>
 
   Future<void> _loadBusNumbers() async {
     final authService = Provider.of<AuthService>(context, listen: false);
-    final firestoreService = Provider.of<FirestoreService>(
-      context,
-      listen: false,
-    );
+    final firestoreService = Provider.of<DataService>(context, listen: false);
     final collegeId = authService.currentUserModel?.collegeId;
     if (collegeId != null) {
       firestoreService.getBusNumbers(collegeId).listen((busNumbers) {
@@ -161,10 +158,7 @@ class _DriverDashboardState extends State<DriverDashboard>
 
   Future<void> _loadRoutes() async {
     final authService = Provider.of<AuthService>(context, listen: false);
-    final firestoreService = Provider.of<FirestoreService>(
-      context,
-      listen: false,
-    );
+    final firestoreService = Provider.of<DataService>(context, listen: false);
     final currentUser = authService.currentUserModel;
     if (currentUser != null) {
       firestoreService.getRoutesByCollege(currentUser.collegeId).listen((
@@ -179,10 +173,7 @@ class _DriverDashboardState extends State<DriverDashboard>
 
   Future<void> _loadMyBus() async {
     final authService = Provider.of<AuthService>(context, listen: false);
-    final firestoreService = Provider.of<FirestoreService>(
-      context,
-      listen: false,
-    );
+    final firestoreService = Provider.of<DataService>(context, listen: false);
 
     final currentUser = authService.currentUserModel;
     if (currentUser != null) {
@@ -334,10 +325,7 @@ class _DriverDashboardState extends State<DriverDashboard>
       context,
       listen: false,
     );
-    final firestoreService = Provider.of<FirestoreService>(
-      context,
-      listen: false,
-    );
+    final firestoreService = Provider.of<DataService>(context, listen: false);
 
     if (_isSharing) {
       // Stop sharing location
@@ -534,11 +522,10 @@ class _DriverDashboardState extends State<DriverDashboard>
                                 context,
                                 listen: false,
                               );
-                              final firestoreService =
-                                  Provider.of<FirestoreService>(
-                                    context,
-                                    listen: false,
-                                  );
+                              final firestoreService = Provider.of<DataService>(
+                                context,
+                                listen: false,
+                              );
                               final currentUser = authService.currentUserModel;
                               if (currentUser == null) return;
 
@@ -608,11 +595,10 @@ class _DriverDashboardState extends State<DriverDashboard>
                       width: double.infinity,
                       child: ElevatedButton.icon(
                         onPressed: () async {
-                          final firestoreService =
-                              Provider.of<FirestoreService>(
-                                context,
-                                listen: false,
-                              );
+                          final firestoreService = Provider.of<DataService>(
+                            context,
+                            listen: false,
+                          );
                           await firestoreService.deleteBus(_myBus!.id);
 
                           // Clear saved selections

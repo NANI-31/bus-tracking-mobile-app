@@ -3,12 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:collegebus/services/auth_service.dart';
-import 'package:collegebus/services/firestore_service.dart';
+import 'package:collegebus/services/data_service.dart';
 import 'package:collegebus/services/location_service.dart';
-import 'package:collegebus/services/api_service.dart';
 import 'package:collegebus/models/bus_model.dart';
 import 'package:collegebus/models/route_model.dart';
-import 'package:collegebus/utils/constants.dart';
 import 'package:collegebus/services/theme_service.dart';
 
 // Import the new modules
@@ -18,8 +16,11 @@ import 'tabs/student_info_tab.dart';
 import 'utils/student_map_helper.dart';
 import 'package:collegebus/utils/map_style_helper.dart';
 import 'widgets/student_dashboard_app_bar.dart';
+import 'widgets/dashboard/student_bottom_nav_app_bar.dart';
 import 'package:collegebus/widgets/app_drawer.dart';
 import 'student_profile_screen.dart';
+import 'student_home_screen.dart';
+import 'bus_schedule_screen.dart';
 
 class StudentDashboard extends StatefulWidget {
   const StudentDashboard({super.key});
@@ -88,9 +89,9 @@ class _StudentDashboardState extends State<StudentDashboard>
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
-    // Listen to tab changes to update UI when using bottom nav
+    // Listen to tab changes to update UI when using bottom nav (if needed)
     _tabController.addListener(() {
-      if (!_tabController.indexIsChanging) {
+      if (!_tabController.indexIsChanging && mounted) {
         setState(() {});
       }
     });
@@ -175,10 +176,7 @@ class _StudentDashboardState extends State<StudentDashboard>
 
   Future<void> _loadBuses() async {
     final authService = Provider.of<AuthService>(context, listen: false);
-    final firestoreService = Provider.of<FirestoreService>(
-      context,
-      listen: false,
-    );
+    final firestoreService = Provider.of<DataService>(context, listen: false);
 
     final collegeId = authService.currentUserModel?.collegeId;
     if (collegeId != null) {
@@ -213,10 +211,7 @@ class _StudentDashboardState extends State<StudentDashboard>
 
   Future<void> _loadRoutes() async {
     final authService = Provider.of<AuthService>(context, listen: false);
-    final firestoreService = Provider.of<FirestoreService>(
-      context,
-      listen: false,
-    );
+    final firestoreService = Provider.of<DataService>(context, listen: false);
     final collegeId = authService.currentUserModel?.collegeId;
     if (collegeId != null) {
       await _routesSubscription?.cancel();
@@ -237,7 +232,7 @@ class _StudentDashboardState extends State<StudentDashboard>
 
   void _setupBusLocationListeners(
     String collegeId,
-    FirestoreService firestoreService,
+    DataService firestoreService,
   ) {
     // Cancel any existing subscription first
     // We only need ONE subscription now for ALL buses
@@ -302,6 +297,7 @@ class _StudentDashboardState extends State<StudentDashboard>
       onTap: () => _selectBus(bus),
     );
 
+    if (!mounted) return;
     setState(() {
       _markers.removeWhere((m) => m.markerId.value == 'bus_${bus.id}');
       _markers.add(marker);
@@ -375,9 +371,7 @@ class _StudentDashboardState extends State<StudentDashboard>
           .toList();
     }
 
-    setState(() {
-      _filteredBuses = filtered;
-    });
+    _filteredBuses = filtered;
   }
 
   void _updateMarkers() {
@@ -404,14 +398,10 @@ class _StudentDashboardState extends State<StudentDashboard>
     if (_selectedBus != null) {
       _addBusRoutePolyline(_selectedBus!);
     } else {
-      setState(() {
-        _polylines = {};
-      });
+      _polylines = {};
     }
 
-    setState(() {
-      _markers = newMarkers;
-    });
+    _markers = newMarkers;
   }
 
   void _addBusRoutePolyline(BusModel bus) {
@@ -438,9 +428,11 @@ class _StudentDashboardState extends State<StudentDashboard>
         currentLocation: _currentLocation,
       );
 
-      setState(() {
-        _polylines = {polyline};
-      });
+      if (mounted) {
+        setState(() {
+          _polylines = {polyline};
+        });
+      }
 
       // Add stop markers
       final stopMarkers = StudentMapHelper.createStopMarkers(
@@ -483,15 +475,14 @@ class _StudentDashboardState extends State<StudentDashboard>
   }
 
   void _selectBus(BusModel bus) {
-    setState(() {
-      _selectedBus = bus;
-    });
+    if (mounted) {
+      setState(() {
+        _selectedBus = bus;
+      });
+    }
 
     // Move camera to bus location if available
-    final firestoreService = Provider.of<FirestoreService>(
-      context,
-      listen: false,
-    );
+    final firestoreService = Provider.of<DataService>(context, listen: false);
     // Use first (one-shot) to move camera immediately without creating a persistent leaky listener
     firestoreService.getBusLocation(bus.id).first.then((location) {
       if (location != null && _mapController != null) {
@@ -501,36 +492,47 @@ class _StudentDashboardState extends State<StudentDashboard>
       }
     });
 
-    // Switch to Map tab (index 0) if not already there
+    // Switch to Map tab (index 1) if not already there
+    if (mounted) {
+      setState(() {
+        _bottomNavIndex = 1;
+      });
+    }
     _tabController.animateTo(0);
   }
 
   void _onBusNumberSelected(String? busNumber) {
-    setState(() {
-      _selectedBusNumber = busNumber;
-    });
-    _applyFilters();
-    _updateMarkers();
+    if (mounted) {
+      setState(() {
+        _selectedBusNumber = busNumber;
+        _applyFilters();
+        _updateMarkers();
+      });
+    }
   }
 
   void _onRouteTypeSelected(String? routeType) {
-    setState(() {
-      _selectedRouteType = routeType;
-    });
-    _applyFilters();
-    _updateMarkers();
+    if (mounted) {
+      setState(() {
+        _selectedRouteType = routeType;
+        _applyFilters();
+        _updateMarkers();
+      });
+    }
   }
 
   void _clearFilters() {
-    setState(() {
-      _selectedStop = null;
-      _selectedBusNumber = null;
-      _selectedRouteType = null;
-      _selectedBus = null;
-      _polylines.clear();
-    });
-    _applyFilters();
-    _updateMarkers();
+    if (mounted) {
+      setState(() {
+        _selectedStop = null;
+        _selectedBusNumber = null;
+        _selectedRouteType = null;
+        _selectedBus = null;
+        _polylines.clear();
+        _applyFilters();
+        _updateMarkers();
+      });
+    }
   }
 
   @override
@@ -547,26 +549,11 @@ class _StudentDashboardState extends State<StudentDashboard>
               ? null
               : AppDrawer(user: user, authService: authService),
 
-          // AppBar Logic
+          // Custom Redesigned Header
           appBar: themeService.useBottomNavigation
-              ? (_bottomNavIndex == 3
-                    ? null // Hide AppBar for Profile tab as it has its own
-                    : AppBar(
-                        backgroundColor: Theme.of(context).primaryColor,
-                        foregroundColor: Theme.of(
-                          context,
-                        ).colorScheme.onPrimary,
-                        title: const Text('College Bus Tracking'),
-                        actions: [
-                          IconButton(
-                            icon: const Icon(Icons.refresh),
-                            onPressed: () {
-                              _loadBuses();
-                              _loadRoutes();
-                            },
-                          ),
-                        ],
-                      ))
+              ? ([3, 4].contains(_bottomNavIndex)
+                    ? null // Hide for Schedule and Profile tabs
+                    : StudentBottomNavAppBar(bottomNavIndex: _bottomNavIndex))
               : StudentDashboardAppBar(
                   user: user,
                   tabController: _tabController,
@@ -578,6 +565,18 @@ class _StudentDashboardState extends State<StudentDashboard>
               ? IndexedStack(
                   index: _bottomNavIndex,
                   children: [
+                    // Home Tab
+                    StudentHomeScreen(
+                      isTab: true,
+                      onTrackLive: () {
+                        if (mounted) {
+                          setState(() {
+                            _bottomNavIndex = 1; // Map tab
+                          });
+                        }
+                      },
+                    ),
+
                     // Map Tab
                     StudentMapTab(
                       currentLocation: _currentLocation,
@@ -603,16 +602,18 @@ class _StudentDashboardState extends State<StudentDashboard>
                       onBusNumberSelected: _onBusNumberSelected,
                       onClearFilters: _clearFilters,
                       onBusSelected: (bus) {
-                        setState(() {
-                          _selectedBus = bus;
-                        });
+                        if (mounted) {
+                          setState(() {
+                            _selectedBus = bus;
+                          });
+                        }
                         if (bus == null) {
                           _updateMarkers();
                         }
                       },
                     ),
 
-                    // Bus List Tab
+                    // Bus List Tab (Route)
                     StudentBusListTab(
                       filteredBuses: _filteredBuses,
                       routes: _routes,
@@ -621,12 +622,8 @@ class _StudentDashboardState extends State<StudentDashboard>
                       selectedStop: _selectedStop,
                       onClearFilters: _clearFilters,
                     ),
-
-                    // Bus Info Tab
-                    StudentInfoTab(
-                      allBusNumbers: _allBusNumbers,
-                      allStops: _allStops,
-                    ),
+                    // Schedule Tab
+                    const BusScheduleScreen(isTab: true),
 
                     // Profile Tab
                     const StudentProfileScreen(),
@@ -676,6 +673,7 @@ class _StudentDashboardState extends State<StudentDashboard>
                       selectedStop: _selectedStop,
                       onClearFilters: _clearFilters,
                     ),
+                    // Bus Info Tab
                     StudentInfoTab(
                       allBusNumbers: _allBusNumbers,
                       allStops: _allStops,
@@ -688,24 +686,31 @@ class _StudentDashboardState extends State<StudentDashboard>
               ? NavigationBar(
                   selectedIndex: _bottomNavIndex,
                   onDestinationSelected: (index) {
-                    setState(() {
-                      _bottomNavIndex = index;
-                    });
+                    if (mounted) {
+                      setState(() {
+                        _bottomNavIndex = index;
+                      });
+                    }
                   },
                   destinations: const [
                     NavigationDestination(
+                      icon: Icon(Icons.home_outlined),
+                      selectedIcon: Icon(Icons.home),
+                      label: 'Home',
+                    ),
+                    NavigationDestination(
                       icon: Icon(Icons.map_outlined),
                       selectedIcon: Icon(Icons.map),
-                      label: 'Track',
+                      label: 'Live Map',
                     ),
                     NavigationDestination(
-                      icon: Icon(Icons.list_alt_outlined),
-                      selectedIcon: Icon(Icons.list_alt),
-                      label: 'Buses',
+                      icon: Icon(Icons.show_chart_rounded),
+                      selectedIcon: Icon(Icons.show_chart_rounded),
+                      label: 'Route',
                     ),
                     NavigationDestination(
-                      icon: Icon(Icons.info_outline),
-                      selectedIcon: Icon(Icons.info),
+                      icon: Icon(Icons.calendar_month_outlined),
+                      selectedIcon: Icon(Icons.calendar_month),
                       label: 'Schedule',
                     ),
                     NavigationDestination(

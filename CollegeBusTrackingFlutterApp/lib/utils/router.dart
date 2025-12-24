@@ -1,3 +1,5 @@
+import 'package:collegebus/screens/student/student_bus_stop_screen.dart';
+import 'package:collegebus/screens/student/student_home_screen.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:collegebus/services/auth_service.dart';
@@ -15,7 +17,10 @@ import 'package:collegebus/screens/coordinator/coordinator_dashboard.dart';
 import 'package:collegebus/screens/coordinator/schedule_management_screen.dart';
 import 'package:collegebus/screens/admin/admin_dashboard.dart';
 import 'package:collegebus/screens/student/student_profile_screen.dart';
-import 'package:collegebus/screens/notifications_screen.dart';
+import 'package:collegebus/screens/student/student_change_password_screen.dart';
+import 'package:collegebus/screens/common/privacy_policy_screen.dart';
+import 'package:collegebus/screens/common/terms_conditions_screen.dart';
+import 'package:collegebus/screens/common/notifications_screen.dart';
 import 'package:collegebus/utils/constants.dart';
 
 class AppRouter {
@@ -41,7 +46,7 @@ class AppRouter {
         switch (userRole) {
           case UserRole.student:
           case UserRole.parent:
-            return '/student';
+            return '/student/home';
           case UserRole.teacher:
             return '/teacher';
           case UserRole.driver:
@@ -89,18 +94,46 @@ class AppRouter {
         path: '/notifications',
         builder: (context, state) => const NotificationsScreen(),
       ),
+      GoRoute(
+        path: '/privacy-policy',
+        builder: (context, state) => const PrivacyPolicyScreen(),
+      ),
+      GoRoute(
+        path: '/terms-conditions',
+        builder: (context, state) => const TermsConditionsScreen(),
+      ),
 
       GoRoute(
         path: '/student',
         builder: (context, state) => const StudentDashboard(),
         routes: [
           GoRoute(
-            path: '/schedule',
+            path: 'home',
+            builder: (context, state) => const StudentHomeScreen(),
+          ),
+          GoRoute(
+            path: 'schedule',
             builder: (context, state) => const BusScheduleScreen(),
           ),
           GoRoute(
-            path: '/profile',
+            path: 'profile',
             builder: (context, state) => const StudentProfileScreen(),
+          ),
+          GoRoute(
+            path: 'change-password',
+            builder: (context, state) => const StudentChangePasswordScreen(),
+          ),
+          GoRoute(
+            path: 'privacy-policy',
+            builder: (context, state) => const PrivacyPolicyScreen(),
+          ),
+          GoRoute(
+            path: 'terms-conditions',
+            builder: (context, state) => const TermsConditionsScreen(),
+          ),
+          GoRoute(
+            path: 'bus-stop',
+            builder: (context, state) => const StudentBusStopScreen(),
           ),
         ],
       ),

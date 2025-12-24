@@ -8,6 +8,8 @@ import 'package:velocity_x/velocity_x.dart';
 import 'package:collegebus/utils/constants.dart';
 import 'package:collegebus/widgets/api_error_modal.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:collegebus/l10n/login/auth_login_localizations.dart';
+import 'package:collegebus/widgets/language_selector.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -97,7 +99,8 @@ class _LoginScreenState extends State<LoginScreen> {
       }
     } catch (e) {
       if (!mounted) return;
-      _showErrorSnackBar('An error occurred. Please try again.');
+      final l10n = LoginLocalizations.of(context)!;
+      _showErrorSnackBar(l10n.genericError);
     } finally {
       setState(() => _isLoading = false);
     }
@@ -108,16 +111,17 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   void _showEmailVerificationDialog() {
+    final l10n = LoginLocalizations.of(context)!;
     showDialog(
       context: context,
       builder: (context) => ApiErrorModal(
-        title: 'Verify Email',
-        message: 'Please verify your email address. Check your inbox.',
+        title: l10n.verifyEmail,
+        message: l10n.verifyEmailMessage,
         icon: Icons.mark_email_read_rounded,
         baseColor: Colors.orangeAccent,
-        primaryActionText: 'OK',
+        primaryActionText: l10n.ok,
         onPrimaryAction: () => Navigator.pop(context),
-        secondaryActionText: 'Resend Verification',
+        secondaryActionText: l10n.resendVerification,
         onSecondaryAction: () async {
           final authService = Provider.of<AuthService>(context, listen: false);
           Navigator.pop(context);
@@ -128,7 +132,7 @@ class _LoginScreenState extends State<LoginScreen> {
           // Show feedback
           ApiErrorModal.show(
             context: context,
-            error: "Verification email sent!",
+            error: l10n.verificationEmailSent,
           );
         },
       ),
@@ -137,6 +141,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = LoginLocalizations.of(context)!;
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: VStack([
@@ -179,6 +184,13 @@ class _LoginScreenState extends State<LoginScreen> {
                 .width(double.infinity)
                 .make(),
 
+            // Language Selector
+            Positioned(
+              top: MediaQuery.of(context).padding.top + 10,
+              right: 16,
+              child: const LanguageSelector(),
+            ),
+
             // Floating Logo
             VxBox(
                   child: Icon(
@@ -204,7 +216,7 @@ class _LoginScreenState extends State<LoginScreen> {
           key: _formKey,
           child: VStack([
             // Headlines
-            'Track your ride.'.text
+            l10n.trackYourRide.text
                 .size(28)
                 .bold
                 .color(
@@ -216,7 +228,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
             8.heightBox,
 
-            'Log in, view real-time bus schedules, campus routes.'.text
+            l10n.loginDescription.text
                 .size(12)
                 .color(
                   Theme.of(context).textTheme.bodyMedium?.color ??
@@ -229,7 +241,7 @@ class _LoginScreenState extends State<LoginScreen> {
             16.heightBox,
 
             // Account Input
-            'Email'.text.semiBold
+            l10n.email.text.semiBold
                 .color(
                   Theme.of(context).textTheme.bodyLarge?.color ??
                       AppColors.textPrimary,
@@ -238,17 +250,17 @@ class _LoginScreenState extends State<LoginScreen> {
             8.heightBox,
             CustomInputField(
               label: '',
-              hint: 'Email or Phone Number',
+              hint: l10n.emailOrPhone,
               controller: _emailController,
               prefixIcon: const Icon(Icons.email_outlined),
               validator: (value) =>
-                  (value == null || value.isEmpty) ? 'Required' : null,
+                  (value == null || value.isEmpty) ? l10n.requiredField : null,
             ),
 
             20.heightBox,
 
             // Password Input
-            'Password'.text.semiBold
+            l10n.password.text.semiBold
                 .color(
                   Theme.of(context).textTheme.bodyLarge?.color ??
                       AppColors.textPrimary,
@@ -257,22 +269,24 @@ class _LoginScreenState extends State<LoginScreen> {
             8.heightBox,
             CustomInputField(
               label: '',
-              hint: 'Password',
+              hint: l10n.password,
               controller: _passwordController,
               isPassword: true,
               prefixIcon: const Icon(Icons.lock_outline_rounded),
               validator: (value) =>
-                  (value == null || value.isEmpty) ? 'Required' : null,
+                  (value == null || value.isEmpty) ? l10n.requiredField : null,
             ),
 
             // Forgot Password
             Align(
               alignment: Alignment.centerRight,
-              child: 'Forgot Password?'.text.semiBold
-                  .color(AppColors.primary)
-                  .make()
-                  .onInkTap(() => context.push('/forgot-password'))
-                  .p8(),
+              child: GestureDetector(
+                onTap: () => context.push('/forgot-password'),
+                child: l10n.forgotPassword.text.semiBold
+                    .color(AppColors.primary)
+                    .make()
+                    .p8(), // padding still works
+              ),
             ),
 
             16.heightBox,
@@ -294,7 +308,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       strokeWidth: 2,
                     ).box.size(24, 24).make()
                   : HStack([
-                      'Login'.text.size(16).bold.make(),
+                      l10n.login.text.size(16).bold.make(),
                       8.widthBox,
                       const Icon(Icons.arrow_forward_rounded),
                     ], alignment: MainAxisAlignment.center),
@@ -304,11 +318,13 @@ class _LoginScreenState extends State<LoginScreen> {
 
             // Footer
             HStack([
-              'New here? '.text.color(AppColors.textSecondary).make(),
-              'Create an Account'.text.bold
-                  .color(AppColors.primary)
-                  .make()
-                  .onInkTap(() => context.go('/register')),
+              l10n.newHere.text.color(AppColors.textSecondary).make(),
+              GestureDetector(
+                onTap: () => context.go('/register'),
+                child: l10n.createAccount.text.bold
+                    .color(AppColors.primary)
+                    .make(),
+              ),
             ], alignment: MainAxisAlignment.center).centered(),
 
             32.heightBox,
