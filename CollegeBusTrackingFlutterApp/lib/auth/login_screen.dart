@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import 'package:collegebus/services/auth_service.dart';
 import 'package:collegebus/widgets/custom_input_field.dart';
+import 'package:velocity_x/velocity_x.dart';
 
 import 'package:collegebus/utils/constants.dart';
 import 'package:collegebus/widgets/api_error_modal.dart';
@@ -103,9 +104,7 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   void _showErrorSnackBar(String message) {
-    void _showErrorSnackBar(String message) {
-      ApiErrorModal.show(context: context, error: message);
-    }
+    ApiErrorModal.show(context: context, error: message);
   }
 
   void _showEmailVerificationDialog() {
@@ -121,11 +120,7 @@ class _LoginScreenState extends State<LoginScreen> {
         secondaryActionText: 'Resend Verification',
         onSecondaryAction: () async {
           final authService = Provider.of<AuthService>(context, listen: false);
-          Navigator.pop(
-            context,
-          ); // Close dialog first to avoid stack issues? Or keep open?
-          // "Resend" usually triggers action then maybe shows success.
-          // Let's close, trigger, and show success snackbar/modal.
+          Navigator.pop(context);
 
           await authService.resendEmailVerification();
           if (!mounted) return;
@@ -144,249 +139,182 @@ class _LoginScreenState extends State<LoginScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      body: SingleChildScrollView(
-        child: Column(
-          children: [
-            // Header Image & Logo Section
-            Stack(
-              alignment: Alignment.bottomCenter,
-              clipBehavior: Clip.none,
-              children: [
-                // Background Image
-                Container(
-                  height: 280,
-                  width: double.infinity,
-                  decoration: const BoxDecoration(
-                    image: DecorationImage(
-                      image: CachedNetworkImageProvider(
-                        'https://lh3.googleusercontent.com/aida-public/AB6AXuAhoVjzOMAAtG2ZhYD-_E4cE8rln6afXo2yCEcciNGD-ETd6sJlt_OR5iE5TVIWrcY0JwmrUmn8VEV2Zlcmu-4aT3JKaN2lWbBU_AOLHjKFAtKYbJWGQ1cAtLiEc4-roVY0L5XDKurzZXwWHlHbGCzQMHxWCMzzfYc3yfLkok2ulqHzUdm39kVAqaSy9_4pKylchOvtBqv2qJQGzbd38cEODfoaAjfJCsln4aXfowd69XBQLr4Sbx8-33NOJjziZW-FFtvvuAUOmJke',
-                      ),
-                      fit: BoxFit.cover,
+      body: VStack([
+        // Header Image & Logo Section
+        ZStack(
+          [
+            // Background Image
+            VxBox()
+                .bgImage(
+                  DecorationImage(
+                    image: CachedNetworkImageProvider(
+                      'https://lh3.googleusercontent.com/aida-public/AB6AXuAhoVjzOMAAtG2ZhYD-_E4cE8rln6afXo2yCEcciNGD-ETd6sJlt_OR5iE5TVIWrcY0JwmrUmn8VEV2Zlcmu-4aT3JKaN2lWbBU_AOLHjKFAtKYbJWGQ1cAtLiEc4-roVY0L5XDKurzZXwWHlHbGCzQMHxWCMzzfYc3yfLkok2ulqHzUdm39kVAqaSy9_4pKylchOvtBqv2qJQGzbd38cEODfoaAjfJCsln4aXfowd69XBQLr4Sbx8-33NOJjziZW-FFtvvuAUOmJke',
                     ),
+                    fit: BoxFit.cover,
                   ),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [
-                          Colors.transparent,
-                          Theme.of(
-                            context,
-                          ).scaffoldBackgroundColor.withValues(alpha: 0.2),
-                          Theme.of(context).scaffoldBackgroundColor,
-                        ],
-                        stops: const [0.6, 0.9, 1.0],
-                      ),
-                    ),
-                  ),
-                ),
-                // Floating Logo
-                Positioned(
-                  bottom: -30,
-                  child: Container(
-                    width: 70,
-                    height: 70,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(16),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.1),
-                          blurRadius: 10,
-                          offset: const Offset(0, 4),
-                        ),
+                )
+                .height(280)
+                .width(double.infinity)
+                .make(),
+
+            // Gradient Overlay
+            VxBox()
+                .withDecoration(
+                  BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Colors.transparent,
+                        Theme.of(
+                          context,
+                        ).scaffoldBackgroundColor.withValues(alpha: 0.2),
+                        Theme.of(context).scaffoldBackgroundColor,
                       ],
-                    ),
-                    child: const Icon(
-                      Icons.directions_bus_rounded,
-                      color: AppColors.primary,
-                      size: 32,
+                      stops: const [0.6, 0.9, 1.0],
                     ),
                   ),
-                ),
-              ],
-            ),
+                )
+                .height(280)
+                .width(double.infinity)
+                .make(),
 
-            const SizedBox(height: 50), // Space for matching floating logo
-            // Main Content
-            Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: AppSizes.paddingLarge,
-              ),
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  children: [
-                    // Headlines
-                    Text(
-                      'Track your ride.',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 28,
-                        fontWeight: FontWeight.bold,
-                        color:
-                            Theme.of(context).textTheme.headlineMedium?.color ??
-                            AppColors.textPrimary,
-                        letterSpacing: -0.5,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Log in to view real-time bus schedules and campus routes.',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 12,
-                        color:
-                            Theme.of(context).textTheme.bodyMedium?.color ??
-                            AppColors.textSecondary,
-                        height: 1.4,
-                      ),
-                    ),
-
-                    const SizedBox(height: 32),
-
-                    // Inputs on left alignment labels
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: Text(
-                        'Account',
-                        style: TextStyle(
-                          fontWeight: FontWeight.w600,
-                          color:
-                              Theme.of(context).textTheme.bodyLarge?.color ??
-                              AppColors.textPrimary,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    CustomInputField(
-                      label: '', // Label handled externally for this design
-                      hint: 'Email or Phone Number',
-                      controller: _emailController,
-                      prefixIcon: const Icon(Icons.email_outlined),
-                      validator: (value) {
-                        return (value == null || value.isEmpty)
-                            ? 'Required'
-                            : null;
-                      },
-                    ),
-
-                    const SizedBox(height: 20),
-
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: Text(
-                        'Password',
-                        style: TextStyle(
-                          fontWeight: FontWeight.w600,
-                          color:
-                              Theme.of(context).textTheme.bodyLarge?.color ??
-                              AppColors.textPrimary,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    CustomInputField(
-                      label: '',
-                      hint: 'Password',
-                      controller: _passwordController,
-                      isPassword: true,
-                      prefixIcon: const Icon(Icons.lock_outline_rounded),
-                      validator: (value) {
-                        return (value == null || value.isEmpty)
-                            ? 'Required'
-                            : null;
-                      },
-                    ),
-
-                    // Forgot Password
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child: TextButton(
-                        onPressed: () => context.push('/forgot-password'),
-                        child: const Text(
-                          'Forgot Password?',
-                          style: TextStyle(
-                            color: AppColors.primary,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                    ),
-
-                    const SizedBox(height: 16),
-
-                    // Login Button (Full Width Blue)
-                    SizedBox(
-                      width: double.infinity,
-                      height: 56,
-                      child: ElevatedButton(
-                        onPressed: () => _handleLogin(),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.primary,
-                          foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          elevation: 2,
-                        ),
-                        child: _isLoading
-                            ? const SizedBox(
-                                width: 24,
-                                height: 24,
-                                child: CircularProgressIndicator(
-                                  color: Colors.white,
-                                  strokeWidth: 2,
-                                ),
-                              )
-                            : const Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Text(
-                                    'Login',
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                  SizedBox(width: 8),
-                                  Icon(Icons.arrow_forward_rounded),
-                                ],
-                              ),
-                      ),
-                    ),
-
-                    const SizedBox(height: 32),
-
-                    // Footer
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Text(
-                          'New here? ',
-                          style: TextStyle(color: AppColors.textSecondary),
-                        ),
-                        GestureDetector(
-                          onTap: () => context.go('/register'),
-                          child: const Text(
-                            'Create an Account',
-                            style: TextStyle(
-                              color: AppColors.primary,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 32), // Bottom padding
-                  ],
-                ),
-              ),
-            ),
+            // Floating Logo
+            VxBox(
+                  child: Icon(
+                    Icons.directions_bus_rounded,
+                    color: AppColors.primary,
+                    size: 32,
+                  ),
+                ).white.rounded.shadow
+                .size(70, 70)
+                .make()
+                .centered()
+                .pOnly(bottom: 0) // Adjusted since we are in VStack/ZStack
+                .positioned(bottom: -35, left: 0, right: 0),
           ],
+          alignment: Alignment.bottomCenter,
+          fit: StackFit.loose,
+        ).h(280 + 35), // Enable overflow space or explicitly size
+
+        50.heightBox,
+
+        // Main Content
+        Form(
+          key: _formKey,
+          child: VStack([
+            // Headlines
+            'Track your ride.'.text
+                .size(28)
+                .bold
+                .color(
+                  Theme.of(context).textTheme.headlineMedium?.color ??
+                      AppColors.textPrimary,
+                )
+                .letterSpacing(-0.5)
+                .makeCentered(),
+
+            8.heightBox,
+
+            'Log in, view real-time bus schedules, campus routes.'.text
+                .size(12)
+                .color(
+                  Theme.of(context).textTheme.bodyMedium?.color ??
+                      AppColors.textSecondary,
+                )
+                .center
+                .makeCentered()
+                .px16(),
+
+            16.heightBox,
+
+            // Account Input
+            'Email'.text.semiBold
+                .color(
+                  Theme.of(context).textTheme.bodyLarge?.color ??
+                      AppColors.textPrimary,
+                )
+                .make(),
+            8.heightBox,
+            CustomInputField(
+              label: '',
+              hint: 'Email or Phone Number',
+              controller: _emailController,
+              prefixIcon: const Icon(Icons.email_outlined),
+              validator: (value) =>
+                  (value == null || value.isEmpty) ? 'Required' : null,
+            ),
+
+            20.heightBox,
+
+            // Password Input
+            'Password'.text.semiBold
+                .color(
+                  Theme.of(context).textTheme.bodyLarge?.color ??
+                      AppColors.textPrimary,
+                )
+                .make(),
+            8.heightBox,
+            CustomInputField(
+              label: '',
+              hint: 'Password',
+              controller: _passwordController,
+              isPassword: true,
+              prefixIcon: const Icon(Icons.lock_outline_rounded),
+              validator: (value) =>
+                  (value == null || value.isEmpty) ? 'Required' : null,
+            ),
+
+            // Forgot Password
+            Align(
+              alignment: Alignment.centerRight,
+              child: 'Forgot Password?'.text.semiBold
+                  .color(AppColors.primary)
+                  .make()
+                  .onInkTap(() => context.push('/forgot-password'))
+                  .p8(),
+            ),
+
+            16.heightBox,
+
+            // Login Button
+            ElevatedButton(
+              onPressed: _handleLogin,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                elevation: 2,
+              ),
+              child: _isLoading
+                  ? const CircularProgressIndicator(
+                      color: Colors.white,
+                      strokeWidth: 2,
+                    ).box.size(24, 24).make()
+                  : HStack([
+                      'Login'.text.size(16).bold.make(),
+                      8.widthBox,
+                      const Icon(Icons.arrow_forward_rounded),
+                    ], alignment: MainAxisAlignment.center),
+            ).h(56).wFull(context),
+
+            32.heightBox,
+
+            // Footer
+            HStack([
+              'New here? '.text.color(AppColors.textSecondary).make(),
+              'Create an Account'.text.bold
+                  .color(AppColors.primary)
+                  .make()
+                  .onInkTap(() => context.go('/register')),
+            ], alignment: MainAxisAlignment.center).centered(),
+
+            32.heightBox,
+          ]).pSymmetric(h: AppSizes.paddingLarge),
         ),
-      ),
+      ]).scrollVertical(),
     );
   }
 }

@@ -95,7 +95,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   const SizedBox(height: AppSizes.paddingMedium),
-                  const Text(
+                  Text(
                     'Create a new password that is strong and unique.',
                     style: TextStyle(
                       fontSize: 16,

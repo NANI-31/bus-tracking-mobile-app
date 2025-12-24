@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:velocity_x/velocity_x.dart';
 import 'package:collegebus/services/auth_service.dart';
 import 'package:collegebus/services/firestore_service.dart';
 import 'package:collegebus/services/location_service.dart';
@@ -297,7 +298,7 @@ class _DriverDashboardState extends State<DriverDashboard>
   Future<void> _toggleLocationSharing() async {
     if (_myBus == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
+        SnackBar(
           content: Text('Please set up your bus information first'),
           backgroundColor: AppColors.error,
         ),
@@ -320,7 +321,7 @@ class _DriverDashboardState extends State<DriverDashboard>
       setState(() => _isSharing = false);
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
+        SnackBar(
           content: Text('Location sharing stopped'),
           backgroundColor: AppColors.warning,
         ),
@@ -358,7 +359,7 @@ class _DriverDashboardState extends State<DriverDashboard>
       setState(() => _isSharing = true);
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
+        SnackBar(
           content: Text('Location sharing started'),
           backgroundColor: AppColors.success,
         ),
@@ -374,7 +375,7 @@ class _DriverDashboardState extends State<DriverDashboard>
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        title: Text('Welcome, ${user?.fullName ?? 'Driver'}'),
+        title: 'Welcome, ${user?.fullName ?? 'Driver'}'.text.make(),
         backgroundColor: Theme.of(context).primaryColor,
         foregroundColor: Theme.of(context).colorScheme.onPrimary,
         actions: [
@@ -411,297 +412,233 @@ class _DriverDashboardState extends State<DriverDashboard>
         controller: _tabController,
         children: [
           // Bus Setup Tab
-          Column(
-            children: [
-              // Location display
-              Container(
-                padding: const EdgeInsets.all(AppSizes.paddingMedium),
-                color: _currentLocation != null
-                    ? Theme.of(context).primaryColor.withValues(alpha: 0.1)
-                    : Theme.of(
-                        context,
-                      ).colorScheme.error.withValues(alpha: 0.1),
-                child: Row(
-                  children: [
-                    Icon(
-                      Icons.location_on,
-                      color: _currentLocation != null
-                          ? Theme.of(context).primaryColor
-                          : Theme.of(context).colorScheme.error,
-                    ),
-                    const SizedBox(width: AppSizes.paddingSmall),
-                    Expanded(
-                      child: Text(
-                        _currentLocation != null
-                            ? 'Your Location: ${_currentLocation!.latitude.toStringAsFixed(4)}, ${_currentLocation!.longitude.toStringAsFixed(4)}'
-                            : 'Location not available. Please enable location services.',
-                        style: TextStyle(
-                          color: _currentLocation != null
-                              ? Theme.of(context).primaryColor
-                              : Theme.of(context).colorScheme.error,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.all(AppSizes.paddingMedium),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Bus & Route Selection',
-                        style: TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                          color: Theme.of(context).colorScheme.onSurface,
-                        ),
-                      ),
-                      const SizedBox(height: AppSizes.paddingLarge),
-
-                      if (_myBus == null) ...[
-                        DropdownButtonFormField<String>(
-                          value: _selectedBusNumber,
-                          items: _busNumbers
-                              .map(
-                                (busNumber) => DropdownMenuItem(
-                                  value: busNumber,
-                                  child: Text(busNumber),
-                                ),
-                              )
-                              .toList(),
-                          onChanged: (busNumber) {
-                            setState(() {
-                              _selectedBusNumber = busNumber;
-                            });
-                          },
-                          decoration: const InputDecoration(
-                            labelText: 'Select Bus Number',
-                            border: OutlineInputBorder(),
-                            hintText: 'Choose your bus number',
-                          ),
-                        ),
-                        const SizedBox(height: AppSizes.paddingMedium),
-                        DropdownButtonFormField<RouteModel>(
-                          value: _selectedRoute,
-                          items: _routes
-                              .map(
-                                (route) => DropdownMenuItem(
-                                  value: route,
-                                  child: Text(
-                                    '${route.routeName} (${route.routeType.toUpperCase()})',
-                                  ),
-                                ),
-                              )
-                              .toList(),
-                          onChanged: (route) {
-                            setState(() {
-                              _selectedRoute = route;
-                            });
-                            _updateMarkers();
-                          },
-                          decoration: const InputDecoration(
-                            labelText: 'Select Route',
-                            border: OutlineInputBorder(),
-                            hintText: 'Choose your route',
-                          ),
-                        ),
-                        const SizedBox(height: AppSizes.paddingLarge),
-                        SizedBox(
-                          width: double.infinity,
-                          child: ElevatedButton.icon(
-                            onPressed:
-                                (_selectedRoute != null &&
-                                    _selectedBusNumber != null)
-                                ? () async {
-                                    final authService =
-                                        Provider.of<AuthService>(
-                                          context,
-                                          listen: false,
-                                        );
-                                    final firestoreService =
-                                        Provider.of<FirestoreService>(
-                                          context,
-                                          listen: false,
-                                        );
-                                    final currentUser =
-                                        authService.currentUserModel;
-                                    if (currentUser == null) return;
-
-                                    final newBus = BusModel(
-                                      id: DateTime.now().millisecondsSinceEpoch
-                                          .toString(),
-                                      busNumber: _selectedBusNumber!,
-                                      driverId: currentUser.id,
-                                      routeId: _selectedRoute!.id,
-                                      collegeId: currentUser.collegeId,
-                                      createdAt: DateTime.now(),
-                                    );
-
-                                    await firestoreService.createBus(newBus);
-                                    await _saveSelections();
-                                    if (!mounted) return;
-                                    setState(() => _myBus = newBus);
-                                    _updateMarkers();
-
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                        content: Text(
-                                          'Bus assigned successfully!',
-                                        ),
-                                        backgroundColor: AppColors.success,
-                                      ),
-                                    );
-                                  }
-                                : null,
-                            icon: const Icon(Icons.directions_bus),
-                            label: const Text('Assign Bus'),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Theme.of(context).primaryColor,
-                              foregroundColor: Theme.of(
-                                context,
-                              ).colorScheme.onPrimary,
-                              padding: const EdgeInsets.symmetric(vertical: 16),
-                            ),
-                          ),
-                        ),
-                      ] else ...[
-                        Card(
-                          child: Padding(
-                            padding: const EdgeInsets.all(
-                              AppSizes.paddingMedium,
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Bus: ${_myBus!.busNumber}',
-                                  style: const TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                                const SizedBox(height: AppSizes.paddingSmall),
-                                if (_selectedRoute != null) ...[
-                                  Text(
-                                    'Route: ${_selectedRoute!.routeName}',
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      color: Theme.of(context)
-                                          .colorScheme
-                                          .onSurface
-                                          .withValues(alpha: 0.6),
-                                    ),
-                                  ),
-                                  Text(
-                                    'Type: ${_selectedRoute!.routeType.toUpperCase()}',
-                                    style: TextStyle(
-                                      fontSize: 14,
-                                      color: Theme.of(context)
-                                          .colorScheme
-                                          .onSurface
-                                          .withValues(alpha: 0.6),
-                                    ),
-                                  ),
-                                  Text(
-                                    '${_selectedRoute!.startPoint} → ${_selectedRoute!.endPoint}',
-                                    style: TextStyle(
-                                      fontSize: 14,
-                                      color: Theme.of(context)
-                                          .colorScheme
-                                          .onSurface
-                                          .withValues(alpha: 0.6),
-                                    ),
-                                  ),
-                                ],
-                                const SizedBox(height: AppSizes.paddingMedium),
-                                SizedBox(
-                                  width: double.infinity,
-                                  child: ElevatedButton.icon(
-                                    onPressed: () async {
-                                      final firestoreService =
-                                          Provider.of<FirestoreService>(
-                                            context,
-                                            listen: false,
-                                          );
-                                      await firestoreService.deleteBus(
-                                        _myBus!.id,
-                                      );
-
-                                      // Clear saved selections
-                                      final prefs =
-                                          await SharedPreferences.getInstance();
-                                      final authService =
-                                          Provider.of<AuthService>(
-                                            context,
-                                            listen: false,
-                                          );
-                                      final userId =
-                                          authService.currentUserModel?.id;
-                                      if (userId != null) {
-                                        await prefs.remove(
-                                          'driver_${userId}_bus_number',
-                                        );
-                                        await prefs.remove(
-                                          'driver_${userId}_route_id',
-                                        );
-                                      }
-
-                                      if (!mounted) return;
-                                      setState(() {
-                                        _myBus = null;
-                                        _selectedBusNumber = null;
-                                        _selectedRoute = null;
-                                      });
-                                      _updateMarkers();
-
-                                      ScaffoldMessenger.of(
-                                        context,
-                                      ).showSnackBar(
-                                        SnackBar(
-                                          content: Text(
-                                            'Bus assignment removed',
-                                          ),
-                                          backgroundColor: Theme.of(
-                                            context,
-                                          ).colorScheme.secondary,
-                                        ),
-                                      );
-                                    },
-                                    icon: const Icon(Icons.remove_circle),
-                                    label: const Text('Remove Assignment'),
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: Theme.of(
-                                        context,
-                                      ).colorScheme.error,
-                                      foregroundColor: Theme.of(
-                                        context,
-                                      ).colorScheme.onError,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ],
-                    ],
+          VStack([
+            // Location display
+            HStack([
+                  Icon(
+                    Icons.location_on,
+                    color: _currentLocation != null
+                        ? Theme.of(context).primaryColor
+                        : Theme.of(context).colorScheme.error,
                   ),
+                  AppSizes.paddingSmall.widthBox,
+                  (_currentLocation != null
+                          ? 'Your Location: ${_currentLocation!.latitude.toStringAsFixed(4)}, ${_currentLocation!.longitude.toStringAsFixed(4)}'
+                          : 'Location not available. Please enable location services.')
+                      .text
+                      .color(
+                        _currentLocation != null
+                            ? Theme.of(context).primaryColor
+                            : Theme.of(context).colorScheme.error,
+                      )
+                      .medium
+                      .make()
+                      .expand(),
+                ])
+                .p(AppSizes.paddingMedium)
+                .box
+                .color(
+                  _currentLocation != null
+                      ? Theme.of(context).primaryColor.withValues(alpha: 0.1)
+                      : Theme.of(
+                          context,
+                        ).colorScheme.error.withValues(alpha: 0.1),
+                )
+                .make(),
+
+            VStack([
+              'Bus & Route Selection'.text.size(24).bold.make(),
+              AppSizes.paddingLarge.heightBox,
+
+              if (_myBus == null)
+                VStack([
+                  DropdownButtonFormField<String>(
+                    value: _selectedBusNumber,
+                    items: _busNumbers
+                        .map(
+                          (busNumber) => DropdownMenuItem(
+                            value: busNumber,
+                            child: busNumber.text.make(),
+                          ),
+                        )
+                        .toList(),
+                    onChanged: (busNumber) {
+                      setState(() {
+                        _selectedBusNumber = busNumber;
+                      });
+                    },
+                    decoration: const InputDecoration(
+                      labelText: 'Select Bus Number',
+                      border: OutlineInputBorder(),
+                      hintText: 'Choose your bus number',
+                    ),
+                  ),
+                  AppSizes.paddingMedium.heightBox,
+                  DropdownButtonFormField<RouteModel>(
+                    value: _selectedRoute,
+                    items: _routes
+                        .map(
+                          (route) => DropdownMenuItem(
+                            value: route,
+                            child:
+                                '${route.routeName} (${route.routeType.toUpperCase()})'
+                                    .text
+                                    .make(),
+                          ),
+                        )
+                        .toList(),
+                    onChanged: (route) {
+                      setState(() {
+                        _selectedRoute = route;
+                      });
+                      _updateMarkers();
+                    },
+                    decoration: const InputDecoration(
+                      labelText: 'Select Route',
+                      border: OutlineInputBorder(),
+                      hintText: 'Choose your route',
+                    ),
+                  ),
+                  AppSizes.paddingLarge.heightBox,
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed:
+                          (_selectedRoute != null && _selectedBusNumber != null)
+                          ? () async {
+                              final authService = Provider.of<AuthService>(
+                                context,
+                                listen: false,
+                              );
+                              final firestoreService =
+                                  Provider.of<FirestoreService>(
+                                    context,
+                                    listen: false,
+                                  );
+                              final currentUser = authService.currentUserModel;
+                              if (currentUser == null) return;
+
+                              final newBus = BusModel(
+                                id: DateTime.now().millisecondsSinceEpoch
+                                    .toString(),
+                                busNumber: _selectedBusNumber!,
+                                driverId: currentUser.id,
+                                routeId: _selectedRoute!.id,
+                                collegeId: currentUser.collegeId,
+                                createdAt: DateTime.now(),
+                              );
+
+                              await firestoreService.createBus(newBus);
+                              await _saveSelections();
+                              if (!mounted) return;
+                              setState(() => _myBus = newBus);
+                              _updateMarkers();
+
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('Bus assigned successfully!'),
+                                  backgroundColor: AppColors.success,
+                                ),
+                              );
+                            }
+                          : null,
+                      icon: const Icon(Icons.directions_bus),
+                      label: const Text('Assign Bus'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Theme.of(context).primaryColor,
+                        foregroundColor: Theme.of(
+                          context,
+                        ).colorScheme.onPrimary,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                      ),
+                    ),
+                  ),
+                ])
+              else
+                Card(
+                  child: VStack([
+                    'Bus: ${_myBus!.busNumber}'.text.size(18).semiBold.make(),
+                    AppSizes.paddingSmall.heightBox,
+                    if (_selectedRoute != null)
+                      VStack([
+                        'Route: ${_selectedRoute!.routeName}'.text
+                            .size(16)
+                            .color(
+                              Theme.of(
+                                context,
+                              ).colorScheme.onSurface.withValues(alpha: 0.6),
+                            )
+                            .make(),
+                        'Type: ${_selectedRoute!.routeType.toUpperCase()} | ${_selectedRoute!.startPoint} → ${_selectedRoute!.endPoint}'
+                            .text
+                            .size(14)
+                            .color(
+                              Theme.of(
+                                context,
+                              ).colorScheme.onSurface.withValues(alpha: 0.6),
+                            )
+                            .make(),
+                      ]),
+                    AppSizes.paddingMedium.heightBox,
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        onPressed: () async {
+                          final firestoreService =
+                              Provider.of<FirestoreService>(
+                                context,
+                                listen: false,
+                              );
+                          await firestoreService.deleteBus(_myBus!.id);
+
+                          // Clear saved selections
+                          final prefs = await SharedPreferences.getInstance();
+                          final authService = Provider.of<AuthService>(
+                            context,
+                            listen: false,
+                          );
+                          final userId = authService.currentUserModel?.id;
+                          if (userId != null) {
+                            await prefs.remove('driver_${userId}_bus_number');
+                            await prefs.remove('driver_${userId}_route_id');
+                          }
+
+                          if (!mounted) return;
+                          setState(() {
+                            _myBus = null;
+                            _selectedBusNumber = null;
+                            _selectedRoute = null;
+                          });
+                          _updateMarkers();
+
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Bus assignment removed'),
+                              backgroundColor: Theme.of(
+                                context,
+                              ).colorScheme.secondary,
+                            ),
+                          );
+                        },
+                        icon: const Icon(Icons.remove_circle),
+                        label: const Text('Remove Assignment'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Theme.of(context).colorScheme.error,
+                          foregroundColor: Theme.of(
+                            context,
+                          ).colorScheme.onError,
+                        ),
+                      ),
+                    ),
+                  ]).p(AppSizes.paddingMedium),
                 ),
-              ),
-            ],
-          ),
+            ]).p(AppSizes.paddingMedium).expand(),
+          ]),
 
           // Live Tracking Tab
-          Column(
-            children: [
-              // Map
-              Expanded(
-                child: _currentLocation != null
+          VStack([
+            // Map
+            (_currentLocation != null
                     ? GoogleMap(
                         onMapCreated: (GoogleMapController controller) {
                           _mapController = controller;
@@ -717,116 +654,84 @@ class _DriverDashboardState extends State<DriverDashboard>
                         myLocationButtonEnabled: true,
                         mapType: MapType.normal,
                       )
-                    : const Center(child: CircularProgressIndicator()),
-              ),
+                    : const CircularProgressIndicator().centered())
+                .expand(),
 
-              // Controls
-              Container(
-                padding: const EdgeInsets.all(AppSizes.paddingMedium),
-                decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.surface,
-                  borderRadius: BorderRadius.only(
-                    topLeft: Radius.circular(AppSizes.radiusLarge),
-                    topRight: Radius.circular(AppSizes.radiusLarge),
-                  ),
-                ),
-                child: Column(
-                  children: [
-                    if (_myBus != null) ...[
-                      Text(
-                        'Bus ${_myBus!.busNumber}',
-                        style: const TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.textPrimary,
-                        ),
-                      ),
-                      const SizedBox(height: AppSizes.paddingSmall),
-                      if (_selectedRoute != null) ...[
-                        Text(
-                          'Route: ${_selectedRoute!.routeName}',
-                          style: const TextStyle(
-                            fontSize: 16,
-                            color: AppColors.textSecondary,
-                          ),
-                        ),
-                        Text(
-                          'Type: ${_selectedRoute!.routeType.toUpperCase()} | ${_selectedRoute!.startPoint} → ${_selectedRoute!.endPoint}',
-                          style: const TextStyle(
-                            fontSize: 14,
-                            color: AppColors.textSecondary,
-                          ),
-                        ),
-                      ],
-                      const SizedBox(height: AppSizes.paddingMedium),
-                    ],
+            // Controls
+            VStack([
+                  if (_myBus != null)
+                    VStack([
+                      'Bus ${_myBus!.busNumber}'.text
+                          .size(20)
+                          .bold
+                          .color(AppColors.textPrimary)
+                          .make(),
+                      AppSizes.paddingSmall.heightBox,
+                      if (_selectedRoute != null)
+                        VStack([
+                          'Route: ${_selectedRoute!.routeName}'.text
+                              .size(16)
+                              .color(AppColors.textSecondary)
+                              .make(),
+                          'Type: ${_selectedRoute!.routeType.toUpperCase()} | ${_selectedRoute!.startPoint} → ${_selectedRoute!.endPoint}'
+                              .text
+                              .size(14)
+                              .color(AppColors.textSecondary)
+                              .make(),
+                        ]),
+                      AppSizes.paddingMedium.heightBox,
+                    ]),
 
-                    CustomButton(
-                      text: _isSharing
-                          ? 'Stop Sharing Location'
-                          : 'Start Sharing Location',
-                      onPressed: _toggleLocationSharing,
-                      backgroundColor: _isSharing
-                          ? Theme.of(context).colorScheme.error
-                          : Theme.of(context).colorScheme.secondary,
-                      icon: Icon(
-                        _isSharing ? Icons.stop : Icons.play_arrow,
-                        color: _isSharing
-                            ? Theme.of(context).colorScheme.onError
-                            : Theme.of(context).colorScheme.onSecondary,
-                      ),
+                  CustomButton(
+                    text: _isSharing
+                        ? 'Stop Sharing Location'
+                        : 'Start Sharing Location',
+                    onPressed: _toggleLocationSharing,
+                    backgroundColor: _isSharing
+                        ? Theme.of(context).colorScheme.error
+                        : Theme.of(context).colorScheme.secondary,
+                    icon: Icon(
+                      _isSharing ? Icons.stop : Icons.play_arrow,
+                      color: _isSharing
+                          ? Theme.of(context).colorScheme.onError
+                          : Theme.of(context).colorScheme.onSecondary,
                     ),
+                  ),
 
-                    if (_isSharing) ...[
-                      const SizedBox(height: AppSizes.paddingMedium),
-                      Container(
-                        padding: const EdgeInsets.all(AppSizes.paddingMedium),
-                        decoration: BoxDecoration(
-                          color: AppColors.success.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(
-                            AppSizes.radiusMedium,
-                          ),
-                        ),
-                        child: Row(
-                          children: [
-                            const Icon(
-                              Icons.location_on,
-                              color: AppColors.success,
-                            ),
-                            const SizedBox(width: AppSizes.paddingMedium),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  const Text(
-                                    'Your location is being shared with students and teachers',
-                                    style: TextStyle(
-                                      color: AppColors.success,
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                  ),
-                                  if (_currentLocation != null) ...[
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      'Current: ${_currentLocation!.latitude.toStringAsFixed(4)}, ${_currentLocation!.longitude.toStringAsFixed(4)}',
-                                      style: const TextStyle(
-                                        color: AppColors.success,
-                                        fontSize: 12,
-                                      ),
-                                    ),
-                                  ],
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-            ],
-          ),
+                  if (_isSharing)
+                    HStack([
+                          Icon(Icons.location_on, color: AppColors.success),
+                          AppSizes.paddingMedium.widthBox,
+                          VStack([
+                            'Your location is being shared with students and teachers'
+                                .text
+                                .color(AppColors.success)
+                                .medium
+                                .make(),
+                            if (_currentLocation != null)
+                              VStack([
+                                4.heightBox,
+                                'Current: ${_currentLocation!.latitude.toStringAsFixed(4)}, ${_currentLocation!.longitude.toStringAsFixed(4)}'
+                                    .text
+                                    .size(12)
+                                    .color(AppColors.success)
+                                    .make(),
+                              ]),
+                          ]).expand(),
+                        ])
+                        .p(AppSizes.paddingMedium)
+                        .box
+                        .color(AppColors.success.withValues(alpha: 0.1))
+                        .withRounded(value: AppSizes.radiusMedium)
+                        .make()
+                        .pOnly(top: AppSizes.paddingMedium),
+                ])
+                .p(AppSizes.paddingMedium)
+                .box
+                .color(Theme.of(context).colorScheme.surface)
+                .topRounded(value: AppSizes.radiusLarge)
+                .make(),
+          ]),
         ],
       ),
     );

@@ -14,6 +14,7 @@ import 'package:collegebus/services/theme_service.dart';
 import 'package:collegebus/screens/notifications_screen.dart';
 import 'package:collegebus/screens/coordinator/schedule_management_screen.dart';
 import 'package:collegebus/screens/student/student_profile_screen.dart';
+import 'package:velocity_x/velocity_x.dart';
 
 class CoordinatorDashboard extends StatefulWidget {
   const CoordinatorDashboard({super.key});
@@ -237,91 +238,75 @@ class _CoordinatorDashboardState extends State<CoordinatorDashboard>
             return AlertDialog(
               title: Text(isEditing ? 'Edit Route' : 'Create Route'),
               content: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    TextField(
-                      controller: nameController,
-                      decoration: const InputDecoration(
-                        labelText: 'Route Name',
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    DropdownButtonFormField<String>(
-                      value: selectedType,
-                      decoration: const InputDecoration(
-                        labelText: 'Route Type',
-                      ),
-                      items: const [
-                        DropdownMenuItem(
-                          value: 'pickup',
-                          child: Text('Pickup'),
+                child: VStack([
+                  TextField(
+                    controller: nameController,
+                    decoration: const InputDecoration(labelText: 'Route Name'),
+                  ),
+                  8.heightBox,
+                  DropdownButtonFormField<String>(
+                    value: selectedType,
+                    decoration: const InputDecoration(labelText: 'Route Type'),
+                    items: const [
+                      DropdownMenuItem(value: 'pickup', child: Text('Pickup')),
+                      DropdownMenuItem(value: 'drop', child: Text('Drop')),
+                    ],
+                    onChanged: (value) {
+                      setState(() {
+                        selectedType = value!;
+                      });
+                    },
+                  ),
+                  8.heightBox,
+                  TextField(
+                    controller: startController,
+                    decoration: const InputDecoration(labelText: 'Start Point'),
+                    enabled: !isEditing,
+                  ),
+                  8.heightBox,
+                  ...stopControllers.asMap().entries.map((entry) {
+                    int idx = entry.key;
+                    TextEditingController controller = entry.value;
+                    return HStack([
+                      TextField(
+                        controller: controller,
+                        decoration: InputDecoration(
+                          labelText: 'Stop ${idx + 1}',
                         ),
-                        DropdownMenuItem(value: 'drop', child: Text('Drop')),
-                      ],
-                      onChanged: (value) {
+                      ).expand(),
+                      IconButton(
+                        icon: const Icon(
+                          Icons.remove_circle,
+                          color: Colors.red,
+                        ),
+                        onPressed: stopControllers.length > 1
+                            ? () {
+                                setState(() {
+                                  stopControllers.removeAt(idx);
+                                });
+                              }
+                            : null,
+                      ),
+                    ]);
+                  }),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: TextButton.icon(
+                      icon: const Icon(Icons.add),
+                      label: const Text('Add Stop'),
+                      onPressed: () {
                         setState(() {
-                          selectedType = value!;
+                          stopControllers.add(TextEditingController());
                         });
                       },
                     ),
-                    const SizedBox(height: 8),
-                    TextField(
-                      controller: startController,
-                      decoration: const InputDecoration(
-                        labelText: 'Start Point',
-                      ),
-                      enabled: !isEditing,
-                    ),
-                    const SizedBox(height: 8),
-                    ...stopControllers.asMap().entries.map((entry) {
-                      int idx = entry.key;
-                      TextEditingController controller = entry.value;
-                      return Row(
-                        children: [
-                          Expanded(
-                            child: TextField(
-                              controller: controller,
-                              decoration: InputDecoration(
-                                labelText: 'Stop ${idx + 1}',
-                              ),
-                            ),
-                          ),
-                          IconButton(
-                            icon: const Icon(
-                              Icons.remove_circle,
-                              color: Colors.red,
-                            ),
-                            onPressed: stopControllers.length > 1
-                                ? () {
-                                    setState(() {
-                                      stopControllers.removeAt(idx);
-                                    });
-                                  }
-                                : null,
-                          ),
-                        ],
-                      );
-                    }),
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: TextButton.icon(
-                        icon: const Icon(Icons.add),
-                        label: const Text('Add Stop'),
-                        onPressed: () {
-                          setState(() {
-                            stopControllers.add(TextEditingController());
-                          });
-                        },
-                      ),
-                    ),
-                    TextField(
-                      controller: endController,
-                      decoration: const InputDecoration(labelText: 'End Point'),
-                      enabled: !isEditing,
-                    ),
-                  ],
-                ),
+                  ),
+                  TextField(
+                    controller: endController,
+                    decoration: const InputDecoration(labelText: 'End Point'),
+                    enabled: !isEditing,
+                  ),
+                ]),
               ),
               actions: [
                 TextButton(
@@ -444,21 +429,7 @@ class _CoordinatorDashboardState extends State<CoordinatorDashboard>
 
   @override
   Widget build(BuildContext context) {
-    final user = Provider.of<AuthService>(
-      context,
-      listen: false,
-    ).currentUserModel;
-    // We cannot use authService directly here because it might not update if we use the one closure captured
-    // but in build we should use Provider.of or Consumer.
-    // The previous code passed authService in, or used a closure user variable.
-    // Let's use the one from Provider to be safe, or just use `authService` if it was passed/available.
-    // In this file, `authService` was NOT in the State class, it was used inside build or passed around.
-    // Wait! `start` of build method had: `final user = authService.currentUserModel;`
-    // Where is `authService` defined? It wasn't in State properties.
-    // It must be obtained via Provider.
     final authService = Provider.of<AuthService>(context);
-
-    // Re-getting user from authService
     final currentUser = authService.currentUserModel;
 
     return Consumer<ThemeService>(
@@ -471,7 +442,7 @@ class _CoordinatorDashboardState extends State<CoordinatorDashboard>
           appBar: themeService.useBottomNavigation
               ? (_bottomNavIndex == 0
                     ? AppBar(
-                        title: const Text('Coordinator Dashboard'),
+                        title: 'Coordinator Dashboard'.text.make(),
                         backgroundColor: Theme.of(context).primaryColor,
                         foregroundColor: Theme.of(
                           context,
@@ -608,98 +579,75 @@ class _CoordinatorDashboardState extends State<CoordinatorDashboard>
   }
 
   Widget _buildOverviewTab() {
-    return Padding(
-      padding: const EdgeInsets.all(AppSizes.paddingMedium),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'System Overview',
-            style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-              color: Theme.of(context).colorScheme.onSurface,
-            ),
-          ),
-          const SizedBox(height: AppSizes.paddingLarge),
+    return VStack([
+      'System Overview'.text
+          .size(24)
+          .bold
+          .color(Theme.of(context).colorScheme.onSurface)
+          .make(),
+      AppSizes.paddingLarge.heightBox,
 
-          // Statistics Cards
-          Row(
-            children: [
-              Expanded(
-                child: _buildStatCard(
-                  'Total Routes',
-                  _routes.length.toString(),
-                  Icons.route,
-                  Theme.of(context).primaryColor,
-                ),
-              ),
-              const SizedBox(width: AppSizes.paddingMedium),
-              Expanded(
-                child: _buildStatCard(
-                  'Active Buses',
-                  _buses.where((b) => b.isActive).length.toString(),
-                  Icons.directions_bus,
-                  Theme.of(context).colorScheme.secondary,
-                ),
-              ),
-            ],
-          ),
+      // Statistics Cards
+      HStack([
+        _buildStatCard(
+          'Total Routes',
+          _routes.length.toString(),
+          Icons.route,
+          Theme.of(context).primaryColor,
+        ).expand(),
+        AppSizes.paddingMedium.widthBox,
+        _buildStatCard(
+          'Active Buses',
+          _buses.where((b) => b.isActive).length.toString(),
+          Icons.directions_bus,
+          Theme.of(context).colorScheme.secondary,
+        ).expand(),
+      ]),
 
-          const SizedBox(height: AppSizes.paddingMedium),
+      AppSizes.paddingMedium.heightBox,
 
-          Row(
-            children: [
-              Expanded(
-                child: _buildStatCard(
-                  'Pending Drivers',
-                  _pendingDrivers.length.toString(),
-                  Icons.pending,
-                  Theme.of(context).colorScheme.error,
-                ),
-              ),
-              const SizedBox(width: AppSizes.paddingMedium),
-              Expanded(
-                child: _buildStatCard(
-                  'Bus Numbers',
-                  _busNumbers.length.toString(),
-                  Icons.confirmation_number,
-                  Theme.of(context).colorScheme.secondary,
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
+      HStack([
+        _buildStatCard(
+          'Pending Drivers',
+          _pendingDrivers.length.toString(),
+          Icons.pending,
+          Theme.of(context).colorScheme.error,
+        ).expand(),
+        AppSizes.paddingMedium.widthBox,
+        _buildStatCard(
+          'Bus Numbers',
+          _busNumbers.length.toString(),
+          Icons.confirmation_number,
+          Theme.of(context).colorScheme.secondary,
+        ).expand(),
+      ]),
+    ]).p(AppSizes.paddingMedium);
   }
 
   Widget _buildDriverApprovalsTab() {
     return _pendingDrivers.isEmpty
-        ? Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  Icons.check_circle_outline,
-                  size: 64,
-                  color: Theme.of(
-                    context,
-                  ).colorScheme.onSurface.withValues(alpha: 0.5),
-                ),
-                SizedBox(height: AppSizes.paddingMedium),
-                Text(
-                  'No pending driver approvals',
-                  style: TextStyle(
-                    fontSize: 18,
-                    color: Theme.of(
+        ? VStack(
+            [
+              Icon(
+                Icons.check_circle_outline,
+                size: 64,
+                color: Theme.of(
+                  context,
+                ).colorScheme.onSurface.withValues(alpha: 0.5),
+              ),
+              AppSizes.paddingMedium.heightBox,
+              'No pending driver approvals'.text
+                  .size(18)
+                  .color(
+                    Theme.of(
                       context,
                     ).colorScheme.onSurface.withValues(alpha: 0.5),
-                  ),
-                ),
-              ],
-            ),
-          )
+                  )
+                  .make(),
+            ],
+            alignment: MainAxisAlignment.center,
+            crossAlignment: CrossAxisAlignment.center,
+          ).centered()
         : ListView.builder(
             padding: const EdgeInsets.all(AppSizes.paddingMedium),
             itemCount: _pendingDrivers.length,
@@ -715,47 +663,38 @@ class _CoordinatorDashboardState extends State<CoordinatorDashboard>
                       color: Theme.of(context).colorScheme.onPrimary,
                     ),
                   ),
-                  title: Text(
-                    driver.fullName,
-                    style: const TextStyle(fontWeight: FontWeight.w600),
-                  ),
-                  subtitle: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(driver.email),
-                      if (driver.phoneNumber != null &&
-                          driver.phoneNumber!.isNotEmpty)
-                        Text('Phone: ${driver.phoneNumber}'),
-                      Text(
-                        'Applied: ${driver.createdAt.toString().substring(0, 10)}',
-                        style: TextStyle(
-                          color: Theme.of(
+                  title: driver.fullName.text.semiBold.make(),
+                  subtitle: VStack([
+                    driver.email.text.make(),
+                    if (driver.phoneNumber != null &&
+                        driver.phoneNumber!.isNotEmpty)
+                      'Phone: ${driver.phoneNumber}'.text.make(),
+                    'Applied: ${driver.createdAt.toString().substring(0, 10)}'
+                        .text
+                        .size(12)
+                        .color(
+                          Theme.of(
                             context,
                           ).colorScheme.onSurface.withValues(alpha: 0.6),
-                          fontSize: 12,
-                        ),
+                        )
+                        .make(),
+                  ]),
+                  trailing: HStack([
+                    IconButton(
+                      icon: Icon(
+                        Icons.check,
+                        color: Theme.of(context).colorScheme.secondary,
                       ),
-                    ],
-                  ),
-                  trailing: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      IconButton(
-                        icon: Icon(
-                          Icons.check,
-                          color: Theme.of(context).colorScheme.secondary,
-                        ),
-                        onPressed: () => _approveDriver(driver),
+                      onPressed: () => _approveDriver(driver),
+                    ),
+                    IconButton(
+                      icon: Icon(
+                        Icons.close,
+                        color: Theme.of(context).colorScheme.error,
                       ),
-                      IconButton(
-                        icon: Icon(
-                          Icons.close,
-                          color: Theme.of(context).colorScheme.error,
-                        ),
-                        onPressed: () => _rejectDriver(driver),
-                      ),
-                    ],
-                  ),
+                      onPressed: () => _rejectDriver(driver),
+                    ),
+                  ]),
                   isThreeLine: true,
                 ),
               );
@@ -764,302 +703,117 @@ class _CoordinatorDashboardState extends State<CoordinatorDashboard>
   }
 
   Widget _buildRoutesTab() {
-    return Column(
-      children: [
-        Container(
-          padding: const EdgeInsets.all(AppSizes.paddingMedium),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text(
-                'Routes',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-              ),
-              ElevatedButton.icon(
-                onPressed: () => _showCreateOrEditRouteDialog(),
-                icon: const Icon(Icons.add),
-                label: const Text('Create Route'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Theme.of(context).primaryColor,
-                  foregroundColor: Theme.of(context).colorScheme.onPrimary,
-                ),
-              ),
-            ],
+    return VStack([
+      HStack(
+        [
+          'Routes'.text.size(20).bold.make(),
+          ElevatedButton.icon(
+            onPressed: () => _showCreateOrEditRouteDialog(),
+            icon: const Icon(Icons.add),
+            label: const Text('Create Route'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Theme.of(context).primaryColor,
+              foregroundColor: Theme.of(context).colorScheme.onPrimary,
+            ),
           ),
-        ),
-        Expanded(
-          child: _routes.isEmpty
-              ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.route_outlined,
-                        size: 64,
-                        color: Theme.of(
-                          context,
-                        ).colorScheme.onSurface.withValues(alpha: 0.6),
-                      ),
-                      SizedBox(height: AppSizes.paddingMedium),
-                      Text(
-                        'No routes created yet',
-                        style: TextStyle(
-                          fontSize: 18,
-                          color: AppColors.textSecondary,
-                        ),
-                      ),
-                      SizedBox(height: AppSizes.paddingSmall),
-                      Text(
-                        'Create routes for drivers to select',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: AppColors.textSecondary,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                    ],
+        ],
+        alignment: MainAxisAlignment.spaceBetween,
+        axisSize: MainAxisSize.max,
+      ).p(AppSizes.paddingMedium),
+      Expanded(
+        child: _routes.isEmpty
+            ? VStack(
+                [
+                  Icon(
+                    Icons.route_outlined,
+                    size: 64,
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.onSurface.withValues(alpha: 0.6),
                   ),
-                )
-              : ListView.builder(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppSizes.paddingMedium,
-                  ),
-                  itemCount: _routes.length,
-                  itemBuilder: (context, index) {
-                    final route = _routes[index];
-                    return Card(
-                      margin: const EdgeInsets.only(
-                        bottom: AppSizes.paddingMedium,
-                      ),
-                      child: ListTile(
-                        leading: CircleAvatar(
-                          backgroundColor: route.routeType == 'pickup'
-                              ? Theme.of(context).colorScheme.secondary
-                              : Theme.of(context).primaryColor,
-                          child: Icon(
-                            route.routeType == 'pickup'
-                                ? Icons.arrow_upward
-                                : Icons.arrow_downward,
-                            color: Theme.of(context).colorScheme.onPrimary,
-                          ),
-                        ),
-                        title: Text(
-                          route.routeName,
-                          style: const TextStyle(fontWeight: FontWeight.w600),
-                        ),
-                        subtitle: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('Type: ${route.routeType.toUpperCase()}'),
-                            Text('${route.startPoint} → ${route.endPoint}'),
-                            if (route.stopPoints.isNotEmpty)
-                              Text(
-                                'Stops: ${route.stopPoints.join(', ')}',
-                                style: const TextStyle(fontSize: 12),
-                              ),
-                          ],
-                        ),
-                        trailing: PopupMenuButton(
-                          itemBuilder: (context) => [
-                            const PopupMenuItem(
-                              value: 'edit',
-                              child: Row(
-                                children: [
-                                  Icon(Icons.edit),
-                                  SizedBox(width: 8),
-                                  Text('Edit'),
-                                ],
-                              ),
-                            ),
-                            PopupMenuItem(
-                              value: 'delete',
-                              child: Row(
-                                children: [
-                                  Icon(
-                                    Icons.delete,
-                                    color: Theme.of(context).colorScheme.error,
-                                  ),
-                                  SizedBox(width: 8),
-                                  Text('Delete'),
-                                ],
-                              ),
-                            ),
-                          ],
-                          onSelected: (value) async {
-                            if (value == 'edit') {
-                              _showCreateOrEditRouteDialog(route: route);
-                            } else if (value == 'delete') {
-                              final confirmed = await showDialog<bool>(
-                                context: context,
-                                builder: (context) => AlertDialog(
-                                  title: const Text('Delete Route'),
-                                  content: Text(
-                                    'Are you sure you want to delete ${route.routeName}?',
-                                  ),
-                                  actions: [
-                                    TextButton(
-                                      onPressed: () =>
-                                          Navigator.of(context).pop(false),
-                                      child: const Text('Cancel'),
-                                    ),
-                                    ElevatedButton(
-                                      onPressed: () =>
-                                          Navigator.of(context).pop(true),
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: Theme.of(
-                                          context,
-                                        ).colorScheme.error,
-                                      ),
-                                      child: const Text('Delete'),
-                                    ),
-                                  ],
-                                ),
-                              );
-                              if (confirmed == true) {
-                                final firestoreService =
-                                    Provider.of<FirestoreService>(
-                                      context,
-                                      listen: false,
-                                    );
-                                await firestoreService.deleteRoute(route.id);
-                                if (!mounted) return;
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text('Route deleted successfully'),
-                                    backgroundColor: AppColors.success,
-                                  ),
-                                );
-                              }
-                            }
-                          },
-                        ),
-                        isThreeLine: route.stopPoints.isNotEmpty,
-                      ),
-                    );
-                  },
+                  AppSizes.paddingMedium.heightBox,
+                  'No routes created yet'.text
+                      .size(18)
+                      .color(AppColors.textSecondary)
+                      .make(),
+                  AppSizes.paddingSmall.heightBox,
+                  'Create routes for drivers to select'.text
+                      .size(14)
+                      .color(AppColors.textSecondary)
+                      .center
+                      .make(),
+                ],
+                alignment: MainAxisAlignment.center,
+                crossAlignment: CrossAxisAlignment.center,
+              ).centered()
+            : ListView.builder(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSizes.paddingMedium,
                 ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildBusNumbersTab() {
-    return Column(
-      children: [
-        Container(
-          padding: const EdgeInsets.all(AppSizes.paddingMedium),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text(
-                'Bus Numbers',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-              ),
-              ElevatedButton.icon(
-                onPressed: _showCreateBusNumberDialog,
-                icon: const Icon(Icons.add),
-                label: const Text('Add Bus Number'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  foregroundColor: AppColors.onPrimary,
-                ),
-              ),
-            ],
-          ),
-        ),
-        Expanded(
-          child: _busNumbers.isEmpty
-              ? const Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.directions_bus_outlined,
-                        size: 64,
-                        color: AppColors.textSecondary,
-                      ),
-                      SizedBox(height: AppSizes.paddingMedium),
-                      Text(
-                        'No bus numbers added yet',
-                        style: TextStyle(
-                          fontSize: 18,
-                          color: AppColors.textSecondary,
+                itemCount: _routes.length,
+                itemBuilder: (context, index) {
+                  final route = _routes[index];
+                  return Card(
+                    margin: const EdgeInsets.only(
+                      bottom: AppSizes.paddingMedium,
+                    ),
+                    child: ListTile(
+                      leading: CircleAvatar(
+                        backgroundColor: route.routeType == 'pickup'
+                            ? Theme.of(context).colorScheme.secondary
+                            : Theme.of(context).primaryColor,
+                        child: Icon(
+                          route.routeType == 'pickup'
+                              ? Icons.arrow_upward
+                              : Icons.arrow_downward,
+                          color: Theme.of(context).colorScheme.onPrimary,
                         ),
                       ),
-                      SizedBox(height: AppSizes.paddingSmall),
-                      Text(
-                        'Add bus numbers for drivers to select',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: AppColors.textSecondary,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                    ],
-                  ),
-                )
-              : ListView.builder(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppSizes.paddingMedium,
-                  ),
-                  itemCount: _busNumbers.length,
-                  itemBuilder: (context, index) {
-                    final busNumber = _busNumbers[index];
-                    final isAssigned = _buses.any(
-                      (bus) => bus.busNumber == busNumber,
-                    );
-
-                    return Card(
-                      margin: const EdgeInsets.only(
-                        bottom: AppSizes.paddingMedium,
-                      ),
-                      child: ListTile(
-                        leading: CircleAvatar(
-                          backgroundColor: isAssigned
-                              ? AppColors.success
-                              : AppColors.warning,
-                          child: Icon(
-                            isAssigned ? Icons.check : Icons.directions_bus,
-                            color: AppColors.onPrimary,
+                      title: route.routeName.text.semiBold.make(),
+                      subtitle: VStack([
+                        'Type: ${route.routeType.toUpperCase()}'.text.make(),
+                        '${route.startPoint} → ${route.endPoint}'.text.make(),
+                        if (route.stopPoints.isNotEmpty)
+                          'Stops: ${route.stopPoints.join(', ')}'.text
+                              .size(12)
+                              .make(),
+                      ]),
+                      trailing: PopupMenuButton(
+                        itemBuilder: (context) => [
+                          const PopupMenuItem(
+                            value: 'edit',
+                            child: Row(
+                              children: [
+                                Icon(Icons.edit),
+                                SizedBox(width: 8),
+                                Text('Edit'),
+                              ],
+                            ),
                           ),
-                        ),
-                        title: Text(
-                          busNumber,
-                          style: const TextStyle(fontWeight: FontWeight.w600),
-                        ),
-                        subtitle: Text(
-                          isAssigned ? 'Assigned to driver' : 'Available',
-                          style: TextStyle(
-                            color: isAssigned
-                                ? AppColors.success
-                                : AppColors.warning,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                        trailing: IconButton(
-                          icon: const Icon(
-                            Icons.delete,
-                            color: AppColors.error,
-                          ),
-                          onPressed: () async {
-                            if (isAssigned) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text(
-                                    'Cannot delete assigned bus number',
-                                  ),
-                                  backgroundColor: AppColors.error,
+                          PopupMenuItem(
+                            value: 'delete',
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.delete,
+                                  color: Theme.of(context).colorScheme.error,
                                 ),
-                              );
-                              return;
-                            }
-
+                                SizedBox(width: 8),
+                                Text('Delete'),
+                              ],
+                            ),
+                          ),
+                        ],
+                        onSelected: (value) async {
+                          if (value == 'edit') {
+                            _showCreateOrEditRouteDialog(route: route);
+                          } else if (value == 'delete') {
                             final confirmed = await showDialog<bool>(
                               context: context,
                               builder: (context) => AlertDialog(
-                                title: const Text('Delete Bus Number'),
+                                title: const Text('Delete Route'),
                                 content: Text(
-                                  'Are you sure you want to delete $busNumber?',
+                                  'Are you sure you want to delete ${route.routeName}?',
                                 ),
                                 actions: [
                                   TextButton(
@@ -1071,287 +825,364 @@ class _CoordinatorDashboardState extends State<CoordinatorDashboard>
                                     onPressed: () =>
                                         Navigator.of(context).pop(true),
                                     style: ElevatedButton.styleFrom(
-                                      backgroundColor: AppColors.error,
+                                      backgroundColor: Theme.of(
+                                        context,
+                                      ).colorScheme.error,
                                     ),
                                     child: const Text('Delete'),
                                   ),
                                 ],
                               ),
                             );
-
                             if (confirmed == true) {
-                              final authService = Provider.of<AuthService>(
-                                context,
-                                listen: false,
-                              );
                               final firestoreService =
                                   Provider.of<FirestoreService>(
                                     context,
                                     listen: false,
                                   );
-                              final collegeId =
-                                  authService.currentUserModel?.collegeId;
-
-                              if (collegeId != null) {
-                                await firestoreService.removeBusNumber(
-                                  collegeId,
-                                  busNumber,
-                                );
-                                if (!mounted) return;
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text(
-                                      'Bus number $busNumber deleted',
-                                    ),
-                                    backgroundColor: AppColors.success,
-                                  ),
-                                );
-                              }
+                              await firestoreService.deleteRoute(route.id);
+                              if (!mounted) return;
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('Route deleted successfully'),
+                                  backgroundColor: AppColors.success,
+                                ),
+                              );
                             }
-                          },
+                          }
+                        },
+                      ),
+                      isThreeLine: route.stopPoints.isNotEmpty,
+                    ),
+                  );
+                },
+              ),
+      ),
+    ]);
+  }
+
+  Widget _buildBusNumbersTab() {
+    return VStack([
+      HStack(
+        [
+          'Bus Numbers'.text.size(20).bold.make(),
+          ElevatedButton.icon(
+            onPressed: _showCreateBusNumberDialog,
+            icon: const Icon(Icons.add),
+            label: const Text('Add Bus Number'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              foregroundColor: AppColors.onPrimary,
+            ),
+          ),
+        ],
+        alignment: MainAxisAlignment.spaceBetween,
+        axisSize: MainAxisSize.max,
+      ).p(AppSizes.paddingMedium),
+      Expanded(
+        child: _busNumbers.isEmpty
+            ? VStack(
+                [
+                  Icon(
+                    Icons.directions_bus_outlined,
+                    size: 64,
+                    color: AppColors.textSecondary,
+                  ),
+                  AppSizes.paddingMedium.heightBox,
+                  'No bus numbers added yet'.text
+                      .size(18)
+                      .color(AppColors.textSecondary)
+                      .make(),
+                  AppSizes.paddingSmall.heightBox,
+                  'Add bus numbers for drivers to select'.text
+                      .size(14)
+                      .color(AppColors.textSecondary)
+                      .center
+                      .make(),
+                ],
+                alignment: MainAxisAlignment.center,
+                crossAlignment: CrossAxisAlignment.center,
+              ).centered()
+            : ListView.builder(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSizes.paddingMedium,
+                ),
+                itemCount: _busNumbers.length,
+                itemBuilder: (context, index) {
+                  final busNumber = _busNumbers[index];
+                  final isAssigned = _buses.any(
+                    (bus) => bus.busNumber == busNumber,
+                  );
+
+                  return Card(
+                    margin: const EdgeInsets.only(
+                      bottom: AppSizes.paddingMedium,
+                    ),
+                    child: ListTile(
+                      leading: CircleAvatar(
+                        backgroundColor: isAssigned
+                            ? AppColors.success
+                            : AppColors.warning,
+                        child: Icon(
+                          isAssigned ? Icons.check : Icons.directions_bus,
+                          color: AppColors.onPrimary,
                         ),
                       ),
-                    );
-                  },
-                ),
-        ),
-      ],
-    );
+                      title: busNumber.text.semiBold.make(),
+                      subtitle:
+                          (isAssigned ? 'Assigned to driver' : 'Available').text
+                              .color(
+                                isAssigned
+                                    ? AppColors.success
+                                    : AppColors.warning,
+                              )
+                              .medium
+                              .make(),
+                      trailing: IconButton(
+                        icon: Icon(Icons.delete, color: AppColors.error),
+                        onPressed: () async {
+                          if (isAssigned) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  'Cannot delete assigned bus number',
+                                ),
+                                backgroundColor: AppColors.error,
+                              ),
+                            );
+                            return;
+                          }
+
+                          final confirmed = await showDialog<bool>(
+                            context: context,
+                            builder: (context) => AlertDialog(
+                              title: const Text('Delete Bus Number'),
+                              content: Text(
+                                'Are you sure you want to delete $busNumber?',
+                              ),
+                              actions: [
+                                TextButton(
+                                  onPressed: () =>
+                                      Navigator.of(context).pop(false),
+                                  child: const Text('Cancel'),
+                                ),
+                                ElevatedButton(
+                                  onPressed: () =>
+                                      Navigator.of(context).pop(true),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: AppColors.error,
+                                  ),
+                                  child: const Text('Delete'),
+                                ),
+                              ],
+                            ),
+                          );
+
+                          if (confirmed == true) {
+                            final authService = Provider.of<AuthService>(
+                              context,
+                              listen: false,
+                            );
+                            final firestoreService =
+                                Provider.of<FirestoreService>(
+                                  context,
+                                  listen: false,
+                                );
+                            final collegeId =
+                                authService.currentUserModel?.collegeId;
+
+                            if (collegeId != null) {
+                              await firestoreService.removeBusNumber(
+                                collegeId,
+                                busNumber,
+                              );
+                              if (!mounted) return;
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    'Bus number $busNumber deleted',
+                                  ),
+                                  backgroundColor: AppColors.success,
+                                ),
+                              );
+                            }
+                          }
+                        },
+                      ),
+                    ),
+                  );
+                },
+              ),
+      ),
+    ]);
   }
 
   Widget _buildCollegeInfoTab() {
-    final user = Provider.of<AuthService>(
-      context,
-      listen: false,
-    ).currentUserModel;
+    final authService = Provider.of<AuthService>(context);
+    final user = authService.currentUserModel;
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(AppSizes.paddingMedium),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Header with College Name and Icon
-          Container(
-            padding: const EdgeInsets.all(AppSizes.paddingLarge),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  AppColors.primary,
-                  AppColors.primary.withValues(alpha: 0.8),
-                ],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: BorderRadius.circular(AppSizes.radiusLarge),
-              boxShadow: [
-                BoxShadow(
-                  color: AppColors.primary.withValues(alpha: 0.3),
-                  blurRadius: 10,
-                  offset: const Offset(0, 5),
-                ),
-              ],
-            ),
-            child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(AppSizes.paddingMedium),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.2),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    Icons.school,
-                    size: 40,
-                    color: Colors.white,
-                  ),
-                ),
-                const SizedBox(width: AppSizes.paddingMedium),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        _college?.name ?? 'College Name',
-                        style: const TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        user?.collegeId ?? 'College ID',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.white.withValues(alpha: 0.9),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 6,
-                  ),
-                  decoration: BoxDecoration(
-                    color: _college?.verified == true
+      child: VStack([
+        // Header with College Name and Icon
+        HStack([
+              VxBox(
+                    child: const Icon(
+                      Icons.school,
+                      size: 40,
+                      color: Colors.white,
+                    ),
+                  ).p16
+                  .withDecoration(
+                    BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.2),
+                      shape: BoxShape.circle,
+                    ),
+                  )
+                  .make(),
+              AppSizes.paddingMedium.widthBox,
+              VStack([
+                (_college?.name ?? 'College Name').text
+                    .size(24)
+                    .bold
+                    .white
+                    .make(),
+                4.heightBox,
+                (user?.collegeId ?? 'College ID').text
+                    .size(14)
+                    .color(Colors.white.withValues(alpha: 0.9))
+                    .make(),
+              ]).expand(),
+              VxBox(
+                    child: (_college?.verified == true ? 'Verified' : 'Pending')
+                        .text
+                        .white
+                        .bold
+                        .size(12)
+                        .make(),
+                  )
+                  .color(
+                    _college?.verified == true
                         ? AppColors.success
                         : AppColors.warning,
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text(
-                    _college?.verified == true ? 'Verified' : 'Pending',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 12,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: AppSizes.paddingLarge),
+                  )
+                  .roundedFull
+                  .padding(
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  )
+                  .make()
+                  .p(AppSizes.paddingSmall),
+            ]).box
+            .linearGradient(
+              [AppColors.primary, AppColors.primary.withAlpha(204)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            )
+            .roundedLg
+            .shadow
+            .make(),
+        AppSizes.paddingLarge.heightBox,
 
-          // College Details Card
-          Card(
-            elevation: 0,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
-              side: BorderSide(
-                color: Theme.of(context).dividerColor.withValues(alpha: 0.1),
-              ),
-            ),
-            child: Padding(
-              padding: const EdgeInsets.all(AppSizes.paddingMedium),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'College Details',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: AppSizes.paddingMedium),
-                  // Fields not available in CollegeModel yet
-                  /*
-                  _buildDetailRow(
-                    Icons.email,
-                    'Email',
-                    _college?.email ?? 'Not set',
-                  ),
-                  _buildDetailRow(
-                    Icons.phone,
-                    'Phone',
-                    _college?.phoneNumber ?? 'Not set',
-                  ),
-                  _buildDetailRow(
-                    Icons.location_on,
-                    'Address',
-                    _college?.address ?? 'Not set',
-                  ),
-                  */
-                  _buildDetailRow(
-                    Icons.calendar_today,
-                    'Joined',
-                    _college?.createdAt.toString().substring(0, 10) ??
-                        'Not set',
-                  ),
-                ],
-              ),
+        // College Details Card
+        Card(
+          elevation: 0,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
+            side: BorderSide(
+              color: Theme.of(context).dividerColor.withValues(alpha: 0.1),
             ),
           ),
-          const SizedBox(height: AppSizes.paddingLarge),
+          child: VStack([
+            'College Details'.text.size(18).bold.make(),
+            AppSizes.paddingMedium.heightBox,
+            _buildDetailRow(
+              Icons.calendar_today,
+              'Joined',
+              _college?.createdAt.toString().substring(0, 10) ?? 'Not set',
+            ),
+          ]).p(AppSizes.paddingMedium),
+        ),
+        AppSizes.paddingLarge.heightBox,
 
-          // Statistics Summary
-          Text(
-            'Quick Stats',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: Theme.of(context).colorScheme.onSurface,
+        // Statistics Summary
+        'Quick Stats'.text
+            .size(18)
+            .bold
+            .color(Theme.of(context).colorScheme.onSurface)
+            .make(),
+        AppSizes.paddingMedium.heightBox,
+        GridView.count(
+          crossAxisCount: 2,
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          mainAxisSpacing: AppSizes.paddingMedium,
+          crossAxisSpacing: AppSizes.paddingMedium,
+          childAspectRatio: 1.5,
+          children: [
+            _buildSummaryCard(
+              'Drivers',
+              _pendingDrivers.length.toString(),
+              Icons.people,
+              Colors.blue,
             ),
-          ),
-          const SizedBox(height: AppSizes.paddingMedium),
-          GridView.count(
-            crossAxisCount: 2,
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            mainAxisSpacing: AppSizes.paddingMedium,
-            crossAxisSpacing: AppSizes.paddingMedium,
-            childAspectRatio: 1.5,
-            children: [
-              _buildSummaryCard(
-                'Drivers',
-                _pendingDrivers.length
-                    .toString(), // Needs logic for ACTIVE drivers if available
-                Icons.people,
-                Colors.blue,
-              ),
-              _buildSummaryCard(
-                'Routes',
-                _routes.length.toString(),
-                Icons.route,
-                Colors.orange,
-              ),
-              _buildSummaryCard(
-                'Buses',
-                _buses.length.toString(),
-                Icons.directions_bus,
-                Colors.green,
-              ),
-              _buildSummaryCard(
-                'Status',
-                _college?.verified == true ? 'Active' : 'Pending',
-                Icons.verified_user,
-                Colors.purple,
-              ),
-            ],
-          ),
-          const SizedBox(height: AppSizes.paddingLarge),
+            _buildSummaryCard(
+              'Routes',
+              _routes.length.toString(),
+              Icons.route,
+              Colors.orange,
+            ),
+            _buildSummaryCard(
+              'Buses',
+              _buses.length.toString(),
+              Icons.directions_bus,
+              Colors.green,
+            ),
+            _buildSummaryCard(
+              'Status',
+              _college?.verified == true ? 'Active' : 'Pending',
+              Icons.verified_user,
+              Colors.purple,
+            ),
+          ],
+        ),
+        AppSizes.paddingLarge.heightBox,
 
-          const Text(
-            'Account Details',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: AppColors.textPrimary,
-            ),
-          ),
-          const SizedBox(height: AppSizes.paddingMedium),
+        'Account Details'.text
+            .size(18)
+            .bold
+            .color(AppColors.textPrimary)
+            .make(),
+        AppSizes.paddingMedium.heightBox,
 
-          Card(
-            elevation: 2,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
-            ),
-            child: Column(
-              children: [
-                _buildDetailTile(Icons.email, 'Email', user?.email ?? 'N/A'),
-                const Divider(height: 1),
-                _buildDetailTile(
-                  Icons.admin_panel_settings,
-                  'Role',
-                  user?.role.displayName ?? 'N/A',
-                ),
-                const Divider(height: 1),
-                _buildDetailTile(
-                  Icons.domain,
-                  'Allowed Domains',
-                  _college?.allowedDomains.join(', ') ?? 'N/A',
-                ),
-                const Divider(height: 1),
-                _buildDetailTile(
-                  Icons.verified_user,
-                  'Account Status',
-                  user?.approved == true ? 'Approved' : 'Pending Verification',
-                ),
-              ],
-            ),
+        Card(
+          elevation: 2,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
           ),
-          const SizedBox(height: 100), // Bottom padding
-        ],
-      ),
+          child: VStack([
+            _buildDetailTile(Icons.email, 'Email', user?.email ?? 'N/A'),
+            const Divider(height: 1),
+            _buildDetailTile(
+              Icons.admin_panel_settings,
+              'Role',
+              user?.role.displayName ?? 'N/A',
+            ),
+            const Divider(height: 1),
+            _buildDetailTile(
+              Icons.domain,
+              'Allowed Domains',
+              _college?.allowedDomains.join(', ') ?? 'N/A',
+            ),
+            const Divider(height: 1),
+            _buildDetailTile(
+              Icons.verified_user,
+              'Account Status',
+              user?.approved == true ? 'Approved' : 'Pending Verification',
+            ),
+          ]),
+        ),
+        100.heightBox, // Bottom padding
+      ]),
     );
   }
 
@@ -1361,87 +1192,66 @@ class _CoordinatorDashboardState extends State<CoordinatorDashboard>
     IconData icon,
     Color color,
   ) {
-    return Container(
-      padding: const EdgeInsets.all(AppSizes.paddingMedium),
-      decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
-        borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 4,
-            offset: const Offset(0, 2),
+    return VxBox(
+          child: VStack(
+            [
+              Icon(icon, color: color, size: 28),
+              8.heightBox,
+              value.text.size(20).bold.color(color).make(),
+              title.text
+                  .size(12)
+                  .color(
+                    Theme.of(
+                      context,
+                    ).colorScheme.onSurface.withValues(alpha: 0.6),
+                  )
+                  .make(),
+            ],
+            alignment: MainAxisAlignment.center,
+            crossAlignment: CrossAxisAlignment.center,
           ),
-        ],
-        border: Border.all(color: color.withValues(alpha: 0.2)),
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(icon, color: color, size: 28),
-          const SizedBox(height: 8),
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-              color: color,
-            ),
+        )
+        .color(Theme.of(context).cardColor)
+        .withRounded(value: AppSizes.radiusMedium)
+        .withDecoration(
+          BoxDecoration(
+            color: Theme.of(context).cardColor,
+            borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.05),
+                blurRadius: 4,
+                offset: const Offset(0, 2),
+              ),
+            ],
+            border: Border.all(color: color.withValues(alpha: 0.2)),
           ),
-          Text(
-            title,
-            style: TextStyle(
-              fontSize: 12,
-              color: Theme.of(
-                context,
-              ).colorScheme.onSurface.withValues(alpha: 0.6),
-            ),
-          ),
-        ],
-      ),
-    );
+        )
+        .make()
+        .p(AppSizes.paddingMedium);
   }
 
   Widget _buildDetailRow(IconData icon, String title, String value) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: AppSizes.paddingMedium),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(
-            icon,
-            size: 20,
-            color: Theme.of(
-              context,
-            ).colorScheme.onSurface.withValues(alpha: 0.6),
-          ),
-          const SizedBox(width: AppSizes.paddingSmall),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Theme.of(
-                      context,
-                    ).colorScheme.onSurface.withValues(alpha: 0.6),
-                  ),
-                ),
-                Text(
-                  value,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
+    return HStack(
+      [
+        Icon(
+          icon,
+          size: 20,
+          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+        ),
+        AppSizes.paddingSmall.widthBox,
+        VStack([
+          title.text
+              .size(12)
+              .color(
+                Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+              )
+              .make(),
+          value.text.size(16).medium.make(),
+        ]).expand(),
+      ],
+      crossAlignment: CrossAxisAlignment.start,
+    ).pOnly(bottom: AppSizes.paddingMedium);
   }
 
   Widget _buildStatCard(
@@ -1451,62 +1261,43 @@ class _CoordinatorDashboardState extends State<CoordinatorDashboard>
     Color color,
   ) {
     return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(AppSizes.paddingMedium),
-        child: Column(
-          children: [
-            Icon(icon, size: 32, color: color),
-            const SizedBox(height: AppSizes.paddingSmall),
-            Text(
-              value,
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: color,
-              ),
-            ),
-            const SizedBox(height: AppSizes.paddingSmall),
-            Text(
-              title,
-              style: TextStyle(
-                fontSize: 14,
-                color: Theme.of(
-                  context,
-                ).colorScheme.onSurface.withValues(alpha: 0.6),
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
-      ),
+      child: VStack([
+        Icon(icon, size: 32, color: color),
+        AppSizes.paddingSmall.heightBox,
+        value.text.size(24).bold.color(color).make(),
+        AppSizes.paddingSmall.heightBox,
+        title.text
+            .size(14)
+            .color(
+              Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+            )
+            .center
+            .make(),
+      ], crossAlignment: CrossAxisAlignment.center).p(AppSizes.paddingMedium),
     );
   }
 
   Widget _buildDetailTile(IconData icon, String title, String value) {
     return ListTile(
-      leading: Container(
-        padding: const EdgeInsets.all(8),
-        decoration: BoxDecoration(
-          color: Theme.of(context).primaryColor.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Icon(icon, color: Theme.of(context).primaryColor, size: 20),
-      ),
-      title: Text(
-        title,
-        style: TextStyle(
-          fontSize: 12,
-          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
-        ),
-      ),
-      subtitle: Text(
-        value,
-        style: TextStyle(
-          fontSize: 16,
-          fontWeight: FontWeight.w500,
-          color: Theme.of(context).colorScheme.onSurface,
-        ),
-      ),
+      leading:
+          VxBox(
+                child: Icon(
+                  icon,
+                  color: Theme.of(context).primaryColor,
+                  size: 20,
+                ),
+              ).p8.rounded
+              .color(Theme.of(context).primaryColor.withValues(alpha: 0.1))
+              .make(),
+      title: title.text
+          .size(12)
+          .color(Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6))
+          .make(),
+      subtitle: value.text
+          .size(16)
+          .medium
+          .color(Theme.of(context).colorScheme.onSurface)
+          .make(),
     );
   }
 }

@@ -8,6 +8,7 @@ import 'package:collegebus/models/route_model.dart';
 import 'package:collegebus/models/bus_model.dart';
 import 'package:collegebus/utils/constants.dart';
 import 'package:collegebus/widgets/app_drawer.dart';
+import 'package:velocity_x/velocity_x.dart';
 
 class BusScheduleScreen extends StatefulWidget {
   const BusScheduleScreen({super.key});
@@ -218,178 +219,157 @@ class _BusScheduleScreenState extends State<BusScheduleScreen>
           ),
         ),
       ),
-      body: Column(
-        children: [
-          // Filter Panel
-          Container(
-            padding: const EdgeInsets.all(AppSizes.paddingMedium),
-            color: Theme.of(context).colorScheme.surface,
-            child: Column(
-              children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: DropdownButtonFormField<String>(
-                        value: _selectedBusNumber,
-                        isExpanded: true,
-                        decoration: const InputDecoration(
-                          labelText: 'Bus Number',
-                          border: OutlineInputBorder(),
-                          contentPadding: EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 8,
-                          ),
-                        ),
-                        items: [
-                          const DropdownMenuItem<String>(
-                            value: null,
-                            child: Text('All Buses'),
-                          ),
-                          ..._allBusNumbers.map(
-                            (busNumber) => DropdownMenuItem(
-                              value: busNumber,
-                              child: Text(busNumber),
-                            ),
-                          ),
-                        ],
-                        onChanged: (value) {
-                          setState(() {
-                            _selectedBusNumber = value;
-                            _applyFilters();
-                          });
-                        },
+      body: VStack([
+        // Filter Panel
+        VxBox(
+              child: VStack([
+                HStack([
+                  DropdownButtonFormField<String>(
+                    value: _selectedBusNumber,
+                    isExpanded: true,
+                    decoration: const InputDecoration(
+                      labelText: 'Bus Number',
+                      border: OutlineInputBorder(),
+                      contentPadding: EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
                       ),
                     ),
-                    const SizedBox(width: AppSizes.paddingSmall),
-                    Expanded(
-                      child: DropdownButtonFormField<String>(
-                        value: _selectedRoute,
-                        isExpanded: true,
-                        decoration: const InputDecoration(
-                          labelText: 'Route',
-                          border: OutlineInputBorder(),
-                          contentPadding: EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 8,
-                          ),
-                        ),
-                        items: [
-                          const DropdownMenuItem<String>(
-                            value: null,
-                            child: Text('All Routes'),
-                          ),
-                          ..._allRoutes.map(
-                            (route) => DropdownMenuItem(
-                              value: route,
-                              child: Text(route),
-                            ),
-                          ),
-                        ],
-                        onChanged: (value) {
-                          setState(() {
-                            _selectedRoute = value;
-                            _applyFilters();
-                          });
-                        },
+                    items: [
+                      const DropdownMenuItem<String>(
+                        value: null,
+                        child: Text('All Buses'),
                       ),
+                      ..._allBusNumbers.map(
+                        (busNumber) => DropdownMenuItem(
+                          value: busNumber,
+                          child: Text(busNumber),
+                        ),
+                      ),
+                    ],
+                    onChanged: (value) {
+                      setState(() {
+                        _selectedBusNumber = value;
+                        _applyFilters();
+                      });
+                    },
+                  ).expand(),
+                  AppSizes.paddingSmall.widthBox,
+                  DropdownButtonFormField<String>(
+                    value: _selectedRoute,
+                    isExpanded: true,
+                    decoration: const InputDecoration(
+                      labelText: 'Route',
+                      border: OutlineInputBorder(),
+                      contentPadding: EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
+                    ),
+                    items: [
+                      const DropdownMenuItem<String>(
+                        value: null,
+                        child: Text('All Routes'),
+                      ),
+                      ..._allRoutes.map(
+                        (route) =>
+                            DropdownMenuItem(value: route, child: Text(route)),
+                      ),
+                    ],
+                    onChanged: (value) {
+                      setState(() {
+                        _selectedRoute = value;
+                        _applyFilters();
+                      });
+                    },
+                  ).expand(),
+                ]),
+                AppSizes.paddingSmall.heightBox,
+                HStack([
+                  DropdownButtonFormField<String>(
+                    value: _selectedStop,
+                    isExpanded: true,
+                    decoration: const InputDecoration(
+                      labelText: 'Stop',
+                      border: OutlineInputBorder(),
+                      contentPadding: EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
+                    ),
+                    items: [
+                      const DropdownMenuItem<String>(
+                        value: null,
+                        child: Text('All Stops'),
+                      ),
+                      ..._allStops.map(
+                        (stop) =>
+                            DropdownMenuItem(value: stop, child: Text(stop)),
+                      ),
+                    ],
+                    onChanged: (value) {
+                      setState(() {
+                        _selectedStop = value;
+                        _applyFilters();
+                      });
+                    },
+                  ).expand(),
+                  if (_selectedBusNumber != null ||
+                      _selectedRoute != null ||
+                      _selectedStop != null) ...[
+                    AppSizes.paddingSmall.widthBox,
+                    IconButton(
+                      onPressed: _clearFilters,
+                      icon: const Icon(Icons.clear),
+                      tooltip: 'Clear Filters',
                     ),
                   ],
-                ),
-                const SizedBox(height: AppSizes.paddingSmall),
-                Row(
-                  children: [
-                    Expanded(
-                      child: DropdownButtonFormField<String>(
-                        value: _selectedStop,
-                        isExpanded: true,
-                        decoration: const InputDecoration(
-                          labelText: 'Stop',
-                          border: OutlineInputBorder(),
-                          contentPadding: EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 8,
-                          ),
-                        ),
-                        items: [
-                          const DropdownMenuItem<String>(
-                            value: null,
-                            child: Text('All Stops'),
-                          ),
-                          ..._allStops.map(
-                            (stop) => DropdownMenuItem(
-                              value: stop,
-                              child: Text(stop),
-                            ),
-                          ),
-                        ],
-                        onChanged: (value) {
-                          setState(() {
-                            _selectedStop = value;
-                            _applyFilters();
-                          });
-                        },
-                      ),
-                    ),
-                    const SizedBox(width: AppSizes.paddingSmall),
-                    if (_selectedBusNumber != null ||
-                        _selectedRoute != null ||
-                        _selectedStop != null)
-                      IconButton(
-                        onPressed: _clearFilters,
-                        icon: const Icon(Icons.clear),
-                        tooltip: 'Clear Filters',
-                      ),
-                  ],
-                ),
-              ],
-            ),
-          ),
+                ]),
+              ]),
+            )
+            .padding(const EdgeInsets.all(AppSizes.paddingMedium))
+            .color(Theme.of(context).colorScheme.surface)
+            .make(),
 
-          // Schedule Content
-          Expanded(
-            child: TabBarView(
-              controller: _tabController,
-              children: [
-                _buildScheduleList(_filteredFirstShift, '1st'),
-                _buildScheduleList(_filteredSecondShift, '2nd'),
-              ],
-            ),
-          ),
-        ],
-      ),
+        // Schedule Content
+        TabBarView(
+          controller: _tabController,
+          children: [
+            _buildScheduleList(_filteredFirstShift, '1st'),
+            _buildScheduleList(_filteredSecondShift, '2nd'),
+          ],
+        ).expand(),
+      ]),
     );
   }
 
   Widget _buildScheduleList(List<ScheduleModel> schedules, String shift) {
     if (schedules.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              shift == '1st' ? Icons.wb_sunny : Icons.nights_stay,
-              size: 64,
-              color: Theme.of(
-                context,
-              ).colorScheme.onSurface.withValues(alpha: 0.6),
-            ),
-            const SizedBox(height: AppSizes.paddingMedium),
-            Text(
-              _selectedBusNumber != null ||
+      return VStack(
+        [
+          Icon(
+            shift == '1st' ? Icons.wb_sunny : Icons.nights_stay,
+            size: 64,
+            color: Theme.of(
+              context,
+            ).colorScheme.onSurface.withValues(alpha: 0.6),
+          ),
+          AppSizes.paddingMedium.heightBox,
+          (_selectedBusNumber != null ||
                       _selectedRoute != null ||
                       _selectedStop != null
                   ? 'No schedules match your filters'
-                  : 'No $shift shift schedules available',
-              style: TextStyle(
-                fontSize: 18,
-                color: Theme.of(
-                  context,
-                ).colorScheme.onSurface.withValues(alpha: 0.6),
-              ),
-            ),
-          ],
-        ),
-      );
+                  : 'No $shift shift schedules available')
+              .text
+              .size(18)
+              .color(
+                Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+              )
+              .make(),
+        ],
+        alignment: MainAxisAlignment.center,
+        crossAlignment: CrossAxisAlignment.center,
+      ).centered();
     }
 
     return ListView.builder(
@@ -440,21 +420,17 @@ class _BusScheduleScreenState extends State<BusScheduleScreen>
               'Bus ${bus.busNumber}',
               style: const TextStyle(fontWeight: FontWeight.w600),
             ),
-            subtitle: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Route: ${route.displayName}'),
-                Text(
-                  '${route.startPoint} → ${route.endPoint}',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Theme.of(
+            subtitle: VStack([
+              'Route: ${route.displayName}'.text.make(),
+              '${route.startPoint} → ${route.endPoint}'.text
+                  .size(12)
+                  .color(
+                    Theme.of(
                       context,
                     ).colorScheme.onSurface.withValues(alpha: 0.6),
-                  ),
-                ),
-              ],
-            ),
+                  )
+                  .make(),
+            ]),
             trailing: ElevatedButton.icon(
               onPressed: () {
                 // Navigate to live tracking with this bus selected
@@ -473,88 +449,74 @@ class _BusScheduleScreenState extends State<BusScheduleScreen>
               ),
             ),
             children: [
-              Padding(
-                padding: const EdgeInsets.all(AppSizes.paddingMedium),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+              VStack([
+                'Stop Timings:'.text.semiBold.size(16).make(),
+                AppSizes.paddingSmall.heightBox,
+                Table(
+                  columnWidths: const {
+                    0: FlexColumnWidth(2),
+                    1: FlexColumnWidth(1),
+                    2: FlexColumnWidth(1),
+                  },
                   children: [
-                    const Text(
-                      'Stop Timings:',
-                      style: TextStyle(
-                        fontWeight: FontWeight.w600,
-                        fontSize: 16,
-                      ),
-                    ),
-                    const SizedBox(height: AppSizes.paddingSmall),
-                    Table(
-                      columnWidths: const {
-                        0: FlexColumnWidth(2),
-                        1: FlexColumnWidth(1),
-                        2: FlexColumnWidth(1),
-                      },
+                    const TableRow(
                       children: [
-                        const TableRow(
-                          children: [
-                            Padding(
-                              padding: EdgeInsets.all(8),
-                              child: Text(
-                                'Stop',
-                                style: TextStyle(fontWeight: FontWeight.bold),
-                              ),
-                            ),
-                            Padding(
-                              padding: EdgeInsets.all(8),
-                              child: Text(
-                                'Arrival',
-                                style: TextStyle(fontWeight: FontWeight.bold),
-                              ),
-                            ),
-                            Padding(
-                              padding: EdgeInsets.all(8),
-                              child: Text(
-                                'Departure',
-                                style: TextStyle(fontWeight: FontWeight.bold),
-                              ),
-                            ),
-                          ],
+                        Padding(
+                          padding: EdgeInsets.all(8),
+                          child: Text(
+                            'Stop',
+                            style: TextStyle(fontWeight: FontWeight.bold),
+                          ),
                         ),
-                        ...schedule.stopSchedules.map((stopSchedule) {
-                          return TableRow(
-                            children: [
-                              Padding(
-                                padding: const EdgeInsets.all(8),
-                                child: Text(stopSchedule.stopName),
-                              ),
-                              Padding(
-                                padding: const EdgeInsets.all(8),
-                                child: Text(
-                                  stopSchedule.arrivalTime,
-                                  style: TextStyle(
-                                    color: Theme.of(context).primaryColor,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                              ),
-                              Padding(
-                                padding: const EdgeInsets.all(8),
-                                child: Text(
-                                  stopSchedule.departureTime,
-                                  style: TextStyle(
-                                    color: Theme.of(
-                                      context,
-                                    ).colorScheme.secondary,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          );
-                        }),
+                        Padding(
+                          padding: EdgeInsets.all(8),
+                          child: Text(
+                            'Arrival',
+                            style: TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                        Padding(
+                          padding: EdgeInsets.all(8),
+                          child: Text(
+                            'Departure',
+                            style: TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                        ),
                       ],
                     ),
+                    ...schedule.stopSchedules.map((stopSchedule) {
+                      return TableRow(
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.all(8),
+                            child: Text(stopSchedule.stopName),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.all(8),
+                            child: Text(
+                              stopSchedule.arrivalTime,
+                              style: TextStyle(
+                                color: Theme.of(context).primaryColor,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.all(8),
+                            child: Text(
+                              stopSchedule.departureTime,
+                              style: TextStyle(
+                                color: Theme.of(context).colorScheme.secondary,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                        ],
+                      );
+                    }),
                   ],
                 ),
-              ),
+              ]).p(AppSizes.paddingMedium),
             ],
           ),
         );

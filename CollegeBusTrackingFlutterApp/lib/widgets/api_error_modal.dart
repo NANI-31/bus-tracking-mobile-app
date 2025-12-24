@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
 import 'package:go_router/go_router.dart';
+import 'package:velocity_x/velocity_x.dart';
 import 'package:collegebus/utils/constants.dart';
 
 class ApiErrorModal extends StatelessWidget {
@@ -161,157 +162,83 @@ class ApiErrorModal extends StatelessWidget {
     return Dialog(
       backgroundColor: Colors.transparent, // Important for custom shape
       elevation: 0,
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          // The Card
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.fromLTRB(
-              24,
-              60,
-              24,
-              32,
-            ), // Top padding for icon
-            margin: const EdgeInsets.only(top: 40), // Space for top icon
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(30),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
-                  blurRadius: 20,
-                  offset: const Offset(0, 10),
-                ),
-              ],
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const SizedBox(height: 10),
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF2D3142), // Dark grey like mockup
-                    letterSpacing: 0.5,
+      child: ZStack([
+        // The Card
+        VStack([
+              10.heightBox,
+              title.text
+                  .size(20)
+                  .bold
+                  .color(const Color(0xFF2D3142)) // Dark grey like mockup
+                  .letterSpacing(0.5)
+                  .center
+                  .make(),
+              12.heightBox,
+              message.text
+                  .size(14)
+                  .color(Colors.grey[500])
+                  .heightRelaxed
+                  .center
+                  .make(),
+              30.heightBox,
+              // Pill Button
+              ElevatedButton(
+                onPressed: onPrimaryAction,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: baseColor,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 40,
+                    vertical: 14,
                   ),
-                  textAlign: TextAlign.center,
+                  shape: const StadiumBorder(),
+                  elevation: 0,
+                  minimumSize: const Size(140, 48), // Minimal width
                 ),
-                const SizedBox(height: 12),
-                Text(
-                  message,
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.grey[500],
-                    height: 1.5,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 30),
-                // Pill Button
-                Container(
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(30),
-                    boxShadow: [
-                      BoxShadow(
-                        color: baseColor.withOpacity(0.4),
-                        blurRadius: 15,
-                        offset: const Offset(0, 5),
-                      ),
-                    ],
-                  ),
-                  child: ElevatedButton(
-                    onPressed: onPrimaryAction,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: baseColor,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 40,
-                        vertical: 14,
-                      ),
-                      shape: const StadiumBorder(),
-                      elevation: 0,
-                      minimumSize: const Size(140, 48), // Minimal width
-                    ),
-                    child: Text(
-                      primaryActionText,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
+                child: primaryActionText.text.size(16).semiBold.make(),
+              ).box.shadow.withRounded(value: 30).make(),
+            ])
+            .pLTRB(24, 60, 24, 32)
+            .box
+            .width(double.infinity)
+            .color(Colors.white)
+            .customRounded(BorderRadius.circular(30))
+            .shadow2xl
+            .make()
+            .pOnly(top: 40),
 
-          // The Floating Icon (Bubbles)
-          Positioned(top: 0, child: _buildBubbleIcon()),
-        ],
-      ),
+        // The Floating Icon (Bubbles)
+        _buildBubbleIcon().pOnly(top: 0),
+      ], alignment: Alignment.center),
     );
   }
 
   Widget _buildBubbleIcon() {
-    return SizedBox(
-      height: 100,
-      width: 100,
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          // Decorative Bubbles (Hardcoded positions for 'random' look)
-          _bubble(
-            size: 10,
-            top: 10,
-            left: 10,
-            color: baseColor.withOpacity(0.5),
-          ),
-          _bubble(
-            size: 8,
-            top: 70,
-            right: 10,
-            color: baseColor.withOpacity(0.6),
-          ),
-          _bubble(
-            size: 14,
-            bottom: 0,
-            left: 30,
-            color: baseColor.withOpacity(0.4),
-          ),
+    return ZStack([
+      // Decorative Bubbles (Hardcoded positions for 'random' look)
+      _bubble(size: 10, top: 10, left: 10, color: baseColor.withOpacity(0.5)),
+      _bubble(size: 8, top: 70, right: 10, color: baseColor.withOpacity(0.6)),
+      _bubble(size: 14, bottom: 0, left: 30, color: baseColor.withOpacity(0.4)),
 
-          // Main Circle
-          Container(
-            height: 80,
-            width: 80,
-            decoration: BoxDecoration(
-              color: baseColor.withOpacity(0.3), // Lighter BG
-              shape: BoxShape.circle,
-              border: Border.all(color: Colors.white, width: 4),
-            ),
-            child: Center(
-              child: Container(
-                height: 40,
-                width: 40,
-                decoration: BoxDecoration(
-                  color: baseColor.withOpacity(0.2), // Inner Circle
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: Colors.black87,
-                    width: 2,
-                  ), // The stylized border
-                ),
-                child: Center(
-                  child: Icon(icon, size: 24, color: Colors.black87),
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
+      // Main Circle
+      Icon(icon, size: 24, color: Colors.black87)
+          .centered()
+          .box
+          .height(40)
+          .width(40)
+          .color(baseColor.withOpacity(0.2)) // Inner Circle
+          .roundedFull
+          .border(color: Colors.black87, width: 2)
+          .make()
+          .centered()
+          .box
+          .height(80)
+          .width(80)
+          .color(baseColor.withOpacity(0.3)) // Lighter BG
+          .roundedFull
+          .border(color: Colors.white, width: 4)
+          .make(),
+    ], alignment: Alignment.center).box.height(100).width(100).make();
   }
 
   Widget _bubble({
@@ -322,17 +249,13 @@ class ApiErrorModal extends StatelessWidget {
     required double size,
     required Color color,
   }) {
-    return Positioned(
-      top: top,
-      bottom: bottom,
-      left: left,
-      right: right,
-      child: Container(
-        height: size,
-        width: size,
-        decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-      ),
-    );
+    return VxBox()
+        .height(size)
+        .width(size)
+        .color(color)
+        .roundedFull
+        .make()
+        .positioned(top: top, bottom: bottom, left: left, right: right);
   }
 }
 

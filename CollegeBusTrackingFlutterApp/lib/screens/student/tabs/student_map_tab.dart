@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:collegebus/models/bus_model.dart';
 import 'package:collegebus/utils/constants.dart';
+import 'package:velocity_x/velocity_x.dart';
 
 class StudentMapTab extends StatelessWidget {
   final LatLng? currentLocation;
@@ -37,16 +38,10 @@ class StudentMapTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        // Location display
-        Container(
-          padding: const EdgeInsets.all(AppSizes.paddingMedium),
-          color: currentLocation != null
-              ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.1)
-              : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.1),
-          child: Row(
-            children: [
+    return VStack([
+      // Location display
+      VxBox(
+            child: HStack([
               Icon(
                 Icons.location_on,
                 color: currentLocation != null
@@ -55,132 +50,123 @@ class StudentMapTab extends StatelessWidget {
                         context,
                       ).colorScheme.onSurface.withValues(alpha: 0.6),
               ),
-              const SizedBox(width: AppSizes.paddingSmall),
-              Expanded(
-                child: Text(
-                  currentLocation != null
+              AppSizes.paddingSmall.widthBox,
+              (currentLocation != null
                       ? 'Your Location: ${currentLocation!.latitude.toStringAsFixed(4)}, ${currentLocation!.longitude.toStringAsFixed(4)}'
-                      : 'Acquiring location...',
-                  style: TextStyle(
-                    color: currentLocation != null
+                      : 'Acquiring location...')
+                  .text
+                  .medium
+                  .color(
+                    currentLocation != null
                         ? Theme.of(context).colorScheme.primary
                         : Theme.of(
                             context,
                           ).colorScheme.onSurface.withValues(alpha: 0.6),
-                    fontWeight: FontWeight.w500,
+                  )
+                  .make()
+                  .expand(),
+            ]),
+          )
+          .color(
+            currentLocation != null
+                ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.1)
+                : Theme.of(
+                    context,
+                  ).colorScheme.onSurface.withValues(alpha: 0.1),
+          )
+          .make()
+          .p(AppSizes.paddingMedium),
+      // Filter Controls
+      VxBox(
+            child: VStack([
+              HStack([
+                DropdownButtonFormField<String>(
+                  isExpanded: true,
+                  value: selectedRouteType,
+                  dropdownColor: Theme.of(context).colorScheme.surface,
+                  decoration: const InputDecoration(
+                    labelText: 'Route Type',
+                    border: OutlineInputBorder(),
+                    contentPadding: EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 8,
+                    ),
                   ),
-                ),
-              ),
-            ],
-          ),
-        ),
+                  items: const [
+                    DropdownMenuItem<String>(
+                      value: null,
+                      child: Text('All Types'),
+                    ),
+                    DropdownMenuItem(value: 'pickup', child: Text('Pickup')),
+                    DropdownMenuItem(value: 'drop', child: Text('Drop')),
+                  ],
+                  onChanged: onRouteTypeSelected,
+                ).expand(),
 
-        // Filter Controls
-        Container(
-          padding: const EdgeInsets.all(AppSizes.paddingMedium),
-          color: Theme.of(context).colorScheme.surface,
-          child: Column(
-            children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: DropdownButtonFormField<String>(
-                      isExpanded: true,
-                      value: selectedRouteType,
-                      dropdownColor: Theme.of(context).colorScheme.surface,
-                      decoration: const InputDecoration(
-                        labelText: 'Route Type',
-                        border: OutlineInputBorder(),
-                        contentPadding: EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 8,
-                        ),
-                      ),
-                      items: const [
-                        DropdownMenuItem<String>(
-                          value: null,
-                          child: Text('All Types'),
-                        ),
-                        DropdownMenuItem(
-                          value: 'pickup',
-                          child: Text('Pickup'),
-                        ),
-                        DropdownMenuItem(value: 'drop', child: Text('Drop')),
-                      ],
-                      onChanged: onRouteTypeSelected,
-                    ),
-                  ),
-                  const SizedBox(width: AppSizes.paddingSmall),
-                  Expanded(
-                    child: DropdownButtonFormField<String>(
-                      isExpanded: true,
-                      value: allBusNumbers.contains(selectedBusNumber)
-                          ? selectedBusNumber
-                          : null,
-                      dropdownColor: Theme.of(context).colorScheme.surface,
-                      decoration: const InputDecoration(
-                        labelText: 'Bus Number',
-                        border: OutlineInputBorder(),
-                        contentPadding: EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 8,
-                        ),
-                      ),
-                      items: [
-                        const DropdownMenuItem<String>(
-                          value: null,
-                          child: Text('All Buses'),
-                        ),
-                        ...allBusNumbers.map(
-                          (busNumber) => DropdownMenuItem(
-                            value: busNumber,
-                            child: Text(busNumber),
-                          ),
-                        ),
-                      ],
-                      onChanged: onBusNumberSelected,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: AppSizes.paddingSmall),
+                AppSizes.paddingSmall.widthBox,
 
-              if (selectedBusNumber != null || selectedRouteType != null) ...[
-                const SizedBox(height: AppSizes.paddingSmall),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      '$filteredBusesCount bus(es) found',
-                      style: TextStyle(
-                        color: Theme.of(
-                          context,
-                        ).colorScheme.onSurface.withValues(alpha: 0.6),
-                        fontSize: 12,
-                      ),
+                DropdownButtonFormField<String>(
+                  isExpanded: true,
+                  value: allBusNumbers.contains(selectedBusNumber)
+                      ? selectedBusNumber
+                      : null,
+                  dropdownColor: Theme.of(context).colorScheme.surface,
+                  decoration: const InputDecoration(
+                    labelText: 'Bus Number',
+                    border: OutlineInputBorder(),
+                    contentPadding: EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 8,
                     ),
-                    TextButton.icon(
-                      onPressed: onClearFilters,
-                      icon: const Icon(Icons.clear, size: 16),
-                      label: const Text('Clear Filters'),
-                      style: TextButton.styleFrom(
-                        visualDensity: VisualDensity.compact,
-                        foregroundColor: Theme.of(
-                          context,
-                        ).colorScheme.secondary,
+                  ),
+                  items: [
+                    const DropdownMenuItem<String>(
+                      value: null,
+                      child: Text('All Buses'),
+                    ),
+                    ...allBusNumbers.map(
+                      (busNumber) => DropdownMenuItem(
+                        value: busNumber,
+                        child: Text(busNumber),
                       ),
                     ),
                   ],
-                ),
-              ],
-            ],
-          ),
-        ),
+                  onChanged: onBusNumberSelected,
+                ).expand(),
+              ]),
 
-        // Map
-        Expanded(
-          flex: 3,
-          child: currentLocation != null
+              AppSizes.paddingSmall.heightBox,
+
+              if (selectedBusNumber != null || selectedRouteType != null) ...[
+                AppSizes.paddingSmall.heightBox,
+                HStack([
+                  '$filteredBusesCount bus(es) found'.text
+                      .size(12)
+                      .color(
+                        Theme.of(
+                          context,
+                        ).colorScheme.onSurface.withValues(alpha: 0.6),
+                      )
+                      .make(),
+                  TextButton.icon(
+                    onPressed: onClearFilters,
+                    icon: const Icon(Icons.clear, size: 16),
+                    label: const Text('Clear Filters'),
+                    style: TextButton.styleFrom(
+                      visualDensity: VisualDensity.compact,
+                      foregroundColor: Theme.of(context).colorScheme.secondary,
+                    ),
+                  ),
+                ], alignment: MainAxisAlignment.spaceBetween),
+              ],
+            ]),
+          )
+          .color(Theme.of(context).colorScheme.surface)
+          .make()
+          .p(AppSizes.paddingMedium),
+
+      // Map
+      (currentLocation != null
               ? GoogleMap(
                   onMapCreated: onMapCreated,
                   initialCameraPosition: CameraPosition(
@@ -193,68 +179,50 @@ class StudentMapTab extends StatelessWidget {
                   myLocationButtonEnabled: true,
                   mapType: MapType.normal,
                 )
-              : const Center(child: CircularProgressIndicator()),
-        ),
+              : const Center(child: CircularProgressIndicator()))
+          .expand(flex: 3),
 
-        // Selected bus info
-        if (selectedBus != null)
-          Container(
-            padding: const EdgeInsets.all(AppSizes.paddingMedium),
-            decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.surface,
-              borderRadius: const BorderRadius.only(
+      // Selected bus info
+      if (selectedBus != null)
+        VxBox(
+              child: VStack([
+                HStack([
+                  CircleAvatar(
+                    backgroundColor: Theme.of(context).primaryColor,
+                    child: Icon(
+                      Icons.directions_bus,
+                      color: Theme.of(context).colorScheme.onPrimary,
+                    ),
+                  ),
+                  AppSizes.paddingMedium.widthBox,
+                  VStack([
+                    'Bus ${selectedBus!.busNumber}'.text.size(18).bold.make(),
+                    4.heightBox,
+                    'Selected Bus'.text
+                        .size(14)
+                        .color(
+                          Theme.of(
+                            context,
+                          ).colorScheme.onSurface.withValues(alpha: 0.6),
+                        )
+                        .make(),
+                  ]).expand(),
+                  IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: () => onBusSelected(null),
+                  ),
+                ]),
+              ]),
+            )
+            .color(Theme.of(context).colorScheme.surface)
+            .customRounded(
+              const BorderRadius.only(
                 topLeft: Radius.circular(AppSizes.radiusLarge),
                 topRight: Radius.circular(AppSizes.radiusLarge),
               ),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    CircleAvatar(
-                      backgroundColor: Theme.of(context).primaryColor,
-                      child: Icon(
-                        Icons.directions_bus,
-                        color: Theme.of(context).colorScheme.onPrimary,
-                      ),
-                    ),
-                    const SizedBox(width: AppSizes.paddingMedium),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Bus ${selectedBus!.busNumber}',
-                            style: const TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          // Note: We can expand this later with more details if needed
-                          Text(
-                            'Selected Bus',
-                            style: TextStyle(
-                              color: Theme.of(
-                                context,
-                              ).colorScheme.onSurface.withValues(alpha: 0.6),
-                              fontSize: 14,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.close),
-                      onPressed: () => onBusSelected(null),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-      ],
-    );
+            )
+            .make()
+            .p(AppSizes.paddingMedium),
+    ]);
   }
 }

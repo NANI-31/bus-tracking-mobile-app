@@ -1,32 +1,54 @@
 import 'package:flutter/material.dart';
 
+import 'package:flutter_tailwind_css_colors/flutter_tailwind_css_colors.dart';
+
 class AppColors {
-  static const Color primary = Color(0xFF197FE6);
-  static const Color secondary = Color(
+  static const Color primary1 = Color(0xFF197FE6);
+  static const Color secondary1 = Color(
     0xFF03DAC6,
   ); // Keeping secondary as is for now if not specified
-  static const Color error = Color(0xFFB00020);
-  static const Color success = Color(0xFF4CAF50);
-  static const Color warning = Color(0xFFFF9800);
+  static const Color error1 = Color(0xFFB00020);
+  static const Color success1 = Color(0xFF4CAF50);
+  static const Color warning1 = Color(0xFFFF9800);
+  static final Color primary = TwColors.blue.i500;
+  static final Color secondary = TwColors.teal.i500;
+  static final Color error = TwColors.red.i500;
+  static final Color success = TwColors.green.i500;
+  static final Color warning = TwColors.orange.i500;
 
   // Light Theme Colors
-  static const Color background = Color(0xFFF6F7F8); // background-light
-  static const Color surface = Color(0xFFFFFFFF); // surface-light
-  static const Color onPrimary = Color(0xFFFFFFFF);
-  static const Color onSecondary = Color(0xFF000000);
-  static const Color onBackground = Color(
+  static const Color background1 = Color(0xFFF6F7F8); // background-light
+  static const Color surface1 = Color(0xFFFFFFFF); // surface-light
+  static const Color onPrimary1 = Color(0xFFFFFFFF);
+  static const Color onSecondary1 = Color(0xFF000000);
+  static const Color onBackground1 = Color(
     0xFF111418,
   ); // text-main-light (using main text as onBackground)
-  static const Color onSurface = Color(0xFF111418); // text-main-light
-  static const Color textPrimary = Color(0xFF111418); // text-main-light
-  static const Color textSecondary = Color(0xFF637588); // text-sub-light
+  static const Color onSurface1 = Color(0xFF111418); // text-main-light
+  static const Color textPrimary1 = Color(0xFF111418); // text-main-light
+  static const Color textSecondary1 = Color(0xFF637588); // text-sub-light
+  // Light Theme Colors
+  static Color background = TwColors.slate.i50;
+  static Color surface = Colors.white;
+  static Color onPrimary = Colors.white;
+  static Color onSecondary = Colors.black;
+  static Color onBackground = TwColors.slate.i900;
+  static Color onSurface = TwColors.slate.i900;
+  static Color textPrimary = TwColors.slate.i900;
+  static Color textSecondary = TwColors.slate.i500;
 
   // Dark Mode Colors
-  static const Color darkBackground = Color(0xFF111921); // background-dark
-  static const Color darkSurface = Color(0xFF1A2632); // surface-dark
-  static const Color darkOnSurface = Color(0xFFFFFFFF); // text-main-dark
-  static const Color darkTextPrimary = Color(0xFFFFFFFF); // text-main-dark
-  static const Color darkTextSecondary = Color(0xFF93ADC8); // text-sub-dark
+  static const Color darkBackground1 = Color(0xFF111921); // background-dark
+  static const Color darkSurface1 = Color(0xFF1A2632); // surface-dark
+  static const Color darkOnSurface1 = Color(0xFFFFFFFF); // text-main-dark
+  static const Color darkTextPrimary1 = Color(0xFFFFFFFF); // text-main-dark
+  static const Color darkTextSecondary1 = Color(0xFF93ADC8); // text-sub-dark
+  // Dark Mode Colors
+  static Color darkBackground = TwColors.slate.i950;
+  static Color darkSurface = TwColors.slate.i900;
+  static Color darkOnSurface = Colors.white;
+  static Color darkTextPrimary = Colors.white;
+  static Color darkTextSecondary = TwColors.slate.i400;
 }
 
 class AppTheme {
@@ -44,20 +66,20 @@ class AppTheme {
       onSurface: AppColors.onSurface,
       error: AppColors.error,
     ),
-    appBarTheme: const AppBarTheme(
+    appBarTheme: AppBarTheme(
       backgroundColor: Colors.transparent,
       elevation: 0,
       centerTitle: true,
       foregroundColor: AppColors.textPrimary,
     ),
-    textTheme: const TextTheme(
+    textTheme: TextTheme(
       bodyLarge: TextStyle(color: AppColors.textPrimary),
       bodyMedium: TextStyle(color: AppColors.textPrimary),
       titleLarge: TextStyle(color: AppColors.textPrimary),
       titleMedium: TextStyle(color: AppColors.textPrimary),
       labelLarge: TextStyle(color: AppColors.textPrimary),
     ),
-    iconTheme: const IconThemeData(color: AppColors.textPrimary),
+    iconTheme: IconThemeData(color: AppColors.textPrimary),
   );
 
   static final ThemeData darkTheme = ThemeData(
@@ -74,20 +96,20 @@ class AppTheme {
       onSurface: AppColors.darkOnSurface,
       error: AppColors.error,
     ),
-    appBarTheme: const AppBarTheme(
+    appBarTheme: AppBarTheme(
       backgroundColor: Colors.transparent,
       elevation: 0,
       centerTitle: true,
       foregroundColor: AppColors.darkTextPrimary,
     ),
-    textTheme: const TextTheme(
+    textTheme: TextTheme(
       bodyLarge: TextStyle(color: AppColors.darkTextPrimary),
       bodyMedium: TextStyle(color: AppColors.darkTextPrimary),
       titleLarge: TextStyle(color: AppColors.darkTextPrimary),
       titleMedium: TextStyle(color: AppColors.darkTextPrimary),
       labelLarge: TextStyle(color: AppColors.darkTextPrimary),
     ),
-    iconTheme: const IconThemeData(color: AppColors.darkTextPrimary),
+    iconTheme: IconThemeData(color: AppColors.darkTextPrimary),
   );
 }
 

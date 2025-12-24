@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:velocity_x/velocity_x.dart';
 import 'package:collegebus/utils/constants.dart';
 
 class CustomInputField extends StatefulWidget {
@@ -40,103 +41,96 @@ class _CustomInputFieldState extends State<CustomInputField> {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        if (widget.label.isNotEmpty) ...[
-          Text(
-            widget.label,
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w500,
-              color: Theme.of(context).colorScheme.onBackground,
-            ),
+    return VStack([
+      if (widget.label.isNotEmpty)
+        VStack([
+          widget.label.text
+              .size(16)
+              .medium
+              .color(Theme.of(context).colorScheme.onBackground)
+              .make(),
+          AppSizes.paddingSmall.heightBox,
+        ]),
+      TextFormField(
+        controller: widget.controller,
+        obscureText: widget.isPassword ? _obscureText : false,
+        keyboardType: widget.keyboardType,
+        validator: widget.validator,
+        enabled: widget.enabled,
+        maxLines: widget.maxLines,
+        onTap: widget.onTap,
+        readOnly: widget.readOnly,
+        style: TextStyle(
+          fontSize: 16,
+          color: Theme.of(context).colorScheme.onSurface,
+        ),
+        decoration: InputDecoration(
+          hintText: widget.hint,
+          hintStyle: TextStyle(
+            color: Theme.of(
+              context,
+            ).colorScheme.onSurface.withValues(alpha: 0.6),
+            fontSize: 14,
           ),
-          const SizedBox(height: AppSizes.paddingSmall),
-        ],
-        TextFormField(
-          controller: widget.controller,
-          obscureText: widget.isPassword ? _obscureText : false,
-          keyboardType: widget.keyboardType,
-          validator: widget.validator,
-          enabled: widget.enabled,
-          maxLines: widget.maxLines,
-          onTap: widget.onTap,
-          readOnly: widget.readOnly,
-          style: TextStyle(
-            fontSize: 16,
-            color: Theme.of(context).colorScheme.onSurface,
+          prefixIcon: widget.prefixIcon,
+          suffixIcon: widget.isPassword
+              ? IconButton(
+                  icon: Icon(
+                    _obscureText ? Icons.visibility : Icons.visibility_off,
+                    color: AppColors.textSecondary,
+                  ),
+                  onPressed: () {
+                    setState(() {
+                      _obscureText = !_obscureText;
+                    });
+                  },
+                )
+              : widget.suffixIcon,
+          filled: true,
+          fillColor: Theme.of(context).colorScheme.surface,
+          border: _buildBorder(context),
+          enabledBorder: _buildBorder(
+            context,
+            color: Theme.of(
+              context,
+            ).colorScheme.onSurface.withValues(alpha: 0.1),
           ),
-          decoration: InputDecoration(
-            hintText: widget.hint,
-            hintStyle: TextStyle(
-              color: Theme.of(
-                context,
-              ).colorScheme.onSurface.withValues(alpha: 0.6),
-              fontSize: 14,
-            ),
-            prefixIcon: widget.prefixIcon,
-            suffixIcon: widget.isPassword
-                ? IconButton(
-                    icon: Icon(
-                      _obscureText ? Icons.visibility : Icons.visibility_off,
-                      color: AppColors.textSecondary,
-                    ),
-                    onPressed: () {
-                      setState(() {
-                        _obscureText = !_obscureText;
-                      });
-                    },
-                  )
-                : widget.suffixIcon,
-            filled: true,
-            fillColor: Theme.of(context).colorScheme.surface,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(
-                color: Theme.of(
-                  context,
-                ).colorScheme.onSurface.withValues(alpha: 0.1),
-                width: 1,
-              ),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(
-                color: Theme.of(
-                  context,
-                ).colorScheme.onSurface.withValues(alpha: 0.1),
-                width: 1,
-              ),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(
-                color: Theme.of(context).primaryColor,
-                width: 1.5,
-              ),
-            ),
-            errorBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(
-                color: Theme.of(context).colorScheme.error,
-                width: 1,
-              ),
-            ),
-            focusedErrorBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(
-                color: Theme.of(context).colorScheme.error,
-                width: 1.5,
-              ),
-            ),
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: AppSizes.paddingMedium,
-              vertical: AppSizes.paddingMedium,
-            ),
+          focusedBorder: _buildBorder(
+            context,
+            color: Theme.of(context).primaryColor,
+            width: 1.5,
+          ),
+          errorBorder: _buildBorder(
+            context,
+            color: Theme.of(context).colorScheme.error,
+          ),
+          focusedErrorBorder: _buildBorder(
+            context,
+            color: Theme.of(context).colorScheme.error,
+            width: 1.5,
+          ),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: AppSizes.paddingMedium,
+            vertical: AppSizes.paddingMedium,
           ),
         ),
-      ],
+      ),
+    ]);
+  }
+
+  OutlineInputBorder _buildBorder(
+    BuildContext context, {
+    Color? color,
+    double width = 1,
+  }) {
+    return OutlineInputBorder(
+      borderRadius: BorderRadius.circular(12),
+      borderSide: BorderSide(
+        color:
+            color ??
+            Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.1),
+        width: width,
+      ),
     );
   }
 }

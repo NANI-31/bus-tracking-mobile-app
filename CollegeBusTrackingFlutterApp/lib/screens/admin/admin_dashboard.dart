@@ -6,6 +6,7 @@ import 'package:collegebus/services/firestore_service.dart';
 import 'package:collegebus/models/user_model.dart';
 import 'package:collegebus/models/college_model.dart';
 import 'package:collegebus/utils/constants.dart';
+import 'package:velocity_x/velocity_x.dart';
 
 class AdminDashboard extends StatefulWidget {
   const AdminDashboard({super.key});
@@ -66,7 +67,7 @@ class _AdminDashboardState extends State<AdminDashboard>
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        title: Text('Admin Panel - ${user?.fullName ?? 'Admin'}'),
+        title: 'Admin Panel - ${user?.fullName ?? 'Admin'}'.text.make(),
         backgroundColor: Theme.of(context).primaryColor,
         foregroundColor: Theme.of(context).colorScheme.onPrimary,
         actions: [
@@ -96,96 +97,68 @@ class _AdminDashboardState extends State<AdminDashboard>
         controller: _tabController,
         children: [
           // Overview Tab
-          Padding(
-            padding: const EdgeInsets.all(AppSizes.paddingMedium),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'System Overview',
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    color: Theme.of(context).colorScheme.onSurface,
-                  ),
-                ),
-                const SizedBox(height: AppSizes.paddingLarge),
+          VStack([
+            'System Overview'.text
+                .size(24)
+                .bold
+                .color(Theme.of(context).colorScheme.onSurface)
+                .make(),
+            AppSizes.paddingLarge.heightBox,
 
-                // Statistics Cards
-                Row(
-                  children: [
-                    Expanded(
-                      child: _buildStatCard(
-                        'Total Colleges',
-                        _allColleges.length.toString(),
-                        Icons.school,
-                        Theme.of(context).primaryColor,
-                      ),
-                    ),
-                    const SizedBox(width: AppSizes.paddingMedium),
-                    Expanded(
-                      child: _buildStatCard(
-                        'Verified Colleges',
-                        _allColleges.where((c) => c.verified).length.toString(),
-                        Icons.verified,
-                        Theme.of(context).colorScheme.secondary,
-                      ),
-                    ),
-                  ],
-                ),
+            // Statistics Cards
+            HStack([
+              _buildStatCard(
+                'Total Colleges',
+                _allColleges.length.toString(),
+                Icons.school,
+                Theme.of(context).primaryColor,
+              ).expand(),
+              AppSizes.paddingMedium.widthBox,
+              _buildStatCard(
+                'Verified Colleges',
+                _allColleges.where((c) => c.verified).length.toString(),
+                Icons.verified,
+                Theme.of(context).colorScheme.secondary,
+              ).expand(),
+            ]),
 
-                const SizedBox(height: AppSizes.paddingMedium),
+            AppSizes.paddingMedium.heightBox,
 
-                Row(
-                  children: [
-                    Expanded(
-                      child: _buildStatCard(
-                        'Total Users',
-                        _allUsers.length.toString(),
-                        Icons.people,
-                        Theme.of(context).colorScheme.secondary,
-                      ),
-                    ),
-                    const SizedBox(width: AppSizes.paddingMedium),
-                    Expanded(
-                      child: _buildStatCard(
-                        'Pending Approvals',
-                        _allUsers
-                            .where((u) => u.needsManualApproval)
-                            .length
-                            .toString(),
-                        Icons.pending,
-                        Theme.of(context).colorScheme.error,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
+            HStack([
+              _buildStatCard(
+                'Total Users',
+                _allUsers.length.toString(),
+                Icons.people,
+                Theme.of(context).colorScheme.secondary,
+              ).expand(),
+              AppSizes.paddingMedium.widthBox,
+              _buildStatCard(
+                'Pending Approvals',
+                _allUsers.where((u) => u.needsManualApproval).length.toString(),
+                Icons.pending,
+                Theme.of(context).colorScheme.error,
+              ).expand(),
+            ]),
+          ]).p(AppSizes.paddingMedium),
 
           // Colleges Tab
           _allColleges.isEmpty
-              ? const Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.school_outlined,
-                        size: 64,
-                        color: AppColors.textSecondary,
-                      ),
-                      SizedBox(height: AppSizes.paddingMedium),
-                      Text(
-                        'No colleges registered yet',
-                        style: TextStyle(
-                          fontSize: 18,
-                          color: AppColors.textSecondary,
-                        ),
-                      ),
-                    ],
-                  ),
-                )
+              ? VStack(
+                  [
+                    Icon(
+                      Icons.school_outlined,
+                      size: 64,
+                      color: AppColors.textSecondary,
+                    ),
+                    AppSizes.paddingMedium.heightBox,
+                    'No colleges registered yet'.text
+                        .size(18)
+                        .color(AppColors.textSecondary)
+                        .make(),
+                  ],
+                  alignment: MainAxisAlignment.center,
+                  crossAlignment: CrossAxisAlignment.center,
+                ).centered()
               : ListView.builder(
                   padding: const EdgeInsets.all(AppSizes.paddingMedium),
                   itemCount: _allColleges.length,
@@ -209,23 +182,19 @@ class _AdminDashboardState extends State<AdminDashboard>
                           college.name,
                           style: const TextStyle(fontWeight: FontWeight.w600),
                         ),
-                        subtitle: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Domains: ${college.allowedDomains.join(', ')}',
-                            ),
-                            Text(
-                              'Status: ${college.verified ? 'Verified' : 'Pending Verification'}',
-                              style: TextStyle(
-                                color: college.verified
+                        subtitle: VStack([
+                          'Domains: ${college.allowedDomains.join(', ')}'.text
+                              .make(),
+                          'Status: ${college.verified ? 'Verified' : 'Pending Verification'}'
+                              .text
+                              .color(
+                                college.verified
                                     ? Theme.of(context).colorScheme.secondary
                                     : Theme.of(context).colorScheme.error,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ],
-                        ),
+                              )
+                              .medium
+                              .make(),
+                        ]),
                         trailing: !college.verified
                             ? IconButton(
                                 icon: Icon(
@@ -247,26 +216,22 @@ class _AdminDashboardState extends State<AdminDashboard>
 
           // Users Tab
           _allUsers.isEmpty
-              ? const Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.people_outlined,
-                        size: 64,
-                        color: AppColors.textSecondary,
-                      ),
-                      SizedBox(height: AppSizes.paddingMedium),
-                      Text(
-                        'No users found',
-                        style: TextStyle(
-                          fontSize: 18,
-                          color: AppColors.textSecondary,
-                        ),
-                      ),
-                    ],
-                  ),
-                )
+              ? VStack(
+                  [
+                    Icon(
+                      Icons.people_outlined,
+                      size: 64,
+                      color: AppColors.textSecondary,
+                    ),
+                    AppSizes.paddingMedium.heightBox,
+                    'No users found'.text
+                        .size(18)
+                        .color(AppColors.textSecondary)
+                        .make(),
+                  ],
+                  alignment: MainAxisAlignment.center,
+                  crossAlignment: CrossAxisAlignment.center,
+                ).centered()
               : ListView.builder(
                   padding: const EdgeInsets.all(AppSizes.paddingMedium),
                   itemCount: _allUsers.length,
@@ -290,31 +255,25 @@ class _AdminDashboardState extends State<AdminDashboard>
                           user.fullName,
                           style: const TextStyle(fontWeight: FontWeight.w600),
                         ),
-                        subtitle: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(user.email),
-                            if (user.phoneNumber != null &&
-                                user.phoneNumber!.isNotEmpty)
-                              Text('Phone: ${user.phoneNumber}'),
-                            Text(
-                              'Role: ${user.role.displayName}',
-                              style: TextStyle(
-                                color: Theme.of(context).primaryColor,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                            Text(
-                              'Status: ${user.approved ? 'Approved' : 'Pending'}',
-                              style: TextStyle(
-                                color: user.approved
+                        subtitle: VStack([
+                          user.email.text.make(),
+                          if (user.phoneNumber != null &&
+                              user.phoneNumber!.isNotEmpty)
+                            'Phone: ${user.phoneNumber}'.text.make(),
+                          'Role: ${user.role.displayName}'.text
+                              .color(Theme.of(context).primaryColor)
+                              .medium
+                              .make(),
+                          'Status: ${user.approved ? 'Approved' : 'Pending'}'
+                              .text
+                              .color(
+                                user.approved
                                     ? Theme.of(context).colorScheme.secondary
                                     : Theme.of(context).colorScheme.error,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ],
-                        ),
+                              )
+                              .medium
+                              .make(),
+                        ]),
                         isThreeLine: true,
                       ),
                     );
@@ -332,34 +291,19 @@ class _AdminDashboardState extends State<AdminDashboard>
     Color color,
   ) {
     return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(AppSizes.paddingMedium),
-        child: Column(
-          children: [
-            Icon(icon, size: 32, color: color),
-            const SizedBox(height: AppSizes.paddingSmall),
-            Text(
-              value,
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: color,
-              ),
-            ),
-            const SizedBox(height: AppSizes.paddingSmall),
-            Text(
-              title,
-              style: TextStyle(
-                fontSize: 14,
-                color: Theme.of(
-                  context,
-                ).colorScheme.onSurface.withValues(alpha: 0.6),
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
-      ),
+      child: VStack([
+        Icon(icon, size: 32, color: color),
+        AppSizes.paddingSmall.heightBox,
+        value.text.size(24).bold.color(color).make(),
+        AppSizes.paddingSmall.heightBox,
+        title.text
+            .size(14)
+            .color(
+              Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+            )
+            .center
+            .make(),
+      ], crossAlignment: CrossAxisAlignment.center).p(AppSizes.paddingMedium),
     );
   }
 }

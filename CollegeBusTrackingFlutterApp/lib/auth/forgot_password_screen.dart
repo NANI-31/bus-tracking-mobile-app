@@ -8,6 +8,7 @@ import 'package:collegebus/widgets/custom_button.dart';
 import 'package:collegebus/utils/constants.dart';
 import 'package:collegebus/widgets/success_modal.dart';
 import 'package:collegebus/widgets/api_error_modal.dart';
+import 'package:velocity_x/velocity_x.dart';
 
 class ForgotPasswordScreen extends StatefulWidget {
   const ForgotPasswordScreen({super.key});
@@ -70,140 +71,109 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     ApiErrorModal.show(context: context, error: message);
   }
 
-  // Method removed as it is no longer used
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: AppColors.textPrimary),
-          onPressed: () => context.go('/login'),
-        ),
-      ),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          child: Padding(
-            padding: const EdgeInsets.all(AppSizes.paddingLarge),
-            child: Form(
-              key: _formKey,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  const SizedBox(height: AppSizes.paddingXLarge),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      body: ZStack([
+        // Main Content
+        VStack([
+          AppSizes.paddingXLarge.heightBox,
 
-                  // Header
-                  const Icon(
-                    Icons.lock_reset,
-                    size: 80,
-                    color: AppColors.primary,
-                  ),
+          // Header
+          Icon(Icons.lock_reset, size: 80, color: AppColors.primary).centered(),
 
-                  const SizedBox(height: AppSizes.paddingLarge),
+          AppSizes.paddingLarge.heightBox,
 
-                  const Text(
-                    'Reset Password',
-                    style: TextStyle(
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.textPrimary,
-                    ),
-                  ),
+          'Reset Password'.text
+              .size(28)
+              .bold
+              .color(Theme.of(context).colorScheme.onSurface)
+              .makeCentered(),
 
-                  const SizedBox(height: AppSizes.paddingMedium),
+          AppSizes.paddingMedium.heightBox,
 
-                  const Text(
-                    'Enter your email address and we\'ll send you a link to reset your password.',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: AppColors.textSecondary,
-                    ),
-                  ),
+          'Enter your email address and we\'ll send you a OTP to reset your password.'
+              .text
+              .size(16)
+              .color(
+                Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+              )
+              .center
+              .makeCentered(),
 
-                  const SizedBox(height: AppSizes.paddingXLarge),
+          AppSizes.paddingXLarge.heightBox,
 
-                  // Email field
-                  CustomInputField(
-                    label: 'Email',
-                    hint: 'Enter your email address',
-                    controller: _emailController,
-                    keyboardType: TextInputType.emailAddress,
-                    prefixIcon: const Icon(Icons.email_outlined),
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Please enter your email';
-                      }
-                      if (!EmailValidator.validate(value)) {
-                        return 'Please enter a valid email';
-                      }
-                      return null;
-                    },
-                  ),
-
-                  const SizedBox(height: AppSizes.paddingLarge),
-
-                  // Reset button
-                  CustomButton(
-                    text: 'Send Reset Email',
-                    onPressed: _handleResetPassword,
-                    isLoading: _isLoading,
-                  ),
-
-                  const SizedBox(height: AppSizes.paddingMedium),
-
-                  // Back to login
-                  TextButton(
-                    onPressed: () => context.go('/login'),
-                    child: const Text(
-                      'Back to Login',
-                      style: TextStyle(
-                        color: AppColors.primary,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(height: AppSizes.paddingXLarge),
-
-                  // Note
-                  Container(
-                    padding: const EdgeInsets.all(AppSizes.paddingMedium),
-                    decoration: BoxDecoration(
-                      color: AppColors.primary.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(
-                        AppSizes.radiusMedium,
-                      ),
-                    ),
-                    child: const Row(
-                      children: [
-                        Icon(
-                          Icons.info_outline,
-                          color: AppColors.primary,
-                          size: AppSizes.iconMedium,
-                        ),
-                        SizedBox(width: AppSizes.paddingMedium),
-                        Expanded(
-                          child: Text(
-                            'Check your email inbox and spam folder for the reset link.',
-                            style: TextStyle(
-                              color: AppColors.primary,
-                              fontSize: 14,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
+          // Email field
+          Form(
+            key: _formKey,
+            child: CustomInputField(
+              label: 'Email',
+              hint: 'Enter your email address',
+              controller: _emailController,
+              keyboardType: TextInputType.emailAddress,
+              prefixIcon: const Icon(Icons.email_outlined),
+              validator: (value) {
+                if (value == null || value.isEmpty) {
+                  return 'Please enter your email';
+                }
+                if (!EmailValidator.validate(value)) {
+                  return 'Please enter a valid email';
+                }
+                return null;
+              },
             ),
           ),
-        ),
-      ),
+
+          AppSizes.paddingLarge.heightBox,
+
+          // Reset button
+          CustomButton(
+            text: 'Send OTP',
+            onPressed: _handleResetPassword,
+            isLoading: _isLoading,
+          ),
+
+          AppSizes.paddingMedium.heightBox,
+
+          // Back to login
+          'Back to Login'.text.semiBold
+              .color(AppColors.primary)
+              .makeCentered()
+              .onInkTap(() => context.go('/login')),
+
+          AppSizes.paddingXLarge.heightBox,
+
+          // Note
+          HStack([
+                Icon(
+                  Icons.info_outline,
+                  color: AppColors.primary,
+                  size: AppSizes.iconMedium,
+                ),
+                AppSizes.paddingMedium.widthBox,
+                'Check your email inbox and spam folder for the OTP.'.text
+                    .color(AppColors.primary)
+                    .size(14)
+                    .make()
+                    .expand(),
+              ])
+              .p(AppSizes.paddingMedium)
+              .box
+              .color(AppColors.primary.withValues(alpha: 0.1))
+              .rounded
+              .make(),
+        ]).p(AppSizes.paddingLarge).scrollVertical().safeArea(),
+
+        // Back Button (Top Left)
+        IconButton(
+          icon: Icon(
+            Icons.arrow_back,
+            color: Theme.of(context).colorScheme.onSurface,
+          ),
+          onPressed: () => context.go('/login'),
+        ).safeArea().p16(),
+      ]),
     );
   }
 }

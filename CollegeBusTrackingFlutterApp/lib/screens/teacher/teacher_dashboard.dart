@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:velocity_x/velocity_x.dart';
 import 'package:collegebus/services/auth_service.dart';
 import 'package:collegebus/services/firestore_service.dart';
 import 'package:collegebus/services/location_service.dart';
@@ -609,7 +610,7 @@ class _TeacherDashboardState extends State<TeacherDashboard>
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        title: Text('Welcome, ${user?.fullName ?? 'Teacher'}'),
+        title: 'Welcome, ${user?.fullName ?? 'Teacher'}'.text.make(),
         backgroundColor: Theme.of(context).primaryColor,
         foregroundColor: Theme.of(context).colorScheme.onPrimary,
         actions: [
@@ -652,176 +653,156 @@ class _TeacherDashboardState extends State<TeacherDashboard>
         controller: _tabController,
         children: [
           // Bus Tracking Tab
-          Column(
-            children: [
-              // Location display
-              Container(
-                padding: const EdgeInsets.all(AppSizes.paddingMedium),
-                color: _currentLocation != null
-                    ? Theme.of(context).primaryColor.withValues(alpha: 0.1)
-                    : Theme.of(
-                        context,
-                      ).colorScheme.error.withValues(alpha: 0.1),
-                child: Row(
-                  children: [
-                    Icon(
-                      Icons.location_on,
-                      color: _currentLocation != null
-                          ? Theme.of(context).primaryColor
-                          : Theme.of(context).colorScheme.error,
-                    ),
-                    const SizedBox(width: AppSizes.paddingSmall),
-                    Expanded(
-                      child: Text(
+          VStack([
+            // Location display
+            HStack([
+                  Icon(
+                    Icons.location_on,
+                    color: _currentLocation != null
+                        ? Theme.of(context).primaryColor
+                        : Theme.of(context).colorScheme.error,
+                  ),
+                  AppSizes.paddingSmall.widthBox,
+                  (_currentLocation != null
+                          ? 'Your Location: ${_currentLocation!.latitude.toStringAsFixed(4)}, ${_currentLocation!.longitude.toStringAsFixed(4)}'
+                          : 'Location not available. Please enable location services.')
+                      .text
+                      .color(
                         _currentLocation != null
-                            ? 'Your Location: ${_currentLocation!.latitude.toStringAsFixed(4)}, ${_currentLocation!.longitude.toStringAsFixed(4)}'
-                            : 'Location not available. Please enable location services.',
-                        style: TextStyle(
-                          color: _currentLocation != null
-                              ? Theme.of(context).primaryColor
-                              : Theme.of(context).colorScheme.error,
-                          fontWeight: FontWeight.w500,
+                            ? Theme.of(context).primaryColor
+                            : Theme.of(context).colorScheme.error,
+                      )
+                      .medium
+                      .make()
+                      .expand(),
+                ])
+                .p(AppSizes.paddingMedium)
+                .box
+                .color(
+                  _currentLocation != null
+                      ? Theme.of(context).primaryColor.withValues(alpha: 0.1)
+                      : Theme.of(
+                          context,
+                        ).colorScheme.error.withValues(alpha: 0.1),
+                )
+                .make(),
+
+            // Filter Controls
+            VStack([
+                  HStack([
+                    DropdownButtonFormField<String>(
+                      value: _selectedRouteType,
+                      decoration: const InputDecoration(
+                        labelText: 'Route Type',
+                        border: OutlineInputBorder(),
+                        contentPadding: EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
                         ),
                       ),
-                    ),
-                  ],
-                ),
-              ),
-
-              // Filter Controls
-              Container(
-                padding: const EdgeInsets.all(AppSizes.paddingMedium),
-                color: Theme.of(context).colorScheme.surface,
-                child: Column(
-                  children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: DropdownButtonFormField<String>(
-                            value: _selectedRouteType,
-                            decoration: const InputDecoration(
-                              labelText: 'Route Type',
-                              border: OutlineInputBorder(),
-                              contentPadding: EdgeInsets.symmetric(
-                                horizontal: 12,
-                                vertical: 8,
-                              ),
-                            ),
-                            items: const [
-                              DropdownMenuItem<String>(
-                                value: null,
-                                child: Text('All Types'),
-                              ),
-                              DropdownMenuItem(
-                                value: 'pickup',
-                                child: Text('Pickup'),
-                              ),
-                              DropdownMenuItem(
-                                value: 'drop',
-                                child: Text('Drop'),
-                              ),
-                            ],
-                            onChanged: _onRouteTypeSelected,
-                          ),
+                      items: const [
+                        DropdownMenuItem<String>(
+                          value: null,
+                          child: Text('All Types'),
                         ),
-                        const SizedBox(width: AppSizes.paddingSmall),
-                        Expanded(
-                          child: DropdownButtonFormField<String>(
-                            value: _selectedStop,
-                            decoration: const InputDecoration(
-                              labelText: 'Bus Stop',
-                              border: OutlineInputBorder(),
-                              contentPadding: EdgeInsets.symmetric(
-                                horizontal: 12,
-                                vertical: 8,
-                              ),
-                            ),
-                            items: [
-                              const DropdownMenuItem<String>(
-                                value: null,
-                                child: Text('All Stops'),
-                              ),
-                              ..._allStops.map(
-                                (stop) => DropdownMenuItem(
-                                  value: stop,
-                                  child: Text(stop),
-                                ),
-                              ),
-                            ],
-                            onChanged: _onStopSelected,
+                        DropdownMenuItem(
+                          value: 'pickup',
+                          child: Text('Pickup'),
+                        ),
+                        DropdownMenuItem(value: 'drop', child: Text('Drop')),
+                      ],
+                      onChanged: _onRouteTypeSelected,
+                    ).expand(),
+                    AppSizes.paddingSmall.widthBox,
+                    DropdownButtonFormField<String>(
+                      value: _selectedStop,
+                      decoration: const InputDecoration(
+                        labelText: 'Bus Stop',
+                        border: OutlineInputBorder(),
+                        contentPadding: EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
+                      ),
+                      items: [
+                        const DropdownMenuItem<String>(
+                          value: null,
+                          child: Text('All Stops'),
+                        ),
+                        ..._allStops.map(
+                          (stop) =>
+                              DropdownMenuItem(value: stop, child: Text(stop)),
+                        ),
+                      ],
+                      onChanged: _onStopSelected,
+                    ).expand(),
+                  ]),
+                  AppSizes.paddingSmall.heightBox,
+                  HStack([
+                    DropdownButtonFormField<String>(
+                      value: _selectedBusNumber,
+                      decoration: const InputDecoration(
+                        labelText: 'Bus Number',
+                        border: OutlineInputBorder(),
+                        contentPadding: EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
+                      ),
+                      items: [
+                        const DropdownMenuItem<String>(
+                          value: null,
+                          child: Text('All Buses'),
+                        ),
+                        ..._allBusNumbers.map(
+                          (busNumber) => DropdownMenuItem(
+                            value: busNumber,
+                            child: Text(busNumber),
                           ),
                         ),
                       ],
-                    ),
-                    const SizedBox(height: AppSizes.paddingSmall),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: DropdownButtonFormField<String>(
-                            value: _selectedBusNumber,
-                            decoration: const InputDecoration(
-                              labelText: 'Bus Number',
-                              border: OutlineInputBorder(),
-                              contentPadding: EdgeInsets.symmetric(
-                                horizontal: 12,
-                                vertical: 8,
-                              ),
-                            ),
-                            items: [
-                              const DropdownMenuItem<String>(
-                                value: null,
-                                child: Text('All Buses'),
-                              ),
-                              ..._allBusNumbers.map(
-                                (busNumber) => DropdownMenuItem(
-                                  value: busNumber,
-                                  child: Text(busNumber),
-                                ),
-                              ),
-                            ],
-                            onChanged: _onBusNumberSelected,
-                          ),
-                        ),
-                        const SizedBox(width: AppSizes.paddingSmall),
-                        if (_selectedStop != null ||
-                            _selectedBusNumber != null ||
-                            _selectedRouteType != null)
-                          ElevatedButton.icon(
-                            onPressed: _clearFilters,
-                            icon: const Icon(Icons.clear),
-                            label: const Text('Clear'),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Theme.of(
-                                context,
-                              ).colorScheme.secondary,
-                              foregroundColor: Theme.of(
-                                context,
-                              ).colorScheme.onSecondary,
-                            ),
-                          ),
-                      ],
-                    ),
+                      onChanged: _onBusNumberSelected,
+                    ).expand(),
+                    AppSizes.paddingSmall.widthBox,
                     if (_selectedStop != null ||
                         _selectedBusNumber != null ||
-                        _selectedRouteType != null) ...[
-                      const SizedBox(height: AppSizes.paddingSmall),
-                      Text(
-                        '${_filteredBuses.length} bus(es) found',
-                        style: TextStyle(
-                          color: Theme.of(
+                        _selectedRouteType != null)
+                      ElevatedButton.icon(
+                        onPressed: _clearFilters,
+                        icon: const Icon(Icons.clear),
+                        label: const Text('Clear'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Theme.of(
                             context,
-                          ).colorScheme.onSurface.withValues(alpha: 0.6),
-                          fontSize: 12,
+                          ).colorScheme.secondary,
+                          foregroundColor: Theme.of(
+                            context,
+                          ).colorScheme.onSecondary,
                         ),
                       ),
-                    ],
-                  ],
-                ),
-              ),
+                  ]),
+                  if (_selectedStop != null ||
+                      _selectedBusNumber != null ||
+                      _selectedRouteType != null)
+                    VStack([
+                      AppSizes.paddingSmall.heightBox,
+                      '${_filteredBuses.length} bus(es) found'.text
+                          .color(
+                            Theme.of(
+                              context,
+                            ).colorScheme.onSurface.withValues(alpha: 0.6),
+                          )
+                          .size(12)
+                          .make(),
+                    ]),
+                ])
+                .p(AppSizes.paddingMedium)
+                .box
+                .color(Theme.of(context).colorScheme.surface)
+                .make(),
 
-              // Map
-              Expanded(
-                child: _currentLocation != null
+            // Map
+            (_currentLocation != null
                     ? GoogleMap(
                         onMapCreated: (GoogleMapController controller) {
                           _mapController = controller;
@@ -839,178 +820,147 @@ class _TeacherDashboardState extends State<TeacherDashboard>
                         myLocationButtonEnabled: true,
                         mapType: MapType.normal,
                       )
-                    : const Center(child: CircularProgressIndicator()),
-              ),
+                    : const CircularProgressIndicator().centered())
+                .expand(),
 
-              // Selected bus info
-              if (_selectedBus != null)
-                Container(
-                  padding: const EdgeInsets.all(AppSizes.paddingMedium),
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.surface,
-                    borderRadius: const BorderRadius.only(
-                      topLeft: Radius.circular(AppSizes.radiusLarge),
-                      topRight: Radius.circular(AppSizes.radiusLarge),
-                    ),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          CircleAvatar(
-                            backgroundColor: Theme.of(context).primaryColor,
-                            child: Icon(
-                              Icons.directions_bus,
-                              color: Theme.of(context).colorScheme.onPrimary,
-                            ),
-                          ),
-                          const SizedBox(width: AppSizes.paddingMedium),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Bus ${_selectedBus!.busNumber}',
-                                  style: TextStyle(
-                                    fontSize: 20,
-                                    fontWeight: FontWeight.bold,
-                                    color: Theme.of(
-                                      context,
-                                    ).colorScheme.onSurface,
-                                  ),
-                                ),
-                                Text(
-                                  'Route: ${_routes.firstWhere(
-                                    (r) => r.id == _selectedBus!.routeId,
-                                    orElse: () => RouteModel(id: '', routeName: 'N/A', routeType: '', startPoint: '', endPoint: '', stopPoints: [], collegeId: '', createdBy: '', isActive: false, createdAt: DateTime.now()),
-                                  ).startPoint} → ${_routes.firstWhere(
-                                    (r) => r.id == _selectedBus!.routeId,
-                                    orElse: () => RouteModel(id: '', routeName: 'N/A', routeType: '', startPoint: '', endPoint: '', stopPoints: [], collegeId: '', createdBy: '', isActive: false, createdAt: DateTime.now()),
-                                  ).endPoint}',
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    color: Theme.of(context)
-                                        .colorScheme
-                                        .onSurface
-                                        .withValues(alpha: 0.6),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          IconButton(
-                            onPressed: () {
-                              setState(() {
-                                _selectedBus = null;
-                                _polylines.clear();
-                              });
-                              _updateMarkers();
-                            },
-                            icon: const Icon(Icons.close),
-                            color: Theme.of(
-                              context,
-                            ).colorScheme.onSurface.withValues(alpha: 0.6),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: AppSizes.paddingMedium),
-                      Container(
-                        padding: const EdgeInsets.all(AppSizes.paddingSmall),
-                        decoration: BoxDecoration(
-                          color: AppColors.primary.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(
-                            AppSizes.radiusSmall,
-                          ),
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(
-                              Icons.info_outline,
-                              color: AppColors.primary,
-                              size: 16,
-                            ),
-                            const SizedBox(width: AppSizes.paddingSmall),
-                            Expanded(
-                              child: Text(
-                                'Tap on the map to see live bus location. The bus marker will update in real-time as the driver moves.',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: Theme.of(context).primaryColor,
-                                ),
-                              ),
-                            ),
-                          ],
+            // Selected bus info
+            if (_selectedBus != null)
+              VStack([
+                    HStack([
+                      CircleAvatar(
+                        backgroundColor: Theme.of(context).primaryColor,
+                        child: Icon(
+                          Icons.directions_bus,
+                          color: Theme.of(context).colorScheme.onPrimary,
                         ),
                       ),
-                      if ((_routes
-                          .firstWhere(
-                            (r) => r.id == _selectedBus!.routeId,
-                            orElse: () => RouteModel(
-                              id: '',
-                              routeName: 'N/A',
-                              routeType: '',
-                              startPoint: '',
-                              endPoint: '',
-                              stopPoints: [],
-                              collegeId: '',
-                              createdBy: '',
-                              isActive: false,
-                              createdAt: DateTime.now(),
-                            ),
-                          )
-                          .stopPoints
-                          .isNotEmpty)) ...[
-                        const SizedBox(height: AppSizes.paddingMedium),
-                        Text(
-                          'Stops: ${_routes.firstWhere(
-                            (r) => r.id == _selectedBus!.routeId,
-                            orElse: () => RouteModel(id: '', routeName: 'N/A', routeType: '', startPoint: '', endPoint: '', stopPoints: [], collegeId: '', createdBy: '', isActive: false, createdAt: DateTime.now()),
-                          ).stopPoints.join(' → ')}',
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: Theme.of(
-                              context,
-                            ).colorScheme.onSurface.withValues(alpha: 0.6),
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-            ],
-          ),
-
-          // Bus List Tab
-          _filteredBuses.isEmpty
-              ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.directions_bus_outlined,
-                        size: 64,
+                      AppSizes.paddingMedium.widthBox,
+                      VStack([
+                        'Bus ${_selectedBus!.busNumber}'.text
+                            .size(20)
+                            .bold
+                            .color(Theme.of(context).colorScheme.onSurface)
+                            .make(),
+                        'Route: ${_routes.firstWhere(
+                              (r) => r.id == _selectedBus!.routeId,
+                              orElse: () => RouteModel(id: '', routeName: 'N/A', routeType: '', startPoint: '', endPoint: '', stopPoints: [], collegeId: '', createdBy: '', isActive: false, createdAt: DateTime.now()),
+                            ).startPoint} → ${_routes.firstWhere(
+                              (r) => r.id == _selectedBus!.routeId,
+                              orElse: () => RouteModel(id: '', routeName: 'N/A', routeType: '', startPoint: '', endPoint: '', stopPoints: [], collegeId: '', createdBy: '', isActive: false, createdAt: DateTime.now()),
+                            ).endPoint}'
+                            .text
+                            .size(16)
+                            .color(
+                              Theme.of(
+                                context,
+                              ).colorScheme.onSurface.withValues(alpha: 0.6),
+                            )
+                            .make(),
+                      ]).expand(),
+                      IconButton(
+                        onPressed: () {
+                          setState(() {
+                            _selectedBus = null;
+                            _polylines.clear();
+                          });
+                          _updateMarkers();
+                        },
+                        icon: const Icon(Icons.close),
                         color: Theme.of(
                           context,
                         ).colorScheme.onSurface.withValues(alpha: 0.6),
                       ),
-                      const SizedBox(height: AppSizes.paddingMedium),
-                      Text(
-                        _selectedStop != null ||
+                    ]),
+                    AppSizes.paddingMedium.heightBox,
+                    HStack([
+                          Icon(
+                            Icons.info_outline,
+                            color: AppColors.primary,
+                            size: 16,
+                          ),
+                          AppSizes.paddingSmall.widthBox,
+                          'Tap on the map to see live bus location. The bus marker will update in real-time as the driver moves.'
+                              .text
+                              .size(12)
+                              .color(Theme.of(context).primaryColor)
+                              .make()
+                              .expand(),
+                        ])
+                        .p(AppSizes.paddingSmall)
+                        .box
+                        .color(AppColors.primary.withValues(alpha: 0.1))
+                        .roundedExpected(AppSizes.radiusSmall)
+                        .make(),
+                    if ((_routes
+                        .firstWhere(
+                          (r) => r.id == _selectedBus!.routeId,
+                          orElse: () => RouteModel(
+                            id: '',
+                            routeName: 'N/A',
+                            routeType: '',
+                            startPoint: '',
+                            endPoint: '',
+                            stopPoints: [],
+                            collegeId: '',
+                            createdBy: '',
+                            isActive: false,
+                            createdAt: DateTime.now(),
+                          ),
+                        )
+                        .stopPoints
+                        .isNotEmpty))
+                      VStack([
+                        AppSizes.paddingMedium.heightBox,
+                        'Stops: ${_routes.firstWhere(
+                              (r) => r.id == _selectedBus!.routeId,
+                              orElse: () => RouteModel(id: '', routeName: 'N/A', routeType: '', startPoint: '', endPoint: '', stopPoints: [], collegeId: '', createdBy: '', isActive: false, createdAt: DateTime.now()),
+                            ).stopPoints.join(' → ')}'
+                            .text
+                            .size(14)
+                            .color(
+                              Theme.of(
+                                context,
+                              ).colorScheme.onSurface.withValues(alpha: 0.6),
+                            )
+                            .make(),
+                      ]),
+                  ])
+                  .p(AppSizes.paddingMedium)
+                  .box
+                  .color(Theme.of(context).colorScheme.surface)
+                  .topRounded(value: AppSizes.radiusLarge)
+                  .make(),
+          ]),
+
+          // Bus List Tab
+          _filteredBuses.isEmpty
+              ? VStack(
+                  [
+                    Icon(
+                      Icons.directions_bus_outlined,
+                      size: 64,
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.onSurface.withValues(alpha: 0.6),
+                    ),
+                    AppSizes.paddingMedium.heightBox,
+                    (_selectedStop != null ||
                                 _selectedBusNumber != null ||
                                 _selectedRouteType != null
                             ? 'No buses found for selected filters'
-                            : 'No buses available',
-                        style: TextStyle(
-                          fontSize: 18,
-                          color: Theme.of(
+                            : 'No buses available')
+                        .text
+                        .size(18)
+                        .color(
+                          Theme.of(
                             context,
                           ).colorScheme.onSurface.withValues(alpha: 0.6),
-                        ),
-                      ),
-                    ],
-                  ),
-                )
+                        )
+                        .make(),
+                  ],
+                  alignment: MainAxisAlignment.center,
+                  crossAlignment: CrossAxisAlignment.center,
+                ).centered()
               : ListView.builder(
                   padding: const EdgeInsets.all(AppSizes.paddingMedium),
                   itemCount: _filteredBuses.length,
@@ -1050,27 +1000,21 @@ class _TeacherDashboardState extends State<TeacherDashboard>
                             color: Theme.of(context).colorScheme.onPrimary,
                           ),
                         ),
-                        title: Text(
-                          'Bus ${bus.busNumber}',
-                          style: TextStyle(
-                            fontWeight: FontWeight.w600,
-                            color: isSelected
-                                ? Theme.of(context).primaryColor
-                                : null,
-                          ),
-                        ),
-                        subtitle: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('${route.startPoint} → ${route.endPoint}'),
-                            Text('Type: ${route.routeType.toUpperCase()}'),
-                            if (route.stopPoints.isNotEmpty)
-                              Text(
-                                'Stops: ${route.stopPoints.join(', ')}',
-                                style: TextStyle(fontSize: 12),
-                              ),
-                          ],
-                        ),
+                        title: 'Bus ${bus.busNumber}'.text.semiBold
+                            .color(
+                              isSelected
+                                  ? Theme.of(context).primaryColor
+                                  : null,
+                            )
+                            .make(),
+                        subtitle: VStack([
+                          '${route.startPoint} → ${route.endPoint}'.text.make(),
+                          'Type: ${route.routeType.toUpperCase()}'.text.make(),
+                          if (route.stopPoints.isNotEmpty)
+                            'Stops: ${route.stopPoints.join(', ')}'.text
+                                .size(12)
+                                .make(),
+                        ]),
                         trailing: isSelected
                             ? Icon(
                                 Icons.check_circle,
@@ -1089,30 +1033,28 @@ class _TeacherDashboardState extends State<TeacherDashboard>
 
           // Approvals Tab
           _pendingStudents.isEmpty
-              ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.check_circle_outline,
-                        size: 64,
-                        color: Theme.of(
-                          context,
-                        ).colorScheme.onSurface.withValues(alpha: 0.6),
-                      ),
-                      SizedBox(height: AppSizes.paddingMedium),
-                      Text(
-                        'No pending student approvals',
-                        style: TextStyle(
-                          fontSize: 18,
-                          color: Theme.of(
+              ? VStack(
+                  [
+                    Icon(
+                      Icons.check_circle_outline,
+                      size: 64,
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.onSurface.withValues(alpha: 0.6),
+                    ),
+                    AppSizes.paddingMedium.heightBox,
+                    'No pending student approvals'.text
+                        .size(18)
+                        .color(
+                          Theme.of(
                             context,
                           ).colorScheme.onSurface.withValues(alpha: 0.6),
-                        ),
-                      ),
-                    ],
-                  ),
-                )
+                        )
+                        .make(),
+                  ],
+                  alignment: MainAxisAlignment.center,
+                  crossAlignment: CrossAxisAlignment.center,
+                ).centered()
               : ListView.builder(
                   padding: const EdgeInsets.all(AppSizes.paddingMedium),
                   itemCount: _pendingStudents.length,
@@ -1130,48 +1072,36 @@ class _TeacherDashboardState extends State<TeacherDashboard>
                             color: Theme.of(context).colorScheme.onPrimary,
                           ),
                         ),
-                        title: Text(
-                          student.fullName,
-                          style: TextStyle(fontWeight: FontWeight.w600),
-                        ),
-                        subtitle: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(student.email),
-                            if (student.phoneNumber != null &&
-                                student.phoneNumber!.isNotEmpty)
-                              Text('Phone: ${student.phoneNumber}'),
-                            if (student.rollNumber != null &&
-                                student.rollNumber!.isNotEmpty)
-                              Text('Roll: ${student.rollNumber}'),
-                            Text(
-                              'Role: ${student.role.displayName}',
-                              style: TextStyle(
-                                color: Theme.of(context).primaryColor,
-                                fontWeight: FontWeight.w500,
-                              ),
+                        title: student.fullName.text.semiBold.make(),
+                        subtitle: VStack([
+                          student.email.text.make(),
+                          if (student.phoneNumber != null &&
+                              student.phoneNumber!.isNotEmpty)
+                            'Phone: ${student.phoneNumber}'.text.make(),
+                          if (student.rollNumber != null &&
+                              student.rollNumber!.isNotEmpty)
+                            'Roll: ${student.rollNumber}'.text.make(),
+                          'Role: ${student.role.displayName}'.text
+                              .color(Theme.of(context).primaryColor)
+                              .medium
+                              .make(),
+                        ]),
+                        trailing: HStack([
+                          IconButton(
+                            icon: Icon(
+                              Icons.check,
+                              color: Theme.of(context).colorScheme.secondary,
                             ),
-                          ],
-                        ),
-                        trailing: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            IconButton(
-                              icon: Icon(
-                                Icons.check,
-                                color: Theme.of(context).colorScheme.secondary,
-                              ),
-                              onPressed: () => _approveStudent(student),
+                            onPressed: () => _approveStudent(student),
+                          ),
+                          IconButton(
+                            icon: Icon(
+                              Icons.close,
+                              color: Theme.of(context).colorScheme.error,
                             ),
-                            IconButton(
-                              icon: Icon(
-                                Icons.close,
-                                color: Theme.of(context).colorScheme.error,
-                              ),
-                              onPressed: () => _rejectStudent(student),
-                            ),
-                          ],
-                        ),
+                            onPressed: () => _rejectStudent(student),
+                          ),
+                        ]),
                         isThreeLine: true,
                       ),
                     );
@@ -1179,148 +1109,126 @@ class _TeacherDashboardState extends State<TeacherDashboard>
                 ),
 
           // Bus Info Tab
-          Padding(
-            padding: const EdgeInsets.all(AppSizes.paddingMedium),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Available Bus Numbers',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: Theme.of(context).colorScheme.onSurface,
-                  ),
-                ),
-                const SizedBox(height: AppSizes.paddingMedium),
-                Expanded(
-                  child: _allBusNumbers.isEmpty
-                      ? Center(
-                          child: Text(
-                            'No bus numbers available',
-                            style: TextStyle(
-                              color: Theme.of(
-                                context,
-                              ).colorScheme.onSurface.withValues(alpha: 0.6),
-                            ),
-                          ),
-                        )
-                      : ListView.builder(
-                          itemCount: _allBusNumbers.length,
-                          itemBuilder: (context, index) {
-                            final busNumber = _allBusNumbers[index];
-                            final isAssigned = _allBuses.any(
-                              (bus) => bus.busNumber == busNumber,
-                            );
+          VStack([
+            'Available Bus Numbers'.text
+                .size(20)
+                .bold
+                .color(Theme.of(context).colorScheme.onSurface)
+                .make(),
+            AppSizes.paddingMedium.heightBox,
+            (_allBusNumbers.isEmpty
+                    ? 'No bus numbers available'.text
+                          .color(
+                            Theme.of(
+                              context,
+                            ).colorScheme.onSurface.withValues(alpha: 0.6),
+                          )
+                          .make()
+                          .centered()
+                    : ListView.builder(
+                        itemCount: _allBusNumbers.length,
+                        itemBuilder: (context, index) {
+                          final busNumber = _allBusNumbers[index];
+                          final isAssigned = _allBuses.any(
+                            (bus) => bus.busNumber == busNumber,
+                          );
 
-                            return Card(
-                              margin: const EdgeInsets.only(
-                                bottom: AppSizes.paddingSmall,
-                              ),
-                              child: ListTile(
-                                leading: CircleAvatar(
-                                  backgroundColor: isAssigned
-                                      ? Theme.of(context).colorScheme.secondary
-                                      : Theme.of(context).colorScheme.error,
-                                  child: Icon(
-                                    isAssigned
-                                        ? Icons.check
-                                        : Icons.directions_bus,
-                                    color: Theme.of(
-                                      context,
-                                    ).colorScheme.onPrimary,
-                                  ),
-                                ),
-                                title: Text(
-                                  busNumber,
-                                  style: TextStyle(fontWeight: FontWeight.w600),
-                                ),
-                                subtitle: Text(
-                                  isAssigned
-                                      ? 'Assigned to driver'
-                                      : 'Available',
-                                  style: TextStyle(
-                                    color: isAssigned
-                                        ? Theme.of(
-                                            context,
-                                          ).colorScheme.secondary
-                                        : Theme.of(context).colorScheme.error,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                              ),
-                            );
-                          },
-                        ),
-                ),
-                const SizedBox(height: AppSizes.paddingMedium),
-                Text(
-                  'All Stops',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: Theme.of(context).colorScheme.onSurface,
-                  ),
-                ),
-                const SizedBox(height: AppSizes.paddingMedium),
-                Expanded(
-                  child: _allStops.isEmpty
-                      ? Center(
-                          child: Text(
-                            'No stops available',
-                            style: TextStyle(
-                              color: Theme.of(
-                                context,
-                              ).colorScheme.onSurface.withValues(alpha: 0.6),
+                          return Card(
+                            margin: const EdgeInsets.only(
+                              bottom: AppSizes.paddingSmall,
                             ),
-                          ),
-                        )
-                      : ListView.builder(
-                          itemCount: _allStops.length,
-                          itemBuilder: (context, index) {
-                            final stop = _allStops[index];
-                            return Card(
-                              margin: const EdgeInsets.only(
-                                bottom: AppSizes.paddingSmall,
-                              ),
-                              child: ListTile(
-                                leading: CircleAvatar(
-                                  backgroundColor: Theme.of(
+                            child: ListTile(
+                              leading: CircleAvatar(
+                                backgroundColor: isAssigned
+                                    ? Theme.of(context).colorScheme.secondary
+                                    : Theme.of(context).colorScheme.error,
+                                child: Icon(
+                                  isAssigned
+                                      ? Icons.check
+                                      : Icons.directions_bus,
+                                  color: Theme.of(
                                     context,
-                                  ).primaryColor,
-                                  child: Icon(
-                                    Icons.location_on,
-                                    color: Theme.of(
-                                      context,
-                                    ).colorScheme.onPrimary,
-                                  ),
-                                ),
-                                title: Text(
-                                  stop,
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                                subtitle: Text(
-                                  'Bus stop location',
-                                  style: TextStyle(
-                                    color: Theme.of(context)
-                                        .colorScheme
-                                        .onSurface
-                                        .withValues(alpha: 0.6),
-                                    fontSize: 12,
-                                  ),
+                                  ).colorScheme.onPrimary,
                                 ),
                               ),
-                            );
-                          },
-                        ),
-                ),
-              ],
-            ),
-          ),
+                              title: busNumber.text.semiBold.make(),
+                              subtitle:
+                                  (isAssigned
+                                          ? 'Assigned to driver'
+                                          : 'Available')
+                                      .text
+                                      .color(
+                                        isAssigned
+                                            ? Theme.of(
+                                                context,
+                                              ).colorScheme.secondary
+                                            : Theme.of(
+                                                context,
+                                              ).colorScheme.error,
+                                      )
+                                      .medium
+                                      .make(),
+                            ),
+                          );
+                        },
+                      ))
+                .expand(),
+            AppSizes.paddingMedium.heightBox,
+            'All Stops'.text
+                .size(20)
+                .bold
+                .color(Theme.of(context).colorScheme.onSurface)
+                .make(),
+            AppSizes.paddingMedium.heightBox,
+            (_allStops.isEmpty
+                    ? 'No stops available'.text
+                          .color(
+                            Theme.of(
+                              context,
+                            ).colorScheme.onSurface.withValues(alpha: 0.6),
+                          )
+                          .make()
+                          .centered()
+                    : ListView.builder(
+                        itemCount: _allStops.length,
+                        itemBuilder: (context, index) {
+                          final stop = _allStops[index];
+                          return Card(
+                            margin: const EdgeInsets.only(
+                              bottom: AppSizes.paddingSmall,
+                            ),
+                            child: ListTile(
+                              leading: CircleAvatar(
+                                backgroundColor: Theme.of(context).primaryColor,
+                                child: Icon(
+                                  Icons.location_on,
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onPrimary,
+                                ),
+                              ),
+                              title: stop.text.semiBold.make(),
+                              subtitle: 'Bus stop location'.text
+                                  .size(12)
+                                  .color(
+                                    Theme.of(context).colorScheme.onSurface
+                                        .withValues(alpha: 0.6),
+                                  )
+                                  .make(),
+                            ),
+                          );
+                        },
+                      ))
+                .expand(),
+          ]).p(AppSizes.paddingMedium),
         ],
       ),
     );
+  }
+}
+
+extension on VxBox {
+  VxBox roundedExpected(double radius) {
+    return rounded.customRounded(BorderRadius.circular(radius));
   }
 }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:velocity_x/velocity_x.dart';
 import 'package:collegebus/utils/constants.dart';
 
 class CustomButton extends StatelessWidget {
@@ -11,6 +12,7 @@ class CustomButton extends StatelessWidget {
   final double? width;
   final double height;
   final Widget? icon;
+  final double? borderRadius;
 
   const CustomButton({
     super.key,
@@ -23,6 +25,7 @@ class CustomButton extends StatelessWidget {
     this.width,
     this.height = 50,
     this.icon,
+    this.borderRadius,
   });
 
   @override
@@ -39,7 +42,9 @@ class CustomButton extends StatelessWidget {
                   width: 2,
                 ),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
+                  borderRadius: BorderRadius.circular(
+                    borderRadius ?? AppSizes.radiusMedium,
+                  ),
                 ),
               ),
               child: _buildButtonContent(),
@@ -51,7 +56,9 @@ class CustomButton extends StatelessWidget {
                 foregroundColor: textColor ?? AppColors.onPrimary,
                 elevation: 2,
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
+                  borderRadius: BorderRadius.circular(
+                    borderRadius ?? AppSizes.radiusMedium,
+                  ),
                 ),
               ),
               child: _buildButtonContent(),
@@ -71,35 +78,18 @@ class CustomButton extends StatelessWidget {
       );
     }
 
+    final contentColor = isOutlined
+        ? (backgroundColor ?? AppColors.primary)
+        : (textColor ?? AppColors.onPrimary);
+
     if (icon != null) {
-      return Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          icon!,
-          const SizedBox(width: AppSizes.paddingSmall),
-          Text(
-            text,
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-              color: isOutlined 
-                  ? (backgroundColor ?? AppColors.primary)
-                  : (textColor ?? AppColors.onPrimary),
-            ),
-          ),
-        ],
-      );
+      return HStack([
+        icon!,
+        AppSizes.paddingSmall.widthBox,
+        text.text.size(16).semiBold.color(contentColor).make(),
+      ], alignment: MainAxisAlignment.center);
     }
 
-    return Text(
-      text,
-      style: TextStyle(
-        fontSize: 16,
-        fontWeight: FontWeight.w600,
-        color: isOutlined 
-            ? (backgroundColor ?? AppColors.primary)
-            : (textColor ?? AppColors.onPrimary),
-      ),
-    );
+    return text.text.size(16).semiBold.color(contentColor).make();
   }
 }

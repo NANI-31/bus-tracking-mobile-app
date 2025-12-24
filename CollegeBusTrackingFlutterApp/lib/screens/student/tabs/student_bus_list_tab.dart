@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:collegebus/models/bus_model.dart';
 import 'package:collegebus/models/route_model.dart';
 import 'package:collegebus/utils/constants.dart';
+import 'package:velocity_x/velocity_x.dart';
 
 class StudentBusListTab extends StatefulWidget {
   final List<BusModel> filteredBuses;
@@ -74,343 +75,263 @@ class _StudentBusListTabState extends State<StudentBusListTab> {
       return matchesSearch && matchesStatus;
     }).toList();
 
-    return Column(
-      children: [
-        if (widget.selectedStop != null)
-          // ... (existing selectedStop indicator)
-          Padding(
-            padding: const EdgeInsets.fromLTRB(
-              AppSizes.paddingMedium,
-              AppSizes.paddingMedium,
-              AppSizes.paddingMedium,
-              0,
+    return VStack([
+      if (widget.selectedStop != null)
+        HStack([
+              Icon(
+                Icons.location_on,
+                size: 16,
+                color: Theme.of(context).primaryColor,
+              ),
+              8.widthBox,
+              'Filtered by: ${widget.selectedStop}'.text
+                  .size(13)
+                  .medium
+                  .color(Theme.of(context).primaryColor)
+                  .make()
+                  .expand(),
+              'Clear'.text
+                  .color(Theme.of(context).primaryColor)
+                  .make()
+                  .onInkTap(widget.onClearFilters),
+            ])
+            .pSymmetric(h: 12, v: 8)
+            .box
+            .color(Theme.of(context).primaryColor.withValues(alpha: 0.1))
+            .rounded
+            .border(
+              color: Theme.of(context).primaryColor.withValues(alpha: 0.2),
+            )
+            .make()
+            .pOnly(
+              left: AppSizes.paddingMedium,
+              right: AppSizes.paddingMedium,
+              top: AppSizes.paddingMedium,
             ),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              decoration: BoxDecoration(
-                color: Theme.of(context).primaryColor.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
-                border: Border.all(
-                  color: Theme.of(context).primaryColor.withValues(alpha: 0.2),
-                ),
-              ),
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.location_on,
-                    size: 16,
-                    color: Theme.of(context).primaryColor,
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      'Filtered by: ${widget.selectedStop}',
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w500,
-                        color: Theme.of(context).primaryColor,
-                      ),
-                    ),
-                  ),
-                  TextButton(
-                    onPressed: widget.onClearFilters,
-                    style: TextButton.styleFrom(
-                      padding: EdgeInsets.zero,
-                      minimumSize: Size.zero,
-                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    ),
-                    child: const Text('Clear'),
-                  ),
-                ],
-              ),
-            ),
-          ),
 
-        // Search Bar
-        Padding(
-          padding: const EdgeInsets.fromLTRB(
-            AppSizes.paddingMedium,
-            AppSizes.paddingMedium,
-            AppSizes.paddingMedium,
-            AppSizes.paddingSmall,
-          ),
-          child: TextField(
-            controller: _searchController,
-            decoration: InputDecoration(
-              hintText: 'Search bus number or route...',
-              prefixIcon: const Icon(Icons.search),
-              suffixIcon: _searchQuery.isNotEmpty
-                  ? IconButton(
-                      icon: const Icon(Icons.clear),
-                      onPressed: () {
-                        setState(() {
-                          _searchController.clear();
-                          _searchQuery = '';
-                        });
-                      },
-                    )
-                  : null,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
-              ),
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: 16,
-                vertical: 12,
-              ),
-            ),
-            onChanged: (value) {
-              setState(() {
-                _searchQuery = value;
-              });
-            },
-          ),
-        ),
-
-        // Status Filter Buttons
-        SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          padding: const EdgeInsets.fromLTRB(
-            AppSizes.paddingMedium,
-            0,
-            AppSizes.paddingMedium,
-            AppSizes.paddingSmall,
-          ),
-          child: Row(
-            children: [
-              _buildFilterButton('all', 'All'),
-              const SizedBox(width: 8),
-              _buildFilterButton('on-time', 'On Time'),
-              const SizedBox(width: 8),
-              _buildFilterButton('delayed', 'Delayed'),
-              const SizedBox(width: 8),
-              _buildFilterButton('not-running', 'Not Running'),
-            ],
-          ),
-        ),
-
-        const SizedBox(height: AppSizes.paddingSmall),
-
-        // List Content
-        Expanded(
-          child: filteredBuses.isEmpty
-              ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.directions_bus_outlined,
-                        size: 64,
-                        color: Theme.of(
-                          context,
-                        ).colorScheme.onSurface.withValues(alpha: 0.4),
-                      ),
-                      const SizedBox(height: AppSizes.paddingMedium),
-                      Text(
-                        _searchQuery.isEmpty && _selectedStatus == 'all'
-                            ? 'No buses found'
-                            : 'No matches found',
-                        style: TextStyle(
-                          fontSize: 18,
-                          color: Theme.of(
-                            context,
-                          ).colorScheme.onSurface.withValues(alpha: 0.4),
-                        ),
-                      ),
-                    ],
-                  ),
-                )
-              : ListView.builder(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppSizes.paddingMedium,
-                  ),
-                  itemCount: filteredBuses.length,
-                  itemBuilder: (context, index) {
-                    final bus = filteredBuses[index];
-                    final isSelected = widget.selectedBus?.id == bus.id;
-
-                    final route = widget.routes.firstWhere(
-                      (r) => r.id == bus.routeId,
-                      orElse: () => RouteModel(
-                        id: '',
-                        routeName: 'Unknown Route',
-                        routeType: 'pickup',
-                        startPoint: 'N/A',
-                        endPoint: 'N/A',
-                        stopPoints: [],
-                        collegeId: '',
-                        createdBy: '',
-                        isActive: false,
-                        createdAt: DateTime.now(),
-                      ),
-                    );
-
-                    final isNotRunning = bus.status == 'not-running';
-
-                    return Container(
-                      margin: const EdgeInsets.only(
-                        bottom: AppSizes.paddingMedium,
-                      ),
-                      decoration: BoxDecoration(
-                        color:
-                            Theme.of(context).cardTheme.color ??
-                            Theme.of(context).colorScheme.surface,
-                        borderRadius: BorderRadius.circular(
-                          AppSizes.radiusLarge,
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.05),
-                            blurRadius: 10,
-                            offset: const Offset(0, 4),
-                          ),
-                        ],
-                      ),
-                      child: InkWell(
-                        onTap: () => widget.onBusSelected(bus),
-                        borderRadius: BorderRadius.circular(
-                          AppSizes.radiusLarge,
-                        ),
-                        child: Padding(
-                          padding: const EdgeInsets.all(AppSizes.paddingMedium),
-                          child: Row(
-                            children: [
-                              // Bus Icon in rounded box
-                              Container(
-                                width: 56,
-                                height: 56,
-                                decoration: BoxDecoration(
-                                  color: isSelected
-                                      ? Theme.of(
-                                          context,
-                                        ).primaryColor.withValues(alpha: 0.2)
-                                      : Theme.of(
-                                          context,
-                                        ).primaryColor.withValues(alpha: 0.08),
-                                  borderRadius: BorderRadius.circular(
-                                    AppSizes.radiusMedium,
-                                  ),
-                                ),
-                                child: Icon(
-                                  isNotRunning
-                                      ? Icons.bus_alert_rounded
-                                      : Icons.directions_bus_rounded,
-                                  color: isNotRunning
-                                      ? Colors.grey
-                                      : Theme.of(context).primaryColor,
-                                  size: 28,
-                                ),
-                              ),
-                              const SizedBox(width: AppSizes.paddingMedium),
-
-                              // Info Column
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      'Bus ${bus.busNumber}',
-                                      style: TextStyle(
-                                        fontSize: 20,
-                                        fontWeight: FontWeight.w900,
-                                        color: Theme.of(
-                                          context,
-                                        ).colorScheme.onSurface,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      bus.status == 'not-running'
-                                          ? route.routeName
-                                          : '${route.startPoint} → ${route.endPoint}',
-                                      style: TextStyle(
-                                        fontSize: 14,
-                                        color: AppColors.textSecondary,
-                                        height: 1.2,
-                                      ),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ],
-                                ),
-                              ),
-
-                              // Status and Chevron
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.end,
-                                children: [
-                                  Row(
-                                    children: [
-                                      _buildStatusBadge(bus.status),
-                                      const SizedBox(width: 8),
-                                      Icon(
-                                        Icons.chevron_right_rounded,
-                                        color: Colors.grey.withValues(
-                                          alpha: 0.6,
-                                        ),
-                                        size: 24,
-                                      ),
-                                    ],
-                                  ),
-                                  if (bus.status == 'delayed' && bus.delay > 0)
-                                    Padding(
-                                      padding: const EdgeInsets.only(
-                                        top: 4,
-                                        right: 32,
-                                      ),
-                                      child: Text(
-                                        '+${bus.delay} min',
-                                        style: TextStyle(
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.w500,
-                                          color: AppColors.textSecondary,
-                                        ),
-                                      ),
-                                    ),
-                                ],
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    );
+      // Search Bar
+      TextField(
+        controller: _searchController,
+        decoration: InputDecoration(
+          hintText: 'Search bus number or route...',
+          prefixIcon: const Icon(Icons.search),
+          suffixIcon: _searchQuery.isNotEmpty
+              ? IconButton(
+                  icon: const Icon(Icons.clear),
+                  onPressed: () {
+                    setState(() {
+                      _searchController.clear();
+                      _searchQuery = '';
+                    });
                   },
-                ),
+                )
+              : null,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
+          ),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 12,
+          ),
         ),
-      ],
-    );
+        onChanged: (value) {
+          setState(() {
+            _searchQuery = value;
+          });
+        },
+      ).p(AppSizes.paddingMedium),
+
+      // Status Filter Buttons
+      SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.fromLTRB(
+          AppSizes.paddingMedium,
+          0,
+          AppSizes.paddingMedium,
+          AppSizes.paddingSmall,
+        ),
+        child: HStack([
+          _buildFilterButton('all', 'All'),
+          8.widthBox,
+          _buildFilterButton('on-time', 'On Time'),
+          8.widthBox,
+          _buildFilterButton('delayed', 'Delayed'),
+          8.widthBox,
+          _buildFilterButton('not-running', 'Not Running'),
+        ]),
+      ),
+
+      AppSizes.paddingSmall.heightBox,
+
+      // List Content
+      filteredBuses.isEmpty
+          ? VStack(
+              [
+                Icon(
+                  Icons.directions_bus_outlined,
+                  size: 64,
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.onSurface.withValues(alpha: 0.4),
+                ),
+                AppSizes.paddingMedium.heightBox,
+                (_searchQuery.isEmpty && _selectedStatus == 'all'
+                        ? 'No buses found'
+                        : 'No matches found')
+                    .text
+                    .size(18)
+                    .color(
+                      Theme.of(
+                        context,
+                      ).colorScheme.onSurface.withValues(alpha: 0.4),
+                    )
+                    .make(),
+              ],
+              alignment: MainAxisAlignment.center,
+              crossAlignment: CrossAxisAlignment.center,
+            ).centered().expand()
+          : ListView.builder(
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSizes.paddingMedium,
+              ),
+              itemCount: filteredBuses.length,
+              itemBuilder: (context, index) {
+                final bus = filteredBuses[index];
+                final isSelected = widget.selectedBus?.id == bus.id;
+
+                final route = widget.routes.firstWhere(
+                  (r) => r.id == bus.routeId,
+                  orElse: () => RouteModel(
+                    id: '',
+                    routeName: 'Unknown Route',
+                    routeType: 'pickup',
+                    startPoint: 'N/A',
+                    endPoint: 'N/A',
+                    stopPoints: [],
+                    collegeId: '',
+                    createdBy: '',
+                    isActive: false,
+                    createdAt: DateTime.now(),
+                  ),
+                );
+
+                final isNotRunning = bus.status == 'not-running';
+
+                return VxBox(
+                      child: HStack([
+                        // Bus Icon in rounded box
+                        Icon(
+                              isNotRunning
+                                  ? Icons.bus_alert_rounded
+                                  : Icons.directions_bus_rounded,
+                              color: isNotRunning
+                                  ? Colors.grey
+                                  : Theme.of(context).primaryColor,
+                              size: 28,
+                            ).box
+                            .color(
+                              isSelected
+                                  ? Theme.of(
+                                      context,
+                                    ).primaryColor.withValues(alpha: 0.2)
+                                  : Theme.of(
+                                      context,
+                                    ).primaryColor.withValues(alpha: 0.08),
+                            )
+                            .rounded
+                            .size(56, 56)
+                            .make(),
+
+                        AppSizes.paddingMedium.widthBox,
+
+                        // Info Column
+                        VStack([
+                          'Bus ${bus.busNumber}'.text
+                              .size(20)
+                              .black
+                              .color(Theme.of(context).colorScheme.onSurface)
+                              .make(),
+                          4.heightBox,
+                          (bus.status == 'not-running'
+                                  ? route.routeName
+                                  : '${route.startPoint} → ${route.endPoint}')
+                              .text
+                              .size(14)
+                              .color(AppColors.textSecondary)
+                              .maxLines(1)
+                              .ellipsis
+                              .make(),
+                        ]).expand(),
+
+                        // Status and Chevron
+                        VStack([
+                          HStack([
+                            _buildStatusBadge(bus.status),
+                            8.widthBox,
+                            Icon(
+                              Icons.chevron_right_rounded,
+                              color: Colors.grey.withValues(alpha: 0.6),
+                              size: 24,
+                            ),
+                          ]),
+                          if (bus.status == 'delayed' && bus.delay > 0)
+                            Text('+${bus.delay} min').text
+                                .size(12)
+                                .medium
+                                .color(AppColors.textSecondary)
+                                .make()
+                                .pOnly(top: 4, right: 32),
+                        ], crossAlignment: CrossAxisAlignment.end),
+                      ]),
+                    )
+                    .padding(const EdgeInsets.all(AppSizes.paddingMedium))
+                    .color(
+                      Theme.of(context).cardTheme.color ??
+                          Theme.of(context).colorScheme.surface,
+                    )
+                    .withShadow([
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.05),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      ),
+                    ])
+                    .roundedLg
+                    .make()
+                    .onInkTap(() => widget.onBusSelected(bus))
+                    .pOnly(bottom: AppSizes.paddingMedium);
+              },
+            ).expand(),
+    ]);
   }
 
   Widget _buildFilterButton(String status, String label) {
     final isSelected = _selectedStatus == status;
-    return GestureDetector(
-      onTap: () {
-        setState(() {
-          _selectedStatus = status;
-        });
-      },
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        decoration: BoxDecoration(
-          color: isSelected
+    return VxBox(
+          child: label.text
+              .color(isSelected ? Colors.white : Theme.of(context).primaryColor)
+              .size(12)
+              .fontWeight(isSelected ? FontWeight.bold : FontWeight.normal)
+              .make(),
+        )
+        .padding(const EdgeInsets.symmetric(horizontal: 16, vertical: 8))
+        .color(
+          isSelected
               ? Theme.of(context).primaryColor
               : Theme.of(context).primaryColor.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: isSelected
-                ? Theme.of(context).primaryColor
-                : Theme.of(context).primaryColor.withValues(alpha: 0.2),
-          ),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            color: isSelected ? Colors.white : Theme.of(context).primaryColor,
-            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-            fontSize: 12,
-          ),
-        ),
-      ),
-    );
+        )
+        .roundedFull
+        .border(
+          color: isSelected
+              ? Theme.of(context).primaryColor
+              : Theme.of(context).primaryColor.withValues(alpha: 0.2),
+        )
+        .make()
+        .onInkTap(() {
+          setState(() {
+            _selectedStatus = status;
+          });
+        });
   }
 
   Widget _buildStatusBadge(String status) {
@@ -435,31 +356,14 @@ class _StudentBusListTabState extends State<StudentBusListTab> {
         label = 'Unknown';
     }
 
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 8,
-            height: 8,
-            decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-          ),
-          const SizedBox(width: 8),
-          Text(
-            label,
-            style: TextStyle(
-              color: color.withValues(alpha: 0.9),
-              fontSize: 13,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-        ],
-      ),
-    );
+    return HStack([
+          VxBox().size(8, 8).color(color).roundedFull.make(),
+          8.widthBox,
+          label.text.size(13).bold.color(color.withValues(alpha: 0.9)).make(),
+        ]).box
+        .color(color.withValues(alpha: 0.1))
+        .roundedFull
+        .make()
+        .pSymmetric(h: 12, v: 6);
   }
 }
