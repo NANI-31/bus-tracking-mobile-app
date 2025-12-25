@@ -1,10 +1,38 @@
+class RoutePoint {
+  final String name;
+  final double lat;
+  final double lng;
+
+  RoutePoint({required this.name, required this.lat, required this.lng});
+
+  factory RoutePoint.fromMap(dynamic map) {
+    if (map is String) {
+      // Handle legacy or string-only data
+      return RoutePoint(name: map, lat: 0.0, lng: 0.0);
+    }
+    final location = map['location'] ?? {};
+    return RoutePoint(
+      name: map['name'] ?? '',
+      lat: (location['lat'] ?? 0.0).toDouble(),
+      lng: (location['lng'] ?? 0.0).toDouble(),
+    );
+  }
+
+  Map<String, dynamic> toMap() {
+    return {
+      'name': name,
+      'location': {'lat': lat, 'lng': lng},
+    };
+  }
+}
+
 class RouteModel {
   final String id;
   final String routeName;
   final String routeType; // 'pickup' or 'drop'
-  final String startPoint;
-  final String endPoint;
-  final List<String> stopPoints;
+  final RoutePoint startPoint;
+  final RoutePoint endPoint;
+  final List<RoutePoint> stopPoints;
   final String collegeId;
   final String createdBy;
   final bool isActive;
@@ -30,14 +58,10 @@ class RouteModel {
       id: id,
       routeName: map['routeName'] ?? '',
       routeType: map['routeType'] ?? 'pickup',
-      startPoint: map['startPoint'] is Map
-          ? map['startPoint']['name'] ?? ''
-          : map['startPoint'] ?? '',
-      endPoint: map['endPoint'] is Map
-          ? map['endPoint']['name'] ?? ''
-          : map['endPoint'] ?? '',
+      startPoint: RoutePoint.fromMap(map['startPoint']),
+      endPoint: RoutePoint.fromMap(map['endPoint']),
       stopPoints: (map['stopPoints'] as List? ?? [])
-          .map((e) => e is Map ? e['name'] as String : e.toString())
+          .map((e) => RoutePoint.fromMap(e))
           .toList(),
       collegeId: map['collegeId'] ?? '',
       createdBy: map['createdBy'] ?? '',
@@ -53,9 +77,9 @@ class RouteModel {
     return {
       'routeName': routeName,
       'routeType': routeType,
-      'startPoint': startPoint,
-      'endPoint': endPoint,
-      'stopPoints': stopPoints,
+      'startPoint': startPoint.toMap(),
+      'endPoint': endPoint.toMap(),
+      'stopPoints': stopPoints.map((s) => s.toMap()).toList(),
       'collegeId': collegeId,
       'createdBy': createdBy,
       'isActive': isActive,
@@ -68,9 +92,9 @@ class RouteModel {
     String? id,
     String? routeName,
     String? routeType,
-    String? startPoint,
-    String? endPoint,
-    List<String>? stopPoints,
+    RoutePoint? startPoint,
+    RoutePoint? endPoint,
+    List<RoutePoint>? stopPoints,
     String? collegeId,
     String? createdBy,
     bool? isActive,

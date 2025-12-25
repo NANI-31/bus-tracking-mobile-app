@@ -1,20 +1,22 @@
 import 'package:flutter/material.dart';
-// import 'package:firebase_core/firebase_core.dart'; // REMOVED
+import 'package:firebase_core/firebase_core.dart';
 import 'package:provider/provider.dart';
 import 'package:collegebus/services/auth_service.dart';
 import 'package:collegebus/services/data_service.dart';
 import 'package:collegebus/services/location_service.dart';
 import 'package:collegebus/services/notification_service.dart';
 import 'package:collegebus/services/api_service.dart';
+import 'package:collegebus/services/fcm_service.dart';
 import 'package:collegebus/utils/constants.dart';
 import 'package:collegebus/utils/router.dart';
 import 'package:collegebus/screens/splash_screen.dart';
 
 import 'package:collegebus/services/theme_service.dart';
 import 'package:collegebus/services/locale_service.dart';
+import 'package:collegebus/services/socket_service.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
-import 'package:collegebus/l10n/login/auth_login_localizations.dart';
-import 'package:collegebus/l10n/signup/auth_signup_localizations.dart';
+import 'package:collegebus/l10n/auth/login/auth_login_localizations.dart';
+import 'package:collegebus/l10n/auth/signup/auth_signup_localizations.dart';
 
 void main() {
   runApp(const AppInitializer());
@@ -38,11 +40,23 @@ class _AppInitializerState extends State<AppInitializer> {
 
   Future<void> _initializeApp() async {
     WidgetsFlutterBinding.ensureInitialized();
+
+    try {
+      // Initialize Firebase
+      await Firebase.initializeApp();
+
+      // Initialize FCM Service
+      await FCMService.initialize();
+    } catch (e) {
+      debugPrint('Firebase/FCM initialization error: $e');
+    }
+
     try {
       await NotificationService.initialize();
     } catch (e) {
       // Notification service initialization failed, but app can continue
     }
+
     setState(() {
       _initialized = true;
     });
@@ -74,8 +88,21 @@ class MyApp extends StatelessWidget {
           update: (_, api, auth) => auth!..updateApiService(api),
         ),
 
-        ProxyProvider<ApiService, DataService>(
-          update: (_, api, __) => DataService(api),
+        ChangeNotifierProvider(
+          create: (_) {
+            final socket = SocketService();
+            socket.init(AppConstants.baseUrl);
+            return socket;
+          },
+        ),
+
+        ChangeNotifierProxyProvider2<ApiService, SocketService, DataService>(
+          create: (context) => DataService(
+            Provider.of<ApiService>(context, listen: false),
+            Provider.of<SocketService>(context, listen: false),
+          ),
+          update: (_, api, socket, dataService) =>
+              dataService!..updateDependencies(api, socket),
         ),
 
         Provider(create: (_) => LocationService()),

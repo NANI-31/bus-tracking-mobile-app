@@ -53,8 +53,8 @@ class _StudentBusListTabState extends State<StudentBusListTab> {
             id: '',
             routeName: '',
             routeType: '',
-            startPoint: '',
-            endPoint: '',
+            startPoint: RoutePoint(name: '', lat: 0, lng: 0),
+            endPoint: RoutePoint(name: '', lat: 0, lng: 0),
             stopPoints: [],
             collegeId: '',
             createdBy: '',
@@ -207,8 +207,8 @@ class _StudentBusListTabState extends State<StudentBusListTab> {
                     id: '',
                     routeName: 'Unknown Route',
                     routeType: 'pickup',
-                    startPoint: 'N/A',
-                    endPoint: 'N/A',
+                    startPoint: RoutePoint(name: 'N/A', lat: 0, lng: 0),
+                    endPoint: RoutePoint(name: 'N/A', lat: 0, lng: 0),
                     stopPoints: [],
                     collegeId: '',
                     createdBy: '',
@@ -256,7 +256,7 @@ class _StudentBusListTabState extends State<StudentBusListTab> {
                           4.heightBox,
                           (bus.status == 'not-running'
                                   ? route.routeName
-                                  : '${route.startPoint} → ${route.endPoint}')
+                                  : '${route.startPoint.name} → ${route.endPoint.name}')
                               .text
                               .size(14)
                               .color(AppColors.textSecondary)
@@ -334,13 +334,13 @@ class _StudentBusListTabState extends State<StudentBusListTab> {
               .color(
                 isSelected
                     ? Theme.of(context).primaryColor
-                    : Theme.of(context).primaryColor.withOpacity(0.1),
+                    : Theme.of(context).primaryColor.withValues(alpha: 0.1),
               )
               .customRounded(BorderRadius.circular(24))
               .border(
                 color: isSelected
                     ? Theme.of(context).primaryColor
-                    : Theme.of(context).primaryColor.withOpacity(0.2),
+                    : Theme.of(context).primaryColor.withValues(alpha: 0.2),
               )
               .make(),
     );

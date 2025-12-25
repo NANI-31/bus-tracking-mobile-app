@@ -18,19 +18,30 @@ class _StudentBusStopScreenState extends State<StudentBusStopScreen> {
   String? _updatingStop;
 
   Future<void> _updatePreferredStop(
-    String stop,
+    String stopName,
+    String routeId,
+    String? stopId,
+    double lat,
+    double lng,
     String userId,
     ApiService apiService,
     AuthService authService,
+    String routeName,
   ) async {
-    setState(() => _updatingStop = stop);
+    // Unique ID for the updating state (stopName + routeId)
+    final uniqueId = '$stopName-$routeId';
+    setState(() => _updatingStop = uniqueId);
     try {
       final updatedUser = await apiService.updateUser(userId, {
-        'preferredStop': stop,
+        'preferredStop': stopName,
+        'routeId': routeId,
+        'stopId': stopId ?? stopName, // Use name as ID if explicit ID missing
+        'stopName': stopName,
+        'stopLocation': {'lat': lat, 'lng': lng},
       });
       authService.updateCurrentUser(updatedUser);
       if (mounted) {
-        VxToast.show(context, msg: 'Preferred stop updated to $stop');
+        VxToast.show(context, msg: 'Stop updated to $stopName ($routeName)');
         Navigator.pop(context);
       }
     } catch (e) {
@@ -64,12 +75,12 @@ class _StudentBusStopScreenState extends State<StudentBusStopScreen> {
         elevation: 0,
       ),
       body: VStack([
-        // Header Section with Search
+        // Header Section
         VxBox(
               child: VStack([
                 'Where will you board?'.text.white.extraBold.size(24).make(),
                 8.heightBox,
-                'Select your preferred pickup point for timely alerts.'.text
+                'Select your stop and route to receive arrival alerts.'.text
                     .color(Colors.white.withValues(alpha: 0.7))
                     .make(),
                 24.heightBox,
@@ -78,7 +89,7 @@ class _StudentBusStopScreenState extends State<StudentBusStopScreen> {
                       setState(() => _searchQuery = val.toLowerCase()),
                   style: const TextStyle(color: Colors.black87),
                   decoration: InputDecoration(
-                    hintText: 'Search for a stop...',
+                    hintText: 'Search stop or route...',
                     prefixIcon: const Icon(Icons.search, color: Colors.grey),
                     filled: true,
                     fillColor: Colors.white,
@@ -86,13 +97,6 @@ class _StudentBusStopScreenState extends State<StudentBusStopScreen> {
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(16),
                       borderSide: BorderSide.none,
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(16),
-                      borderSide: const BorderSide(
-                        color: Colors.white24,
-                        width: 2,
-                      ),
                     ),
                   ),
                 ),
@@ -117,22 +121,58 @@ class _StudentBusStopScreenState extends State<StudentBusStopScreen> {
               return const CircularProgressIndicator().centered().expand();
             }
 
-            final stops = <String>{};
+            // Build a list of all stops with their route context
+            final stopOptions = <Map<String, dynamic>>[];
+
             if (snapshot.hasData) {
               for (final route in snapshot.data!) {
-                stops.add(route.startPoint);
-                stops.add(route.endPoint);
-                stops.addAll(route.stopPoints);
+                // Start Point
+                stopOptions.add({
+                  'name': route.startPoint.name,
+                  'lat': route.startPoint.lat,
+                  'lng': route.startPoint.lng,
+                  'type': 'Start Point',
+                  'routeId': route.id,
+                  'routeName': route.routeName,
+                });
+
+                // End Point
+                stopOptions.add({
+                  'name': route.endPoint.name,
+                  'lat': route.endPoint.lat,
+                  'lng': route.endPoint.lng,
+                  'type': 'End Point',
+                  'routeId': route.id,
+                  'routeName': route.routeName,
+                });
+
+                // Intermediate Points
+                for (final point in route.stopPoints) {
+                  stopOptions.add({
+                    'name': point.name,
+                    'lat': point.lat,
+                    'lng': point.lng,
+                    'type': 'Intermediate',
+                    'routeId': route.id,
+                    'routeName': route.routeName,
+                  });
+                }
               }
             }
 
-            final filteredStops =
-                stops
-                    .where((s) => s.toLowerCase().contains(_searchQuery))
-                    .toList()
-                  ..sort();
+            final filteredOptions = stopOptions.where((option) {
+              final search = _searchQuery.toLowerCase();
+              final name = (option['name'] as String).toLowerCase();
+              final route = (option['routeName'] as String).toLowerCase();
+              return name.contains(search) || route.contains(search);
+            }).toList();
 
-            if (filteredStops.isEmpty) {
+            // Sort by name
+            filteredOptions.sort(
+              (a, b) => (a['name'] as String).compareTo(b['name'] as String),
+            );
+
+            if (filteredOptions.isEmpty) {
               return [
                 const Icon(
                   Icons.search_off_rounded,
@@ -140,28 +180,41 @@ class _StudentBusStopScreenState extends State<StudentBusStopScreen> {
                   color: Colors.grey,
                 ),
                 16.heightBox,
-                'No stops match your search'.text.gray500.make(),
+                'No stops found'.text.gray500.make(),
               ].vStack().centered().expand();
             }
 
             return ListView.builder(
               padding: const EdgeInsets.all(16),
-              itemCount: filteredStops.length,
+              itemCount: filteredOptions.length,
               itemBuilder: (context, index) {
-                final stop = filteredStops[index];
-                final isSelected = user.preferredStop == stop;
-                final isUpdating = _updatingStop == stop;
+                final option = filteredOptions[index];
+                final name = option['name'] as String;
+                final routeId = option['routeId'] as String;
+                final routeName = option['routeName'] as String;
+
+                // Unique check: matches stop AND route
+                final isSelected =
+                    user.preferredStop == name && user.routeId == routeId;
+                final uniqueId = '$name-$routeId';
+                final isUpdating = _updatingStop == uniqueId;
 
                 return _buildStopItem(
                   context: context,
-                  stop: stop,
+                  stopName: name,
+                  routeName: routeName,
                   isSelected: isSelected,
                   isUpdating: isUpdating,
                   onTap: () => _updatePreferredStop(
-                    stop,
+                    name,
+                    routeId,
+                    null, // implicit ID
+                    option['lat'] as double,
+                    option['lng'] as double,
                     user.id,
                     apiService,
                     authService,
+                    routeName,
                   ),
                 );
               },
@@ -174,7 +227,8 @@ class _StudentBusStopScreenState extends State<StudentBusStopScreen> {
 
   Widget _buildStopItem({
     required BuildContext context,
-    required String stop,
+    required String stopName,
+    required String routeName,
     required bool isSelected,
     required bool isUpdating,
     required VoidCallback onTap,
@@ -229,11 +283,14 @@ class _StudentBusStopScreenState extends State<StudentBusStopScreen> {
                   ),
                 ),
                 16.widthBox,
-                stop.text.bold
-                    .size(16)
-                    .color(isSelected ? Theme.of(context).primaryColor : null)
-                    .make()
-                    .expand(),
+                VStack([
+                  stopName.text.bold
+                      .size(16)
+                      .color(isSelected ? Theme.of(context).primaryColor : null)
+                      .make(),
+                  4.heightBox,
+                  'Route: $routeName'.text.size(12).gray500.make(),
+                ]).expand(),
                 if (isUpdating)
                   const SizedBox(
                     width: 20,

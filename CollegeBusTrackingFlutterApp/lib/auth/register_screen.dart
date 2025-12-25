@@ -11,7 +11,7 @@ import 'package:collegebus/models/college_model.dart';
 import 'package:collegebus/widgets/api_error_modal.dart';
 import 'package:collegebus/widgets/success_modal.dart';
 import 'package:velocity_x/velocity_x.dart';
-import 'package:collegebus/l10n/signup/auth_signup_localizations.dart';
+import 'package:collegebus/l10n/auth/signup/auth_signup_localizations.dart';
 import 'package:collegebus/widgets/language_selector.dart';
 
 // Import New Widgets
@@ -89,7 +89,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     try {
       final authService = Provider.of<AuthService>(context, listen: false);
       String email = '';
-      String collegeName = '';
+      String collegeId = '';
       String? rollNumber = _selectedRole == UserRole.student
           ? _rollNumberController.text.trim()
           : null;
@@ -98,10 +98,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
       if (_selectedRole == UserRole.busCoordinator) {
         email =
             '${_emailIdController.text.trim()}@${_emailDomainController.text.trim()}';
-        collegeName = _collegeController.text.trim();
+        // Coordinator creates a slug for now, or we could handle it differently
+        collegeId = _collegeController.text.trim().toLowerCase().replaceAll(
+          ' ',
+          '_',
+        );
       } else {
         email = _emailController.text.trim();
-        collegeName = _selectedCollege?.name ?? '';
+        collegeId = _selectedCollege?.id ?? '';
 
         if (_selectedCollege != null) {
           final domain = email.split('@').last;
@@ -119,7 +123,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 baseColor: Colors.orange,
                 primaryActionText: l10n.continueText,
                 onPrimaryAction: () => Navigator.of(context).pop(true),
-                secondaryActionText: l10n.cancel,
+                secondaryActionText: 'Abort',
                 onSecondaryAction: () => Navigator.of(context).pop(false),
               ),
             );
@@ -136,7 +140,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         email: email,
         password: _passwordController.text,
         fullName: _nameController.text.trim(),
-        collegeName: collegeName,
+        collegeId: collegeId,
         role: _selectedRole,
         phoneNumber: phoneNumber,
         rollNumber: rollNumber,
@@ -352,7 +356,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 if (_selectedRole != UserRole.parent &&
                     _emailDomainHint != null)
                   _emailDomainHint!.text
-                      .color(AppColors.primary.withOpacity(0.8))
+                      .color(AppColors.primary.withValues(alpha: 0.8))
                       .size(12)
                       .medium
                       .make()

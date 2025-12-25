@@ -47,7 +47,7 @@ class _CustomInputFieldState extends State<CustomInputField> {
           widget.label.text
               .size(16)
               .medium
-              .color(Theme.of(context).colorScheme.onBackground)
+              .color(Theme.of(context).colorScheme.onSurface)
               .make(),
           AppSizes.paddingSmall.heightBox,
         ]),

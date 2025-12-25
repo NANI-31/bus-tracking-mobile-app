@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:velocity_x/velocity_x.dart';
-import '../../../common/notifications_screen.dart';
+import '../../../common/notifications/notifications_screen.dart';
 
 class StudentBottomNavAppBar extends StatelessWidget
     implements PreferredSizeWidget {

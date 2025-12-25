@@ -4,27 +4,13 @@ import 'package:collegebus/models/bus_model.dart';
 import 'package:collegebus/models/route_model.dart';
 
 class StudentMapHelper {
-  static LatLng getMockCoordinateForLocation(
-    String location,
-    LatLng? currentLocation,
-  ) {
-    final mockCoords = {
-      'Central Station': const LatLng(12.9716, 77.5946),
-      'City Center': const LatLng(12.9726, 77.5956),
-      'Shopping Mall': const LatLng(12.9736, 77.5966),
-      'Hospital': const LatLng(12.9746, 77.5976),
-      'University Campus': const LatLng(12.9756, 77.5986),
-      'Airport': const LatLng(12.9766, 77.5996),
-      'Hotel District': const LatLng(12.9776, 77.6006),
-      'Business Park': const LatLng(12.9786, 77.6016),
-      'Suburban Area': const LatLng(12.9796, 77.6026),
-      'Residential Area': const LatLng(12.9806, 77.6036),
-      'Park': const LatLng(12.9816, 77.6046),
-    };
-
-    return mockCoords[location] ??
-        currentLocation ??
-        const LatLng(12.9716, 77.5946);
+  // Helper to get LatLng from RoutePoint with fallback for legacy data
+  static LatLng _getPointLocation(RoutePoint point, LatLng? currentLocation) {
+    if (point.lat != 0.0 && point.lng != 0.0) {
+      return LatLng(point.lat, point.lng);
+    }
+    // Fallback if coordinates are missing (should not happen in prod with new data)
+    return currentLocation ?? const LatLng(12.9716, 77.5946);
   }
 
   static Marker createBusMarker({
@@ -37,7 +23,7 @@ class StudentMapHelper {
   }) {
     final position =
         location?.currentLocation ??
-        getMockCoordinateForLocation(route.startPoint, currentLocation);
+        _getPointLocation(route.startPoint, currentLocation);
 
     return Marker(
       markerId: MarkerId('bus_${bus.id}'),
@@ -46,7 +32,7 @@ class StudentMapHelper {
         title:
             'Bus ${bus.busNumber} ${location != null ? "(Live)" : "(Not Live)"}',
         snippet:
-            '${route.startPoint} → ${route.endPoint}\n${location != null ? 'Last updated: ${location.timestamp.toString().substring(11, 16)}' : 'Status: Offline'}',
+            '${route.startPoint.name} → ${route.endPoint.name}\n${location != null ? 'Last updated: ${location.timestamp.toString().substring(11, 16)}' : 'Status: Offline'}',
       ),
       icon: BitmapDescriptor.defaultMarkerWithHue(
         isSelected
@@ -65,21 +51,14 @@ class StudentMapHelper {
     required LatLng? currentLocation,
   }) {
     final routePoints = <LatLng>[];
-    final startCoord = getMockCoordinateForLocation(
-      route.startPoint,
-      currentLocation,
-    );
-    routePoints.add(startCoord);
+
+    routePoints.add(_getPointLocation(route.startPoint, currentLocation));
 
     for (final stop in route.stopPoints) {
-      routePoints.add(getMockCoordinateForLocation(stop, currentLocation));
+      routePoints.add(_getPointLocation(stop, currentLocation));
     }
 
-    final endCoord = getMockCoordinateForLocation(
-      route.endPoint,
-      currentLocation,
-    );
-    routePoints.add(endCoord);
+    routePoints.add(_getPointLocation(route.endPoint, currentLocation));
 
     return Polyline(
       polylineId: PolylineId('route_${bus.id}'),
@@ -95,37 +74,28 @@ class StudentMapHelper {
     required LatLng? currentLocation,
   }) {
     final routePoints = <LatLng>[];
-    final startCoord = getMockCoordinateForLocation(
-      route.startPoint,
-      currentLocation,
-    );
-    routePoints.add(startCoord);
+    final stopNames = <String>[];
+
+    routePoints.add(_getPointLocation(route.startPoint, currentLocation));
+    stopNames.add(route.startPoint.name);
 
     for (final stop in route.stopPoints) {
-      routePoints.add(getMockCoordinateForLocation(stop, currentLocation));
+      routePoints.add(_getPointLocation(stop, currentLocation));
+      stopNames.add(stop.name);
     }
 
-    final endCoord = getMockCoordinateForLocation(
-      route.endPoint,
-      currentLocation,
-    );
-    routePoints.add(endCoord);
+    routePoints.add(_getPointLocation(route.endPoint, currentLocation));
+    stopNames.add(route.endPoint.name);
 
     final markers = <Marker>[];
 
     for (int i = 0; i < routePoints.length; i++) {
-      final stopName = i == 0
-          ? route.startPoint
-          : i == routePoints.length - 1
-          ? route.endPoint
-          : route.stopPoints[i - 1];
-
       markers.add(
         Marker(
           markerId: MarkerId('stop_${bus.id}_$i'),
           position: routePoints[i],
           infoWindow: InfoWindow(
-            title: stopName,
+            title: stopNames[i],
             snippet: i == 0
                 ? 'Start Point'
                 : i == routePoints.length - 1

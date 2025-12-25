@@ -18,6 +18,7 @@ class StudentMapTab extends StatelessWidget {
   final Function(String?) onBusNumberSelected;
   final VoidCallback onClearFilters;
   final Function(BusModel?) onBusSelected;
+  final String? mapStyle;
 
   const StudentMapTab({
     super.key,
@@ -34,6 +35,7 @@ class StudentMapTab extends StatelessWidget {
     required this.onBusNumberSelected,
     required this.onClearFilters,
     required this.onBusSelected,
+    this.mapStyle,
   });
 
   @override
@@ -82,7 +84,7 @@ class StudentMapTab extends StatelessWidget {
               HStack([
                 DropdownButtonFormField<String>(
                   isExpanded: true,
-                  value: selectedRouteType,
+                  initialValue: selectedRouteType,
                   dropdownColor: Theme.of(context).colorScheme.surface,
                   decoration: const InputDecoration(
                     labelText: 'Route Type',
@@ -107,7 +109,7 @@ class StudentMapTab extends StatelessWidget {
 
                 DropdownButtonFormField<String>(
                   isExpanded: true,
-                  value: allBusNumbers.contains(selectedBusNumber)
+                  initialValue: allBusNumbers.contains(selectedBusNumber)
                       ? selectedBusNumber
                       : null,
                   dropdownColor: Theme.of(context).colorScheme.surface,
@@ -178,6 +180,7 @@ class StudentMapTab extends StatelessWidget {
                   myLocationEnabled: true,
                   myLocationButtonEnabled: true,
                   mapType: MapType.normal,
+                  style: mapStyle,
                 )
               : const Center(child: CircularProgressIndicator()))
           .expand(flex: 3),

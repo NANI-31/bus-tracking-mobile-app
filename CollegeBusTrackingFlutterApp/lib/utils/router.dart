@@ -11,7 +11,7 @@ import 'package:collegebus/auth/otp_verification_screen.dart';
 import 'package:collegebus/auth/reset_password_screen.dart';
 import 'package:collegebus/screens/student/student_dashboard.dart';
 import 'package:collegebus/screens/student/bus_schedule_screen.dart';
-import 'package:collegebus/screens/teacher/teacher_dashboard.dart';
+// import 'package:collegebus/screens/teacher/teacher_dashboard.dart'; // Removed
 import 'package:collegebus/screens/driver/driver_dashboard.dart';
 import 'package:collegebus/screens/coordinator/coordinator_dashboard.dart';
 import 'package:collegebus/screens/coordinator/schedule_management_screen.dart';
@@ -20,7 +20,7 @@ import 'package:collegebus/screens/student/student_profile_screen.dart';
 import 'package:collegebus/screens/student/student_change_password_screen.dart';
 import 'package:collegebus/screens/common/privacy_policy_screen.dart';
 import 'package:collegebus/screens/common/terms_conditions_screen.dart';
-import 'package:collegebus/screens/common/notifications_screen.dart';
+import 'package:collegebus/screens/common/notifications/notifications_screen.dart';
 import 'package:collegebus/utils/constants.dart';
 
 class AppRouter {
@@ -28,6 +28,12 @@ class AppRouter {
     initialLocation: '/login',
     redirect: (context, state) {
       final authService = Provider.of<AuthService>(context, listen: false);
+
+      // If auth service is still initializing, don't redirect yet
+      if (!authService.isInitialized) {
+        return null;
+      }
+
       final isLoggedIn = authService.currentUserModel != null;
       final isLoginRoute =
           state.matchedLocation == '/login' ||
@@ -46,9 +52,8 @@ class AppRouter {
         switch (userRole) {
           case UserRole.student:
           case UserRole.parent:
-            return '/student/home';
           case UserRole.teacher:
-            return '/teacher';
+            return '/student/home';
           case UserRole.driver:
             return '/driver';
           case UserRole.busCoordinator:
@@ -137,10 +142,12 @@ class AppRouter {
           ),
         ],
       ),
+      /*
       GoRoute(
         path: '/teacher',
         builder: (context, state) => const TeacherDashboard(),
       ),
+      */
       GoRoute(
         path: '/driver',
         builder: (context, state) => const DriverDashboard(),

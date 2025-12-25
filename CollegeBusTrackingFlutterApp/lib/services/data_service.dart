@@ -7,16 +7,26 @@ import 'package:collegebus/models/notification_model.dart';
 import 'package:collegebus/models/schedule_model.dart';
 import 'package:collegebus/utils/constants.dart';
 import 'package:collegebus/services/api_service.dart';
+import 'package:collegebus/services/socket_service.dart';
+import 'package:flutter/material.dart';
 
-class DataService {
-  final ApiService _apiService;
+class DataService extends ChangeNotifier {
+  ApiService _apiService;
+  SocketService _socketService;
+
+  void updateDependencies(ApiService api, SocketService socket) {
+    _apiService = api;
+    _socketService = socket;
+    // We don't notifyListeners here because that would cause an infinite rebuild loop
+    // if ProxyProvider re-evaluates. ProxyProvider handles the value identity.
+  }
 
   // In-memory cache
   List<CollegeModel>? _cachedColleges;
   final Map<String, List<RouteModel>> _cachedRoutes = {};
   final Map<String, List<String>> _cachedBusNumbers = {};
 
-  DataService(this._apiService);
+  DataService(this._apiService, this._socketService);
 
   // User operations
   Future<UserModel?> getUser(String userId) async {
@@ -95,12 +105,8 @@ class DataService {
   }
 
   Stream<List<BusModel>> getBusesByCollege(String collegeId) {
-    // Polling every 10 seconds to refresh list? Or just one-shot?
-    // User dashboard expects live updates if new buses are added, but maybe less critical.
-    // Bus location is critical.
-    // Let's do a simple poll for lists too, but longer interval.
-    // Emit immediately, then periodically
-    return Stream.multi((controller) {
+    // Initial fetch from REST, then updates from Socket or Refresh event
+    return Stream.multi((controller) async {
       Future<void> fetch() async {
         try {
           final buses = await _apiService.getAllBuses();
@@ -109,19 +115,20 @@ class DataService {
               .toList();
           if (!controller.isClosed) controller.add(filtered);
         } catch (e) {
-          // Keep stream alive on error? or add error
           if (!controller.isClosed) controller.addError(e);
         }
       }
 
       // Initial fetch
-      fetch();
+      await fetch();
 
-      // Periodic fetch
-      final timer = Timer.periodic(const Duration(seconds: 15), (_) => fetch());
+      // Listen for socket updates instead of polling
+      final subscription = _socketService.busListUpdateStream.listen((_) {
+        fetch();
+      });
 
       controller.onCancel = () {
-        timer.cancel();
+        subscription.cancel();
       };
     });
   }
@@ -221,8 +228,22 @@ class DataService {
   // Bus location operations
   Future<void> updateBusLocation(
     String busId,
+    String collegeId,
     BusLocationModel location,
   ) async {
+    // Notify server via Socket (instantly)
+    _socketService.updateLocation({
+      'busId': busId,
+      'collegeId': collegeId,
+      'currentLocation': {
+        'lat': location.currentLocation.latitude,
+        'lng': location.currentLocation.longitude,
+      },
+      'speed': location.speed ?? 0.0,
+      'heading': location.heading ?? 0.0,
+    });
+
+    // Also persist via REST
     await _apiService.updateBusLocation(
       busId,
       location.currentLocation.latitude,
@@ -233,9 +254,7 @@ class DataService {
   }
 
   Stream<BusLocationModel?> getBusLocation(String busId) {
-    // Deprecated: Use getCollegeBusLocationsStream for dashboard
-    // Keeping simple one-shot or polling for detail view if needed, but optimally should reuse bulk data
-    return Stream.multi((controller) {
+    return Stream.multi((controller) async {
       Future<void> fetch() async {
         try {
           final location = await _apiService.getBusLocation(busId);
@@ -245,28 +264,62 @@ class DataService {
         }
       }
 
-      fetch();
-      final timer = Timer.periodic(const Duration(seconds: 4), (_) => fetch());
-      controller.onCancel = () => timer.cancel();
+      // Initial fetch
+      await fetch();
+
+      // Listen for socket updates for this SPECIFIC bus
+      final subscription = _socketService.locationUpdateStream.listen((data) {
+        if (data['busId'] == busId) {
+          controller.add(BusLocationModel.fromMap(data, busId));
+        }
+      });
+
+      controller.onCancel = () {
+        subscription.cancel();
+      };
     });
   }
 
   Stream<List<BusLocationModel>> getCollegeBusLocationsStream(
     String collegeId,
   ) {
-    return Stream.multi((controller) {
-      Future<void> fetch() async {
+    return Stream.multi((controller) async {
+      List<BusLocationModel> currentLocations = [];
+
+      Future<void> fetchAll() async {
         try {
-          final locations = await _apiService.getCollegeBusLocations(collegeId);
-          if (!controller.isClosed) controller.add(locations);
+          currentLocations = await _apiService.getCollegeBusLocations(
+            collegeId,
+          );
+          if (!controller.isClosed) controller.add(currentLocations);
         } catch (e) {
           if (!controller.isClosed) controller.addError(e);
         }
       }
 
-      fetch();
-      final timer = Timer.periodic(const Duration(seconds: 4), (_) => fetch());
-      controller.onCancel = () => timer.cancel();
+      // Initial fetch
+      await fetchAll();
+
+      // Listen for socket updates for ANY bus in this college
+      final subscription = _socketService.locationUpdateStream.listen((data) {
+        if (data['collegeId'] == collegeId) {
+          final busId = data['busId'];
+          final newLoc = BusLocationModel.fromMap(data, busId);
+
+          // Update the local list and emit
+          final index = currentLocations.indexWhere((l) => l.busId == busId);
+          if (index != -1) {
+            currentLocations[index] = newLoc;
+          } else {
+            currentLocations.add(newLoc);
+          }
+          if (!controller.isClosed) controller.add(List.from(currentLocations));
+        }
+      });
+
+      controller.onCancel = () {
+        subscription.cancel();
+      };
     });
   }
 

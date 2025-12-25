@@ -3,7 +3,6 @@ import 'package:provider/provider.dart';
 import 'package:velocity_x/velocity_x.dart';
 import 'package:collegebus/services/auth_service.dart';
 import 'package:collegebus/widgets/app_drawer.dart';
-import 'package:collegebus/utils/constants.dart';
 
 class NotificationsScreen extends StatelessWidget {
   const NotificationsScreen({super.key});

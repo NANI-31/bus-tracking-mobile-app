@@ -136,8 +136,8 @@ class _BusScheduleScreenState extends State<BusScheduleScreen>
             id: '',
             routeName: '',
             routeType: '',
-            startPoint: '',
-            endPoint: '',
+            startPoint: RoutePoint(name: '', lat: 0, lng: 0),
+            endPoint: RoutePoint(name: '', lat: 0, lng: 0),
             stopPoints: [],
             collegeId: '',
             createdBy: '',
@@ -145,7 +145,7 @@ class _BusScheduleScreenState extends State<BusScheduleScreen>
             createdAt: DateTime.now(),
           ),
         );
-        return route.displayName == _selectedRoute;
+        return route.routeName == _selectedRoute;
       }).toList();
     }
 
@@ -175,15 +175,15 @@ class _BusScheduleScreenState extends State<BusScheduleScreen>
   }
 
   List<String> get _allRoutes {
-    return _routes.map((route) => route.displayName).toSet().toList()..sort();
+    return _routes.map((route) => route.routeName).toSet().toList()..sort();
   }
 
   List<String> get _allStops {
     final stops = <String>{};
     for (final route in _routes) {
-      stops.add(route.startPoint);
-      stops.add(route.endPoint);
-      stops.addAll(route.stopPoints);
+      stops.add(route.startPoint.name);
+      stops.add(route.endPoint.name);
+      stops.addAll(route.stopPoints.map((s) => s.name));
     }
     return stops.toList()..sort();
   }
@@ -245,7 +245,7 @@ class _BusScheduleScreenState extends State<BusScheduleScreen>
               child: VStack([
                 HStack([
                   DropdownButtonFormField<String>(
-                    value: _selectedBusNumber,
+                    initialValue: _selectedBusNumber,
                     isExpanded: true,
                     decoration: const InputDecoration(
                       labelText: 'Bus Number',
@@ -276,7 +276,7 @@ class _BusScheduleScreenState extends State<BusScheduleScreen>
                   ).expand(),
                   AppSizes.paddingSmall.widthBox,
                   DropdownButtonFormField<String>(
-                    value: _selectedRoute,
+                    initialValue: _selectedRoute,
                     isExpanded: true,
                     decoration: const InputDecoration(
                       labelText: 'Route',
@@ -307,7 +307,7 @@ class _BusScheduleScreenState extends State<BusScheduleScreen>
                 AppSizes.paddingSmall.heightBox,
                 HStack([
                   DropdownButtonFormField<String>(
-                    value: _selectedStop,
+                    initialValue: _selectedStop,
                     isExpanded: true,
                     decoration: const InputDecoration(
                       labelText: 'Stop',
@@ -403,8 +403,8 @@ class _BusScheduleScreenState extends State<BusScheduleScreen>
             id: '',
             routeName: 'Unknown Route',
             routeType: '',
-            startPoint: '',
-            endPoint: '',
+            startPoint: RoutePoint(name: '', lat: 0, lng: 0),
+            endPoint: RoutePoint(name: '', lat: 0, lng: 0),
             stopPoints: [],
             collegeId: '',
             createdBy: '',
@@ -441,8 +441,8 @@ class _BusScheduleScreenState extends State<BusScheduleScreen>
               style: const TextStyle(fontWeight: FontWeight.w600),
             ),
             subtitle: VStack([
-              'Route: ${route.displayName}'.text.make(),
-              '${route.startPoint} → ${route.endPoint}'.text
+              'Route: ${route.routeName}'.text.make(),
+              '${route.startPoint.name} → ${route.endPoint.name}'.text
                   .size(12)
                   .color(
                     Theme.of(

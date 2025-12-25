@@ -1,0 +1,16 @@
+{
+  "@@locale": "hi",
+  "otpVerificationTitle": "ओटीपी सत्यापन",
+  "otpVerificationDescription": "अपने फोन/ईमेल पर भेजा गया 6-अंकों का कोड दर्ज करें",
+  "enterOtp": "ओटीपी दर्ज करें",
+  "verifyOtp": "ओटीपी सत्यापित करें",
+  "resendOtp": "ओटीपी पुनः भेजें",
+  "didntReceiveOtp": "कोड नहीं मिला?",
+  "otpExpired": "ओटीपी की समय सीमा समाप्त हो गई है। कृपया नया अनुरोध करें।",
+  "invalidOtp": "अमान्य ओटीपी। कृपया पुनः प्रयास करें।",
+  "otpSentSuccessfully": "ओटीपी सफलतापूर्वक भेजा गया!",
+  "verifying": "सत्यापित हो रहा है...",
+  "otpVerified": "ओटीपी सफलतापूर्वक सत्यापित हो गया!",
+  "codeExpiresIn": "कोड की समय सीमा",
+  "seconds": "सेकंड"
+}

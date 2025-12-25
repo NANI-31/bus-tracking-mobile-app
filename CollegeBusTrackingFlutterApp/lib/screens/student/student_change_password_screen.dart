@@ -116,8 +116,9 @@ class _StudentChangePasswordScreenState
                 ),
                 validator: (val) {
                   if (val!.isEmpty) return 'Enter new password';
-                  if (val.length < 6)
+                  if (val.length < 6) {
                     return 'Password must be at least 6 characters';
+                  }
                   return null;
                 },
               ),
@@ -142,8 +143,9 @@ class _StudentChangePasswordScreenState
                   ),
                 ),
                 validator: (val) {
-                  if (val != _newPasswordController.text)
+                  if (val != _newPasswordController.text) {
                     return 'Passwords do not match';
+                  }
                   return null;
                 },
               ),

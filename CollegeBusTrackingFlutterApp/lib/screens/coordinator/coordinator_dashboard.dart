@@ -198,14 +198,14 @@ class _CoordinatorDashboardState extends State<CoordinatorDashboard>
       text: route?.routeName ?? '',
     );
     final TextEditingController startController = TextEditingController(
-      text: route?.startPoint ?? '',
+      text: route?.startPoint.name ?? '',
     );
     final TextEditingController endController = TextEditingController(
-      text: route?.endPoint ?? '',
+      text: route?.endPoint.name ?? '',
     );
     String selectedType = route?.routeType ?? 'pickup';
     List<TextEditingController> stopControllers = (route?.stopPoints ?? [])
-        .map((s) => TextEditingController(text: s))
+        .map((s) => TextEditingController(text: s.name))
         .toList();
     if (stopControllers.isEmpty) stopControllers.add(TextEditingController());
 
@@ -224,7 +224,7 @@ class _CoordinatorDashboardState extends State<CoordinatorDashboard>
                   ),
                   8.heightBox,
                   DropdownButtonFormField<String>(
-                    value: selectedType,
+                    initialValue: selectedType,
                     decoration: const InputDecoration(labelText: 'Route Type'),
                     items: const [
                       DropdownMenuItem(value: 'pickup', child: Text('Pickup')),
@@ -309,13 +309,21 @@ class _CoordinatorDashboardState extends State<CoordinatorDashboard>
                         .where((s) => s.isNotEmpty)
                         .toList();
                     if (startController.text.trim().isEmpty ||
-                        endController.text.trim().isEmpty)
+                        endController.text.trim().isEmpty) {
                       return;
+                    }
                     if (isEditing) {
                       await firestoreService.updateRoute(route.id, {
                         'routeName': nameController.text.trim(),
                         'routeType': selectedType,
-                        'stopPoints': stops,
+                        'stopPoints': stops
+                            .map(
+                              (s) => {
+                                'name': s,
+                                'location': {'lat': 0, 'lng': 0},
+                              },
+                            )
+                            .toList(),
                         'updatedAt': DateTime.now().toIso8601String(),
                       });
                       if (!mounted) return;
@@ -326,9 +334,19 @@ class _CoordinatorDashboardState extends State<CoordinatorDashboard>
                             ? nameController.text.trim()
                             : '${startController.text.trim()} - ${endController.text.trim()}',
                         routeType: selectedType,
-                        startPoint: startController.text.trim(),
-                        endPoint: endController.text.trim(),
-                        stopPoints: stops,
+                        startPoint: RoutePoint(
+                          name: startController.text.trim(),
+                          lat: 0,
+                          lng: 0,
+                        ),
+                        endPoint: RoutePoint(
+                          name: endController.text.trim(),
+                          lat: 0,
+                          lng: 0,
+                        ),
+                        stopPoints: stops
+                            .map((s) => RoutePoint(name: s, lat: 0, lng: 0))
+                            .toList(),
                         collegeId: collegeId,
                         createdBy: authService.currentUserModel?.id ?? '',
                         isActive: true,
@@ -338,7 +356,7 @@ class _CoordinatorDashboardState extends State<CoordinatorDashboard>
                       await firestoreService.createRoute(newRoute);
                       if (!mounted) return;
                     }
-                    if (!mounted) return;
+                    if (!context.mounted) return;
                     Navigator.of(context).pop();
                   },
                   child: Text(isEditing ? 'Save' : 'Create'),
@@ -388,7 +406,7 @@ class _CoordinatorDashboardState extends State<CoordinatorDashboard>
 
                 if (collegeId != null) {
                   await firestoreService.addBusNumber(collegeId, busNumber);
-                  if (!mounted) return;
+                  if (!context.mounted) return;
                   Navigator.of(context).pop();
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
@@ -751,9 +769,11 @@ class _CoordinatorDashboardState extends State<CoordinatorDashboard>
                       title: route.routeName.text.semiBold.make(),
                       subtitle: VStack([
                         'Type: ${route.routeType.toUpperCase()}'.text.make(),
-                        '${route.startPoint} → ${route.endPoint}'.text.make(),
+                        '${route.startPoint.name} → ${route.endPoint.name}'.text
+                            .make(),
                         if (route.stopPoints.isNotEmpty)
-                          'Stops: ${route.stopPoints.join(', ')}'.text
+                          'Stops: ${route.stopPoints.map((s) => s.name).join(', ')}'
+                              .text
                               .size(12)
                               .make(),
                       ]),
@@ -814,12 +834,13 @@ class _CoordinatorDashboardState extends State<CoordinatorDashboard>
                               ),
                             );
                             if (confirmed == true) {
+                              if (!context.mounted) return;
                               final firestoreService = Provider.of<DataService>(
                                 context,
                                 listen: false,
                               );
                               await firestoreService.deleteRoute(route.id);
-                              if (!mounted) return;
+                              if (!context.mounted) return;
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
                                   content: Text('Route deleted successfully'),
@@ -957,6 +978,7 @@ class _CoordinatorDashboardState extends State<CoordinatorDashboard>
                           );
 
                           if (confirmed == true) {
+                            if (!context.mounted) return;
                             final authService = Provider.of<AuthService>(
                               context,
                               listen: false,
@@ -973,7 +995,7 @@ class _CoordinatorDashboardState extends State<CoordinatorDashboard>
                                 collegeId,
                                 busNumber,
                               );
-                              if (!mounted) return;
+                              if (!context.mounted) return;
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
                                   content: Text(

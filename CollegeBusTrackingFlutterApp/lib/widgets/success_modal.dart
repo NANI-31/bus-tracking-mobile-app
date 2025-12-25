@@ -89,7 +89,7 @@ class SuccessModal extends StatelessWidget {
                       child: primaryActionText!.text.size(16).semiBold.make(),
                     ).box.shadow
                     .withRounded(value: 30)
-                    .color(baseColor.withOpacity(0.4))
+                    .color(baseColor.withValues(alpha: 0.4))
                     .make(),
               ] else ...[
                 20.heightBox, // Spacing if no button
@@ -106,16 +106,31 @@ class SuccessModal extends StatelessWidget {
 
         // The Floating Icon (Bubbles)
         _buildBubbleIcon().pOnly(top: 0),
-      ], alignment: Alignment.center),
+      ], alignment: Alignment.topCenter),
     );
   }
 
   Widget _buildBubbleIcon() {
     return ZStack([
       // Decorative Bubbles
-      _bubble(size: 10, top: 10, left: 10, color: baseColor.withOpacity(0.5)),
-      _bubble(size: 8, top: 70, right: 10, color: baseColor.withOpacity(0.6)),
-      _bubble(size: 14, bottom: 0, left: 30, color: baseColor.withOpacity(0.4)),
+      _bubble(
+        size: 10,
+        top: 10,
+        left: 10,
+        color: baseColor.withValues(alpha: 0.5),
+      ),
+      _bubble(
+        size: 8,
+        top: 70,
+        right: 10,
+        color: baseColor.withValues(alpha: 0.6),
+      ),
+      _bubble(
+        size: 14,
+        bottom: 0,
+        left: 30,
+        color: baseColor.withValues(alpha: 0.4),
+      ),
 
       // Main Circle
       Icon(icon, size: 24, color: Colors.white)
@@ -123,7 +138,7 @@ class SuccessModal extends StatelessWidget {
           .box
           .height(40)
           .width(40)
-          .color(baseColor.withOpacity(0.8)) // Solid icon bg
+          .color(baseColor.withValues(alpha: 0.8)) // Solid icon bg
           .roundedFull
           .border(color: Colors.white, width: 2)
           .make()
@@ -131,7 +146,7 @@ class SuccessModal extends StatelessWidget {
           .box
           .height(80)
           .width(80)
-          .color(baseColor.withOpacity(0.3))
+          .color(baseColor.withValues(alpha: 0.3))
           .roundedFull
           .border(color: Colors.white, width: 4)
           .make(),

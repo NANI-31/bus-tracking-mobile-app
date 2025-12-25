@@ -103,7 +103,7 @@ class _ScheduleManagementScreenState extends State<ScheduleManagementScreen>
               title: 'Create $shift Shift Timetable'.text.make(),
               content: VStack([
                 DropdownButtonFormField<RouteModel>(
-                  value: selectedRoute,
+                  initialValue: selectedRoute,
                   decoration: const InputDecoration(
                     labelText: 'Select Route',
                     border: OutlineInputBorder(),
@@ -128,7 +128,7 @@ class _ScheduleManagementScreenState extends State<ScheduleManagementScreen>
                 ),
                 16.heightBox,
                 DropdownButtonFormField<BusModel>(
-                  value: selectedBus,
+                  initialValue: selectedBus,
                   decoration: const InputDecoration(
                     labelText: 'Select Bus',
                     border: OutlineInputBorder(),
@@ -149,14 +149,14 @@ class _ScheduleManagementScreenState extends State<ScheduleManagementScreen>
                     VStack([
                           'Route Information:'.text.size(16).semiBold.make(),
                           8.heightBox,
-                          '${selectedRoute!.startPoint} → ${selectedRoute!.endPoint}'
+                          '${selectedRoute!.startPoint.name} → ${selectedRoute!.endPoint.name}'
                               .text
                               .size(14)
                               .make(),
                           if (selectedRoute!.stopPoints.isNotEmpty)
                             VStack([
                               4.heightBox,
-                              'Stops: ${selectedRoute!.stopPoints.join(' → ')}'
+                              'Stops: ${selectedRoute!.stopPoints.map((s) => s.name).join(' → ')}'
                                   .text
                                   .size(12)
                                   .ellipsis
@@ -213,9 +213,9 @@ class _ScheduleManagementScreenState extends State<ScheduleManagementScreen>
                           // Create stop schedules without specific times
                           final stopSchedules = <StopSchedule>[];
                           final allStops = [
-                            selectedRoute!.startPoint,
-                            ...selectedRoute!.stopPoints,
-                            selectedRoute!.endPoint,
+                            selectedRoute!.startPoint.name,
+                            ...selectedRoute!.stopPoints.map((s) => s.name),
+                            selectedRoute!.endPoint.name,
                           ];
 
                           for (final stop in allStops) {
@@ -241,7 +241,7 @@ class _ScheduleManagementScreenState extends State<ScheduleManagementScreen>
                           );
 
                           await firestoreService.createSchedule(schedule);
-                          if (!mounted) return;
+                          if (!context.mounted) return;
                           Navigator.of(context).pop();
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
@@ -351,8 +351,8 @@ class _ScheduleManagementScreenState extends State<ScheduleManagementScreen>
             id: '',
             routeName: 'Unknown Route',
             routeType: '',
-            startPoint: '',
-            endPoint: '',
+            startPoint: RoutePoint(name: '', lat: 0, lng: 0),
+            endPoint: RoutePoint(name: '', lat: 0, lng: 0),
             stopPoints: const [],
             collegeId: '',
             createdBy: '',
@@ -385,7 +385,7 @@ class _ScheduleManagementScreenState extends State<ScheduleManagementScreen>
             subtitle: VStack([
               'Route: ${route.routeName}'.text.make(),
               'Type: ${route.routeType.toUpperCase()}'.text.make(),
-              '${route.startPoint} → ${route.endPoint}'.text.make(),
+              '${route.startPoint.name} → ${route.endPoint.name}'.text.make(),
             ]),
             trailing: PopupMenuButton(
               itemBuilder: (context) => [
@@ -428,12 +428,13 @@ class _ScheduleManagementScreenState extends State<ScheduleManagementScreen>
                     ),
                   );
                   if (confirmed == true) {
+                    if (!context.mounted) return;
                     final firestoreService = Provider.of<DataService>(
                       context,
                       listen: false,
                     );
                     await firestoreService.deleteSchedule(schedule.id);
-                    if (!mounted) return;
+                    if (!context.mounted) return;
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         content: Text('Timetable deleted successfully'),

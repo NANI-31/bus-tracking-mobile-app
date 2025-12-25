@@ -53,12 +53,13 @@ class BusCard extends StatelessWidget {
                   .make(),
               if (route != null)
                 VStack([
-                  '${route!.startPoint} → ${route!.endPoint}'.text
+                  '${route!.startPoint.name} → ${route!.endPoint.name}'.text
                       .size(14)
                       .color(AppColors.textSecondary)
                       .make(),
                   if (route!.stopPoints.isNotEmpty)
-                    'Stops: ${route!.stopPoints.join(', ')}'.text
+                    'Stops: ${route!.stopPoints.map((s) => s.name).join(', ')}'
+                        .text
                         .size(12)
                         .color(AppColors.textSecondary)
                         .maxLines(2)

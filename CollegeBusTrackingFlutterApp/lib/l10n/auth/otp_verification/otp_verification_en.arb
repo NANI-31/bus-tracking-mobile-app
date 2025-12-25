@@ -1,0 +1,16 @@
+{
+  "@@locale": "en",
+  "otpVerificationTitle": "OTP Verification",
+  "otpVerificationDescription": "Enter the 6-digit code sent to your phone/email",
+  "enterOtp": "Enter OTP",
+  "verifyOtp": "Verify OTP",
+  "resendOtp": "Resend OTP",
+  "didntReceiveOtp": "Didn't receive the code?",
+  "otpExpired": "OTP has expired. Please request a new one.",
+  "invalidOtp": "Invalid OTP. Please try again.",
+  "otpSentSuccessfully": "OTP sent successfully!",
+  "verifying": "Verifying...",
+  "otpVerified": "OTP verified successfully!",
+  "codeExpiresIn": "Code expires in",
+  "seconds": "seconds"
+}

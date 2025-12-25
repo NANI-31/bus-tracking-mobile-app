@@ -15,6 +15,8 @@ class UserModel {
   final String? phoneNumber;
   final String? rollNumber;
   final String? preferredStop;
+  final String? routeId;
+  final String language;
 
   UserModel({
     required this.id,
@@ -31,6 +33,8 @@ class UserModel {
     this.phoneNumber,
     this.rollNumber,
     this.preferredStop,
+    this.routeId,
+    this.language = 'en',
   });
 
   factory UserModel.fromMap(Map<String, dynamic> map, String id) {
@@ -56,6 +60,8 @@ class UserModel {
       phoneNumber: map['phoneNumber'],
       rollNumber: map['rollNumber'],
       preferredStop: map['preferredStop'],
+      routeId: map['routeId'],
+      language: map['language'] ?? 'en',
     );
   }
 
@@ -75,6 +81,8 @@ class UserModel {
       'phoneNumber': phoneNumber,
       'rollNumber': rollNumber,
       'preferredStop': preferredStop,
+      'routeId': routeId,
+      'language': language,
     };
   }
 
@@ -93,6 +101,8 @@ class UserModel {
     String? phoneNumber,
     String? rollNumber,
     String? preferredStop,
+    String? routeId,
+    String? language,
   }) {
     return UserModel(
       id: id ?? this.id,
@@ -109,6 +119,8 @@ class UserModel {
       phoneNumber: phoneNumber ?? this.phoneNumber,
       rollNumber: rollNumber ?? this.rollNumber,
       preferredStop: preferredStop ?? this.preferredStop,
+      routeId: routeId ?? this.routeId,
+      language: language ?? this.language,
     );
   }
 }

@@ -8,6 +8,7 @@ import 'package:collegebus/services/location_service.dart';
 import 'package:collegebus/models/bus_model.dart';
 import 'package:collegebus/models/route_model.dart';
 import 'package:collegebus/services/theme_service.dart';
+import 'package:collegebus/services/socket_service.dart';
 
 // Import the new modules
 import 'tabs/student_map_tab.dart';
@@ -33,6 +34,7 @@ class _StudentDashboardState extends State<StudentDashboard>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
   GoogleMapController? _mapController;
+  String? _mapStyle;
   Set<Marker> _markers = {};
   List<BusModel> _allBuses = [];
   List<BusModel> _filteredBuses = [];
@@ -44,7 +46,7 @@ class _StudentDashboardState extends State<StudentDashboard>
   String? _selectedRouteType;
   List<RouteModel> _routes = [];
   int _bottomNavIndex = 0;
-  Map<String, StreamSubscription> _busLocationSubscriptions = {};
+  final Map<String, StreamSubscription> _busLocationSubscriptions = {};
 
   // Stream subscriptions
   StreamSubscription? _busesListSubscription;
@@ -66,8 +68,8 @@ class _StudentDashboardState extends State<StudentDashboard>
           id: '',
           routeName: 'N/A',
           routeType: '',
-          startPoint: '',
-          endPoint: '',
+          startPoint: RoutePoint(name: '', lat: 0, lng: 0),
+          endPoint: RoutePoint(name: '', lat: 0, lng: 0),
           stopPoints: [],
           collegeId: '',
           createdBy: '',
@@ -75,9 +77,9 @@ class _StudentDashboardState extends State<StudentDashboard>
           createdAt: DateTime.now(),
         ),
       );
-      stops.add(route.startPoint);
-      stops.add(route.endPoint);
-      stops.addAll(route.stopPoints);
+      stops.add(route.startPoint.name);
+      stops.add(route.endPoint.name);
+      stops.addAll(route.stopPoints.map((s) => s.name));
     }
     _cachedExposedStops = stops.toList()..sort();
 
@@ -105,14 +107,20 @@ class _StudentDashboardState extends State<StudentDashboard>
         context,
         listen: false,
       ).addListener(_handleThemeChange);
+      // specific call to load initial style
+      _handleThemeChange();
     });
   }
 
   void _handleThemeChange() {
-    if (_mapController != null && mounted) {
-      final themeService = Provider.of<ThemeService>(context, listen: false);
-      MapStyleHelper.applyStyle(_mapController, themeService.isDarkMode);
-    }
+    final themeService = Provider.of<ThemeService>(context, listen: false);
+    MapStyleHelper.getStyle(themeService.isDarkMode).then((style) {
+      if (mounted) {
+        setState(() {
+          _mapStyle = style;
+        });
+      }
+    });
   }
 
   @override
@@ -122,6 +130,10 @@ class _StudentDashboardState extends State<StudentDashboard>
     final authService = Provider.of<AuthService>(context);
     final user = authService.currentUserModel;
     if (user != null && _allBuses.isEmpty && _busesListSubscription == null) {
+      Provider.of<SocketService>(
+        context,
+        listen: false,
+      ).joinCollege(user.collegeId);
       _loadRoutes();
       _loadBuses();
     }
@@ -278,8 +290,8 @@ class _StudentDashboardState extends State<StudentDashboard>
         id: '',
         routeName: 'N/A',
         routeType: '',
-        startPoint: '',
-        endPoint: '',
+        startPoint: RoutePoint(name: '', lat: 0, lng: 0),
+        endPoint: RoutePoint(name: '', lat: 0, lng: 0),
         stopPoints: [],
         collegeId: '',
         createdBy: '',
@@ -325,8 +337,8 @@ class _StudentDashboardState extends State<StudentDashboard>
             id: '',
             routeName: 'N/A',
             routeType: '',
-            startPoint: '',
-            endPoint: '',
+            startPoint: RoutePoint(name: '', lat: 0, lng: 0),
+            endPoint: RoutePoint(name: '', lat: 0, lng: 0),
             stopPoints: [],
             collegeId: '',
             createdBy: '',
@@ -347,8 +359,8 @@ class _StudentDashboardState extends State<StudentDashboard>
             id: '',
             routeName: 'N/A',
             routeType: '',
-            startPoint: '',
-            endPoint: '',
+            startPoint: RoutePoint(name: '', lat: 0, lng: 0),
+            endPoint: RoutePoint(name: '', lat: 0, lng: 0),
             stopPoints: [],
             collegeId: '',
             createdBy: '',
@@ -357,9 +369,9 @@ class _StudentDashboardState extends State<StudentDashboard>
           ),
         );
         final matches =
-            route.startPoint == _selectedStop ||
-            route.endPoint == _selectedStop ||
-            route.stopPoints.contains(_selectedStop);
+            route.startPoint.name == _selectedStop ||
+            route.endPoint.name == _selectedStop ||
+            route.stopPoints.any((s) => s.name == _selectedStop);
         return matches;
       }).toList();
     }
@@ -412,8 +424,8 @@ class _StudentDashboardState extends State<StudentDashboard>
           id: '',
           routeName: 'N/A',
           routeType: '',
-          startPoint: '',
-          endPoint: '',
+          startPoint: RoutePoint(name: '', lat: 0, lng: 0), // Use RoutePoint
+          endPoint: RoutePoint(name: '', lat: 0, lng: 0), // Use RoutePoint
           stopPoints: [],
           collegeId: '',
           createdBy: '',
@@ -452,8 +464,8 @@ class _StudentDashboardState extends State<StudentDashboard>
         id: '',
         routeName: 'N/A',
         routeType: '',
-        startPoint: '',
-        endPoint: '',
+        startPoint: RoutePoint(name: '', lat: 0, lng: 0),
+        endPoint: RoutePoint(name: '', lat: 0, lng: 0),
         stopPoints: [],
         collegeId: '',
         createdBy: '',
@@ -587,16 +599,9 @@ class _StudentDashboardState extends State<StudentDashboard>
                       selectedBusNumber: _selectedBusNumber,
                       allBusNumbers: _allBusNumbers,
                       filteredBusesCount: _filteredBuses.length,
+                      mapStyle: _mapStyle,
                       onMapCreated: (controller) {
                         _mapController = controller;
-                        final themeService = Provider.of<ThemeService>(
-                          context,
-                          listen: false,
-                        );
-                        MapStyleHelper.applyStyle(
-                          controller,
-                          themeService.isDarkMode,
-                        );
                       },
                       onRouteTypeSelected: _onRouteTypeSelected,
                       onBusNumberSelected: _onBusNumberSelected,
@@ -642,16 +647,9 @@ class _StudentDashboardState extends State<StudentDashboard>
                       selectedBusNumber: _selectedBusNumber,
                       allBusNumbers: _allBusNumbers,
                       filteredBusesCount: _filteredBuses.length,
+                      mapStyle: _mapStyle,
                       onMapCreated: (controller) {
                         _mapController = controller;
-                        final themeService = Provider.of<ThemeService>(
-                          context,
-                          listen: false,
-                        );
-                        MapStyleHelper.applyStyle(
-                          controller,
-                          themeService.isDarkMode,
-                        );
                       },
                       onRouteTypeSelected: _onRouteTypeSelected,
                       onBusNumberSelected: _onBusNumberSelected,

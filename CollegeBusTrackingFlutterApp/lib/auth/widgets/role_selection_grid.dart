@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:collegebus/utils/constants.dart';
-import 'package:collegebus/services/auth_service.dart';
 import 'package:velocity_x/velocity_x.dart';
-import 'package:collegebus/l10n/signup/auth_signup_localizations.dart';
+import 'package:collegebus/l10n/auth/signup/auth_signup_localizations.dart';
 
 class RoleSelectionGrid extends StatelessWidget {
   final UserRole selectedRole;
@@ -152,7 +151,7 @@ class RoleSelectionGrid extends StatelessWidget {
           .withShadow([
             if (!isSelected)
               BoxShadow(
-                color: Colors.grey.withOpacity(0.05),
+                color: Colors.grey.withValues(alpha: 0.05),
                 blurRadius: 10,
                 offset: const Offset(0, 4),
               ),

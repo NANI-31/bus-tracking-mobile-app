@@ -10,9 +10,7 @@ import 'package:collegebus/utils/constants.dart';
 class ApiService {
   final Dio _dio = Dio(
     BaseOptions(
-      baseUrl:
-          // 'https://college-bus-tracking-server.onrender.com/api', // Use 10.0.2.2 for Android Emulator, localhost for iOS/Web
-          'http://192.168.29.27:5000/api', // Use 10.0.2.2 for Android Emulator, localhost for iOS/Web
+      baseUrl: AppConstants.apiBaseUrl,
       connectTimeout: const Duration(seconds: 15),
       receiveTimeout: const Duration(seconds: 15),
     ),

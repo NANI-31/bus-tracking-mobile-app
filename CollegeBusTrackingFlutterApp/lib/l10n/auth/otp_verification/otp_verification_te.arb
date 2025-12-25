@@ -1,0 +1,16 @@
+{
+  "@@locale": "te",
+  "otpVerificationTitle": "OTP ధృవీకరణ",
+  "otpVerificationDescription": "మీ ఫోన్/ఇమెయిల్‌కు పంపిన 6-అంకెల కోడ్‌ను నమోదు చేయండి",
+  "enterOtp": "OTP నమోదు చేయండి",
+  "verifyOtp": "OTP ధృవీకరించండి",
+  "resendOtp": "OTP మళ్లీ పంపండి",
+  "didntReceiveOtp": "కోడ్ రాలేదా?",
+  "otpExpired": "OTP గడువు ముగిసింది. దయచేసి కొత్తది అభ్యర్థించండి.",
+  "invalidOtp": "చెల్లని OTP. దయచేసి మళ్లీ ప్రయత్నించండి.",
+  "otpSentSuccessfully": "OTP విజయవంతంగా పంపబడింది!",
+  "verifying": "ధృవీకరిస్తోంది...",
+  "otpVerified": "OTP విజయవంతంగా ధృవీకరించబడింది!",
+  "codeExpiresIn": "కోడ్ గడువు ముగుస్తుంది",
+  "seconds": "సెకన్లు"
+}

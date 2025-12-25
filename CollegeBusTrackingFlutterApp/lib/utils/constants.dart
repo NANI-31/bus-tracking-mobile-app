@@ -170,3 +170,11 @@ extension UserRoleExtension on UserRole {
     return toString().split('.').last;
   }
 }
+
+class AppConstants {
+  // Use 10.0.2.2 for Android Emulator, 192.168.x.x for physical device, localhost for iOS/Web
+  static const String baseUrl = 'http://192.168.29.27:5000';
+  // static const String baseUrl =
+  // 'https://college-bus-tracking-server.onrender.com/api';
+  static const String apiBaseUrl = '$baseUrl/api';
+}

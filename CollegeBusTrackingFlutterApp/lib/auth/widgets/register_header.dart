@@ -30,7 +30,7 @@ class RegisterHeader extends StatelessWidget {
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
                 colors: [
-                  Colors.black.withOpacity(0.3),
+                  Colors.black.withValues(alpha: 0.3),
                   Colors.transparent,
                   Theme.of(
                     context,
@@ -52,10 +52,10 @@ class RegisterHeader extends StatelessWidget {
               ),
             )
             .color(Theme.of(context).colorScheme.surface)
-            .rounded
+            .roundedFull
             .withShadow([
               BoxShadow(
-                color: Colors.black.withOpacity(0.1),
+                color: Colors.black.withValues(alpha: 0.1),
                 blurRadius: 10,
                 offset: const Offset(0, 4),
               ),
@@ -66,7 +66,7 @@ class RegisterHeader extends StatelessWidget {
 
         // Back Button Overlay
         CircleAvatar(
-          backgroundColor: Colors.white.withOpacity(0.2),
+          backgroundColor: Colors.white.withValues(alpha: 0.2),
           child: IconButton(
             icon: const Icon(Icons.arrow_back, color: Colors.white),
             onPressed: () => context.go('/login'),

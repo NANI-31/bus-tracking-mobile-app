@@ -8,7 +8,10 @@ import 'package:collegebus/utils/constants.dart';
 class AuthService extends ChangeNotifier {
   ApiService? _apiService;
   UserModel? _currentUserModel;
+  bool _isInitialized = false;
+
   UserModel? get currentUserModel => _currentUserModel;
+  bool get isInitialized => _isInitialized;
   UserRole? get userRole => _currentUserModel?.role;
   bool get isLoggedIn => _currentUserModel != null;
 
@@ -29,12 +32,15 @@ class AuthService extends ChangeNotifier {
       if (_apiService != null) {
         // Here we could validate token with backend, but for now just load user
         await _loadUserModel(userId);
+        _isInitialized = true;
+        notifyListeners();
       } else {
         // Retry loading if service not ready
         Future.delayed(const Duration(seconds: 1), _checkLoginStatus);
       }
     } else {
       _currentUserModel = null;
+      _isInitialized = true;
       notifyListeners();
     }
   }
@@ -62,7 +68,7 @@ class AuthService extends ChangeNotifier {
     required String email,
     required String password,
     required String fullName,
-    required String collegeName,
+    required String collegeId,
     required UserRole role,
     String? phoneNumber,
     String? rollNumber,
@@ -72,9 +78,6 @@ class AuthService extends ChangeNotifier {
     }
 
     try {
-      // Logic for college ID resolution
-      final collegeId = collegeName.toLowerCase().replaceAll(' ', '_');
-
       final userData = {
         'email': email,
         'password': password,
@@ -130,6 +133,7 @@ class AuthService extends ChangeNotifier {
         return {
           'success': false,
           'message': result['message'] ?? 'Login failed',
+          'requiresVerification': result['requiresVerification'] == true,
         };
       }
     } catch (e) {

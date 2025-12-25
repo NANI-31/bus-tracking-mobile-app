@@ -1,5 +1,4 @@
 import 'package:flutter/services.dart' show rootBundle;
-import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 class MapStyleHelper {
   static String? _darkMapStyle;
@@ -18,22 +17,14 @@ class MapStyleHelper {
     }
   }
 
-  /// Applies the appropriate map style based on [isDarkMode].
-  static Future<void> applyStyle(
-    GoogleMapController? controller,
-    bool isDarkMode,
-  ) async {
-    if (controller == null) return;
-
+  /// Returns the appropriate map style based on [isDarkMode].
+  static Future<String?> getStyle(bool isDarkMode) async {
     if (isDarkMode) {
       if (_darkMapStyle == null) {
         await loadStyles();
       }
-      if (_darkMapStyle != null) {
-        await controller.setMapStyle(_darkMapStyle);
-      }
-    } else {
-      await controller.setMapStyle(null);
+      return _darkMapStyle;
     }
+    return null;
   }
 }

@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:collegebus/models/user_model.dart';
-import 'package:collegebus/utils/constants.dart';
 import 'package:collegebus/services/auth_service.dart';
 
 class StudentDashboardAppBar extends StatelessWidget

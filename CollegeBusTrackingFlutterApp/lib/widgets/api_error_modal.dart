@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
 import 'package:go_router/go_router.dart';
 import 'package:velocity_x/velocity_x.dart';
-import 'package:collegebus/utils/constants.dart';
 
 class ApiErrorModal extends StatelessWidget {
   final String title;
@@ -44,8 +43,6 @@ class ApiErrorModal extends StatelessWidget {
         baseColor: content.iconColor,
         primaryActionText: content.primaryActionText,
         onPrimaryAction: content.onPrimaryAction,
-        secondaryActionText: content.secondaryActionText,
-        onSecondaryAction: content.onSecondaryAction,
       ),
     );
   }
@@ -181,22 +178,65 @@ class ApiErrorModal extends StatelessWidget {
                   .center
                   .make(),
               30.heightBox,
-              // Pill Button
-              ElevatedButton(
-                onPressed: onPrimaryAction,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: baseColor,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 40,
-                    vertical: 14,
+              // Action Buttons
+              if (secondaryActionText != null)
+                HStack([
+                  // Secondary Action Button (Abort)
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: onSecondaryAction,
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: baseColor,
+                        side: BorderSide(color: baseColor, width: 2),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 24,
+                          vertical: 14,
+                        ),
+                        shape: const StadiumBorder(),
+                        minimumSize: const Size(120, 48),
+                      ),
+                      child: secondaryActionText!.text.size(16).semiBold.make(),
+                    ),
                   ),
-                  shape: const StadiumBorder(),
-                  elevation: 0,
-                  minimumSize: const Size(140, 48), // Minimal width
+                  12.widthBox,
+                  // Primary Action Button
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: onPrimaryAction,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: baseColor,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 24,
+                          vertical: 14,
+                        ),
+                        shape: const StadiumBorder(),
+                        elevation: 0,
+                        minimumSize: const Size(120, 48),
+                      ),
+                      child: primaryActionText.text.size(16).semiBold.make(),
+                    ).box.shadow.withRounded(value: 30).make(),
+                  ),
+                ])
+              else
+                // Single Primary Action Button
+                Center(
+                  child: ElevatedButton(
+                    onPressed: onPrimaryAction,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: baseColor,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 40,
+                        vertical: 14,
+                      ),
+                      shape: const StadiumBorder(),
+                      elevation: 0,
+                      minimumSize: const Size(140, 48), // Minimal width
+                    ),
+                    child: primaryActionText.text.size(16).semiBold.make(),
+                  ).box.shadow.withRounded(value: 30).make(),
                 ),
-                child: primaryActionText.text.size(16).semiBold.make(),
-              ).box.shadow.withRounded(value: 30).make(),
             ])
             .pLTRB(24, 60, 24, 32)
             .box
@@ -209,16 +249,31 @@ class ApiErrorModal extends StatelessWidget {
 
         // The Floating Icon (Bubbles)
         _buildBubbleIcon().pOnly(top: 0),
-      ], alignment: Alignment.center),
+      ], alignment: Alignment.topCenter),
     );
   }
 
   Widget _buildBubbleIcon() {
     return ZStack([
       // Decorative Bubbles (Hardcoded positions for 'random' look)
-      _bubble(size: 10, top: 10, left: 10, color: baseColor.withOpacity(0.5)),
-      _bubble(size: 8, top: 70, right: 10, color: baseColor.withOpacity(0.6)),
-      _bubble(size: 14, bottom: 0, left: 30, color: baseColor.withOpacity(0.4)),
+      _bubble(
+        size: 10,
+        top: 10,
+        left: 10,
+        color: baseColor.withValues(alpha: 0.5),
+      ),
+      _bubble(
+        size: 8,
+        top: 70,
+        right: 10,
+        color: baseColor.withValues(alpha: 0.6),
+      ),
+      _bubble(
+        size: 14,
+        bottom: 0,
+        left: 30,
+        color: baseColor.withValues(alpha: 0.4),
+      ),
 
       // Main Circle
       Icon(icon, size: 24, color: Colors.black87)
@@ -226,7 +281,7 @@ class ApiErrorModal extends StatelessWidget {
           .box
           .height(40)
           .width(40)
-          .color(baseColor.withOpacity(0.2)) // Inner Circle
+          .color(baseColor.withValues(alpha: 0.2)) // Inner Circle
           .roundedFull
           .border(color: Colors.black87, width: 2)
           .make()
@@ -234,7 +289,7 @@ class ApiErrorModal extends StatelessWidget {
           .box
           .height(80)
           .width(80)
-          .color(baseColor.withOpacity(0.3)) // Lighter BG
+          .color(baseColor.withValues(alpha: 0.3)) // Lighter BG
           .roundedFull
           .border(color: Colors.white, width: 4)
           .make(),
@@ -266,8 +321,6 @@ class _ErrorContent {
   final Color iconColor;
   final String primaryActionText;
   final VoidCallback onPrimaryAction;
-  final String? secondaryActionText;
-  final VoidCallback? onSecondaryAction;
 
   _ErrorContent({
     required this.title,
@@ -276,7 +329,5 @@ class _ErrorContent {
     required this.iconColor,
     required this.primaryActionText,
     required this.onPrimaryAction,
-    this.secondaryActionText,
-    this.onSecondaryAction,
   });
 }

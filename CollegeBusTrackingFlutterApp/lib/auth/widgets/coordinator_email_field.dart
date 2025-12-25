@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:collegebus/widgets/custom_input_field.dart';
 import 'package:velocity_x/velocity_x.dart';
-import 'package:collegebus/l10n/signup/auth_signup_localizations.dart';
+import 'package:collegebus/l10n/auth/signup/auth_signup_localizations.dart';
 
 class CoordinatorEmailField extends StatelessWidget {
   final TextEditingController idController;

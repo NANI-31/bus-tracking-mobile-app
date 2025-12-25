@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:collegebus/models/college_model.dart';
 import 'package:velocity_x/velocity_x.dart';
-import 'package:collegebus/l10n/signup/auth_signup_localizations.dart';
+import 'package:collegebus/l10n/auth/signup/auth_signup_localizations.dart';
 
 class CollegeSelectionField extends StatelessWidget {
   final List<CollegeModel> colleges;
@@ -35,7 +35,7 @@ class CollegeSelectionField extends StatelessWidget {
               ? const CircularProgressIndicator().centered()
               : DropdownButtonFormField<CollegeModel>(
                   isExpanded: true,
-                  value: selectedCollege,
+                  initialValue: selectedCollege,
                   selectedItemBuilder: (BuildContext context) {
                     return colleges.map<Widget>((CollegeModel college) {
                       return college.name.text

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import 'package:collegebus/services/auth_service.dart';
+import 'package:collegebus/services/data_service.dart';
 import 'package:collegebus/utils/constants.dart';
 import 'package:collegebus/widgets/app_drawer.dart';
 import 'package:collegebus/services/theme_service.dart';
@@ -146,7 +147,7 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
                     subtitle: 'Receive alerts about bus arrival',
                     trailing: Switch(
                       value: true,
-                      activeColor: Colors.blue,
+                      activeThumbColor: Colors.blue,
                       onChanged: (val) {},
                     ),
                     showDivider: true,
@@ -175,7 +176,7 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
                     subtitle: 'Toggle dark or light theme',
                     trailing: Switch(
                       value: themeService.isDarkMode,
-                      activeColor: Colors.blue,
+                      activeThumbColor: Colors.blue,
                       onChanged: (val) => themeService.toggleTheme(val),
                     ),
                     showDivider: true,
@@ -187,7 +188,7 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
                     subtitle: 'Enable modern mobile navigation',
                     trailing: Switch(
                       value: themeService.useBottomNavigation,
-                      activeColor: Colors.blue,
+                      activeThumbColor: Colors.blue,
                       onChanged: (val) {
                         if (val) {
                           themeService.toggleNavigationMode(true);
@@ -199,7 +200,7 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
                               context.go('/driver');
                               break;
                             case UserRole.teacher:
-                              context.go('/teacher');
+                              context.go('/student');
                               break;
                             case UserRole.admin:
                               context.go('/admin');
@@ -297,13 +298,28 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
             ? 'Telugu'
             : 'Hindi';
 
-        void cycleLanguage() {
+        Future<void> cycleLanguage() async {
+          String newLang;
           if (currentCode == 'en') {
+            newLang = 'te';
             localeService.setLocale(const Locale('te'));
           } else if (currentCode == 'te') {
+            newLang = 'hi';
             localeService.setLocale(const Locale('hi'));
           } else {
+            newLang = 'en';
             localeService.setLocale(const Locale('en'));
+          }
+
+          // Update language in database
+          final authService = Provider.of<AuthService>(context, listen: false);
+          final user = authService.currentUserModel;
+          if (user != null) {
+            final dataService = Provider.of<DataService>(
+              context,
+              listen: false,
+            );
+            await dataService.updateUser(user.id, {'language': newLang});
           }
         }
 
