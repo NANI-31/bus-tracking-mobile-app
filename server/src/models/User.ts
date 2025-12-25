@@ -6,12 +6,18 @@ export enum UserRole {
   Driver = "driver",
   BusCoordinator = "busCoordinator",
   Admin = "admin",
-  Parent = "parent", // Added
+  Parent = "parent",
+}
+
+export enum UserLanguage {
+  English = "en",
+  Hindi = "hi",
+  Telugu = "te",
 }
 
 export interface IUser extends Document {
   fullName: string;
-  email?: string; // Optional
+  email?: string;
   password: string;
   otp?: string;
   otpExpires?: Date;
@@ -26,6 +32,16 @@ export interface IUser extends Document {
   phoneNumber?: string;
   rollNumber?: string;
   preferredStop?: string;
+  fcmToken?: string;
+  language: string;
+  routeId?: string;
+  stopId?: string;
+  stopName?: string;
+  stopLocation?: {
+    lat: number;
+    lng: number;
+  };
+  lastNearbyNotifiedBusId?: string;
 }
 
 const UserSchema: Schema = new Schema({
@@ -51,6 +67,20 @@ const UserSchema: Schema = new Schema({
   phoneNumber: { type: String },
   rollNumber: { type: String },
   preferredStop: { type: String },
+  fcmToken: { type: String },
+  language: {
+    type: String,
+    enum: ["en", "hi", "te"],
+    default: UserLanguage.English,
+  },
+  routeId: { type: Schema.Types.ObjectId, ref: "Route" },
+  stopId: { type: String },
+  stopName: { type: String },
+  stopLocation: {
+    lat: Number,
+    lng: Number,
+  },
+  lastNearbyNotifiedBusId: { type: String },
 });
 
 export default mongoose.model<IUser>("User", UserSchema);

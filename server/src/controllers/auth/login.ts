@@ -26,6 +26,14 @@ export const login = async (req: Request, res: Response) => {
       return res.status(400).json({ message: "Invalid credentials" });
     }
 
+    // Check if email is verified
+    if (user.role !== "parent" && !user.emailVerified) {
+      return res.status(400).json({
+        message: "Email not verified. Please verify your email.",
+        requiresVerification: true,
+      });
+    }
+
     // Create token
     const token = jwt.sign(
       { id: user._id, email: user.email, role: user.role },

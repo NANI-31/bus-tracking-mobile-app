@@ -1,7 +1,10 @@
 import express from "express";
 import dotenv from "dotenv";
 import cors from "cors";
+import { createServer } from "http";
+import { Server } from "socket.io";
 import connectDB from "./config/db";
+import { initializeFirebase } from "./utils/firebase";
 
 import userRoutes from "./routes/userRoutes";
 import busRoutes from "./routes/busRoutes";
@@ -14,8 +17,16 @@ import authRoutes from "./routes/authRoutes";
 dotenv.config();
 
 connectDB();
+initializeFirebase();
 
 const app = express();
+const httpServer = createServer(app);
+const io = new Server(httpServer, {
+  cors: {
+    origin: "*",
+    methods: ["GET", "POST"],
+  },
+});
 
 app.use(cors());
 app.use(express.json());
@@ -71,6 +82,7 @@ app.get("/", (req, res) => {
         <div class="card">
           <h1>🚀 Server is Running</h1>
           <p>Status: <strong>Online</strong></p>
+          <p>Real-time: <strong>Socket.io Active</strong></p>
           <p>Time: ${new Date().toLocaleString()}</p>
         </div>
       </body>
@@ -78,8 +90,54 @@ app.get("/", (req, res) => {
   `);
 });
 
-const PORT = process.env.PORT || 5000;
+// Socket.io Connection Handling
+io.on("connection", (socket) => {
+  console.log("A user connected:", socket.id);
 
-app.listen(PORT, () => {
+  socket.on("join_college", (collegeId) => {
+    socket.join(collegeId);
+    console.log(`User ${socket.id} joined college room: ${collegeId}`);
+  });
+
+  socket.on("update_location", (data) => {
+    // data: { busId, collegeId, location: { lat, lng }, speed, heading }
+    const { collegeId } = data;
+    // Broadcast to everyone in the same college room
+    socket.to(collegeId).emit("location_updated", data);
+    console.log(
+      `Location update for bus ${data.busId} in college ${collegeId}`
+    );
+
+    // Check for nearby stops and notify users
+    try {
+      // We need to fetch bus details (routeId, busNumber) to check against users
+      // Optimization: In a real production app, cache this or send it from client
+      const { Bus } = require("./models/Bus");
+      const { checkAndNotifyBusNearby } = require("./utils/busNearbyLogic");
+
+      Bus.findById(data.busId).then((bus: any) => {
+        if (bus && bus.routeId) {
+          checkAndNotifyBusNearby(
+            data.busId,
+            bus.busNumber,
+            data.location.lat,
+            data.location.lng,
+            bus.routeId.toString()
+          );
+        }
+      });
+    } catch (error) {
+      console.error("Error checking nearby bus:", error);
+    }
+  });
+
+  socket.on("disconnect", () => {
+    console.log("User disconnected:", socket.id);
+  });
+});
+
+const PORT = Number(process.env.PORT) || 5000;
+
+httpServer.listen(PORT, "0.0.0.0", () => {
   console.log(`Server running on port ${PORT}`);
 });
