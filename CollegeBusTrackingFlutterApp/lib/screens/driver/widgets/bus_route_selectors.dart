@@ -29,6 +29,7 @@ class BusRouteSelectors extends StatelessWidget {
 
     return VStack([
       DropdownButtonFormField<String>(
+        isExpanded: true,
         value: selectedBusNumber,
         items: busNumbers
             .map(
@@ -47,6 +48,7 @@ class BusRouteSelectors extends StatelessWidget {
       ),
       AppSizes.paddingMedium.heightBox,
       DropdownButtonFormField<RouteModel>(
+        isExpanded: true,
         value: selectedRoute,
         items: routes
             .map(

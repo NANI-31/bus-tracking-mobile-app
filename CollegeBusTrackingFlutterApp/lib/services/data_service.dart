@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:collegebus/models/user_model.dart';
 import 'package:collegebus/models/bus_model.dart';
+import 'package:collegebus/models/assignment_log_model.dart';
 import 'package:collegebus/models/route_model.dart';
 import 'package:collegebus/models/college_model.dart';
 import 'package:collegebus/models/notification_model.dart';
@@ -13,12 +14,25 @@ import 'package:flutter/material.dart';
 class DataService extends ChangeNotifier {
   ApiService _apiService;
   SocketService _socketService;
+  String? _lastError;
+
+  String? get lastError => _lastError;
 
   void updateDependencies(ApiService api, SocketService socket) {
     _apiService = api;
     _socketService = socket;
-    // We don't notifyListeners here because that would cause an infinite rebuild loop
-    // if ProxyProvider re-evaluates. ProxyProvider handles the value identity.
+  }
+
+  void clearError() {
+    if (_lastError != null) {
+      _lastError = null;
+      notifyListeners();
+    }
+  }
+
+  void _setError(dynamic e) {
+    _lastError = e.toString();
+    notifyListeners();
   }
 
   // In-memory cache
@@ -30,39 +44,67 @@ class DataService extends ChangeNotifier {
 
   // User operations
   Future<UserModel?> getUser(String userId) async {
-    return await _apiService.getUser(userId);
+    try {
+      return await _apiService.getUser(userId);
+    } catch (e) {
+      _setError(e);
+      return null;
+    }
   }
 
   Future<void> updateUser(String userId, Map<String, dynamic> data) async {
-    await _apiService.updateUser(userId, data);
+    try {
+      await _apiService.updateUser(userId, data);
+      clearError();
+    } catch (e) {
+      _setError(e);
+      rethrow;
+    }
   }
 
   Stream<List<UserModel>> getUsersByRole(UserRole role, String collegeId) {
     return Stream.fromFuture(
-      _apiService.getAllUsers().then(
-        (users) => users
-            .where((u) => u.role == role && u.collegeId == collegeId)
-            .toList(),
-      ),
+      _apiService
+          .getAllUsers()
+          .then(
+            (users) => users
+                .where((u) => u.role == role && u.collegeId == collegeId)
+                .toList(),
+          )
+          .catchError((e) {
+            _setError(e);
+            throw e;
+          }),
     );
   }
 
   Stream<List<UserModel>> getAllUsers() {
-    return Stream.fromFuture(_apiService.getAllUsers());
+    return Stream.fromFuture(
+      _apiService.getAllUsers().catchError((e) {
+        _setError(e);
+        throw e;
+      }),
+    );
   }
 
   Stream<List<UserModel>> getPendingApprovals(String collegeId) {
     return Stream.fromFuture(
-      _apiService.getAllUsers().then(
-        (users) => users
-            .where(
-              (u) =>
-                  u.collegeId == collegeId &&
-                  u.needsManualApproval &&
-                  !u.approved,
-            )
-            .toList(),
-      ),
+      _apiService
+          .getAllUsers()
+          .then(
+            (users) => users
+                .where(
+                  (u) =>
+                      u.collegeId == collegeId &&
+                      u.needsManualApproval &&
+                      !u.approved,
+                )
+                .toList(),
+          )
+          .catchError((e) {
+            _setError(e);
+            throw e;
+          }),
     );
   }
 
@@ -71,14 +113,12 @@ class DataService extends ChangeNotifier {
     if (_cachedColleges != null) {
       try {
         return _cachedColleges!.firstWhere((c) => c.id == collegeId);
-      } catch (_) {
-        // Not in cache, proceed to fetch
-      }
+      } catch (_) {}
     }
-    final colleges = await getAllColleges().first;
     try {
+      final colleges = await getAllColleges().first;
       return colleges.firstWhere((c) => c.id == collegeId);
-    } catch (_) {
+    } catch (e) {
       return null;
     }
   }
@@ -88,24 +128,42 @@ class DataService extends ChangeNotifier {
       return Stream.value(_cachedColleges!);
     }
     return Stream.fromFuture(
-      _apiService.getAllColleges().then((colleges) {
-        _cachedColleges = colleges;
-        return colleges;
-      }),
+      _apiService
+          .getAllColleges()
+          .then((colleges) {
+            _cachedColleges = colleges;
+            clearError();
+            return colleges;
+          })
+          .catchError((e) {
+            _setError(e);
+            throw e;
+          }),
     );
   }
 
   // Bus operations
   Future<void> createBus(BusModel bus) async {
-    await _apiService.createBus(bus);
+    try {
+      await _apiService.createBus(bus);
+      clearError();
+    } catch (e) {
+      _setError(e);
+      rethrow;
+    }
   }
 
   Future<void> updateBus(String busId, Map<String, dynamic> data) async {
-    await _apiService.updateBus(busId, data);
+    try {
+      await _apiService.updateBus(busId, data);
+      clearError();
+    } catch (e) {
+      _setError(e);
+      rethrow;
+    }
   }
 
   Stream<List<BusModel>> getBusesByCollege(String collegeId) {
-    // Initial fetch from REST, then updates from Socket or Refresh event
     return Stream.multi((controller) async {
       Future<void> fetch() async {
         try {
@@ -114,28 +172,24 @@ class DataService extends ChangeNotifier {
               .where((b) => b.collegeId == collegeId && b.isActive)
               .toList();
           if (!controller.isClosed) controller.add(filtered);
+          clearError();
         } catch (e) {
+          _setError(e);
           if (!controller.isClosed) controller.addError(e);
         }
       }
 
-      // Initial fetch
       await fetch();
-
-      // Listen for socket updates instead of polling
-      final subscription = _socketService.busListUpdateStream.listen((_) {
-        fetch();
-      });
-
-      controller.onCancel = () {
-        subscription.cancel();
-      };
+      final subscription = _socketService.busListUpdateStream.listen(
+        (_) => fetch(),
+      );
+      controller.onCancel = () => subscription.cancel();
     });
   }
 
   Future<BusModel?> getBusByDriver(String driverId) async {
-    final buses = await _apiService.getAllBuses();
     try {
+      final buses = await _apiService.getAllBuses();
       return buses.firstWhere((b) => b.driverId == driverId && b.isActive);
     } catch (e) {
       return null;
@@ -143,20 +197,94 @@ class DataService extends ChangeNotifier {
   }
 
   Future<void> deleteBus(String busId) async {
-    await _apiService.deleteBus(busId);
+    try {
+      await _apiService.deleteBus(busId);
+      clearError();
+    } catch (e) {
+      _setError(e);
+      rethrow;
+    }
+  }
+
+  Future<void> assignDriverToBus({
+    required String busNumber,
+    required String driverId,
+    required String collegeId,
+  }) async {
+    try {
+      final buses = await _apiService.getAllBuses();
+      final existingBus = buses.firstWhere(
+        (b) => b.busNumber == busNumber && b.collegeId == collegeId,
+        orElse: () => throw 'Bus not found',
+      );
+
+      await updateBus(existingBus.id, {
+        'driverId': driverId,
+        'assignmentStatus': 'pending',
+      });
+      _socketService.sendBusListUpdate();
+    } catch (e) {
+      _setError(e);
+      rethrow;
+    }
+  }
+
+  Future<void> acceptBusAssignment(String busId) async {
+    try {
+      await _apiService.updateBus(busId, {'assignmentStatus': 'accepted'});
+      _socketService.sendBusListUpdate();
+      clearError();
+    } catch (e) {
+      _setError(e);
+      rethrow;
+    }
+  }
+
+  Future<List<AssignmentLogModel>> getAssignmentLogsByBus(String busId) async {
+    try {
+      final logs = await _apiService.getAssignmentLogsByBus(busId);
+      clearError();
+      return logs;
+    } catch (e) {
+      _setError(e);
+      rethrow;
+    }
+  }
+
+  Future<List<AssignmentLogModel>> getAssignmentLogsByDriver(
+    String driverId,
+  ) async {
+    try {
+      final logs = await _apiService.getAssignmentLogsByDriver(driverId);
+      clearError();
+      return logs;
+    } catch (e) {
+      _setError(e);
+      rethrow;
+    }
   }
 
   // Route operations
   Future<void> createRoute(RouteModel route) async {
-    await _apiService.createRoute(route);
-    _cachedRoutes.remove(route.collegeId);
+    try {
+      await _apiService.createRoute(route);
+      _cachedRoutes.remove(route.collegeId);
+      clearError();
+    } catch (e) {
+      _setError(e);
+      rethrow;
+    }
   }
 
   Future<void> updateRoute(String routeId, Map<String, dynamic> data) async {
-    await _apiService.updateRoute(routeId, data);
-    // Invalidate for all as we don't easily know which collegeId it belongs to without fetching
-    // Optimally, we'd pass collegeId or find it in cache
-    _cachedRoutes.clear();
+    try {
+      await _apiService.updateRoute(routeId, data);
+      _cachedRoutes.clear();
+      clearError();
+    } catch (e) {
+      _setError(e);
+      rethrow;
+    }
   }
 
   Stream<List<RouteModel>> getRoutesByCollege(
@@ -167,47 +295,95 @@ class DataService extends ChangeNotifier {
       return Stream.value(_cachedRoutes[collegeId]!);
     }
     return Stream.fromFuture(
-      _apiService.getRoutesByCollege(collegeId).then((routes) {
-        _cachedRoutes[collegeId] = routes;
-        return routes;
-      }),
+      _apiService
+          .getRoutesByCollege(collegeId)
+          .then((routes) {
+            _cachedRoutes[collegeId] = routes;
+            clearError();
+            return routes;
+          })
+          .catchError((e) {
+            _setError(e);
+            throw e;
+          }),
     );
   }
 
   Future<void> deleteRoute(String routeId) async {
-    await _apiService.deleteRoute(routeId);
-    _cachedRoutes.clear();
+    try {
+      await _apiService.deleteRoute(routeId);
+      _cachedRoutes.clear();
+      clearError();
+    } catch (e) {
+      _setError(e);
+      rethrow;
+    }
   }
 
   // Schedule operations
   Future<void> createSchedule(ScheduleModel schedule) async {
-    await _apiService.createSchedule(schedule);
+    try {
+      await _apiService.createSchedule(schedule);
+      clearError();
+    } catch (e) {
+      _setError(e);
+      rethrow;
+    }
   }
 
   Future<void> updateSchedule(
     String scheduleId,
     Map<String, dynamic> data,
   ) async {
-    await _apiService.updateSchedule(scheduleId, data);
+    try {
+      await _apiService.updateSchedule(scheduleId, data);
+      clearError();
+    } catch (e) {
+      _setError(e);
+      rethrow;
+    }
   }
 
   Stream<List<ScheduleModel>> getSchedulesByCollege(String collegeId) {
-    return Stream.fromFuture(_apiService.getSchedulesByCollege(collegeId));
+    return Stream.fromFuture(
+      _apiService.getSchedulesByCollege(collegeId).catchError((e) {
+        _setError(e);
+        throw e;
+      }),
+    );
   }
 
   Future<void> deleteSchedule(String scheduleId) async {
-    await _apiService.deleteSchedule(scheduleId);
+    try {
+      await _apiService.deleteSchedule(scheduleId);
+      clearError();
+    } catch (e) {
+      _setError(e);
+      rethrow;
+    }
   }
 
   // Bus number operations
   Future<void> addBusNumber(String collegeId, String busNumber) async {
-    await _apiService.addBusNumber(collegeId, busNumber);
-    _cachedBusNumbers.remove(collegeId);
+    try {
+      await _apiService.addBusNumber(collegeId, busNumber);
+      _cachedBusNumbers.remove(collegeId);
+      clearError();
+    } catch (e) {
+      _setError(e);
+      rethrow;
+    }
   }
 
   Future<void> removeBusNumber(String collegeId, String busNumber) async {
-    await _apiService.removeBusNumber(collegeId, busNumber);
-    _cachedBusNumbers.remove(collegeId);
+    try {
+      await _apiService.removeBusNumber(collegeId, busNumber);
+      _cachedBusNumbers.remove(collegeId);
+      clearError();
+    } catch (e) {
+      _setError(e);
+      rethrow;
+    }
   }
 
   Stream<List<String>> getBusNumbers(
@@ -218,10 +394,17 @@ class DataService extends ChangeNotifier {
       return Stream.value(_cachedBusNumbers[collegeId]!);
     }
     return Stream.fromFuture(
-      _apiService.getBusNumbers(collegeId).then((numbers) {
-        _cachedBusNumbers[collegeId] = numbers;
-        return numbers;
-      }),
+      _apiService
+          .getBusNumbers(collegeId)
+          .then((numbers) {
+            _cachedBusNumbers[collegeId] = numbers;
+            clearError();
+            return numbers;
+          })
+          .catchError((e) {
+            _setError(e);
+            throw e;
+          }),
     );
   }
 
@@ -231,26 +414,29 @@ class DataService extends ChangeNotifier {
     String collegeId,
     BusLocationModel location,
   ) async {
-    // Notify server via Socket (instantly)
-    _socketService.updateLocation({
-      'busId': busId,
-      'collegeId': collegeId,
-      'currentLocation': {
-        'lat': location.currentLocation.latitude,
-        'lng': location.currentLocation.longitude,
-      },
-      'speed': location.speed ?? 0.0,
-      'heading': location.heading ?? 0.0,
-    });
+    try {
+      _socketService.updateLocation({
+        'busId': busId,
+        'collegeId': collegeId,
+        'location': {
+          'lat': location.currentLocation.latitude,
+          'lng': location.currentLocation.longitude,
+        },
+        'speed': location.speed ?? 0.0,
+        'heading': location.heading ?? 0.0,
+      });
 
-    // Also persist via REST
-    await _apiService.updateBusLocation(
-      busId,
-      location.currentLocation.latitude,
-      location.currentLocation.longitude,
-      location.speed ?? 0.0,
-      location.heading ?? 0.0,
-    );
+      await _apiService.updateBusLocation(
+        busId,
+        location.currentLocation.latitude,
+        location.currentLocation.longitude,
+        location.speed ?? 0.0,
+        location.heading ?? 0.0,
+      );
+      clearError();
+    } catch (e) {
+      _setError(e);
+    }
   }
 
   Stream<BusLocationModel?> getBusLocation(String busId) {
@@ -259,24 +445,20 @@ class DataService extends ChangeNotifier {
         try {
           final location = await _apiService.getBusLocation(busId);
           if (!controller.isClosed) controller.add(location);
+          clearError();
         } catch (e) {
+          _setError(e);
           if (!controller.isClosed) controller.addError(e);
         }
       }
 
-      // Initial fetch
       await fetch();
-
-      // Listen for socket updates for this SPECIFIC bus
       final subscription = _socketService.locationUpdateStream.listen((data) {
         if (data['busId'] == busId) {
           controller.add(BusLocationModel.fromMap(data, busId));
         }
       });
-
-      controller.onCancel = () {
-        subscription.cancel();
-      };
+      controller.onCancel = () => subscription.cancel();
     });
   }
 
@@ -285,28 +467,24 @@ class DataService extends ChangeNotifier {
   ) {
     return Stream.multi((controller) async {
       List<BusLocationModel> currentLocations = [];
-
       Future<void> fetchAll() async {
         try {
           currentLocations = await _apiService.getCollegeBusLocations(
             collegeId,
           );
           if (!controller.isClosed) controller.add(currentLocations);
+          clearError();
         } catch (e) {
+          _setError(e);
           if (!controller.isClosed) controller.addError(e);
         }
       }
 
-      // Initial fetch
       await fetchAll();
-
-      // Listen for socket updates for ANY bus in this college
       final subscription = _socketService.locationUpdateStream.listen((data) {
         if (data['collegeId'] == collegeId) {
           final busId = data['busId'];
           final newLoc = BusLocationModel.fromMap(data, busId);
-
-          // Update the local list and emit
           final index = currentLocations.indexWhere((l) => l.busId == busId);
           if (index != -1) {
             currentLocations[index] = newLoc;
@@ -316,32 +494,62 @@ class DataService extends ChangeNotifier {
           if (!controller.isClosed) controller.add(List.from(currentLocations));
         }
       });
-
-      controller.onCancel = () {
-        subscription.cancel();
-      };
+      controller.onCancel = () => subscription.cancel();
     });
   }
 
   // Notification operations
   Future<void> sendNotification(NotificationModel notification) async {
-    await _apiService.sendNotification(notification);
+    try {
+      await _apiService.sendNotification(notification);
+      clearError();
+    } catch (e) {
+      _setError(e);
+      rethrow;
+    }
   }
 
   Stream<List<NotificationModel>> getNotifications(String userId) {
-    return Stream.fromFuture(_apiService.getUserNotifications(userId));
+    return Stream.fromFuture(
+      _apiService.getUserNotifications(userId).catchError((e) {
+        _setError(e);
+        throw e;
+      }),
+    );
   }
 
   Future<void> markNotificationAsRead(String notificationId) async {
-    await _apiService.markNotificationAsRead(notificationId);
+    try {
+      await _apiService.markNotificationAsRead(notificationId);
+      clearError();
+    } catch (e) {
+      _setError(e);
+    }
   }
 
   // Approval operations
   Future<void> approveUser(String userId, String approverId) async {
-    await _apiService.approveUser(userId, approverId);
+    try {
+      await _apiService.approveUser(userId, approverId);
+      clearError();
+    } catch (e) {
+      _setError(e);
+      rethrow;
+    }
   }
 
   Future<void> rejectUser(String userId, String approverId) async {
-    await _apiService.rejectUser(userId, approverId);
+    try {
+      // In ApiService rejectUser was missing, assuming it's similar to approve
+      await _apiService.updateUser(userId, {
+        'approved': false,
+        'needsManualApproval': false,
+        'approverId': approverId,
+      });
+      clearError();
+    } catch (e) {
+      _setError(e);
+      rethrow;
+    }
   }
 }

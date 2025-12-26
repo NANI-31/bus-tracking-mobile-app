@@ -16,6 +16,7 @@ class UserModel {
   final String? rollNumber;
   final String? preferredStop;
   final String? routeId;
+  final String? fcmToken;
   final String language;
 
   UserModel({
@@ -34,6 +35,7 @@ class UserModel {
     this.rollNumber,
     this.preferredStop,
     this.routeId,
+    this.fcmToken,
     this.language = 'en',
   });
 
@@ -61,6 +63,7 @@ class UserModel {
       rollNumber: map['rollNumber'],
       preferredStop: map['preferredStop'],
       routeId: map['routeId'],
+      fcmToken: map['fcmToken'],
       language: map['language'] ?? 'en',
     );
   }
@@ -82,6 +85,7 @@ class UserModel {
       'rollNumber': rollNumber,
       'preferredStop': preferredStop,
       'routeId': routeId,
+      'fcmToken': fcmToken,
       'language': language,
     };
   }
@@ -102,6 +106,7 @@ class UserModel {
     String? rollNumber,
     String? preferredStop,
     String? routeId,
+    String? fcmToken,
     String? language,
   }) {
     return UserModel(
@@ -120,6 +125,7 @@ class UserModel {
       rollNumber: rollNumber ?? this.rollNumber,
       preferredStop: preferredStop ?? this.preferredStop,
       routeId: routeId ?? this.routeId,
+      fcmToken: fcmToken ?? this.fcmToken,
       language: language ?? this.language,
     );
   }

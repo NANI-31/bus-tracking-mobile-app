@@ -8,6 +8,7 @@ class BusModel {
   final String collegeId;
   final bool isActive;
   final String status;
+  final String assignmentStatus;
   final int delay;
   final DateTime createdAt;
   final DateTime? updatedAt;
@@ -20,6 +21,7 @@ class BusModel {
     required this.collegeId,
     this.isActive = true,
     this.status = 'on-time',
+    this.assignmentStatus = 'unassigned',
     this.delay = 0,
     required this.createdAt,
     this.updatedAt,
@@ -34,6 +36,7 @@ class BusModel {
       collegeId: map['collegeId'] ?? '',
       isActive: map['isActive'] ?? true,
       status: map['status'] ?? 'on-time',
+      assignmentStatus: map['assignmentStatus'] ?? 'unassigned',
       delay: map['delay'] ?? 0,
       createdAt: DateTime.parse(map['createdAt']),
       updatedAt: map['updatedAt'] != null
@@ -50,6 +53,7 @@ class BusModel {
       'collegeId': collegeId,
       'isActive': isActive,
       'status': status,
+      'assignmentStatus': assignmentStatus,
       'delay': delay,
       'createdAt': createdAt.toIso8601String(),
       'updatedAt': updatedAt?.toIso8601String(),
@@ -64,6 +68,7 @@ class BusModel {
     String? collegeId,
     bool? isActive,
     String? status,
+    String? assignmentStatus,
     int? delay,
     DateTime? createdAt,
     DateTime? updatedAt,
@@ -76,6 +81,7 @@ class BusModel {
       collegeId: collegeId ?? this.collegeId,
       isActive: isActive ?? this.isActive,
       status: status ?? this.status,
+      assignmentStatus: assignmentStatus ?? this.assignmentStatus,
       delay: delay ?? this.delay,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,

@@ -145,7 +145,9 @@ class FCMService {
   }
 
   void _handleForegroundMessage(RemoteMessage message) {
-    debugPrint('Foreground message: ${message.notification?.title}');
+    debugPrint('Foreground message received: ${message.notification?.title}');
+    debugPrint('Foreground message body: ${message.notification?.body}');
+    debugPrint('Foreground message data: ${message.data}');
     _messageController.add(message);
 
     // Show local notification for foreground messages

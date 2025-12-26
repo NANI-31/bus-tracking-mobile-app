@@ -1,17 +1,20 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:collegebus/models/user_model.dart';
 import 'package:collegebus/services/api_service.dart';
+import 'package:collegebus/services/persistence_service.dart';
+import 'package:collegebus/services/fcm_service.dart';
 import 'package:collegebus/utils/constants.dart';
 
 class AuthService extends ChangeNotifier {
   ApiService? _apiService;
   UserModel? _currentUserModel;
+  String? _token;
   bool _isInitialized = false;
 
   UserModel? get currentUserModel => _currentUserModel;
   bool get isInitialized => _isInitialized;
+  String? get token => _token;
   UserRole? get userRole => _currentUserModel?.role;
   bool get isLoggedIn => _currentUserModel != null;
 
@@ -20,26 +23,31 @@ class AuthService extends ChangeNotifier {
   }
 
   AuthService() {
-    _checkLoginStatus();
+    _init();
+  }
+
+  Future<void> _init() async {
+    await PersistenceService.init();
+    await _checkLoginStatus();
   }
 
   Future<void> _checkLoginStatus() async {
-    final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('auth_token');
-    final userId = prefs.getString('user_id');
+    final token = PersistenceService.getAuthToken();
+    final userId = PersistenceService.getUserId();
 
     if (token != null && userId != null) {
+      _token = token;
       if (_apiService != null) {
-        // Here we could validate token with backend, but for now just load user
         await _loadUserModel(userId);
+        await _registerFCMToken();
         _isInitialized = true;
         notifyListeners();
       } else {
-        // Retry loading if service not ready
         Future.delayed(const Duration(seconds: 1), _checkLoginStatus);
       }
     } else {
       _currentUserModel = null;
+      _token = null;
       _isInitialized = true;
       notifyListeners();
     }
@@ -48,19 +56,15 @@ class AuthService extends ChangeNotifier {
   Future<void> _loadUserModel(String uid) async {
     try {
       if (_apiService == null) return;
-      print('DEBUG: Loading user model for UID: $uid');
       final user = await _apiService!.getUser(uid);
       if (user != null) {
         _currentUserModel = user;
-        print('DEBUG: User model loaded: ${_currentUserModel!.fullName}');
       } else {
-        print('DEBUG: User document does not exist for UID: $uid');
-        // If user not found but we have token, maybe we should logout?
         await signOut();
       }
       notifyListeners();
     } catch (e) {
-      print('DEBUG: Error loading user model: $e');
+      debugPrint('Error loading user model: $e');
     }
   }
 
@@ -91,8 +95,6 @@ class AuthService extends ChangeNotifier {
       final result = await _apiService!.register(userData);
 
       if (result['success'] == true) {
-        // Do NOT auto-login. User must verify email first.
-        // We just return success and let the UI handle navigation to OTP screen.
         return {'success': true, 'message': 'Registration successful'};
       } else {
         return {
@@ -121,11 +123,13 @@ class AuthService extends ChangeNotifier {
 
       if (result['success'] == true) {
         if (result['token'] != null) {
-          final prefs = await SharedPreferences.getInstance();
-          await prefs.setString('auth_token', result['token']);
+          _token = result['token'];
+          await PersistenceService.setAuthToken(_token!);
           if (result['user'] != null && result['user']['id'] != null) {
-            await prefs.setString('user_id', result['user']['id']);
-            await _loadUserModel(result['user']['id']);
+            final userId = result['user']['id'];
+            await PersistenceService.setUserId(userId);
+            await _loadUserModel(userId);
+            await _registerFCMToken();
           }
         }
         return {'success': true, 'message': 'Login successful'};
@@ -137,23 +141,19 @@ class AuthService extends ChangeNotifier {
         };
       }
     } catch (e) {
-      print('CRITICAL: Login exception: $e');
       return {'success': false, 'message': 'Login failed: ${e.toString()}'};
     }
   }
 
-  // Not implementing password reset yet as it requires email service on backend
   Future<Map<String, dynamic>> sendOtp(String email) async {
-    if (_apiService == null) {
+    if (_apiService == null)
       return {'success': false, 'message': 'Service not available'};
-    }
     return await _apiService!.sendOtp(email);
   }
 
   Future<Map<String, dynamic>> verifyOtp(String email, String otp) async {
-    if (_apiService == null) {
+    if (_apiService == null)
       return {'success': false, 'message': 'Service not available'};
-    }
     return await _apiService!.verifyOtp(email, otp);
   }
 
@@ -161,20 +161,23 @@ class AuthService extends ChangeNotifier {
     String email,
     String newPassword,
   ) async {
-    if (_apiService == null) {
+    if (_apiService == null)
       return {'success': false, 'message': 'Service not available'};
-    }
     return await _apiService!.resetPassword(email, newPassword);
   }
 
-  Future<void> resendEmailVerification() async {
-    // Not implemented
-  }
-
   Future<void> signOut() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove('auth_token');
-    await prefs.remove('user_id');
+    try {
+      if (_currentUserModel != null && _apiService != null) {
+        await _apiService!.removeFcmToken(_currentUserModel!.id);
+      }
+    } catch (e) {
+      debugPrint('Error removing FCM token during logout: $e');
+    }
+
+    await PersistenceService.removeAuthToken();
+    await PersistenceService.removeUserId();
+    _token = null;
     _currentUserModel = null;
     notifyListeners();
   }
@@ -182,5 +185,20 @@ class AuthService extends ChangeNotifier {
   void updateCurrentUser(UserModel user) {
     _currentUserModel = user;
     notifyListeners();
+  }
+
+  Future<void> _registerFCMToken() async {
+    if (_currentUserModel == null || _apiService == null) return;
+    try {
+      final token = await FCMService().getStoredToken();
+      if (token != null) {
+        await _apiService!.updateUser(_currentUserModel!.id, {
+          'fcmToken': token,
+        });
+        debugPrint('FCM Token registered with backend');
+      }
+    } catch (e) {
+      debugPrint('Error registering FCM token: $e');
+    }
   }
 }

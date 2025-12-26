@@ -88,10 +88,16 @@ class MyApp extends StatelessWidget {
           update: (_, api, auth) => auth!..updateApiService(api),
         ),
 
-        ChangeNotifierProvider(
-          create: (_) {
-            final socket = SocketService();
-            socket.init(AppConstants.baseUrl);
+        ChangeNotifierProxyProvider<AuthService, SocketService>(
+          create: (_) => SocketService(),
+          update: (_, auth, socket) {
+            if (socket!.isConnected == false &&
+                socket.isConnecting == false &&
+                auth.token != null) {
+              socket.init(AppConstants.baseUrl, token: auth.token);
+            } else if (auth.token != socket.token) {
+              socket.updateAuth(auth.token);
+            }
             return socket;
           },
         ),

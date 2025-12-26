@@ -43,6 +43,8 @@ class LiveTrackingControlPanel extends StatelessWidget {
                       .text
                       .size(14)
                       .color(AppColors.textSecondary)
+                      .maxLines(2)
+                      .ellipsis
                       .make(),
                 ]),
               AppSizes.paddingMedium.heightBox,

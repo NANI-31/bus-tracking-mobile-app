@@ -78,7 +78,7 @@ class LocationService {
   }
 
   Future<void> startLocationTracking({
-    required Function(LatLng) onLocationUpdate,
+    required Function(Position) onLocationUpdate,
     int intervalSeconds = 10,
   }) async {
     try {
@@ -104,7 +104,7 @@ class LocationService {
               final latLng = LatLng(position.latitude, position.longitude);
               // print('DEBUG: Location update received: ${latLng.latitude}, ${latLng.longitude}');
               _locationController.add(latLng);
-              onLocationUpdate(latLng);
+              onLocationUpdate(position);
             },
             onError: (error) {
               print('DEBUG: Location stream error: $error');

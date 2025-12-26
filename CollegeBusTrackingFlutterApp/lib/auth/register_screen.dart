@@ -175,7 +175,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
       final l10n = SignupLocalizations.of(context)!;
       _showErrorSnackBar(l10n.genericError);
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 

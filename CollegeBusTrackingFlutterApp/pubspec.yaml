@@ -54,6 +54,8 @@ dependencies:
   geolocator: ^13.0.1
   google_maps_flutter: ^2.10.0
 
+  flutter_polyline_points: ^3.1.0
+
   # Add missing import for polylines
   maps_toolkit: ^3.0.0
 

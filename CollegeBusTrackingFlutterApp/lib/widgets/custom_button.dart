@@ -86,7 +86,7 @@ class CustomButton extends StatelessWidget {
       return HStack([
         icon!,
         AppSizes.paddingSmall.widthBox,
-        text.text.size(16).semiBold.color(contentColor).make(),
+        text.text.size(16).semiBold.color(contentColor).make().flexible(),
       ], alignment: MainAxisAlignment.center);
     }
 

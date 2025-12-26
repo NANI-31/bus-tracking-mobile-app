@@ -9,6 +9,7 @@ import 'package:collegebus/models/bus_model.dart';
 import 'package:collegebus/models/route_model.dart';
 import 'package:collegebus/services/theme_service.dart';
 import 'package:collegebus/services/socket_service.dart';
+import 'package:collegebus/services/persistence_service.dart';
 
 // Import the new modules
 import 'tabs/student_map_tab.dart';
@@ -48,11 +49,9 @@ class _StudentDashboardState extends State<StudentDashboard>
   int _bottomNavIndex = 0;
   final Map<String, StreamSubscription> _busLocationSubscriptions = {};
 
-  // Stream subscriptions
   StreamSubscription? _busesListSubscription;
   StreamSubscription? _routesSubscription;
 
-  // Cached lists for filters
   List<String> _cachedExposedStops = [];
   List<String> _cachedExposedBusNumbers = [];
 
@@ -90,29 +89,42 @@ class _StudentDashboardState extends State<StudentDashboard>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
-    // Listen to tab changes to update UI when using bottom nav (if needed)
+    _bottomNavIndex = PersistenceService.getBottomNavIndex();
+    _tabController = TabController(
+      length: 3,
+      vsync: this,
+      initialIndex: _bottomNavIndex < 3 ? _bottomNavIndex : 0,
+    );
     _tabController.addListener(() {
       if (!_tabController.indexIsChanging && mounted) {
         setState(() {});
       }
     });
+
     _getCurrentLocation();
     _loadRoutes();
     _loadBuses();
 
-    // Add theme listener for map styling
     WidgetsBinding.instance.addPostFrameCallback((_) {
       Provider.of<ThemeService>(
         context,
         listen: false,
       ).addListener(_handleThemeChange);
-      // specific call to load initial style
       _handleThemeChange();
     });
   }
 
+  void _onBottomNavChanged(int index) {
+    if (mounted) {
+      setState(() {
+        _bottomNavIndex = index;
+      });
+      PersistenceService.setBottomNavIndex(index);
+    }
+  }
+
   void _handleThemeChange() {
+    if (!mounted) return;
     final themeService = Provider.of<ThemeService>(context, listen: false);
     MapStyleHelper.getStyle(themeService.isDarkMode).then((style) {
       if (mounted) {
@@ -126,7 +138,6 @@ class _StudentDashboardState extends State<StudentDashboard>
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    // In case user model loaded after initState
     final authService = Provider.of<AuthService>(context);
     final user = authService.currentUserModel;
     if (user != null && _allBuses.isEmpty && _busesListSubscription == null) {
@@ -142,22 +153,16 @@ class _StudentDashboardState extends State<StudentDashboard>
   @override
   void dispose() {
     _tabController.dispose();
-    // Cancel all location subscriptions
     for (final subscription in _busLocationSubscriptions.values) {
       subscription.cancel();
     }
     _busLocationSubscriptions.clear();
-
-    // Cancel main subscriptions
     _busesListSubscription?.cancel();
     _routesSubscription?.cancel();
-
-    // Remove theme listener
     Provider.of<ThemeService>(
       context,
       listen: false,
     ).removeListener(_handleThemeChange);
-
     super.dispose();
   }
 
@@ -166,8 +171,6 @@ class _StudentDashboardState extends State<StudentDashboard>
       context,
       listen: false,
     );
-
-    // faster: try last known location first to show something immediately
     final lastKnown = await locationService.getLastKnownLocation();
     if (lastKnown != null && mounted) {
       setState(() {
@@ -175,8 +178,6 @@ class _StudentDashboardState extends State<StudentDashboard>
         _updateMarkers();
       });
     }
-
-    // then get fresh high-accuracy location
     final location = await locationService.getCurrentLocation();
     if (location != null && mounted) {
       setState(() {
@@ -188,77 +189,64 @@ class _StudentDashboardState extends State<StudentDashboard>
 
   Future<void> _loadBuses() async {
     final authService = Provider.of<AuthService>(context, listen: false);
-    final firestoreService = Provider.of<DataService>(context, listen: false);
-
+    final dataService = Provider.of<DataService>(context, listen: false);
     final collegeId = authService.currentUserModel?.collegeId;
     if (collegeId != null) {
       await _busesListSubscription?.cancel();
-      _busesListSubscription = firestoreService
-          .getBusesByCollege(collegeId)
-          .listen((buses) {
-            // Cancel existing subscriptions
-            for (final subscription in _busLocationSubscriptions.values) {
-              subscription.cancel();
+      _busesListSubscription = dataService.getBusesByCollege(collegeId).listen((
+        buses,
+      ) {
+        for (final subscription in _busLocationSubscriptions.values) {
+          subscription.cancel();
+        }
+        _busLocationSubscriptions.clear();
+        if (mounted) {
+          setState(() {
+            _allBuses = buses;
+            if (_selectedStop == null &&
+                authService.currentUserModel?.preferredStop != null) {
+              _selectedStop = authService.currentUserModel!.preferredStop;
             }
-            _busLocationSubscriptions.clear();
-
-            if (mounted) {
-              setState(() {
-                _allBuses = buses;
-                if (_selectedStop == null &&
-                    authService.currentUserModel?.preferredStop != null) {
-                  _selectedStop = authService.currentUserModel!.preferredStop;
-                }
-                _updateCachedFilterLists();
-                _applyFilters();
-                _updateMarkers();
-              });
-            }
-
-            // Set up location listeners (ONE stream for all buses)
-            _setupBusLocationListeners(collegeId, firestoreService);
+            _updateCachedFilterLists();
+            _applyFilters();
+            _updateMarkers();
           });
+        }
+        _setupBusLocationListeners(collegeId, dataService);
+      });
     }
   }
 
   Future<void> _loadRoutes() async {
     final authService = Provider.of<AuthService>(context, listen: false);
-    final firestoreService = Provider.of<DataService>(context, listen: false);
+    final dataService = Provider.of<DataService>(context, listen: false);
     final collegeId = authService.currentUserModel?.collegeId;
     if (collegeId != null) {
       await _routesSubscription?.cancel();
-      _routesSubscription = firestoreService
-          .getRoutesByCollege(collegeId)
-          .listen((routes) {
-            if (mounted) {
-              setState(() {
-                _routes = routes;
-                _updateCachedFilterLists();
-                _applyFilters();
-                _updateMarkers();
-              });
-            }
+      _routesSubscription = dataService.getRoutesByCollege(collegeId).listen((
+        routes,
+      ) {
+        if (mounted) {
+          setState(() {
+            _routes = routes;
+            _updateCachedFilterLists();
+            _applyFilters();
+            _updateMarkers();
           });
+        }
+      });
     }
   }
 
-  void _setupBusLocationListeners(
-    String collegeId,
-    DataService firestoreService,
-  ) {
-    // Cancel any existing subscription first
-    // We only need ONE subscription now for ALL buses
+  void _setupBusLocationListeners(String collegeId, DataService dataService) {
     for (final subscription in _busLocationSubscriptions.values) {
       subscription.cancel();
     }
     _busLocationSubscriptions.clear();
-
-    final subscription = firestoreService
+    final subscription = dataService
         .getCollegeBusLocationsStream(collegeId)
         .listen((locations) {
           if (!mounted) return;
-
-          // Update all markers
           for (final location in locations) {
             final bus = _allBuses.firstWhere(
               (b) => b.id == location.busId,
@@ -272,14 +260,11 @@ class _StudentDashboardState extends State<StudentDashboard>
                 createdAt: DateTime.now(),
               ),
             );
-
             if (bus.id.isNotEmpty) {
               _updateBusMarker(bus, location);
             }
           }
         });
-
-    // Store with a key 'all' since it covers everything
     _busLocationSubscriptions['all'] = subscription;
   }
 
@@ -299,7 +284,6 @@ class _StudentDashboardState extends State<StudentDashboard>
         createdAt: DateTime.now(),
       ),
     );
-
     final marker = StudentMapHelper.createBusMarker(
       bus: bus,
       route: route,
@@ -308,14 +292,11 @@ class _StudentDashboardState extends State<StudentDashboard>
       isSelected: _selectedBus?.id == bus.id,
       onTap: () => _selectBus(bus),
     );
-
     if (!mounted) return;
     setState(() {
       _markers.removeWhere((m) => m.markerId.value == 'bus_${bus.id}');
       _markers.add(marker);
     });
-
-    // Auto-follow selected bus
     if (_selectedBus?.id == bus.id &&
         location != null &&
         _mapController != null) {
@@ -327,8 +308,6 @@ class _StudentDashboardState extends State<StudentDashboard>
 
   void _applyFilters() {
     List<BusModel> filtered = List.from(_allBuses);
-
-    // Filter by route type
     if (_selectedRouteType != null) {
       filtered = filtered.where((bus) {
         final route = _routes.firstWhere(
@@ -349,8 +328,6 @@ class _StudentDashboardState extends State<StudentDashboard>
         return route.routeType == _selectedRouteType;
       }).toList();
     }
-
-    // Filter by selected stop
     if (_selectedStop != null) {
       filtered = filtered.where((bus) {
         final route = _routes.firstWhere(
@@ -368,28 +345,21 @@ class _StudentDashboardState extends State<StudentDashboard>
             createdAt: DateTime.now(),
           ),
         );
-        final matches =
-            route.startPoint.name == _selectedStop ||
+        return route.startPoint.name == _selectedStop ||
             route.endPoint.name == _selectedStop ||
             route.stopPoints.any((s) => s.name == _selectedStop);
-        return matches;
       }).toList();
     }
-
-    // Filter by selected bus number
     if (_selectedBusNumber != null) {
       filtered = filtered
           .where((bus) => bus.busNumber == _selectedBusNumber)
           .toList();
     }
-
     _filteredBuses = filtered;
   }
 
   void _updateMarkers() {
     final newMarkers = <Marker>{};
-
-    // Always show current location marker
     if (_currentLocation != null) {
       newMarkers.add(
         Marker(
@@ -400,19 +370,14 @@ class _StudentDashboardState extends State<StudentDashboard>
         ),
       );
     }
-
-    // Show all filtered buses as markers
     for (final bus in _filteredBuses) {
       _addBusMarker(bus, newMarkers);
     }
-
-    // If a bus is selected, show its route polyline and stops
     if (_selectedBus != null) {
       _addBusRoutePolyline(_selectedBus!);
     } else {
       _polylines = {};
     }
-
     _markers = newMarkers;
   }
 
@@ -424,8 +389,8 @@ class _StudentDashboardState extends State<StudentDashboard>
           id: '',
           routeName: 'N/A',
           routeType: '',
-          startPoint: RoutePoint(name: '', lat: 0, lng: 0), // Use RoutePoint
-          endPoint: RoutePoint(name: '', lat: 0, lng: 0), // Use RoutePoint
+          startPoint: RoutePoint(name: '', lat: 0, lng: 0),
+          endPoint: RoutePoint(name: '', lat: 0, lng: 0),
           stopPoints: [],
           collegeId: '',
           createdBy: '',
@@ -433,27 +398,20 @@ class _StudentDashboardState extends State<StudentDashboard>
           createdAt: DateTime.now(),
         ),
       );
-
-      final polyline = StudentMapHelper.createRoutePolyline(
-        bus: bus,
-        route: route,
-        currentLocation: _currentLocation,
+      _polylines = {
+        StudentMapHelper.createRoutePolyline(
+          bus: bus,
+          route: route,
+          currentLocation: _currentLocation,
+        ),
+      };
+      _markers.addAll(
+        StudentMapHelper.createStopMarkers(
+          bus: bus,
+          route: route,
+          currentLocation: _currentLocation,
+        ),
       );
-
-      if (mounted) {
-        setState(() {
-          _polylines = {polyline};
-        });
-      }
-
-      // Add stop markers
-      final stopMarkers = StudentMapHelper.createStopMarkers(
-        bus: bus,
-        route: route,
-        currentLocation: _currentLocation,
-      );
-
-      _markers.addAll(stopMarkers);
     }
   }
 
@@ -473,43 +431,30 @@ class _StudentDashboardState extends State<StudentDashboard>
         createdAt: DateTime.now(),
       ),
     );
-
-    final marker = StudentMapHelper.createBusMarker(
-      bus: bus,
-      route: route,
-      location: null, // Initial add, no location yet
-      currentLocation: _currentLocation,
-      isSelected: _selectedBus?.id == bus.id,
-      onTap: () => _selectBus(bus),
+    markers.add(
+      StudentMapHelper.createBusMarker(
+        bus: bus,
+        route: route,
+        location: null,
+        currentLocation: _currentLocation,
+        isSelected: _selectedBus?.id == bus.id,
+        onTap: () => _selectBus(bus),
+      ),
     );
-
-    markers.add(marker);
   }
 
   void _selectBus(BusModel bus) {
-    if (mounted) {
-      setState(() {
-        _selectedBus = bus;
-      });
-    }
-
-    // Move camera to bus location if available
-    final firestoreService = Provider.of<DataService>(context, listen: false);
-    // Use first (one-shot) to move camera immediately without creating a persistent leaky listener
-    firestoreService.getBusLocation(bus.id).first.then((location) {
+    if (mounted) setState(() => _selectedBus = bus);
+    final dataService = Provider.of<DataService>(context, listen: false);
+    dataService.getBusLocation(bus.id).first.then((location) {
       if (location != null && _mapController != null) {
         _mapController!.animateCamera(
           CameraUpdate.newLatLngZoom(location.currentLocation, 16.0),
         );
       }
     });
-
-    // Switch to Map tab (index 1) if not already there
-    if (mounted) {
-      setState(() {
-        _bottomNavIndex = 1;
-      });
-    }
+    if (mounted) setState(() => _selectedBus = bus);
+    _onBottomNavChanged(1);
     _tabController.animateTo(0);
   }
 
@@ -551,45 +496,30 @@ class _StudentDashboardState extends State<StudentDashboard>
   Widget build(BuildContext context) {
     final authService = Provider.of<AuthService>(context);
     final user = authService.currentUserModel;
-
     return Consumer<ThemeService>(
       builder: (context, themeService, _) {
         return Scaffold(
           backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-          // Remove Sidebar if Bottom Navigation is enabled
           drawer: themeService.useBottomNavigation
               ? null
               : AppDrawer(user: user, authService: authService),
-
-          // Custom Redesigned Header
           appBar: themeService.useBottomNavigation
               ? ([3, 4].contains(_bottomNavIndex)
-                    ? null // Hide for Schedule and Profile tabs
+                    ? null
                     : StudentBottomNavAppBar(bottomNavIndex: _bottomNavIndex))
               : StudentDashboardAppBar(
                   user: user,
                   tabController: _tabController,
                   authService: authService,
                 ),
-
-          // Body Logic
           body: themeService.useBottomNavigation
               ? IndexedStack(
                   index: _bottomNavIndex,
                   children: [
-                    // Home Tab
                     StudentHomeScreen(
                       isTab: true,
-                      onTrackLive: () {
-                        if (mounted) {
-                          setState(() {
-                            _bottomNavIndex = 1; // Map tab
-                          });
-                        }
-                      },
+                      onTrackLive: () => _onBottomNavChanged(1),
                     ),
-
-                    // Map Tab
                     StudentMapTab(
                       currentLocation: _currentLocation,
                       markers: _markers,
@@ -600,25 +530,15 @@ class _StudentDashboardState extends State<StudentDashboard>
                       allBusNumbers: _allBusNumbers,
                       filteredBusesCount: _filteredBuses.length,
                       mapStyle: _mapStyle,
-                      onMapCreated: (controller) {
-                        _mapController = controller;
-                      },
+                      onMapCreated: (controller) => _mapController = controller,
                       onRouteTypeSelected: _onRouteTypeSelected,
                       onBusNumberSelected: _onBusNumberSelected,
                       onClearFilters: _clearFilters,
                       onBusSelected: (bus) {
-                        if (mounted) {
-                          setState(() {
-                            _selectedBus = bus;
-                          });
-                        }
-                        if (bus == null) {
-                          _updateMarkers();
-                        }
+                        if (mounted) setState(() => _selectedBus = bus);
+                        if (bus == null) _updateMarkers();
                       },
                     ),
-
-                    // Bus List Tab (Route)
                     StudentBusListTab(
                       filteredBuses: _filteredBuses,
                       routes: _routes,
@@ -627,10 +547,7 @@ class _StudentDashboardState extends State<StudentDashboard>
                       selectedStop: _selectedStop,
                       onClearFilters: _clearFilters,
                     ),
-                    // Schedule Tab
                     const BusScheduleScreen(isTab: true),
-
-                    // Profile Tab
                     const StudentProfileScreen(),
                   ],
                 )
@@ -648,19 +565,13 @@ class _StudentDashboardState extends State<StudentDashboard>
                       allBusNumbers: _allBusNumbers,
                       filteredBusesCount: _filteredBuses.length,
                       mapStyle: _mapStyle,
-                      onMapCreated: (controller) {
-                        _mapController = controller;
-                      },
+                      onMapCreated: (controller) => _mapController = controller,
                       onRouteTypeSelected: _onRouteTypeSelected,
                       onBusNumberSelected: _onBusNumberSelected,
                       onClearFilters: _clearFilters,
                       onBusSelected: (bus) {
-                        setState(() {
-                          _selectedBus = bus;
-                        });
-                        if (bus == null) {
-                          _updateMarkers();
-                        }
+                        setState(() => _selectedBus = bus);
+                        if (bus == null) _updateMarkers();
                       },
                     ),
                     StudentBusListTab(
@@ -671,25 +582,16 @@ class _StudentDashboardState extends State<StudentDashboard>
                       selectedStop: _selectedStop,
                       onClearFilters: _clearFilters,
                     ),
-                    // Bus Info Tab
                     StudentInfoTab(
                       allBusNumbers: _allBusNumbers,
                       allStops: _allStops,
                     ),
                   ],
                 ),
-
-          // Bottom Navigation Bar Logic
           bottomNavigationBar: themeService.useBottomNavigation
               ? NavigationBar(
                   selectedIndex: _bottomNavIndex,
-                  onDestinationSelected: (index) {
-                    if (mounted) {
-                      setState(() {
-                        _bottomNavIndex = index;
-                      });
-                    }
-                  },
+                  onDestinationSelected: _onBottomNavChanged,
                   destinations: const [
                     NavigationDestination(
                       icon: Icon(Icons.home_outlined),

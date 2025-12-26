@@ -19,7 +19,7 @@ class SuccessModal extends StatelessWidget {
     this.primaryActionText,
   });
 
-  static Future<void> show({
+  static Future<T?> show<T>({
     required BuildContext context,
     required String title,
     required String message,
@@ -28,7 +28,7 @@ class SuccessModal extends StatelessWidget {
     VoidCallback? onPrimaryAction,
     String? primaryActionText,
   }) async {
-    showDialog(
+    final resultFuture = showDialog<T>(
       context: context,
       barrierDismissible: false,
       builder: (context) => SuccessModal(
@@ -41,11 +41,14 @@ class SuccessModal extends StatelessWidget {
     );
 
     if (autoCloseDurationSeconds != null) {
-      await Future.delayed(Duration(seconds: autoCloseDurationSeconds));
-      if (context.mounted && Navigator.canPop(context)) {
-        Navigator.pop(context);
-      }
+      Future.delayed(Duration(seconds: autoCloseDurationSeconds)).then((_) {
+        if (context.mounted && Navigator.canPop(context)) {
+          Navigator.pop(context);
+        }
+      });
     }
+
+    return resultFuture;
   }
 
   @override
@@ -74,7 +77,12 @@ class SuccessModal extends StatelessWidget {
               if (primaryActionText != null) ...[
                 30.heightBox,
                 ElevatedButton(
-                      onPressed: onPrimaryAction,
+                      onPressed: () {
+                        Navigator.pop(context);
+                        if (onPrimaryAction != null) {
+                          onPrimaryAction!();
+                        }
+                      },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: baseColor,
                         foregroundColor: Colors.white,
@@ -90,7 +98,8 @@ class SuccessModal extends StatelessWidget {
                     ).box.shadow
                     .withRounded(value: 30)
                     .color(baseColor.withValues(alpha: 0.4))
-                    .make(),
+                    .make()
+                    .centered(),
               ] else ...[
                 20.heightBox, // Spacing if no button
               ],

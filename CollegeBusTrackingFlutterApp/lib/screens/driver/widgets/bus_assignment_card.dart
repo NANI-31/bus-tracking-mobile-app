@@ -40,6 +40,8 @@ class BusAssignmentCard extends StatelessWidget {
                     context,
                   ).colorScheme.onSurface.withValues(alpha: 0.6),
                 )
+                .maxLines(2)
+                .ellipsis
                 .make(),
           ]),
         AppSizes.paddingMedium.heightBox,

@@ -53,7 +53,9 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
       if (!mounted) return;
       _showErrorSnackBar('An error occurred. Please try again.');
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 

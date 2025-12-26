@@ -22,6 +22,8 @@ import 'package:collegebus/screens/common/privacy_policy_screen.dart';
 import 'package:collegebus/screens/common/terms_conditions_screen.dart';
 import 'package:collegebus/screens/common/notifications/notifications_screen.dart';
 import 'package:collegebus/utils/constants.dart';
+import 'package:collegebus/screens/coordinator/driver_selection_screen.dart';
+import 'package:collegebus/screens/coordinator/assignment_history_screen.dart';
 
 class AppRouter {
   static final GoRouter router = GoRouter(
@@ -61,7 +63,7 @@ class AppRouter {
           case UserRole.admin:
             return '/admin';
           default:
-            return '/login';
+            return null;
         }
       }
 
@@ -157,8 +159,26 @@ class AppRouter {
         builder: (context, state) => const CoordinatorDashboard(),
         routes: [
           GoRoute(
-            path: '/schedule',
+            path: 'schedule',
             builder: (context, state) => const ScheduleManagementScreen(),
+          ),
+          GoRoute(
+            path: 'assign-driver/:busNumber',
+            builder: (context, state) {
+              final busNumber = state.pathParameters['busNumber']!;
+              return DriverSelectionScreen(busNumber: busNumber);
+            },
+          ),
+          GoRoute(
+            path: 'assignment-history/:busId/:busNumber',
+            builder: (context, state) {
+              final busId = state.pathParameters['busId']!;
+              final busNumber = state.pathParameters['busNumber']!;
+              return AssignmentHistoryScreen(
+                busId: busId,
+                busNumber: busNumber,
+              );
+            },
           ),
         ],
       ),

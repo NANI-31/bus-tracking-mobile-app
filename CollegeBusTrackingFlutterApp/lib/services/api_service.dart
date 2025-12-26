@@ -1,11 +1,15 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:collegebus/models/user_model.dart';
 import 'package:collegebus/models/bus_model.dart';
 import 'package:collegebus/models/college_model.dart';
 import 'package:collegebus/models/route_model.dart';
 import 'package:collegebus/models/schedule_model.dart';
 import 'package:collegebus/models/notification_model.dart';
+import 'package:collegebus/models/assignment_log_model.dart';
 import 'package:collegebus/utils/constants.dart';
+import 'package:collegebus/utils/app_exceptions.dart';
+import 'package:collegebus/services/persistence_service.dart';
 
 class ApiService {
   final Dio _dio = Dio(
@@ -16,16 +20,51 @@ class ApiService {
     ),
   );
 
+  ApiService() {
+    _dio.interceptors.add(
+      InterceptorsWrapper(
+        onRequest: (options, handler) {
+          final token = PersistenceService.getAuthToken();
+          if (token != null) {
+            options.headers['Authorization'] = 'Bearer $token';
+          }
+          return handler.next(options);
+        },
+      ),
+    );
+  }
+
+  AppException _handleError(dynamic e) {
+    if (e is DioException) {
+      if (e.type == DioExceptionType.connectionTimeout ||
+          e.type == DioExceptionType.receiveTimeout) {
+        return NetworkException(message: 'Connection timed out');
+      }
+      if (e.response != null) {
+        final data = e.response!.data;
+        final message = data is Map
+            ? (data['message'] ?? 'Server error')
+            : 'Server error';
+        if (e.response!.statusCode == 401 || e.response!.statusCode == 403) {
+          return AuthException(message: message);
+        }
+        return ServerException(
+          message: message,
+          code: e.response!.statusCode.toString(),
+        );
+      }
+      return NetworkException();
+    }
+    return AppException(e.toString());
+  }
+
   // User Operations
   Future<Map<String, dynamic>> register(Map<String, dynamic> userData) async {
     try {
       final response = await _dio.post('/auth/register', data: userData);
       return response.data;
-    } on DioException catch (e) {
-      if (e.response != null) {
-        return e.response!.data;
-      }
-      return {'success': false, 'message': 'Network error occurred'};
+    } catch (e) {
+      throw _handleError(e);
     }
   }
 
@@ -36,11 +75,8 @@ class ApiService {
         data: {'email': email, 'password': password},
       );
       return response.data;
-    } on DioException catch (e) {
-      if (e.response != null) {
-        return e.response!.data;
-      }
-      return {'success': false, 'message': 'Network error occurred'};
+    } catch (e) {
+      throw _handleError(e);
     }
   }
 
@@ -51,14 +87,8 @@ class ApiService {
         data: {'email': email},
       );
       return {'success': true, 'message': response.data['message']};
-    } on DioException catch (e) {
-      if (e.response != null) {
-        return {
-          'success': false,
-          'message': e.response!.data['message'] ?? 'Error sending OTP',
-        };
-      }
-      return {'success': false, 'message': 'Network error occurred'};
+    } catch (e) {
+      throw _handleError(e);
     }
   }
 
@@ -69,14 +99,8 @@ class ApiService {
         data: {'email': email, 'otp': otp},
       );
       return {'success': true, 'message': response.data['message']};
-    } on DioException catch (e) {
-      if (e.response != null) {
-        return {
-          'success': false,
-          'message': e.response!.data['message'] ?? 'Error verifying OTP',
-        };
-      }
-      return {'success': false, 'message': 'Network error occurred'};
+    } catch (e) {
+      throw _handleError(e);
     }
   }
 
@@ -90,14 +114,8 @@ class ApiService {
         data: {'email': email, 'newPassword': newPassword},
       );
       return {'success': true, 'message': response.data['message']};
-    } on DioException catch (e) {
-      if (e.response != null) {
-        return {
-          'success': false,
-          'message': e.response!.data['message'] ?? 'Error resetting password',
-        };
-      }
-      return {'success': false, 'message': 'Network error occurred'};
+    } catch (e) {
+      throw _handleError(e);
     }
   }
 
@@ -106,8 +124,7 @@ class ApiService {
       final response = await _dio.get('/users/$userId');
       return UserModel.fromMap(response.data, userId);
     } catch (e) {
-      print('Error fetching user: $e');
-      return null;
+      throw _handleError(e);
     }
   }
 
@@ -118,17 +135,7 @@ class ApiService {
           .map((data) => UserModel.fromMap(data, data['_id']))
           .toList();
     } catch (e) {
-      print('Error fetching all users: $e');
-      return [];
-    }
-  }
-
-  Future<UserModel> createUser(UserModel user) async {
-    try {
-      final response = await _dio.post('/users', data: user.toMap());
-      return UserModel.fromMap(response.data, response.data['_id']);
-    } catch (e) {
-      throw Exception('Error creating user: $e');
+      throw _handleError(e);
     }
   }
 
@@ -140,8 +147,7 @@ class ApiService {
           .map((data) => BusModel.fromMap(data, data['_id']))
           .toList();
     } catch (e) {
-      print('Error fetching buses: $e');
-      return [];
+      throw _handleError(e);
     }
   }
 
@@ -150,7 +156,7 @@ class ApiService {
       final response = await _dio.post('/buses', data: bus.toMap());
       return BusModel.fromMap(response.data, response.data['_id']);
     } catch (e) {
-      throw Exception('Error creating bus: $e');
+      throw _handleError(e);
     }
   }
 
@@ -158,7 +164,7 @@ class ApiService {
     try {
       await _dio.put('/buses/$busId', data: data);
     } catch (e) {
-      throw Exception('Error updating bus: $e');
+      throw _handleError(e);
     }
   }
 
@@ -166,7 +172,7 @@ class ApiService {
     try {
       await _dio.delete('/buses/$busId');
     } catch (e) {
-      throw Exception('Error deleting bus: $e');
+      throw _handleError(e);
     }
   }
 
@@ -189,7 +195,7 @@ class ApiService {
         },
       );
     } catch (e) {
-      print('Error updating location: $e');
+      throw _handleError(e);
     }
   }
 
@@ -198,6 +204,7 @@ class ApiService {
       final response = await _dio.get('/buses/$busId/location');
       return BusLocationModel.fromMap(response.data, busId);
     } catch (e) {
+      // Location might not exist yet, so we return null instead of throwing for this specific one
       return null;
     }
   }
@@ -211,8 +218,7 @@ class ApiService {
           .map((data) => BusLocationModel.fromMap(data, data['busId']))
           .toList();
     } catch (e) {
-      print('Error fetching college bus locations: $e');
-      return [];
+      throw _handleError(e);
     }
   }
 
@@ -224,17 +230,7 @@ class ApiService {
           .map((data) => CollegeModel.fromMap(data, data['_id']))
           .toList();
     } catch (e) {
-      print('Error fetching colleges: $e');
-      return [];
-    }
-  }
-
-  Future<CollegeModel> createCollege(CollegeModel college) async {
-    try {
-      final response = await _dio.post('/colleges', data: college.toMap());
-      return CollegeModel.fromMap(response.data, response.data['_id']);
-    } catch (e) {
-      throw Exception('Error creating college: $e');
+      throw _handleError(e);
     }
   }
 
@@ -246,8 +242,7 @@ class ApiService {
           .map((data) => RouteModel.fromMap(data, data['_id']))
           .toList();
     } catch (e) {
-      print('Error fetching routes: $e');
-      return [];
+      throw _handleError(e);
     }
   }
 
@@ -256,7 +251,7 @@ class ApiService {
       final response = await _dio.post('/routes', data: route.toMap());
       return RouteModel.fromMap(response.data, response.data['_id']);
     } catch (e) {
-      throw Exception('Error creating route: $e');
+      throw _handleError(e);
     }
   }
 
@@ -264,7 +259,7 @@ class ApiService {
     try {
       await _dio.put('/routes/$routeId', data: data);
     } catch (e) {
-      throw Exception('Error updating route: $e');
+      throw _handleError(e);
     }
   }
 
@@ -272,20 +267,17 @@ class ApiService {
     try {
       await _dio.delete('/routes/$routeId');
     } catch (e) {
-      throw Exception('Error deleting route: $e');
+      throw _handleError(e);
     }
   }
 
   // Schedule Operations
-  Future<List<ScheduleModel>> getSchedulesByRoute(String routeId) async {
+  Future<ScheduleModel> createSchedule(ScheduleModel schedule) async {
     try {
-      final response = await _dio.get('/schedules/route/$routeId');
-      return (response.data as List)
-          .map((data) => ScheduleModel.fromMap(data, data['_id']))
-          .toList();
+      final response = await _dio.post('/schedules', data: schedule.toMap());
+      return ScheduleModel.fromMap(response.data, response.data['_id']);
     } catch (e) {
-      print('Error fetching schedules: $e');
-      return [];
+      throw _handleError(e);
     }
   }
 
@@ -296,17 +288,7 @@ class ApiService {
           .map((data) => ScheduleModel.fromMap(data, data['_id']))
           .toList();
     } catch (e) {
-      print('Error fetching college schedules: $e');
-      return [];
-    }
-  }
-
-  Future<ScheduleModel> createSchedule(ScheduleModel schedule) async {
-    try {
-      final response = await _dio.post('/schedules', data: schedule.toMap());
-      return ScheduleModel.fromMap(response.data, response.data['_id']);
-    } catch (e) {
-      throw Exception('Error creating schedule: $e');
+      throw _handleError(e);
     }
   }
 
@@ -317,7 +299,7 @@ class ApiService {
     try {
       await _dio.put('/schedules/$scheduleId', data: data);
     } catch (e) {
-      throw Exception('Error updating schedule: $e');
+      throw _handleError(e);
     }
   }
 
@@ -325,11 +307,19 @@ class ApiService {
     try {
       await _dio.delete('/schedules/$scheduleId');
     } catch (e) {
-      throw Exception('Error deleting schedule: $e');
+      throw _handleError(e);
     }
   }
 
   // Notification Operations
+  Future<void> sendNotification(NotificationModel notification) async {
+    try {
+      await _dio.post('/notifications', data: notification.toMap());
+    } catch (e) {
+      throw _handleError(e);
+    }
+  }
+
   Future<List<NotificationModel>> getUserNotifications(String userId) async {
     try {
       final response = await _dio.get('/notifications/user/$userId');
@@ -337,16 +327,7 @@ class ApiService {
           .map((data) => NotificationModel.fromMap(data, data['_id']))
           .toList();
     } catch (e) {
-      print('Error fetching notifications: $e');
-      return [];
-    }
-  }
-
-  Future<void> sendNotification(NotificationModel notification) async {
-    try {
-      await _dio.post('/notifications', data: notification.toMap());
-    } catch (e) {
-      throw Exception('Error sending notification: $e');
+      throw _handleError(e);
     }
   }
 
@@ -354,7 +335,19 @@ class ApiService {
     try {
       await _dio.put('/notifications/$notificationId/read');
     } catch (e) {
-      print('Error marking notification as read: $e');
+      throw _handleError(e);
+    }
+  }
+
+  Future<void> removeFcmToken(String userId) async {
+    try {
+      await _dio.post(
+        '/notifications/remove-fcm-token',
+        data: {'userId': userId},
+      );
+    } catch (e) {
+      // Create a warning but don't blocking flow
+      debugPrint('Error removing FCM token: $e');
     }
   }
 
@@ -364,15 +357,7 @@ class ApiService {
       final response = await _dio.put('/users/$userId', data: data);
       return UserModel.fromMap(response.data, userId);
     } catch (e) {
-      throw Exception('Error updating user: $e');
-    }
-  }
-
-  Future<void> verifyEmail(String userId) async {
-    try {
-      await _dio.put('/users/$userId/verify-email');
-    } catch (e) {
-      print('Error verifying email via API: $e');
+      throw _handleError(e);
     }
   }
 
@@ -385,42 +370,57 @@ class ApiService {
     });
   }
 
-  Future<void> rejectUser(String userId, String approverId) async {
-    await updateUser(userId, {
-      'approved': false,
-      'needsManualApproval': false,
-      'approverId': approverId,
-      'updatedAt': DateTime.now().toIso8601String(),
-    });
-  }
-
   // Bus Number Operations
   Future<void> addBusNumber(String collegeId, String busNumber) async {
     try {
       await _dio.post(
-        '/bus-numbers',
+        '/colleges/bus-numbers',
         data: {'collegeId': collegeId, 'busNumber': busNumber},
       );
     } catch (e) {
-      throw Exception('Error adding bus number: $e');
+      throw _handleError(e);
     }
   }
 
   Future<List<String>> getBusNumbers(String collegeId) async {
     try {
-      final response = await _dio.get('/bus-numbers/$collegeId');
+      final response = await _dio.get('/colleges/$collegeId/bus-numbers');
       return (response.data as List).map((e) => e.toString()).toList();
     } catch (e) {
-      print('Error fetching bus numbers: $e');
-      return [];
+      throw _handleError(e);
     }
   }
 
   Future<void> removeBusNumber(String collegeId, String busNumber) async {
     try {
-      await _dio.delete('/bus-numbers/$collegeId/$busNumber');
+      await _dio.delete('/colleges/$collegeId/bus-numbers/$busNumber');
     } catch (e) {
-      throw Exception('Error removing bus number: $e');
+      throw _handleError(e);
+    }
+  }
+
+  // Assignment Log Operations
+  Future<List<AssignmentLogModel>> getAssignmentLogsByBus(String busId) async {
+    try {
+      final response = await _dio.get('/assignments/bus/$busId');
+      return (response.data as List)
+          .map((data) => AssignmentLogModel.fromMap(data))
+          .toList();
+    } catch (e) {
+      throw _handleError(e);
+    }
+  }
+
+  Future<List<AssignmentLogModel>> getAssignmentLogsByDriver(
+    String driverId,
+  ) async {
+    try {
+      final response = await _dio.get('/assignments/driver/$driverId');
+      return (response.data as List)
+          .map((data) => AssignmentLogModel.fromMap(data))
+          .toList();
+    } catch (e) {
+      throw _handleError(e);
     }
   }
 }
