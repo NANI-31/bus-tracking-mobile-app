@@ -1,0 +1,25 @@
+[33m337b999[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mvelocityX[m[33m)[m HEAD@{0}: reset: moving to HEAD~1
+[33ma9ac59f[m HEAD@{1}: commit: added
+[33m337b999[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mvelocityX[m[33m)[m HEAD@{2}: reset: moving to HEAD~1
+[33m9568693[m HEAD@{3}: commit: added
+[33m337b999[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mvelocityX[m[33m)[m HEAD@{4}: reset: moving to HEAD~1
+[33ma039173[m HEAD@{5}: reset: moving to HEAD~1
+[33mcff7b3d[m HEAD@{6}: reset: moving to HEAD~1
+[33m2ae7f02[m HEAD@{7}: reset: moving to HEAD~1
+[33mc1d3716[m HEAD@{8}: reset: moving to HEAD~1
+[33mf390bf0[m HEAD@{9}: commit: Ignore service account key
+[33mc1d3716[m HEAD@{10}: commit: updated the coordinator scrren
+[33m2ae7f02[m HEAD@{11}: commit: updated the coordinator scrren
+[33mcff7b3d[m HEAD@{12}: commit: updated the coordinator scrren
+[33ma039173[m HEAD@{13}: commit: feat: Implement custom success modal and fix navigation flow
+[33m337b999[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mvelocityX[m[33m)[m HEAD@{14}: commit: Implement Bus Nearby notification logic and update User model
+[33m7041689[m[33m ([m[1;31morigin/velocityX[m[33m)[m HEAD@{15}: commit: Refactor RouteModel to use RoutePoint objects and fix all compilation errors
+[33m1b0501c[m HEAD@{16}: commit: refactor: routing system and optimized the student module code
+[33meb47de9[m HEAD@{17}: commit: feat: implement automatic dark mode for Google Maps across all dashboards
+[33m99a9f33[m HEAD@{18}: commit: refactor: remove hardcoded CSS and adopt VelocityX across Flutter app
+[33mce1a7df[m[33m ([m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m, [m[1;32mmain[m[33m)[m HEAD@{19}: checkout: moving from main to velocityX
+[33mce1a7df[m[33m ([m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m, [m[1;32mmain[m[33m)[m HEAD@{20}: commit: Implement Coordinator Bottom Nav, fix compilation errors, and update StudentProfile wiring
+[33mc0d2c72[m HEAD@{21}: commit: solved errors
+[33m70defb7[m HEAD@{22}: commit: ix: resolve const compilation errors and UI overflows - Fix `const_eval_method_invocation` errors by removing invalid `const` modifiers from widgets utilizing `Theme.of(context)` in: - [admin/admin_dashboard.dart](cci:7://file:///c:/mobile/projects/CollegeBusTrackingFlutterApp/lib/screens/admin/admin_dashboard.dart:0:0-0:0) - [coordinator/coordinator_dashboard.dart](cci:7://file:///c:/mobile/projects/CollegeBusTrackingFlutterApp/lib/screens/coordinator/coordinator_dashboard.dart:0:0-0:0) - [coordinator/schedule_management_screen.dart](cci:7://file:///c:/mobile/projects/CollegeBusTrackingFlutterApp/lib/screens/coordinator/schedule_management_screen.dart:0:0-0:0) - [teacher/teacher_dashboard.dart](cci:7://file:///c:/mobile/projects/CollegeBusTrackingFlutterApp/lib/screens/teacher/teacher_dashboard.dart:0:0-0:0) - Fix horizontal RenderFlex overflow in [student/bus_schedule_screen.dart](cci:7://file:///c:/mobile/projects/CollegeBusTrackingFlutterApp/lib/screens/student/bus_schedule_screen.dart:0:0-0:0) by ensuring `DropdownButtonFormField` widgets expand correctly. - General syntax cleanup and warning reductions.
+[33m7092025[m HEAD@{23}: Branch: renamed refs/heads/master to refs/heads/main
+[33m7092025[m HEAD@{25}: commit (initial): first commit
