@@ -8,6 +8,7 @@ import {
 } from "../utils/firebase";
 import { buildNotificationMessage } from "../utils/buildNotification";
 import { NOTIFICATION_TYPES } from "../constants/notificationTypes";
+import logger from "../utils/logger";
 
 export const sendNotification = async (req: Request, res: Response) => {
   try {
@@ -71,6 +72,27 @@ export const updateFcmToken = async (req: Request, res: Response) => {
     res.status(200).json({ success: true, message: "FCM token updated" });
   } catch (error) {
     res.status(500).json({ message: "Error updating FCM token", error });
+  }
+};
+
+// Remove FCM token for a user (Logout cleanup)
+export const removeFcmToken = async (req: Request, res: Response) => {
+  try {
+    const { userId } = req.body;
+
+    if (!userId) {
+      return res.status(400).json({ message: "userId is required" });
+    }
+
+    await User.findByIdAndUpdate(userId, { $unset: { fcmToken: 1 } });
+    logger.info(
+      `[NotificationController] FCM token removed for user ${userId}`
+    );
+
+    res.status(200).json({ success: true, message: "FCM token removed" });
+  } catch (error) {
+    logger.error(`[NotificationController] Error removing FCM token: ${error}`);
+    res.status(500).json({ message: "Error removing FCM token", error });
   }
 };
 
@@ -158,20 +180,14 @@ export const sendTestNotification = async (req: Request, res: Response) => {
   }
 };
 
-// Send templated notification to a user
-export const sendTemplatedNotification = async (
-  req: Request,
-  res: Response
+// Helper to send templated notification (reusable across controllers)
+export const sendTemplatedNotificationHelper = async (
+  userId: string,
+  type: string,
+  payload: Record<string, string | number>,
+  senderId?: string
 ) => {
   try {
-    const { userId, type, payload } = req.body;
-
-    if (!userId || !type || !payload) {
-      return res.status(400).json({
-        message: "userId, type, and payload are required",
-      });
-    }
-
     // Get user's language preference
     const user = await User.findById(userId);
     let userLanguage: "en" | "hi" | "te" = "en";
@@ -186,8 +202,13 @@ export const sendTemplatedNotification = async (
       userLanguage
     );
 
+    logger.info(
+      `[NotificationController] Preparing to send ${type} to user ${userId} (Language: ${userLanguage})`
+    );
+
     // Save to database
     const newNotification = new Notification({
+      senderId: senderId,
       receiverId: userId,
       title,
       message,
@@ -197,20 +218,54 @@ export const sendTemplatedNotification = async (
 
     // Send FCM notification
     if (user?.fcmToken) {
-      await sendNotificationToDevice(user.fcmToken, title, message, {
-        type,
-        notificationId: newNotification._id.toString(),
+      logger.info(
+        `[NotificationController] User ${userId} has FCM token. Sending...`
+      );
+      const success = await sendNotificationToDevice(
+        user.fcmToken,
+        title,
+        message,
+        {
+          type,
+          notificationId: newNotification._id.toString(),
+        }
+      );
+      logger.info(
+        `[NotificationController] Send result for user ${userId}: ${success}`
+      );
+    } else {
+      logger.warn(
+        `[NotificationController] User ${userId} has NO FCM token. Skipping push.`
+      );
+    }
+
+    return { success: true, notification: { title, message, type } };
+  } catch (error) {
+    console.error("Error in sendTemplatedNotificationHelper:", error);
+    throw error;
+  }
+};
+
+// Send templated notification to a user
+export const sendTemplatedNotification = async (
+  req: Request,
+  res: Response
+) => {
+  try {
+    const { userId, type, payload } = req.body;
+
+    if (!userId || !type || !payload) {
+      return res.status(400).json({
+        message: "userId, type, and payload are required",
       });
     }
 
-    res.status(200).json({
-      success: true,
-      notification: { title, message, type },
-    });
+    const result = await sendTemplatedNotificationHelper(userId, type, payload);
+    res.status(200).json(result);
   } catch (error) {
     res.status(500).json({
       message: "Error sending templated notification",
-      error,
+      error: (error as Error).message,
     });
   }
 };

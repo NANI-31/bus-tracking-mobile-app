@@ -9,6 +9,7 @@ import { tripEnded } from "./tripEnded";
 import { emergencyAlert } from "./emergencyAlert";
 import { routeChange } from "./routeChange";
 import { generalAnnouncement } from "./generalAnnouncement";
+import { driverAssigned } from "./driverAssigned";
 
 type LanguageCode = "en" | "hi" | "te";
 
@@ -30,6 +31,7 @@ export const NOTIFICATION_TEMPLATES: Record<string, MultiLangTemplates> = {
   [NOTIFICATION_TYPES.EMERGENCY_ALERT]: emergencyAlert,
   [NOTIFICATION_TYPES.ROUTE_CHANGE]: routeChange,
   [NOTIFICATION_TYPES.GENERAL_ANNOUNCEMENT]: generalAnnouncement,
+  [NOTIFICATION_TYPES.DRIVER_ASSIGNED]: driverAssigned,
 };
 
 // Helper to get templates for a specific language (defaults to English)

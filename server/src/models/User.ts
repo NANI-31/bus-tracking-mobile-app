@@ -42,6 +42,10 @@ export interface IUser extends Document {
     lng: number;
   };
   lastNearbyNotifiedBusId?: string;
+  stopLocationGeo?: {
+    type: string;
+    coordinates: number[]; // [lng, lat]
+  };
 }
 
 const UserSchema: Schema = new Schema({
@@ -73,7 +77,7 @@ const UserSchema: Schema = new Schema({
     enum: ["en", "hi", "te"],
     default: UserLanguage.English,
   },
-  routeId: { type: Schema.Types.ObjectId, ref: "Route" },
+  routeId: { type: Schema.Types.ObjectId, ref: "Route", index: true },
   stopId: { type: String },
   stopName: { type: String },
   stopLocation: {
@@ -81,6 +85,21 @@ const UserSchema: Schema = new Schema({
     lng: Number,
   },
   lastNearbyNotifiedBusId: { type: String },
+  stopLocationGeo: {
+    type: { type: String, enum: ["Point"], default: "Point" },
+    coordinates: { type: [Number], index: "2dsphere" }, // [lng, lat]
+  },
+});
+
+// Pre-save hook to sync stopLocation -> stopLocationGeo
+UserSchema.pre<IUser>("save", function (next) {
+  if (this.stopLocation && this.stopLocation.lat && this.stopLocation.lng) {
+    this.stopLocationGeo = {
+      type: "Point",
+      coordinates: [this.stopLocation.lng, this.stopLocation.lat],
+    };
+  }
+  next();
 });
 
 export default mongoose.model<IUser>("User", UserSchema);

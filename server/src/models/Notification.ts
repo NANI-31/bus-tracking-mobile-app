@@ -1,7 +1,7 @@
 import mongoose, { Document, Schema } from "mongoose";
 
 export interface INotification extends Document {
-  senderId: string;
+  senderId?: string;
   receiverId: string;
   message: string;
   type: string;
@@ -11,7 +11,7 @@ export interface INotification extends Document {
 }
 
 const NotificationSchema: Schema = new Schema({
-  senderId: { type: String, required: true, ref: "User" },
+  senderId: { type: String, ref: "User" },
   receiverId: { type: String, required: true, ref: "User" },
   message: { type: String, required: true },
   type: { type: String, required: true },

@@ -7,6 +7,7 @@ export interface IBus extends Document {
   collegeId: string;
   isActive: boolean;
   status: "on-time" | "delayed" | "not-running";
+  assignmentStatus: "unassigned" | "pending" | "accepted";
   delay?: number;
   createdAt: Date;
   updatedAt?: Date;
@@ -14,7 +15,7 @@ export interface IBus extends Document {
 
 const BusSchema: Schema = new Schema({
   busNumber: { type: String, required: true },
-  driverId: { type: String, required: true, ref: "User" },
+  driverId: { type: String, required: false, ref: "User" },
   routeId: { type: Schema.Types.ObjectId, ref: "Route" },
   collegeId: { type: Schema.Types.ObjectId, required: true, ref: "College" },
   isActive: { type: Boolean, default: true },
@@ -22,6 +23,11 @@ const BusSchema: Schema = new Schema({
     type: String,
     enum: ["on-time", "delayed", "not-running"],
     default: "on-time",
+  },
+  assignmentStatus: {
+    type: String,
+    enum: ["unassigned", "pending", "accepted"],
+    default: "unassigned",
   },
   delay: { type: Number, default: 0 },
   createdAt: { type: Date, default: Date.now },

@@ -1,6 +1,7 @@
 // src/utils/firebase.ts
 import admin from "firebase-admin";
 import path from "path";
+import logger from "./logger";
 
 // Initialize Firebase Admin SDK
 // You need to download service account JSON from Firebase Console
@@ -17,9 +18,9 @@ export const initializeFirebase = () => {
       credential: admin.credential.cert(serviceAccountPath),
     });
     firebaseInitialized = true;
-    console.log("Firebase Admin SDK initialized successfully");
+    logger.info("Firebase Admin SDK initialized successfully");
   } catch (error) {
-    console.error("Firebase Admin SDK initialization error:", error);
+    logger.error(`Firebase Admin SDK initialization error: ${error}`);
   }
 };
 
@@ -59,10 +60,22 @@ export const sendNotificationToDevice = async (
     };
 
     const response = await admin.messaging().send(message);
-    console.log("Notification sent successfully:", response);
+    console.log(
+      `[Firebase] Notification sent successfully to ${fcmToken.substring(
+        0,
+        10
+      )}...:`,
+      response
+    );
     return true;
   } catch (error) {
-    console.error("Error sending notification:", error);
+    console.error(
+      `[Firebase] Error sending notification to ${fcmToken.substring(
+        0,
+        10
+      )}...:`,
+      error
+    );
     return false;
   }
 };
@@ -92,7 +105,7 @@ export const sendNotificationToDevices = async (
     };
 
     const response = await admin.messaging().sendEachForMulticast(message);
-    console.log(
+    logger.info(
       `Notifications sent: ${response.successCount} success, ${response.failureCount} failed`
     );
 
@@ -101,7 +114,7 @@ export const sendNotificationToDevices = async (
       failure: response.failureCount,
     };
   } catch (error) {
-    console.error("Error sending multicast notification:", error);
+    logger.error(`Error sending multicast notification: ${error}`);
     return { success: 0, failure: fcmTokens.length };
   }
 };
@@ -127,10 +140,10 @@ export const sendNotificationToTopic = async (
     };
 
     const response = await admin.messaging().send(message);
-    console.log("Topic notification sent:", response);
+    logger.info(`Topic notification sent: ${JSON.stringify(response)}`);
     return true;
   } catch (error) {
-    console.error("Error sending topic notification:", error);
+    logger.error(`Error sending topic notification: ${error}`);
     return false;
   }
 };

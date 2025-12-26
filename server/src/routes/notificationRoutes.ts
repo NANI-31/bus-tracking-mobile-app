@@ -5,6 +5,7 @@ import {
   markNotificationAsRead,
   sendTestNotification,
   updateFcmToken,
+  removeFcmToken,
   sendCollegeNotification,
   sendTemplatedNotification,
 } from "../controllers/notificationController";
@@ -15,6 +16,7 @@ router.post("/", sendNotification);
 router.post("/test", sendTestNotification);
 router.post("/templated", sendTemplatedNotification);
 router.post("/fcm-token", updateFcmToken);
+router.post("/remove-fcm-token", removeFcmToken);
 router.post("/college", sendCollegeNotification);
 router.get("/user/:userId", getUserNotifications);
 router.put("/:id/read", markNotificationAsRead);

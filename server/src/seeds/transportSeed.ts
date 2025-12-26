@@ -1,9 +1,6 @@
 import Route from "../models/Route";
 import { Bus } from "../models/Bus";
 import Schedule from "../models/Schedule";
-import User from "../models/User";
-import crypto from "crypto";
-
 // Helper to generate dummy coordinates
 const generateGeo = (index: number) => {
   const baseLat = 16.3067;
@@ -17,48 +14,50 @@ const generateGeo = (index: number) => {
 export const seedTransport = async (
   collegeId: string,
   coordinatorId: string,
-  routesData: any[]
+  routesData: any[],
+  domain: string,
+  drivers: any[]
 ) => {
-  console.log("Seeding Transport (Routes, Buses, Schedules)...");
+  console.log(`Seeding Transport for college with domain ${domain}...`);
 
-  // Clear existing
-  await Route.deleteMany({});
-  await Bus.deleteMany({});
-  await Schedule.deleteMany({});
+  for (let i = 1; i <= 15; i++) {
+    // 1. Get Route Data (static or fallback)
+    const staticRoute = routesData[i - 1];
+    const busNumber = staticRoute
+      ? staticRoute.busNumber
+      : `${domain.split(".")[0].toUpperCase()}-${i
+          .toString()
+          .padStart(2, "0")}`;
+    const routeName = staticRoute
+      ? staticRoute.routeName
+      : `Route ${i} - Extended Coverage`;
+    const stops = staticRoute
+      ? staticRoute.stops
+      : ["Main Gate", "Central Plaza", "Library Square", "Sports Complex"];
 
-  for (const routeData of routesData) {
-    // 1. Create Driver
-    const driverId = crypto.randomUUID();
-    await User.create({
-      _id: driverId,
-      fullName: `Driver ${routeData.busNumber}`,
-      email: `driver${routeData.busNumber
-        .toLowerCase()
-        .replace(/[^\w]/g, "")}@kkr.ac.in`,
-      password: "password_hash",
-      role: "driver",
-      collegeId: collegeId,
-      approved: true,
-      emailVerified: true,
-    });
+    // 1. Get Pre-seeded Driver (Only for first bus)
+    // Only assign a driver to the first bus (KKR-01 or similar)
+    // All other buses should be unassigned (driverId: null)
+    const driver = i === 1 ? drivers[0] : null;
+
+    // Use null explicitly if no driver, ensuring the field is null in DB
+    const driverId = driver ? driver._id : null;
 
     // 2. Prepare Stops with Geo
-    const stopPoints = routeData.stops.map(
-      (stop: string | any, idx: number) => {
-        const name = typeof stop === "string" ? stop : stop.location;
-        return {
-          name,
-          location: generateGeo(idx),
-        };
-      }
-    );
+    const stopPoints = stops.map((stop: string | any, idx: number) => {
+      const name = typeof stop === "string" ? stop : stop.location;
+      return {
+        name,
+        location: generateGeo(idx),
+      };
+    });
 
     const startPoint = { ...stopPoints[0] };
     const endPoint = { ...stopPoints[stopPoints.length - 1] };
 
     // 3. Create Route
     const route = await Route.create({
-      routeName: routeData.routeName,
+      routeName: routeName,
       routeType: "pickup",
       startPoint,
       endPoint,
@@ -73,7 +72,7 @@ export const seedTransport = async (
     const randomStatus = statuses[Math.floor(Math.random() * statuses.length)];
 
     const bus = await Bus.create({
-      busNumber: routeData.busNumber,
+      busNumber: busNumber,
       driverId: driverId,
       routeId: route._id,
       collegeId: collegeId,
@@ -96,7 +95,7 @@ export const seedTransport = async (
       })),
     });
 
-    console.log(`Seeded Route: ${routeData.busNumber}`);
+    console.log(`Seeded Route: ${busNumber}`);
   }
 
   console.log("Transport seeding complete.");

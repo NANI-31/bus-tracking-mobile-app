@@ -5,6 +5,8 @@ import { createServer } from "http";
 import { Server } from "socket.io";
 import connectDB from "./config/db";
 import { initializeFirebase } from "./utils/firebase";
+import { LRUCache } from "lru-cache";
+import { RateLimiterMemory } from "rate-limiter-flexible";
 
 import userRoutes from "./routes/userRoutes";
 import busRoutes from "./routes/busRoutes";
@@ -13,11 +15,30 @@ import routeRoutes from "./routes/routeRoutes";
 import scheduleRoutes from "./routes/scheduleRoutes";
 import notificationRoutes from "./routes/notificationRoutes";
 import authRoutes from "./routes/authRoutes";
+import assignmentRoutes from "./routes/assignmentRoutes";
+import logger from "./utils/logger";
 
 dotenv.config();
 
 connectDB();
 initializeFirebase();
+
+import { authenticateSocket } from "./utils/socketAuth";
+
+// LRU cache for bus metadata (max 500 entries, 30 min TTL)
+const busCache = new LRUCache<
+  string,
+  { busNumber: string; routeId: string | null }
+>({
+  max: 500,
+  ttl: 1000 * 60 * 30,
+});
+
+// Rate limiter for socket events (10 updates per 5 seconds per socket)
+const rateLimiter = new RateLimiterMemory({
+  points: 10,
+  duration: 5,
+});
 
 const app = express();
 const httpServer = createServer(app);
@@ -33,12 +54,12 @@ app.use(express.json());
 
 // Request logging middleware
 app.use((req, res, next) => {
-  console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
+  logger.info(`${req.method} ${req.url}`);
   if (Object.keys(req.body).length > 0) {
-    console.log("Body:", JSON.stringify(req.body, null, 2));
+    logger.info("📝 Body:", JSON.stringify(req.body, null, 2));
   }
   if (Object.keys(req.query).length > 0) {
-    console.log("Query:", JSON.stringify(req.query, null, 2));
+    logger.info("🔍 Query:", JSON.stringify(req.query, null, 2));
   }
   next();
 });
@@ -51,6 +72,7 @@ app.use("/api/schedules", scheduleRoutes);
 app.use("/api/notifications", notificationRoutes);
 // app.use("/api/bus-numbers", busNumberRoutes); // Removed
 app.use("/api/auth", authRoutes);
+app.use("/api/assignments", assignmentRoutes);
 
 app.get("/", (req, res) => {
   res.setHeader("Content-Type", "text/html");
@@ -90,7 +112,9 @@ app.get("/", (req, res) => {
   `);
 });
 
-// Socket.io Connection Handling
+// Socket.IO Connection Handling
+io.use(authenticateSocket); // Secure all connections
+
 io.on("connection", (socket) => {
   console.log("A user connected:", socket.id);
 
@@ -99,7 +123,7 @@ io.on("connection", (socket) => {
     console.log(`User ${socket.id} joined college room: ${collegeId}`);
   });
 
-  socket.on("update_location", (data) => {
+  socket.on("update_location", async (data) => {
     // data: { busId, collegeId, location: { lat, lng }, speed, heading }
     const { collegeId } = data;
     // Broadcast to everyone in the same college room
@@ -110,24 +134,52 @@ io.on("connection", (socket) => {
 
     // Check for nearby stops and notify users
     try {
-      // We need to fetch bus details (routeId, busNumber) to check against users
-      // Optimization: In a real production app, cache this or send it from client
+      // Apply rate limiting per socket ID
+      await rateLimiter.consume(socket.id);
+
       const { Bus } = require("./models/Bus");
       const { checkAndNotifyBusNearby } = require("./utils/busNearbyLogic");
 
-      Bus.findById(data.busId).then((bus: any) => {
-        if (bus && bus.routeId) {
+      let busDetails = busCache.get(data.busId);
+
+      if (busDetails) {
+        if (busDetails.routeId) {
           checkAndNotifyBusNearby(
             data.busId,
-            bus.busNumber,
+            busDetails.busNumber,
             data.location.lat,
             data.location.lng,
-            bus.routeId.toString()
+            busDetails.routeId
           );
         }
-      });
+      } else {
+        // Correctly handle the promise and update cache
+        const bus = await Bus.findById(data.busId);
+        if (bus) {
+          busDetails = {
+            busNumber: bus.busNumber,
+            routeId: bus.routeId ? bus.routeId.toString() : null,
+          };
+          busCache.set(data.busId, busDetails);
+
+          if (busDetails.routeId) {
+            checkAndNotifyBusNearby(
+              data.busId,
+              busDetails.busNumber,
+              data.location.lat,
+              data.location.lng,
+              busDetails.routeId
+            );
+          }
+        }
+      }
     } catch (error) {
-      console.error("Error checking nearby bus:", error);
+      if (error instanceof Error) {
+        console.error("Error in update_location:", error.message);
+      } else {
+        // This is likely a rate limit rejection
+        console.log(`Rate limit exceeded for socket ${socket.id}`);
+      }
     }
   });
 

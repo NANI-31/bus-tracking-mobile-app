@@ -1,4 +1,3 @@
-import { getDistanceInMeters } from "./distance";
 import { buildNotificationMessage } from "./buildNotification";
 import { NOTIFICATION_TYPES } from "../constants/notificationTypes";
 import { sendNotificationToDevice } from "./firebase";
@@ -16,31 +15,23 @@ export const checkAndNotifyBusNearby = async (
 ) => {
   try {
     // Find users who are on this route and have a valid stop location
-    // Also ensuring they have an FCM token to receive notifications
+    // Using MongoDB geospatial query to find users within radius efficiently
     const users = await User.find({
       routeId: routeId,
       fcmToken: { $exists: true, $ne: "" },
-      "stopLocation.lat": { $exists: true },
-      "stopLocation.lng": { $exists: true },
+      stopLocationGeo: {
+        $near: {
+          $geometry: {
+            type: "Point",
+            coordinates: [currentLng, currentLat],
+          },
+          $maxDistance: NEARBY_RADIUS_METERS,
+        },
+      },
     });
 
     for (const user of users) {
-      if (
-        !user.stopLocation ||
-        !user.stopLocation.lat ||
-        !user.stopLocation.lng
-      )
-        continue;
-
-      const distance = getDistanceInMeters(
-        currentLat,
-        currentLng,
-        user.stopLocation.lat,
-        user.stopLocation.lng
-      );
-
-      // Check if bus is within radius
-      if (distance <= NEARBY_RADIUS_METERS) {
+      {
         // Prevent spam: Check if we already notified for this bus nearby recently
         // Ideally we reset this flag when the trip ends or after a long cooldown
         if (user.lastNearbyNotifiedBusId === busId) continue;

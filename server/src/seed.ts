@@ -7,6 +7,13 @@ import { seedUsers } from "./seeds/userSeed";
 import { seedTransport } from "./seeds/transportSeed";
 import { UserRole } from "./models/User";
 
+import Route from "./models/Route";
+import { Bus } from "./models/Bus";
+import Schedule from "./models/Schedule";
+import College from "./models/College";
+import User from "./models/User";
+import { collegesData } from "./seedData/collegesData";
+
 dotenv.config();
 
 const runSeed = async () => {
@@ -17,29 +24,56 @@ const runSeed = async () => {
     console.log("Connecting to MongoDB...");
     await mongoose.connect(mongoUri);
 
-    // 1. Seed College
-    const college = await seedColleges({
-      name: kkrKsrTransportData.collegeName,
-      domains: ["kkr.ac.in"],
-    });
+    console.log("Clearing all existing data...");
+    await College.deleteMany({});
+    await User.deleteMany({});
+    await Route.deleteMany({});
+    await Bus.deleteMany({});
+    await Schedule.deleteMany({});
 
-    // 2. Seed Users
-    // Users are created with specific string UUIDs in seedUsers.ts
-    const users = await seedUsers(college._id.toString());
-    const coordinator = users.find((u) => u.role === UserRole.BusCoordinator);
+    for (const collegeData of collegesData) {
+      console.log(`\n--- Seeding ${collegeData.name} ---`);
 
-    if (!coordinator) {
-      throw new Error("Coordinator not found after seeding users");
+      // 0. Pre-generate 15 Bus Numbers
+      const busNumbers = Array.from(
+        { length: 15 },
+        (_, i) =>
+          `${collegeData.shortName}-${(i + 1).toString().padStart(2, "0")}`
+      );
+
+      // 1. Seed College
+      const college = await seedColleges({
+        name: collegeData.name,
+        domains: [collegeData.domain],
+        busNumbers: busNumbers,
+      });
+
+      // 2. Seed Users
+      const users = await seedUsers(
+        college._id.toString(),
+        collegeData.domain,
+        collegeData.shortName
+      );
+
+      const coordinator = users.find((u) => u.role === UserRole.BusCoordinator);
+      if (!coordinator) {
+        console.warn(`Coordinator not found for ${collegeData.name}`);
+        continue;
+      }
+
+      const drivers = users.filter((u) => u.role === UserRole.Driver);
+
+      // 3. Seed Transport
+      await seedTransport(
+        college._id.toString(),
+        coordinator._id.toString(),
+        collegeData.routes,
+        collegeData.domain,
+        drivers
+      );
     }
 
-    // 3. Seed Transport (Routes, Buses, Schedules)
-    await seedTransport(
-      college._id.toString(),
-      coordinator._id.toString(),
-      kkrKsrTransportData.routes
-    );
-
-    console.log("MASTER SEED COMPLETE");
+    console.log("\nMASTER SEED COMPLETE");
     process.exit(0);
   } catch (error) {
     console.error("Error in master seed:", error);
