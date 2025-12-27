@@ -1,0 +1,3 @@
+arb-dir: lib/l10n/student
+template-arb-file: student_en.arb
+output-class: StudentLocalizations

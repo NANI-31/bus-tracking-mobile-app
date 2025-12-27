@@ -1,0 +1,3 @@
+arb-dir: lib/l10n/notification
+template-arb-file: notification_en.arb
+output-class: NotificationLocalizations

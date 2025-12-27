@@ -7,6 +7,7 @@ class BusSearchBar extends StatelessWidget {
   final Function(String) onChanged;
   final VoidCallback onClear;
   final String searchQuery;
+  final String hintText;
 
   final FocusNode focusNode;
 
@@ -16,6 +17,7 @@ class BusSearchBar extends StatelessWidget {
     required this.onChanged,
     required this.onClear,
     required this.searchQuery,
+    this.hintText = 'Search...',
     required this.focusNode,
   });
 
@@ -27,7 +29,7 @@ class BusSearchBar extends StatelessWidget {
           focusNode: focusNode,
           textAlignVertical: TextAlignVertical.center,
           decoration: InputDecoration(
-            hintText: 'Search Bus Number...',
+            hintText: hintText,
             hintStyle: TextStyle(
               color: AppColors.textSecondary.withValues(alpha: 0.5),
             ),

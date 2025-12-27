@@ -16,7 +16,7 @@ import 'package:collegebus/screens/driver/driver_dashboard.dart';
 import 'package:collegebus/screens/coordinator/coordinator_dashboard.dart';
 import 'package:collegebus/screens/coordinator/schedule_management_screen.dart';
 import 'package:collegebus/screens/admin/admin_dashboard.dart';
-import 'package:collegebus/screens/student/student_profile_screen.dart';
+import 'package:collegebus/screens/common/profile_screen.dart';
 import 'package:collegebus/screens/student/student_change_password_screen.dart';
 import 'package:collegebus/screens/common/privacy_policy_screen.dart';
 import 'package:collegebus/screens/common/terms_conditions_screen.dart';
@@ -109,6 +109,10 @@ class AppRouter {
         path: '/terms-conditions',
         builder: (context, state) => const TermsConditionsScreen(),
       ),
+      GoRoute(
+        path: '/profile',
+        builder: (context, state) => const ProfileScreen(),
+      ),
 
       GoRoute(
         path: '/student',
@@ -124,7 +128,7 @@ class AppRouter {
           ),
           GoRoute(
             path: 'profile',
-            builder: (context, state) => const StudentProfileScreen(),
+            builder: (context, state) => const ProfileScreen(),
           ),
           GoRoute(
             path: 'change-password',

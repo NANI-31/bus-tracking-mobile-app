@@ -10,6 +10,8 @@ import 'package:collegebus/services/data_service.dart';
 import 'bus_tab_components/bus_search_bar.dart';
 import 'bus_tab_components/bus_list_card.dart';
 import 'bus_tab_components/bus_empty_state.dart';
+import 'package:collegebus/l10n/coordinator/app_localizations.dart'
+    as coord_l10n;
 
 class BusNumbersTab extends StatefulWidget {
   final List<String> busNumbers;
@@ -63,24 +65,25 @@ class _BusNumbersTabState extends State<BusNumbersTab>
   }
 
   void _showCreateBusNumberDialog(BuildContext context) {
+    final l10n = coord_l10n.CoordinatorLocalizations.of(context)!;
     final TextEditingController busNumberController = TextEditingController();
 
     showDialog(
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: const Text('Add Bus Number'),
+          title: Text(l10n.addBusNumber),
           content: TextField(
             controller: busNumberController,
-            decoration: const InputDecoration(
-              labelText: 'Bus Number',
-              hintText: 'e.g., KA-01-AB-1234',
+            decoration: InputDecoration(
+              labelText: l10n.busNumber,
+              hintText: l10n.enterBusNumber,
             ),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Cancel'),
+              child: Text(l10n.cancel),
             ),
             ElevatedButton(
               onPressed: () async {
@@ -104,13 +107,13 @@ class _BusNumbersTabState extends State<BusNumbersTab>
                   widget.onRefresh();
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: Text('Bus number $busNumber added successfully'),
+                      content: Text(l10n.busAddedSuccess(busNumber)),
                       backgroundColor: Theme.of(context).colorScheme.secondary,
                     ),
                   );
                 }
               },
-              child: const Text('Add'),
+              child: Text(l10n.add),
             ),
           ],
         );
@@ -118,200 +121,283 @@ class _BusNumbersTabState extends State<BusNumbersTab>
     );
   }
 
-  List<String> get _allDisplayNumbers {
-    final Set<String> numbers = widget.busNumbers.toSet();
-    for (final bus in widget.buses) {
-      numbers.add(bus.busNumber);
-    }
-    final sorted = numbers.toList();
-    sorted.sort();
-
-    if (_searchQuery.isEmpty) {
-      return sorted;
-    }
-
-    return sorted
-        .where(
-          (number) => number.toLowerCase().contains(_searchQuery.toLowerCase()),
-        )
-        .toList();
-  }
-
   @override
   Widget build(BuildContext context) {
-    final displayNumbers = _allDisplayNumbers;
+    // 1. Get l10n
+    final l10n = coord_l10n.CoordinatorLocalizations.of(context)!;
 
-    return GestureDetector(
-      onTap: () => FocusScope.of(context).unfocus(),
-      child: Stack(
-        children: [
-          VStack([
-            // Search Bar Component
-            BusSearchBar(
-              controller: _searchController,
-              focusNode: _focusNode,
-              onChanged: (val) {
-                setState(() {
-                  _searchQuery = val;
-                });
-              },
-              onClear: () {
-                _searchController.clear();
-                setState(() {
-                  _searchQuery = '';
-                });
-              },
-              searchQuery: _searchQuery,
-            ),
+    return DefaultTabController(
+      length: 3,
+      child: GestureDetector(
+        onTap: () => FocusScope.of(context).unfocus(),
+        child: Stack(
+          children: [
+            VStack([
+              // Search Bar Component
+              BusSearchBar(
+                controller: _searchController,
+                focusNode: _focusNode,
+                hintText: l10n.search,
+                onChanged: (val) {
+                  setState(() {
+                    _searchQuery = val;
+                  });
+                },
+                onClear: () {
+                  _searchController.clear();
+                  setState(() {
+                    _searchQuery = '';
+                  });
+                },
+                searchQuery: _searchQuery,
+              ),
 
-            Expanded(
-              child: displayNumbers.isEmpty
-                  ? BusEmptyState(
-                      isSearching: _searchQuery.isNotEmpty,
-                      searchQuery: _searchQuery,
-                    )
-                  : ListView.builder(
-                      padding: const EdgeInsets.only(
-                        left: AppSizes.paddingMedium,
-                        right: AppSizes.paddingMedium,
-                        bottom: 80, // Add padding for FAB
-                        top: 8,
-                      ),
-                      itemCount: displayNumbers.length,
-                      itemBuilder: (context, index) {
-                        final busNumber = displayNumbers[index];
-                        final isOfficial = widget.busNumbers.contains(
-                          busNumber,
-                        );
-                        final assignedBus = widget.buses.firstWhere(
-                          (bus) => bus.busNumber == busNumber,
-                          orElse: () => BusModel(
-                            id: '',
-                            busNumber: '',
-                            driverId: '',
-                            collegeId: '',
-                            isActive: false,
-                            createdAt: DateTime.now(),
-                          ),
-                        );
-                        final isAssigned = assignedBus.id.isNotEmpty;
-
-                        final hasDriver =
-                            isAssigned && assignedBus.driverId.isNotEmpty;
-
-                        UserModel? assignedDriver;
-                        if (hasDriver) {
-                          try {
-                            assignedDriver = widget.allDrivers.firstWhere(
-                              (d) => d.id == assignedBus.driverId,
-                            );
-                          } catch (_) {
-                            assignedDriver = null;
-                          }
-                        }
-
-                        return BusListCard(
-                          busNumber: busNumber,
-                          isOfficial: isOfficial,
-                          assignedBus: assignedBus,
-                          assignedDriver: assignedDriver,
-                          onTap: () async {
-                            await context.push(
-                              '/coordinator/assign-driver/$busNumber',
-                            );
-                            widget.onRefresh();
-                          },
-                          onHistory: () {
-                            _focusNode.unfocus();
-                            context.push(
-                              '/coordinator/assignment-history/${assignedBus.id}/$busNumber',
-                            );
-                          },
-                          onDelete: () async {
-                            if (isAssigned) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: const Text(
-                                    'Cannot delete assigned bus number',
-                                  ),
-                                  backgroundColor: AppColors.error,
-                                ),
-                              );
-                              return;
-                            }
-
-                            final confirmed = await showDialog<bool>(
-                              context: context,
-                              builder: (context) => AlertDialog(
-                                title: const Text('Delete Bus Number'),
-                                content: Text(
-                                  'Are you sure you want to delete $busNumber?',
-                                ),
-                                actions: [
-                                  TextButton(
-                                    onPressed: () =>
-                                        Navigator.of(context).pop(false),
-                                    child: const Text('Cancel'),
-                                  ),
-                                  ElevatedButton(
-                                    onPressed: () =>
-                                        Navigator.of(context).pop(true),
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: AppColors.error,
-                                    ),
-                                    child: const Text('Delete'),
-                                  ),
-                                ],
-                              ),
-                            );
-
-                            if (confirmed == true) {
-                              if (!context.mounted) return;
-                              final authService = Provider.of<AuthService>(
-                                context,
-                                listen: false,
-                              );
-                              final firestoreService = Provider.of<DataService>(
-                                context,
-                                listen: false,
-                              );
-                              final collegeId =
-                                  authService.currentUserModel?.collegeId;
-
-                              if (collegeId != null) {
-                                await firestoreService.removeBusNumber(
-                                  collegeId,
-                                  busNumber,
-                                );
-                                widget.onRefresh();
-                                if (!context.mounted) return;
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text(
-                                      'Bus number $busNumber deleted',
-                                    ),
-                                    backgroundColor: AppColors.success,
-                                  ),
-                                );
-                              }
-                            }
-                          },
-                        );
-                      },
+              // Tab Bar
+              Container(
+                margin: const EdgeInsets.symmetric(
+                  horizontal: AppSizes.paddingMedium,
+                  vertical: 8,
+                ),
+                decoration: BoxDecoration(
+                  color: const Color(
+                    0xFF2C3E50,
+                  ), // Dark background for the capsule
+                  borderRadius: BorderRadius.circular(50),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.1),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
                     ),
+                  ],
+                ),
+                child: TabBar(
+                  isScrollable: false,
+                  labelColor: Colors.white,
+                  unselectedLabelColor: Colors.grey.shade400,
+                  indicatorSize: TabBarIndicatorSize.tab,
+                  indicator: BoxDecoration(
+                    color: AppColors.primary,
+                    borderRadius: BorderRadius.circular(50),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.primary.withValues(alpha: 0.4),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  dividerColor: Colors.transparent,
+                  labelPadding: EdgeInsets.zero,
+                  tabs: [
+                    Tab(text: l10n.all),
+                    Tab(text: l10n.free),
+                    Tab(text: l10n.running),
+                  ],
+                ).p4(),
+              ),
+
+              Expanded(
+                child: TabBarView(
+                  children: [
+                    _buildBusList('all'),
+                    _buildBusList('free'),
+                    _buildBusList('running'),
+                  ],
+                ),
+              ),
+            ]),
+            Positioned(
+              bottom: AppSizes.paddingMedium,
+              right: AppSizes.paddingMedium,
+              child: FloatingActionButton(
+                onPressed: () => _showCreateBusNumberDialog(context),
+                backgroundColor: AppColors.primary,
+                child: const Icon(Icons.add, color: Colors.white),
+              ),
             ),
-          ]),
-          Positioned(
-            bottom: AppSizes.paddingMedium,
-            right: AppSizes.paddingMedium,
-            child: FloatingActionButton(
-              onPressed: () => _showCreateBusNumberDialog(context),
-              backgroundColor: AppColors.primary,
-              child: const Icon(Icons.add, color: Colors.white),
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
+    );
+  }
+
+  Widget _buildBusList(String category) {
+    final l10n = coord_l10n.CoordinatorLocalizations.of(context)!;
+    // 1. Get all base numbers
+    final Set<String> allNumbers = widget.busNumbers.toSet();
+    for (final bus in widget.buses) {
+      allNumbers.add(bus.busNumber);
+    }
+    List<String> displayNumbers = allNumbers.toList()..sort();
+
+    // 2. Filter by category
+    if (category == 'free') {
+      displayNumbers = displayNumbers.where((busNumber) {
+        final assignedBus = widget.buses.firstWhere(
+          (bus) => bus.busNumber == busNumber,
+          orElse: () => BusModel(
+            id: '',
+            busNumber: '',
+            driverId: '',
+            collegeId: '',
+            isActive: false,
+            createdAt: DateTime.now(),
+          ),
+        );
+        final isAssigned = assignedBus.id.isNotEmpty;
+        final hasDriver = isAssigned && assignedBus.driverId.isNotEmpty;
+        // Free if not assigned OR assigned but status is unassigned
+        return !hasDriver || assignedBus.assignmentStatus == 'unassigned';
+      }).toList();
+    } else if (category == 'running') {
+      displayNumbers = displayNumbers.where((busNumber) {
+        final assignedBus = widget.buses.firstWhere(
+          (bus) => bus.busNumber == busNumber,
+          orElse: () => BusModel(
+            id: '',
+            busNumber: '',
+            driverId: '',
+            collegeId: '',
+            isActive: false,
+            createdAt: DateTime.now(),
+          ),
+        );
+        final isAssigned = assignedBus.id.isNotEmpty;
+        final hasDriver = isAssigned && assignedBus.driverId.isNotEmpty;
+        // Running if assigned AND status is NOT unassigned
+        return hasDriver && assignedBus.assignmentStatus != 'unassigned';
+      }).toList();
+    }
+
+    // 3. Filter by search query
+    if (_searchQuery.isNotEmpty) {
+      displayNumbers = displayNumbers
+          .where(
+            (number) =>
+                number.toLowerCase().contains(_searchQuery.toLowerCase()),
+          )
+          .toList();
+    }
+
+    // 4. Return list or empty state
+    if (displayNumbers.isEmpty) {
+      return BusEmptyState(
+        isSearching: _searchQuery.isNotEmpty,
+        searchQuery: _searchQuery,
+      );
+    }
+
+    return ListView.builder(
+      padding: const EdgeInsets.only(
+        left: AppSizes.paddingMedium,
+        right: AppSizes.paddingMedium,
+        bottom: 80,
+        top: 8,
+      ),
+      itemCount: displayNumbers.length,
+      itemBuilder: (context, index) {
+        final busNumber = displayNumbers[index];
+        final isOfficial = widget.busNumbers.contains(busNumber);
+        final assignedBus = widget.buses.firstWhere(
+          (bus) => bus.busNumber == busNumber,
+          orElse: () => BusModel(
+            id: '',
+            busNumber: '',
+            driverId: '',
+            collegeId: '',
+            isActive: false,
+            createdAt: DateTime.now(),
+          ),
+        );
+        final isAssigned = assignedBus.id.isNotEmpty;
+        final hasDriver = isAssigned && assignedBus.driverId.isNotEmpty;
+
+        UserModel? assignedDriver;
+        if (hasDriver) {
+          try {
+            assignedDriver = widget.allDrivers.firstWhere(
+              (d) => d.id == assignedBus.driverId,
+            );
+          } catch (_) {
+            assignedDriver = null;
+          }
+        }
+
+        return BusListCard(
+          busNumber: busNumber,
+          isOfficial: isOfficial,
+          assignedBus: assignedBus,
+          assignedDriver: assignedDriver,
+          onTap: () async {
+            await context.push('/coordinator/assign-driver/$busNumber');
+            widget.onRefresh();
+          },
+          onHistory: () {
+            _focusNode.unfocus();
+            context.push(
+              '/coordinator/assignment-history/${assignedBus.id}/$busNumber',
+            );
+          },
+          onDelete: () async {
+            if (isAssigned) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(l10n.cannotDeleteAssigned),
+                  backgroundColor: AppColors.error,
+                ),
+              );
+              return;
+            }
+
+            final confirmed = await showDialog<bool>(
+              context: context,
+              builder: (context) => AlertDialog(
+                title: Text(l10n.deleteBusNumber),
+                content: Text(l10n.deleteConfirmation(busNumber)),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(false),
+                    child: Text(l10n.cancel),
+                  ),
+                  ElevatedButton(
+                    onPressed: () => Navigator.of(context).pop(true),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.error,
+                    ),
+                    child: Text(l10n.delete),
+                  ),
+                ],
+              ),
+            );
+
+            if (confirmed == true) {
+              if (!context.mounted) return;
+              final authService = Provider.of<AuthService>(
+                context,
+                listen: false,
+              );
+              final firestoreService = Provider.of<DataService>(
+                context,
+                listen: false,
+              );
+              final collegeId = authService.currentUserModel?.collegeId;
+
+              if (collegeId != null) {
+                await firestoreService.removeBusNumber(collegeId, busNumber);
+                widget.onRefresh();
+                if (!context.mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(l10n.busDeletedSuccess(busNumber)),
+                    backgroundColor: AppColors.success,
+                  ),
+                );
+              }
+            }
+          },
+        );
+      },
     );
   }
 }

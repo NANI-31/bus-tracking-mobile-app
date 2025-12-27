@@ -5,6 +5,8 @@ import 'package:collegebus/utils/constants.dart';
 import 'package:collegebus/models/route_model.dart';
 import 'package:collegebus/services/auth_service.dart';
 import 'package:collegebus/services/data_service.dart';
+import 'package:collegebus/l10n/coordinator/app_localizations.dart'
+    as coord_l10n;
 
 class RoutesTab extends StatelessWidget {
   final List<RouteModel> routes;
@@ -13,6 +15,7 @@ class RoutesTab extends StatelessWidget {
   const RoutesTab({super.key, required this.routes, required this.onRefresh});
 
   void _showCreateOrEditRouteDialog(BuildContext context, {RouteModel? route}) {
+    final l10n = coord_l10n.CoordinatorLocalizations.of(context)!;
     final isEditing = route != null;
     final TextEditingController nameController = TextEditingController(
       text: route?.routeName ?? '',
@@ -35,20 +38,23 @@ class RoutesTab extends StatelessWidget {
         return StatefulBuilder(
           builder: (context, setState) {
             return AlertDialog(
-              title: Text(isEditing ? 'Edit Route' : 'Create Route'),
+              title: Text(isEditing ? l10n.editRoute : l10n.createRoute),
               content: SingleChildScrollView(
                 child: VStack([
                   TextField(
                     controller: nameController,
-                    decoration: const InputDecoration(labelText: 'Route Name'),
+                    decoration: InputDecoration(labelText: l10n.routeName),
                   ),
                   8.heightBox,
                   DropdownButtonFormField<String>(
                     initialValue: selectedType,
-                    decoration: const InputDecoration(labelText: 'Route Type'),
-                    items: const [
-                      DropdownMenuItem(value: 'pickup', child: Text('Pickup')),
-                      DropdownMenuItem(value: 'drop', child: Text('Drop')),
+                    decoration: InputDecoration(labelText: l10n.routeType),
+                    items: [
+                      DropdownMenuItem(
+                        value: 'pickup',
+                        child: Text(l10n.pickup),
+                      ),
+                      DropdownMenuItem(value: 'drop', child: Text(l10n.drop)),
                     ],
                     onChanged: (value) {
                       setState(() {
@@ -59,7 +65,7 @@ class RoutesTab extends StatelessWidget {
                   8.heightBox,
                   TextField(
                     controller: startController,
-                    decoration: const InputDecoration(labelText: 'Start Point'),
+                    decoration: InputDecoration(labelText: l10n.startPoint),
                     enabled: !isEditing,
                   ),
                   8.heightBox,
@@ -70,7 +76,7 @@ class RoutesTab extends StatelessWidget {
                       TextField(
                         controller: controller,
                         decoration: InputDecoration(
-                          labelText: 'Stop ${idx + 1}',
+                          labelText: '${l10n.stopPoint} ${idx + 1}',
                         ),
                       ).expand(),
                       IconButton(
@@ -92,7 +98,7 @@ class RoutesTab extends StatelessWidget {
                     alignment: Alignment.centerLeft,
                     child: TextButton.icon(
                       icon: const Icon(Icons.add),
-                      label: const Text('Add Stop'),
+                      label: Text(l10n.addStop),
                       onPressed: () {
                         setState(() {
                           stopControllers.add(TextEditingController());
@@ -102,7 +108,7 @@ class RoutesTab extends StatelessWidget {
                   ),
                   TextField(
                     controller: endController,
-                    decoration: const InputDecoration(labelText: 'End Point'),
+                    decoration: InputDecoration(labelText: l10n.endPoint),
                     enabled: !isEditing,
                   ),
                 ]),
@@ -110,7 +116,7 @@ class RoutesTab extends StatelessWidget {
               actions: [
                 TextButton(
                   onPressed: () => Navigator.of(context).pop(),
-                  child: const Text('Cancel'),
+                  child: Text(l10n.cancel),
                 ),
                 ElevatedButton(
                   onPressed: () async {
@@ -178,7 +184,7 @@ class RoutesTab extends StatelessWidget {
                     Navigator.of(context).pop();
                     onRefresh();
                   },
-                  child: Text(isEditing ? 'Save' : 'Create'),
+                  child: Text(isEditing ? l10n.save : l10n.create),
                 ),
               ],
             );
@@ -190,14 +196,15 @@ class RoutesTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = coord_l10n.CoordinatorLocalizations.of(context)!;
     return VStack([
       HStack(
         [
-          'Routes'.text.size(20).bold.make(),
+          l10n.routes.text.size(20).bold.make(),
           ElevatedButton.icon(
             onPressed: () => _showCreateOrEditRouteDialog(context),
             icon: const Icon(Icons.add),
-            label: const Text('Create Route'),
+            label: Text(l10n.createRoute),
             style: ElevatedButton.styleFrom(
               backgroundColor: Theme.of(context).primaryColor,
               foregroundColor: Theme.of(context).colorScheme.onPrimary,
@@ -219,12 +226,12 @@ class RoutesTab extends StatelessWidget {
                     ).colorScheme.onSurface.withValues(alpha: 0.6),
                   ),
                   AppSizes.paddingMedium.heightBox,
-                  'No routes created yet'.text
+                  l10n.noRoutesCreated.text
                       .size(18)
                       .color(AppColors.textSecondary)
                       .make(),
                   AppSizes.paddingSmall.heightBox,
-                  'Create routes for drivers to select'.text
+                  l10n.createRoutesPrompt.text
                       .size(14)
                       .color(AppColors.textSecondary)
                       .center
@@ -240,6 +247,13 @@ class RoutesTab extends StatelessWidget {
                 itemCount: routes.length,
                 itemBuilder: (context, index) {
                   final route = routes[index];
+                  // Localize route type display if possible, or just capitalize
+                  final displayType = route.routeType == 'pickup'
+                      ? l10n.pickup.toUpperCase()
+                      : (route.routeType == 'drop'
+                            ? l10n.drop.toUpperCase()
+                            : route.routeType.toUpperCase());
+
                   return Card(
                     margin: const EdgeInsets.only(
                       bottom: AppSizes.paddingMedium,
@@ -258,24 +272,24 @@ class RoutesTab extends StatelessWidget {
                       ),
                       title: route.routeName.text.semiBold.make(),
                       subtitle: VStack([
-                        'Type: ${route.routeType.toUpperCase()}'.text.make(),
+                        'Type: $displayType'.text.make(),
                         '${route.startPoint.name} → ${route.endPoint.name}'.text
                             .make(),
                         if (route.stopPoints.isNotEmpty)
-                          'Stops: ${route.stopPoints.map((s) => s.name).join(', ')}'
+                          '${l10n.stops}: ${route.stopPoints.map((s) => s.name).join(', ')}'
                               .text
                               .size(12)
                               .make(),
                       ]),
                       trailing: PopupMenuButton(
                         itemBuilder: (context) => [
-                          const PopupMenuItem(
+                          PopupMenuItem(
                             value: 'edit',
                             child: Row(
                               children: [
-                                Icon(Icons.edit),
-                                SizedBox(width: 8),
-                                Text('Edit'),
+                                const Icon(Icons.edit),
+                                const SizedBox(width: 8),
+                                Text(l10n.edit),
                               ],
                             ),
                           ),
@@ -287,8 +301,8 @@ class RoutesTab extends StatelessWidget {
                                   Icons.delete,
                                   color: Theme.of(context).colorScheme.error,
                                 ),
-                                SizedBox(width: 8),
-                                Text('Delete'),
+                                const SizedBox(width: 8),
+                                Text(l10n.delete),
                               ],
                             ),
                           ),
@@ -300,15 +314,15 @@ class RoutesTab extends StatelessWidget {
                             final confirmed = await showDialog<bool>(
                               context: context,
                               builder: (context) => AlertDialog(
-                                title: const Text('Delete Route'),
+                                title: Text(l10n.deleteRoute),
                                 content: Text(
-                                  'Are you sure you want to delete ${route.routeName}?',
+                                  l10n.deleteRouteConfirmation(route.routeName),
                                 ),
                                 actions: [
                                   TextButton(
                                     onPressed: () =>
                                         Navigator.of(context).pop(false),
-                                    child: const Text('Cancel'),
+                                    child: Text(l10n.cancel),
                                   ),
                                   ElevatedButton(
                                     onPressed: () =>
@@ -318,7 +332,7 @@ class RoutesTab extends StatelessWidget {
                                         context,
                                       ).colorScheme.error,
                                     ),
-                                    child: const Text('Delete'),
+                                    child: Text(l10n.delete),
                                   ),
                                 ],
                               ),
@@ -334,7 +348,7 @@ class RoutesTab extends StatelessWidget {
                               if (!context.mounted) return;
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
-                                  content: Text('Route deleted successfully'),
+                                  content: Text(l10n.routeDeletedSuccess),
                                   backgroundColor: AppColors.success,
                                 ),
                               );

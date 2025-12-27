@@ -1,0 +1,12 @@
+{
+  "dashboardTitle": "चालक डैशबोर्ड",
+  "startTrip": "यात्रा शुरू करें",
+  "endTrip": "यात्रा समाप्त करें",
+  "passengers": "यात्री",
+  "route": "मार्ग",
+  "incomingAssignment": "आने वाला असाइनमेंट",
+  "accept": "स्वीकार करें",
+  "reject": "अस्वीकार करें",
+  "busNumber": "बस नंबर",
+  "status": "स्थिति"
+}

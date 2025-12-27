@@ -20,7 +20,7 @@ import 'package:collegebus/utils/map_style_helper.dart';
 import 'widgets/student_dashboard_app_bar.dart';
 import 'widgets/dashboard/student_bottom_nav_app_bar.dart';
 import 'package:collegebus/widgets/app_drawer.dart';
-import 'student_profile_screen.dart';
+import 'package:collegebus/screens/common/profile_screen.dart';
 import 'student_home_screen.dart';
 import 'bus_schedule_screen.dart';
 
@@ -548,7 +548,7 @@ class _StudentDashboardState extends State<StudentDashboard>
                       onClearFilters: _clearFilters,
                     ),
                     const BusScheduleScreen(isTab: true),
-                    const StudentProfileScreen(),
+                    const ProfileScreen(),
                   ],
                 )
               : TabBarView(

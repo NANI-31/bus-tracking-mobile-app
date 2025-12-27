@@ -4,6 +4,8 @@ import 'package:collegebus/utils/constants.dart';
 import 'package:collegebus/models/route_model.dart';
 import 'package:collegebus/models/bus_model.dart';
 import 'package:collegebus/models/user_model.dart';
+import 'package:collegebus/l10n/coordinator/app_localizations.dart'
+    as coord_l10n;
 
 class OverviewTab extends StatelessWidget {
   final List<RouteModel> routes;

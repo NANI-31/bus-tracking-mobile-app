@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:velocity_x/velocity_x.dart';
 import 'package:collegebus/utils/constants.dart';
+import 'package:collegebus/l10n/coordinator/app_localizations.dart'
+    as coord_l10n;
 
 class BusEmptyState extends StatelessWidget {
   final bool isSearching;
@@ -14,6 +16,7 @@ class BusEmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = coord_l10n.CoordinatorLocalizations.of(context)!;
     return VStack(
       [
         Icon(
@@ -23,15 +26,15 @@ class BusEmptyState extends StatelessWidget {
         ),
         AppSizes.paddingMedium.heightBox,
         (isSearching
-                ? 'No buses found matching "$searchQuery"'
-                : 'No buses found')
+                ? l10n.noBusesFoundMatching(searchQuery)
+                : l10n.noBusesFound)
             .text
             .size(16)
             .color(AppColors.textSecondary)
             .make(),
         if (!isSearching) ...[
           AppSizes.paddingSmall.heightBox,
-          'Add bus numbers for drivers to select'.text
+          l10n.addBusPrompt.text
               .size(14)
               .color(AppColors.textSecondary)
               .center

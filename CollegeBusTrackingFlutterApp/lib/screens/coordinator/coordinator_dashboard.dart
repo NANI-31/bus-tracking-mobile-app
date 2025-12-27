@@ -13,7 +13,7 @@ import 'package:collegebus/widgets/app_drawer.dart';
 import 'package:collegebus/services/theme_service.dart';
 import 'package:collegebus/screens/notifications_screen.dart';
 import 'package:collegebus/screens/coordinator/schedule_management_screen.dart';
-import 'package:collegebus/screens/student/student_profile_screen.dart';
+import 'package:collegebus/screens/common/profile_screen.dart';
 import 'package:velocity_x/velocity_x.dart';
 
 // New Modules
@@ -21,6 +21,8 @@ import 'package:collegebus/screens/coordinator/modules/overview_tab.dart';
 import 'package:collegebus/screens/coordinator/modules/driver_management_tab.dart';
 import 'package:collegebus/screens/coordinator/modules/routes_tab.dart';
 import 'package:collegebus/screens/coordinator/modules/bus_numbers_tab.dart';
+import 'package:collegebus/l10n/coordinator/app_localizations.dart'
+    as coord_l10n;
 
 class CoordinatorDashboard extends StatefulWidget {
   const CoordinatorDashboard({super.key});
@@ -31,197 +33,131 @@ class CoordinatorDashboard extends StatefulWidget {
 
 class _CoordinatorDashboardState extends State<CoordinatorDashboard>
     with SingleTickerProviderStateMixin {
-  bool _isDataLoaded = false;
   late TabController _tabController;
-  List<UserModel> _pendingDrivers = [];
-  List<UserModel> _allDrivers = [];
-  List<BusModel> _buses = [];
-  List<RouteModel> _routes = [];
-  List<String> _busNumbers = [];
   int _bottomNavIndex = 0;
 
+  // Data lists
+  List<BusModel> _buses = [];
+  List<RouteModel> _routes = [];
+  List<UserModel> _allDrivers = [];
+  List<UserModel> _pendingDrivers = [];
+  List<String> _busNumbers = [];
+
   // Stream subscriptions
-  StreamSubscription? _pendingDriversSubscription;
-  StreamSubscription? _allDriversSubscription;
-  StreamSubscription? _busesSubscription;
-  StreamSubscription? _routesSubscription;
-  StreamSubscription? _busNumbersSubscription;
+  StreamSubscription<List<BusModel>>? _busesSubscription;
+  StreamSubscription<List<RouteModel>>? _routesSubscription;
+  StreamSubscription<List<UserModel>>? _driversSubscription;
+  StreamSubscription<List<String>>? _busNumbersSubscription;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 4, vsync: this);
+    _initData();
   }
 
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    final authService = Provider.of<AuthService>(context);
+  void _initData() {
+    final firestoreService = Provider.of<DataService>(context, listen: false);
+    final authService = Provider.of<AuthService>(context, listen: false);
     final collegeId = authService.currentUserModel?.collegeId;
 
-    if (collegeId != null && !_isDataLoaded) {
-      _isDataLoaded = true;
-      _loadData();
+    if (collegeId != null) {
+      // Load initial data
+      _loadRoutes();
+      _loadBusNumbers();
+
+      // Listen to streams - Use correct method names from DataService
+      _busesSubscription = firestoreService.getBusesByCollege(collegeId).listen(
+        (buses) {
+          if (mounted) setState(() => _buses = buses);
+        },
+      );
+
+      _routesSubscription = firestoreService
+          .getRoutesByCollege(collegeId)
+          .listen((routes) {
+            if (mounted) setState(() => _routes = routes);
+          });
+
+      _driversSubscription = firestoreService
+          .getUsersByRole(UserRole.driver, collegeId)
+          .listen((drivers) {
+            if (mounted) {
+              setState(() {
+                _allDrivers = drivers;
+                _pendingDrivers = drivers.where((d) => !d.approved).toList();
+              });
+            }
+          });
+
+      // Listen to bus numbers stream instead of manual future await (since getBusNumbers returns Stream)
+      _busNumbersSubscription = firestoreService
+          .getBusNumbers(collegeId)
+          .listen((busNumbers) {
+            if (mounted) setState(() => _busNumbers = busNumbers);
+          });
+    }
+  }
+
+  Future<void> _loadRoutes() async {
+    final firestoreService = Provider.of<DataService>(context, listen: false);
+    final authService = Provider.of<AuthService>(context, listen: false);
+    final collegeId = authService.currentUserModel?.collegeId;
+    if (collegeId != null) {
+      // Force refresh
+      firestoreService.getRoutesByCollege(collegeId, forceRefresh: true);
+    }
+  }
+
+  Future<void> _loadBusNumbers() async {
+    final firestoreService = Provider.of<DataService>(context, listen: false);
+    final authService = Provider.of<AuthService>(context, listen: false);
+    final collegeId = authService.currentUserModel?.collegeId;
+    if (collegeId != null) {
+      // Force refresh stream
+      firestoreService.getBusNumbers(collegeId, forceRefresh: true);
+    }
+  }
+
+  Future<void> _approveDriver(UserModel driver) async {
+    final firestoreService = Provider.of<DataService>(context, listen: false);
+    final authService = Provider.of<AuthService>(context, listen: false);
+    if (authService.currentUserModel != null) {
+      // approveUser(userId, approverId)
+      await firestoreService.approveUser(
+        driver.id,
+        authService.currentUserModel!.id,
+      );
+    }
+  }
+
+  Future<void> _rejectDriver(UserModel driver) async {
+    final firestoreService = Provider.of<DataService>(context, listen: false);
+    final authService = Provider.of<AuthService>(context, listen: false);
+    if (authService.currentUserModel != null) {
+      // rejectUser(userId, approverId)
+      await firestoreService.rejectUser(
+        driver.id,
+        authService.currentUserModel!.id,
+      );
     }
   }
 
   @override
   void dispose() {
     _tabController.dispose();
-    _pendingDriversSubscription?.cancel();
-    _allDriversSubscription?.cancel();
     _busesSubscription?.cancel();
     _routesSubscription?.cancel();
+    _driversSubscription?.cancel();
     _busNumbersSubscription?.cancel();
     super.dispose();
-  }
-
-  void _loadData() {
-    _loadPendingDrivers();
-    _loadAllDrivers();
-    _loadBuses();
-    _loadRoutes();
-    _loadRoutes();
-    _loadBusNumbers();
-  }
-
-  Future<void> _loadPendingDrivers() async {
-    final authService = Provider.of<AuthService>(context, listen: false);
-    final firestoreService = Provider.of<DataService>(context, listen: false);
-    final collegeId = authService.currentUserModel?.collegeId;
-
-    if (collegeId != null) {
-      await _pendingDriversSubscription?.cancel();
-      _pendingDriversSubscription = firestoreService
-          .getPendingApprovals(collegeId)
-          .listen((users) {
-            if (mounted) {
-              setState(() {
-                _pendingDrivers = users
-                    .where((user) => user.role == UserRole.driver)
-                    .toList();
-              });
-            }
-          });
-    }
-  }
-
-  Future<void> _loadAllDrivers() async {
-    final authService = Provider.of<AuthService>(context, listen: false);
-    final firestoreService = Provider.of<DataService>(context, listen: false);
-    final collegeId = authService.currentUserModel?.collegeId;
-
-    if (collegeId != null) {
-      await _allDriversSubscription?.cancel();
-      _allDriversSubscription = firestoreService
-          .getUsersByRole(UserRole.driver, collegeId)
-          .listen((users) {
-            if (mounted) {
-              setState(() {
-                _allDrivers = users;
-              });
-            }
-          });
-    }
-  }
-
-  Future<void> _loadBuses() async {
-    final authService = Provider.of<AuthService>(context, listen: false);
-    final firestoreService = Provider.of<DataService>(context, listen: false);
-    final collegeId = authService.currentUserModel?.collegeId;
-
-    if (collegeId != null) {
-      await _busesSubscription?.cancel();
-      _busesSubscription = firestoreService.getBusesByCollege(collegeId).listen(
-        (buses) {
-          if (mounted) {
-            setState(() {
-              _buses = buses;
-            });
-          }
-        },
-      );
-    }
-  }
-
-  Future<void> _loadRoutes() async {
-    final authService = Provider.of<AuthService>(context, listen: false);
-    final firestoreService = Provider.of<DataService>(context, listen: false);
-    final collegeId = authService.currentUserModel?.collegeId;
-
-    if (collegeId != null) {
-      await _routesSubscription?.cancel();
-      _routesSubscription = firestoreService
-          .getRoutesByCollege(collegeId)
-          .listen((routes) {
-            if (mounted) {
-              setState(() {
-                _routes = routes;
-              });
-            }
-          });
-    }
-  }
-
-  Future<void> _loadBusNumbers() async {
-    final authService = Provider.of<AuthService>(context, listen: false);
-    final firestoreService = Provider.of<DataService>(context, listen: false);
-    final collegeId = authService.currentUserModel?.collegeId;
-
-    if (collegeId != null) {
-      await _busNumbersSubscription?.cancel();
-      _busNumbersSubscription = firestoreService
-          .getBusNumbers(collegeId)
-          .listen((busNumbers) {
-            if (mounted) {
-              setState(() {
-                _busNumbers = busNumbers;
-              });
-            }
-          });
-    }
-  }
-
-  Future<void> _approveDriver(UserModel driver) async {
-    final authService = Provider.of<AuthService>(context, listen: false);
-    final firestoreService = Provider.of<DataService>(context, listen: false);
-
-    final currentUser = authService.currentUserModel;
-    if (currentUser != null) {
-      await firestoreService.approveUser(driver.id, currentUser.id);
-      if (!mounted) return;
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('${driver.fullName} has been approved as a driver'),
-          backgroundColor: Theme.of(context).colorScheme.secondary,
-        ),
-      );
-    }
-  }
-
-  Future<void> _rejectDriver(UserModel driver) async {
-    final authService = Provider.of<AuthService>(context, listen: false);
-    final firestoreService = Provider.of<DataService>(context, listen: false);
-
-    final currentUser = authService.currentUserModel;
-    if (currentUser != null) {
-      await firestoreService.rejectUser(driver.id, currentUser.id);
-      if (!mounted) return;
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('${driver.fullName} has been rejected'),
-          backgroundColor: Theme.of(context).colorScheme.error,
-        ),
-      );
-    }
   }
 
   @override
   Widget build(BuildContext context) {
     final authService = Provider.of<AuthService>(context);
     final currentUser = authService.currentUserModel;
+    final l10n = coord_l10n.CoordinatorLocalizations.of(context)!;
 
     return Consumer<ThemeService>(
       builder: (context, themeService, _) {
@@ -233,7 +169,7 @@ class _CoordinatorDashboardState extends State<CoordinatorDashboard>
           appBar: themeService.useBottomNavigation
               ? (_bottomNavIndex == 0
                     ? AppBar(
-                        title: 'Coordinator Dashboard'.text.make(),
+                        title: l10n.dashboardTitle.text.make(),
                         backgroundColor: Theme.of(context).primaryColor,
                         foregroundColor: Theme.of(
                           context,
@@ -248,13 +184,22 @@ class _CoordinatorDashboardState extends State<CoordinatorDashboard>
                             context,
                           ).colorScheme.onPrimary,
                           isScrollable: true,
-                          tabs: const [
-                            Tab(text: 'Overview', icon: Icon(Icons.dashboard)),
-                            Tab(text: 'Drivers', icon: Icon(Icons.approval)),
-                            Tab(text: 'Routes', icon: Icon(Icons.route)),
+                          tabs: [
                             Tab(
-                              text: 'Buses',
-                              icon: Icon(Icons.directions_bus),
+                              text: l10n.overview,
+                              icon: const Icon(Icons.dashboard),
+                            ),
+                            Tab(
+                              text: l10n.drivers,
+                              icon: const Icon(Icons.approval),
+                            ),
+                            Tab(
+                              text: l10n.routes,
+                              icon: const Icon(Icons.route),
+                            ),
+                            Tab(
+                              text: l10n.buses,
+                              icon: const Icon(Icons.directions_bus),
                             ),
                           ],
                         ),
@@ -290,14 +235,22 @@ class _CoordinatorDashboardState extends State<CoordinatorDashboard>
                     ).colorScheme.onPrimary.withValues(alpha: 0.7),
                     indicatorColor: Theme.of(context).colorScheme.onPrimary,
                     isScrollable: true,
-                    tabs: const [
-                      Tab(text: 'Overview', icon: Icon(Icons.dashboard)),
-                      Tab(text: 'Drivers', icon: Icon(Icons.approval)),
-                      Tab(text: 'Routes', icon: Icon(Icons.route)),
-                      Tab(text: 'Buses', icon: Icon(Icons.directions_bus)),
+                    tabs: [
+                      Tab(
+                        text: l10n.overview,
+                        icon: const Icon(Icons.dashboard),
+                      ),
+                      Tab(text: l10n.drivers, icon: const Icon(Icons.approval)),
+                      Tab(text: l10n.routes, icon: const Icon(Icons.route)),
+                      Tab(
+                        text: l10n.buses,
+                        icon: const Icon(Icons.directions_bus),
+                      ),
                     ],
                   ),
                 ),
+
+          // ...
           body: themeService.useBottomNavigation
               ? IndexedStack(
                   index: _bottomNavIndex,
@@ -333,7 +286,7 @@ class _CoordinatorDashboardState extends State<CoordinatorDashboard>
                     // 2: Manage Schedule
                     const ScheduleManagementScreen(),
                     // 3: Profile
-                    const StudentProfileScreen(),
+                    const ProfileScreen(),
                   ],
                 )
               : TabBarView(

@@ -9,23 +9,26 @@ import 'package:collegebus/services/theme_service.dart';
 import 'package:collegebus/services/locale_service.dart';
 import 'package:velocity_x/velocity_x.dart';
 import 'package:flutter_tailwind_css_colors/flutter_tailwind_css_colors.dart';
+import 'package:collegebus/l10n/common/app_localizations.dart' as common_l10n;
 
 // New standalone widgets
-import 'widgets/profile/profile_section_card.dart';
-import 'widgets/profile/profile_list_item.dart';
+import 'widgets/profile_section_card.dart';
+import 'widgets/profile_list_item.dart';
 
-class StudentProfileScreen extends StatefulWidget {
-  const StudentProfileScreen({super.key});
+class ProfileScreen extends StatefulWidget {
+  const ProfileScreen({super.key});
 
   @override
-  State<StudentProfileScreen> createState() => _StudentProfileScreenState();
+  State<ProfileScreen> createState() => _ProfileScreenState();
 }
 
-class _StudentProfileScreenState extends State<StudentProfileScreen> {
+class _ProfileScreenState extends State<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     final authService = Provider.of<AuthService>(context);
     final user = authService.currentUserModel;
+    // Safely get l10n, assuming context is valid and delegate is active
+    final l10n = common_l10n.CommonLocalizations.of(context)!;
 
     if (user == null) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
@@ -39,7 +42,7 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
               ? null
               : AppDrawer(user: user, authService: authService),
           appBar: AppBar(
-            title: const Text('Profile'),
+            title: Text(l10n.profile),
             backgroundColor: Theme.of(context).primaryColor,
             foregroundColor: Theme.of(context).colorScheme.onPrimary,
             elevation: 0,
@@ -96,13 +99,13 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
             VStack([
               // 1. Account Information
               ProfileSectionCard(
-                title: 'Account Information',
+                title: l10n.accountInfo,
                 children: [
                   ProfileListItem(
                     leadingIcon: Icons.badge,
                     iconColor: TwColors.blue.i400,
-                    title: 'Role',
-                    subtitle: 'Your current access level',
+                    title: l10n.role,
+                    subtitle: l10n.yourCurrentAccessLevel,
                     trailing: user.role.displayName.text.bold
                         .color(Theme.of(context).colorScheme.onSurface)
                         .make(),
@@ -111,8 +114,8 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
                   ProfileListItem(
                     leadingIcon: Icons.school,
                     iconColor: TwColors.purple.i400,
-                    title: 'College ID',
-                    subtitle: 'Institution identifier',
+                    title: l10n.collegeId,
+                    subtitle: l10n.institutionIdentifier,
                     trailing:
                         (user.collegeId.isNotEmpty ? user.collegeId : 'N/A')
                             .text
@@ -124,8 +127,8 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
                   ProfileListItem(
                     leadingIcon: Icons.phone,
                     iconColor: TwColors.teal.i400,
-                    title: 'Phone',
-                    subtitle: 'Contact number for updates',
+                    title: l10n.phone,
+                    subtitle: l10n.contactNumberForUpdates,
                     trailing: (user.phoneNumber ?? 'Not provided').text.bold
                         .color(Theme.of(context).colorScheme.onSurface)
                         .make(),
@@ -138,13 +141,13 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
 
               // 2. Preferences Section
               ProfileSectionCard(
-                title: 'Preferences',
+                title: l10n.preferences,
                 children: [
                   ProfileListItem(
                     leadingIcon: Icons.notifications_active_outlined,
                     iconColor: TwColors.blue.i400,
-                    title: 'Notifications',
-                    subtitle: 'Receive alerts about bus arrival',
+                    title: l10n.notifications,
+                    subtitle: l10n.receiveAlerts,
                     trailing: Switch(
                       value: true,
                       activeThumbColor: Colors.blue,
@@ -152,12 +155,12 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
                     ),
                     showDivider: true,
                   ),
-                  _buildLanguageSelector(context),
+                  _buildLanguageSelector(context, l10n),
                   ProfileListItem(
                     leadingIcon: Icons.location_on_outlined,
                     iconColor: TwColors.indigo.i400,
-                    title: 'Bus Stop',
-                    subtitle: 'Manage your preferred pickup point',
+                    title: l10n.busStop,
+                    subtitle: l10n.managePreferredPickup,
                     trailing: Icon(
                       Icons.chevron_right_rounded,
                       color: Theme.of(
@@ -172,8 +175,8 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
                         ? Icons.dark_mode
                         : Icons.light_mode,
                     iconColor: TwColors.purple.i400,
-                    title: 'Dark Mode',
-                    subtitle: 'Toggle dark or light theme',
+                    title: l10n.darkMode,
+                    subtitle: l10n.toggleDarkLight,
                     trailing: Switch(
                       value: themeService.isDarkMode,
                       activeThumbColor: Colors.blue,
@@ -184,8 +187,8 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
                   ProfileListItem(
                     leadingIcon: Icons.view_column_rounded,
                     iconColor: TwColors.teal.i400,
-                    title: 'Bottom Navigation',
-                    subtitle: 'Enable modern mobile navigation',
+                    title: l10n.bottomNavigation,
+                    subtitle: l10n.enableModernNav,
                     trailing: Switch(
                       value: themeService.useBottomNavigation,
                       activeThumbColor: Colors.blue,
@@ -209,7 +212,7 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
                               context.go('/student');
                           }
                         } else {
-                          context.push('/student/profile');
+                          context.push('/profile'); // Updated path
                           themeService.toggleNavigationMode(false);
                         }
                       },
@@ -223,29 +226,29 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
 
               // 3. Account and Security Section
               ProfileSectionCard(
-                title: 'Account and Security',
+                title: l10n.accountSecurity,
                 children: [
                   ProfileListItem(
                     leadingIcon: Icons.lock_outline_rounded,
                     iconColor: TwColors.blue.i400,
-                    title: 'Change Password',
-                    subtitle: 'Update your login credentials',
+                    title: l10n.changePassword,
+                    subtitle: l10n.updateCredentials,
                     onTap: () => context.push('/student/change-password'),
                     showDivider: true,
                   ),
                   ProfileListItem(
                     leadingIcon: Icons.privacy_tip_outlined,
                     iconColor: TwColors.teal.i400,
-                    title: 'Privacy Policy',
-                    subtitle: 'How we handle your data',
+                    title: l10n.privacyPolicy,
+                    subtitle: l10n.dataHandling,
                     onTap: () => context.push('/student/privacy-policy'),
                     showDivider: true,
                   ),
                   ProfileListItem(
                     leadingIcon: Icons.description_outlined,
                     iconColor: TwColors.indigo.i400,
-                    title: 'Terms & Conditions',
-                    subtitle: 'Legal usage requirements',
+                    title: l10n.termsConditions,
+                    subtitle: l10n.legalUsageRequirements,
                     onTap: () => context.push('/student/terms-conditions'),
                     showDivider: false,
                   ),
@@ -265,7 +268,7 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
                     }
                   },
                   icon: const Icon(Icons.logout),
-                  label: const Text('Logout'),
+                  label: Text(l10n.logout),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Theme.of(context).colorScheme.error,
                     foregroundColor: Theme.of(context).colorScheme.onError,
@@ -288,15 +291,18 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
     );
   }
 
-  Widget _buildLanguageSelector(BuildContext context) {
+  Widget _buildLanguageSelector(
+    BuildContext context,
+    common_l10n.CommonLocalizations l10n,
+  ) {
     return Consumer<LocaleService>(
       builder: (context, localeService, _) {
         final currentCode = localeService.locale.languageCode;
         final languageName = currentCode == 'en'
-            ? 'English'
+            ? l10n.english
             : currentCode == 'te'
-            ? 'Telugu'
-            : 'Hindi';
+            ? l10n.telugu
+            : l10n.hindi;
 
         Future<void> cycleLanguage() async {
           String newLang;
@@ -326,8 +332,8 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
         return ProfileListItem(
           leadingIcon: Icons.language_rounded,
           iconColor: TwColors.indigo.i400,
-          title: 'Language',
-          subtitle: 'Choose your preferred language',
+          title: l10n.language,
+          subtitle: l10n.chooseLanguage,
           onTap: cycleLanguage,
           trailing: HStack([
             languageName.text.bold

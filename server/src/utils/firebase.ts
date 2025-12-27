@@ -1,12 +1,12 @@
 // src/utils/firebase.ts
 import admin from "firebase-admin";
-import path from "path";
+// import path from "path";
 import logger from "./logger";
 
 // Initialize Firebase Admin SDK
 // You need to download service account JSON from Firebase Console
 // Project Settings -> Service Accounts -> Generate New Private Key
-const serviceAccountPath = path.join(__dirname, "../serviceAccountKey.json");
+// const serviceAccountPath = path.join(__dirname, "../serviceAccountKey.json");
 
 let firebaseInitialized = false;
 
@@ -15,7 +15,14 @@ export const initializeFirebase = () => {
 
   try {
     admin.initializeApp({
-      credential: admin.credential.cert(serviceAccountPath),
+      credential: admin.credential.cert({
+        projectId: process.env.FIREBASE_PROJECT_ID,
+        clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+        privateKey: (process.env.FIREBASE_PRIVATE_KEY ?? "").replace(
+          /\\n/g,
+          "\n"
+        ),
+      }),
     });
     firebaseInitialized = true;
     logger.info("Firebase Admin SDK initialized successfully");

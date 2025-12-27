@@ -3,6 +3,8 @@ import 'package:provider/provider.dart';
 import 'package:velocity_x/velocity_x.dart';
 import 'package:collegebus/services/auth_service.dart';
 import 'package:collegebus/widgets/app_drawer.dart';
+import 'package:collegebus/l10n/notification/app_localizations.dart'
+    as notif_l10n;
 
 class NotificationsScreen extends StatelessWidget {
   const NotificationsScreen({super.key});
@@ -11,10 +13,12 @@ class NotificationsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final authService = Provider.of<AuthService>(context);
     final user = authService.currentUserModel;
+    // Ensure delegate is provided in main.dart, accessed here
+    final l10n = notif_l10n.NotificationLocalizations.of(context)!;
 
     return Scaffold(
       appBar: AppBar(
-        title: 'Notifications'.text.make(),
+        title: l10n.title.text.make(),
         backgroundColor: Theme.of(context).primaryColor,
         foregroundColor: Theme.of(context).colorScheme.onPrimary,
       ),
@@ -29,7 +33,7 @@ class NotificationsScreen extends StatelessWidget {
             ).colorScheme.onSurface.withValues(alpha: 0.5),
           ),
           16.heightBox,
-          'No new notifications'.text
+          l10n.emptyState.text
               .size(18)
               .color(
                 Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),

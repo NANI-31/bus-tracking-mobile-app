@@ -1,0 +1,12 @@
+{
+  "dashboardTitle": "Driver Dashboard",
+  "startTrip": "Start Trip",
+  "endTrip": "End Trip",
+  "passengers": "Passengers",
+  "route": "Route",
+  "incomingAssignment": "Incoming Assignment",
+  "accept": "Accept",
+  "reject": "Reject",
+  "busNumber": "Bus Number",
+  "status": "Status"
+}

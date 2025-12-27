@@ -1,0 +1,9 @@
+{
+  "title": "Notifications",
+  "markAsRead": "Mark as read",
+  "clearAll": "Clear All",
+  "emptyState": "No notifications yet",
+  "newNotification": "New Notification",
+  "driverAssigned": "Driver Assigned",
+  "busOnRoute": "Bus on Route"
+}

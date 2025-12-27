@@ -1,0 +1,11 @@
+{
+  "dashboardTitle": "Admin Dashboard",
+  "manageUsers": "Manage Users",
+  "settings": "Settings",
+  "reports": "Reports",
+  "addUser": "Add User",
+  "editUser": "Edit User",
+  "deleteUser": "Delete User",
+  "userRole": "User Role",
+  "systemLogs": "System Logs"
+}

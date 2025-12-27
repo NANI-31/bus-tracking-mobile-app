@@ -4,6 +4,8 @@ import 'package:collegebus/utils/constants.dart';
 import 'package:collegebus/models/user_model.dart';
 import 'package:collegebus/models/bus_model.dart';
 import 'package:collegebus/screens/coordinator/modules/driver_history_screen.dart';
+import 'package:collegebus/l10n/coordinator/app_localizations.dart'
+    as coord_l10n;
 
 class DriverManagementTab extends StatelessWidget {
   final List<UserModel> pendingApprovals;
@@ -23,6 +25,7 @@ class DriverManagementTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = coord_l10n.CoordinatorLocalizations.of(context)!;
     return DefaultTabController(
       length: 4,
       child: VStack([
@@ -58,10 +61,10 @@ class DriverManagementTab extends StatelessWidget {
             dividerColor: Colors.transparent,
             labelPadding: EdgeInsets.zero,
             tabs: [
-              Tab(text: 'All'),
-              Tab(text: 'Assigned'),
-              Tab(text: 'Accepted'),
-              Tab(text: 'Approvals'),
+              Tab(text: l10n.all),
+              Tab(text: l10n.assigned),
+              Tab(text: l10n.accepted),
+              Tab(text: l10n.approvals),
             ],
           ).p4(), // Padding inside the capsule
         ),
@@ -80,10 +83,11 @@ class DriverManagementTab extends StatelessWidget {
   }
 
   Widget _buildPendingApprovals(BuildContext context) {
+    final l10n = coord_l10n.CoordinatorLocalizations.of(context)!;
     if (pendingApprovals.isEmpty) {
       return _buildEmptyState(
         context,
-        'No pending account approvals',
+        l10n.noPendingApprovals,
         Icons.check_circle_outline,
       );
     }
@@ -98,6 +102,7 @@ class DriverManagementTab extends StatelessWidget {
   }
 
   Widget _buildDriversByStatus(BuildContext context, String status) {
+    final l10n = coord_l10n.CoordinatorLocalizations.of(context)!;
     List<UserModel> filteredDrivers = [];
 
     if (status == 'all') {
@@ -125,7 +130,7 @@ class DriverManagementTab extends StatelessWidget {
     if (filteredDrivers.isEmpty) {
       return _buildEmptyState(
         context,
-        'No drivers in this category',
+        l10n.noDriversInCategory,
         Icons.people_outline,
       );
     }
@@ -183,7 +188,10 @@ class DriverManagementTab extends StatelessWidget {
         ),
         title: driver.fullName.text.semiBold.make(),
         subtitle: !isApproval
-            ? _buildDriverStatusBadge(status).pOnly(top: 4).objectTopLeft()
+            ? _buildDriverStatusBadge(
+                context,
+                status,
+              ).pOnly(top: 4).objectTopLeft()
             : null,
         trailing: isApproval
             ? HStack([
@@ -212,26 +220,27 @@ class DriverManagementTab extends StatelessWidget {
     );
   }
 
-  Widget _buildDriverStatusBadge(String status) {
+  Widget _buildDriverStatusBadge(BuildContext context, String status) {
+    final l10n = coord_l10n.CoordinatorLocalizations.of(context)!;
     Color color;
     String label;
 
     switch (status) {
       case 'accepted':
         color = const Color(0xFF4CAF50); // Green
-        label = 'Accepted';
+        label = l10n.accepted;
         break;
       case 'assigned':
         color = const Color(0xFFE67E22); // Orange
-        label = 'Assigned';
+        label = l10n.assigned;
         break;
       case 'rejected':
         color = const Color(0xFFE74C3C); // Red
-        label = 'Rejected';
+        label = l10n.rejected;
         break;
       default:
         color = Colors.grey;
-        label = 'Unassigned';
+        label = l10n.unassigned;
     }
 
     return HStack([

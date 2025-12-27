@@ -17,6 +17,12 @@ import 'package:collegebus/services/socket_service.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:collegebus/l10n/auth/login/auth_login_localizations.dart';
 import 'package:collegebus/l10n/auth/signup/auth_signup_localizations.dart';
+import 'package:collegebus/l10n/student/app_localizations.dart';
+import 'package:collegebus/l10n/driver/app_localizations.dart';
+import 'package:collegebus/l10n/coordinator/app_localizations.dart';
+import 'package:collegebus/l10n/admin/app_localizations.dart';
+import 'package:collegebus/l10n/notification/app_localizations.dart';
+import 'package:collegebus/l10n/common/app_localizations.dart';
 
 void main() {
   runApp(const AppInitializer());
@@ -129,6 +135,13 @@ class MyApp extends StatelessWidget {
             localizationsDelegates: const [
               LoginLocalizations.delegate,
               SignupLocalizations.delegate,
+              // New modular localizations
+              CommonLocalizations.delegate,
+              StudentLocalizations.delegate,
+              DriverLocalizations.delegate,
+              CoordinatorLocalizations.delegate,
+              AdminLocalizations.delegate,
+              NotificationLocalizations.delegate,
               GlobalMaterialLocalizations.delegate,
               GlobalWidgetsLocalizations.delegate,
               GlobalCupertinoLocalizations.delegate,
