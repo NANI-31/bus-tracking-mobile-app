@@ -3,6 +3,20 @@ import Schedule from "../models/Schedule";
 
 export const createSchedule = async (req: Request, res: Response) => {
   try {
+    const { busId, shift, collegeId } = req.body;
+
+    const existingSchedule = await Schedule.findOne({
+      busId,
+      shift,
+      collegeId,
+    });
+
+    if (existingSchedule) {
+      return res.status(409).json({
+        message: `Bus is already assigned to a route in ${shift} shift.`,
+      });
+    }
+
     const newSchedule = new Schedule(req.body);
     const savedSchedule = await newSchedule.save();
     res.status(201).json(savedSchedule);

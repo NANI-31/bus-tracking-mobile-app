@@ -16,9 +16,16 @@ export const createUser = async (req: Request, res: Response) => {
 export const getUser = async (req: Request, res: Response) => {
   try {
     const user = await User.findById(req.params.id);
-    if (!user) return res.status(404).json({ message: "User not found" });
+    if (!user) {
+      console.warn(`[UserController] User not found: ${req.params.id}`);
+      return res.status(404).json({ message: "User not found" });
+    }
     res.status(200).json(user);
   } catch (error) {
+    console.error(
+      `[UserController] Error fetching user ${req.params.id}:`,
+      error
+    );
     res.status(500).json({ message: (error as Error).message });
   }
 };

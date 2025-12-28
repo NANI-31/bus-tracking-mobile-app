@@ -8,13 +8,15 @@ import {
   verifyEmail,
 } from "../controllers/userController";
 
+import { protect, authorize } from "../middleware/authMiddleware";
+
 const router = express.Router();
 
-router.post("/", createUser);
-router.get("/", getAllUsers);
-router.get("/:id", getUser);
-router.put("/:id", updateUser);
-router.put("/:id/verify-email", verifyEmail);
-router.delete("/:id", deleteUser);
+router.post("/", createUser); // Public registration
+router.get("/", getAllUsers); // Public for dev test tool
+router.get("/:id", protect, getUser);
+router.put("/:id", protect, updateUser);
+router.put("/:id/verify-email", protect, verifyEmail);
+router.delete("/:id", protect, authorize("admin"), deleteUser);
 
 export default router;

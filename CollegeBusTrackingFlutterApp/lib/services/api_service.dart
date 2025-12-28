@@ -2,11 +2,12 @@ import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:collegebus/models/user_model.dart';
 import 'package:collegebus/models/bus_model.dart';
-import 'package:collegebus/models/college_model.dart';
 import 'package:collegebus/models/route_model.dart';
+import 'package:collegebus/models/college_model.dart';
 import 'package:collegebus/models/schedule_model.dart';
 import 'package:collegebus/models/notification_model.dart';
 import 'package:collegebus/models/assignment_log_model.dart';
+import 'package:collegebus/models/incident_model.dart';
 import 'package:collegebus/utils/constants.dart';
 import 'package:collegebus/utils/app_exceptions.dart';
 import 'package:collegebus/services/persistence_service.dart';
@@ -419,6 +420,33 @@ class ApiService {
       return (response.data as List)
           .map((data) => AssignmentLogModel.fromMap(data))
           .toList();
+    } catch (e) {
+      throw _handleError(e);
+    }
+  }
+
+  Future<Map<String, dynamic>> sendSOS({
+    required String? busId,
+    required double lat,
+    required double lng,
+  }) async {
+    try {
+      final response = await _dio.post(
+        '/sos',
+        data: {
+          'busId': busId,
+          'location': {'lat': lat, 'lng': lng},
+        },
+      );
+      return response.data;
+    } catch (e) {
+      throw _handleError(e);
+    }
+  }
+
+  Future<void> createIncident(IncidentModel incident) async {
+    try {
+      await _dio.post('/incidents', data: incident.toJson());
     } catch (e) {
       throw _handleError(e);
     }

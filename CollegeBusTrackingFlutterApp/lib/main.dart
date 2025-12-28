@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:provider/provider.dart';
+import 'package:go_router/go_router.dart';
 import 'package:collegebus/services/auth_service.dart';
 import 'package:collegebus/services/data_service.dart';
 import 'package:collegebus/services/location_service.dart';
@@ -121,9 +122,22 @@ class MyApp extends StatelessWidget {
         Provider(create: (_) => NotificationService()),
         ChangeNotifierProvider(create: (_) => ThemeService()),
         ChangeNotifierProvider(create: (_) => LocaleService()),
+        ProxyProvider<AuthService, GoRouter>(
+          update: (_, auth, previousRouter) {
+            // Return existing router if auth service hasn't changed (which it shouldn't)
+            // But actually we want the router to listen to the auth service.
+            // Since we pass auth to AppRouter, GoRouter listens to it given refreshListenable.
+            // We just need to ensure we don't recreate GoRouter unnecessarily which would reset nav stack.
+            // Since AuthService instance is stable, AppRouter(auth).router will be new instance
+            // BUT previousRouter logic helps. However, we only have the router, not the AppRouter instance.
+            // If previousRouter is not null, we can return it.
+            if (previousRouter != null) return previousRouter;
+            return AppRouter(auth).router;
+          },
+        ),
       ],
-      child: Consumer2<ThemeService, LocaleService>(
-        builder: (context, themeService, localeService, child) {
+      child: Consumer3<ThemeService, LocaleService, GoRouter>(
+        builder: (context, themeService, localeService, router, child) {
           return MaterialApp.router(
             title: 'Upasthit',
             theme: AppTheme.lightTheme,
@@ -147,7 +161,7 @@ class MyApp extends StatelessWidget {
               GlobalCupertinoLocalizations.delegate,
             ],
             supportedLocales: const [Locale('en'), Locale('te'), Locale('hi')],
-            routerConfig: AppRouter.router,
+            routerConfig: router,
             themeAnimationDuration: Duration.zero,
             debugShowCheckedModeBanner: false,
           );

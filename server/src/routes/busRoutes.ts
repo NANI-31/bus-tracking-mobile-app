@@ -10,15 +10,27 @@ import {
   deleteBus,
 } from "../controllers/busController";
 
+import { protect, authorize } from "../middleware/authMiddleware";
+
 const router = express.Router();
 
-router.post("/", createBus);
-router.get("/", getAllBuses);
-router.get("/college/:collegeId/locations", getCollegeBusLocations);
-router.get("/:id", getBus);
-router.put("/:id", updateBus);
-router.delete("/:id", deleteBus);
-router.post("/location", updateBusLocation);
-router.get("/:busId/location", getBusLocation);
+router.post("/", protect, authorize("admin", "busCoordinator"), createBus);
+router.get("/", protect, getAllBuses);
+router.get("/college/:collegeId/locations", protect, getCollegeBusLocations);
+router.get("/:id", protect, getBus);
+router.put(
+  "/:id",
+  protect,
+  authorize("admin", "busCoordinator", "driver"),
+  updateBus
+);
+router.delete("/:id", protect, authorize("admin", "busCoordinator"), deleteBus);
+router.post(
+  "/location",
+  protect,
+  authorize("driver", "busCoordinator"),
+  updateBusLocation
+);
+router.get("/:busId/location", protect, getBusLocation);
 
 export default router;

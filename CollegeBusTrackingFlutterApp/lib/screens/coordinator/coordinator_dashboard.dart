@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 
 import 'package:collegebus/services/auth_service.dart';
 import 'package:collegebus/services/data_service.dart';
+import 'package:collegebus/services/socket_service.dart';
 import 'package:collegebus/models/user_model.dart';
 import 'package:collegebus/models/bus_model.dart';
 import 'package:collegebus/models/route_model.dart';
@@ -21,8 +22,10 @@ import 'package:collegebus/screens/coordinator/modules/overview_tab.dart';
 import 'package:collegebus/screens/coordinator/modules/driver_management_tab.dart';
 import 'package:collegebus/screens/coordinator/modules/routes_tab.dart';
 import 'package:collegebus/screens/coordinator/modules/bus_numbers_tab.dart';
+import 'package:collegebus/screens/coordinator/modules/live_map_tab.dart';
 import 'package:collegebus/l10n/coordinator/app_localizations.dart'
     as coord_l10n;
+import 'package:collegebus/services/export_service.dart';
 
 class CoordinatorDashboard extends StatefulWidget {
   const CoordinatorDashboard({super.key});
@@ -42,17 +45,19 @@ class _CoordinatorDashboardState extends State<CoordinatorDashboard>
   List<UserModel> _allDrivers = [];
   List<UserModel> _pendingDrivers = [];
   List<String> _busNumbers = [];
+  Set<String> _onlineDriverIds = {};
 
   // Stream subscriptions
   StreamSubscription<List<BusModel>>? _busesSubscription;
   StreamSubscription<List<RouteModel>>? _routesSubscription;
   StreamSubscription<List<UserModel>>? _driversSubscription;
   StreamSubscription<List<String>>? _busNumbersSubscription;
+  StreamSubscription<Map<String, dynamic>>? _driverStatusSubscription;
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 4, vsync: this);
+    _tabController = TabController(length: 5, vsync: this);
     _initData();
   }
 
@@ -62,6 +67,25 @@ class _CoordinatorDashboardState extends State<CoordinatorDashboard>
     final collegeId = authService.currentUserModel?.collegeId;
 
     if (collegeId != null) {
+      final socketService = Provider.of<SocketService>(context, listen: false);
+      socketService.joinCollege(collegeId);
+
+      _driverStatusSubscription = socketService.driverStatusStream.listen((
+        data,
+      ) {
+        if (mounted) {
+          final driverId = data['driverId'];
+          final status = data['status'];
+          setState(() {
+            if (status == 'online') {
+              _onlineDriverIds.add(driverId);
+            } else {
+              _onlineDriverIds.remove(driverId);
+            }
+          });
+        }
+      });
+
       // Load initial data
       _loadRoutes();
       _loadBusNumbers();
@@ -143,6 +167,59 @@ class _CoordinatorDashboardState extends State<CoordinatorDashboard>
     }
   }
 
+  Future<void> _showExportDialog(BuildContext context) async {
+    await showDialog(
+      context: context,
+      builder: (context) {
+        return SimpleDialog(
+          title: const Text('Export Reports'),
+          children: [
+            SimpleDialogOption(
+              onPressed: () async {
+                Navigator.pop(context);
+                try {
+                  await ExportService().exportBuses(_buses);
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Bus report exported')),
+                    );
+                  }
+                } catch (e) {
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Export failed: $e')),
+                    );
+                  }
+                }
+              },
+              child: const Text('Export Bus List'),
+            ),
+            SimpleDialogOption(
+              onPressed: () async {
+                Navigator.pop(context);
+                try {
+                  await ExportService().exportDrivers(_allDrivers);
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Driver report exported')),
+                    );
+                  }
+                } catch (e) {
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Export failed: $e')),
+                    );
+                  }
+                }
+              },
+              child: const Text('Export Driver List'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   void dispose() {
     _tabController.dispose();
@@ -150,6 +227,7 @@ class _CoordinatorDashboardState extends State<CoordinatorDashboard>
     _routesSubscription?.cancel();
     _driversSubscription?.cancel();
     _busNumbersSubscription?.cancel();
+    _driverStatusSubscription?.cancel();
     super.dispose();
   }
 
@@ -189,6 +267,7 @@ class _CoordinatorDashboardState extends State<CoordinatorDashboard>
                               text: l10n.overview,
                               icon: const Icon(Icons.dashboard),
                             ),
+                            const Tab(text: 'Live Map', icon: Icon(Icons.map)),
                             Tab(
                               text: l10n.drivers,
                               icon: const Icon(Icons.approval),
@@ -209,6 +288,37 @@ class _CoordinatorDashboardState extends State<CoordinatorDashboard>
                   backgroundColor: Theme.of(context).primaryColor,
                   foregroundColor: Theme.of(context).colorScheme.onPrimary,
                   actions: [
+                    IconButton(
+                      icon: const Icon(Icons.refresh),
+                      tooltip: 'Refresh Data',
+                      onPressed: () {
+                        final ds = Provider.of<DataService>(
+                          context,
+                          listen: false,
+                        );
+                        final auth = Provider.of<AuthService>(
+                          context,
+                          listen: false,
+                        );
+                        final cid = auth.currentUserModel?.collegeId;
+                        if (cid != null) {
+                          ds.getBusesByCollege(cid).first; // Trigger fetch
+                          ds.getRoutesByCollege(cid, forceRefresh: true).first;
+                          ds.getBusNumbers(cid, forceRefresh: true).first;
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Refreshing data...'),
+                              duration: Duration(seconds: 1),
+                            ),
+                          );
+                        }
+                      },
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.download),
+                      tooltip: 'Export Reports',
+                      onPressed: () => _showExportDialog(context),
+                    ),
                     IconButton(
                       icon: Icon(
                         themeService.isDarkMode
@@ -240,6 +350,7 @@ class _CoordinatorDashboardState extends State<CoordinatorDashboard>
                         text: l10n.overview,
                         icon: const Icon(Icons.dashboard),
                       ),
+                      const Tab(text: 'Live Map', icon: Icon(Icons.map)),
                       Tab(text: l10n.drivers, icon: const Icon(Icons.approval)),
                       Tab(text: l10n.routes, icon: const Icon(Icons.route)),
                       Tab(
@@ -265,10 +376,12 @@ class _CoordinatorDashboardState extends State<CoordinatorDashboard>
                           pendingDrivers: _pendingDrivers,
                           busNumbers: _busNumbers,
                         ),
+                        const LiveMapTab(),
                         DriverManagementTab(
                           pendingApprovals: _pendingDrivers,
                           allDrivers: _allDrivers,
                           buses: _buses,
+                          onlineDriverIds: _onlineDriverIds,
                           onApprove: _approveDriver,
                           onReject: _rejectDriver,
                         ),
@@ -298,10 +411,12 @@ class _CoordinatorDashboardState extends State<CoordinatorDashboard>
                       pendingDrivers: _pendingDrivers,
                       busNumbers: _busNumbers,
                     ),
+                    const LiveMapTab(),
                     DriverManagementTab(
                       pendingApprovals: _pendingDrivers,
                       allDrivers: _allDrivers,
                       buses: _buses,
+                      onlineDriverIds: _onlineDriverIds,
                       onApprove: _approveDriver,
                       onReject: _rejectDriver,
                     ),

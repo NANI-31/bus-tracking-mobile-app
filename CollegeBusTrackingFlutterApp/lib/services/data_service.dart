@@ -6,6 +6,7 @@ import 'package:collegebus/models/route_model.dart';
 import 'package:collegebus/models/college_model.dart';
 import 'package:collegebus/models/notification_model.dart';
 import 'package:collegebus/models/schedule_model.dart';
+import 'package:collegebus/models/incident_model.dart';
 import 'package:collegebus/utils/constants.dart';
 import 'package:collegebus/services/api_service.dart';
 import 'package:collegebus/services/socket_service.dart';
@@ -35,12 +36,16 @@ class DataService extends ChangeNotifier {
     notifyListeners();
   }
 
+  DataService(this._apiService, this._socketService);
+
   // In-memory cache
   List<CollegeModel>? _cachedColleges;
   final Map<String, List<RouteModel>> _cachedRoutes = {};
   final Map<String, List<String>> _cachedBusNumbers = {};
 
-  DataService(this._apiService, this._socketService);
+  void _init() {
+    // We can listen to socket service changes here if needed
+  }
 
   // User operations
   Future<UserModel?> getUser(String userId) async {
@@ -210,6 +215,7 @@ class DataService extends ChangeNotifier {
     required String busNumber,
     required String driverId,
     required String collegeId,
+    String? routeId,
   }) async {
     try {
       final buses = await _apiService.getAllBuses();
@@ -218,10 +224,16 @@ class DataService extends ChangeNotifier {
         orElse: () => throw 'Bus not found',
       );
 
-      await updateBus(existingBus.id, {
+      final Map<String, dynamic> updateData = {
         'driverId': driverId,
         'assignmentStatus': 'pending',
-      });
+      };
+
+      if (routeId != null) {
+        updateData['routeId'] = routeId;
+      }
+
+      await updateBus(existingBus.id, updateData);
       _socketService.sendBusListUpdate();
     } catch (e) {
       _setError(e);
@@ -232,6 +244,47 @@ class DataService extends ChangeNotifier {
   Future<void> acceptBusAssignment(String busId) async {
     try {
       await _apiService.updateBus(busId, {'assignmentStatus': 'accepted'});
+      _socketService.sendBusListUpdate();
+      clearError();
+    } catch (e) {
+      _setError(e);
+      rethrow;
+    }
+  }
+
+  Future<void> rejectBusAssignment(String busId) async {
+    try {
+      await _apiService.updateBus(busId, {
+        'driverId': null,
+        'assignmentStatus': 'unassigned',
+        'status': 'not-running',
+      });
+      _socketService.sendBusListUpdate();
+      clearError();
+    } catch (e) {
+      _setError(e);
+      rethrow;
+    }
+  }
+
+  Future<void> updateBusStatus(String busId, String status) async {
+    try {
+      await _apiService.updateBus(busId, {'status': status});
+      _socketService.sendBusListUpdate();
+      clearError();
+    } catch (e) {
+      _setError(e);
+      rethrow;
+    }
+  }
+
+  Future<void> unassignDriverFromBus(String busId) async {
+    try {
+      // release the bus
+      await _apiService.updateBus(busId, {
+        'driverId': null,
+        'assignmentStatus': 'unassigned',
+      });
       _socketService.sendBusListUpdate();
       clearError();
     } catch (e) {
@@ -546,6 +599,29 @@ class DataService extends ChangeNotifier {
         'needsManualApproval': false,
         'approverId': approverId,
       });
+      clearError();
+    } catch (e) {
+      _setError(e);
+      rethrow;
+    }
+  }
+
+  Future<void> sendSOS({
+    required String? busId,
+    required double lat,
+    required double lng,
+  }) async {
+    try {
+      await _apiService.sendSOS(busId: busId, lat: lat, lng: lng);
+    } catch (e) {
+      _setError(e);
+      rethrow;
+    }
+  }
+
+  Future<void> createIncident(IncidentModel incident) async {
+    try {
+      await _apiService.createIncident(incident);
       clearError();
     } catch (e) {
       _setError(e);

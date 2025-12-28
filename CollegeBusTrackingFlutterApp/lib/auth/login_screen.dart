@@ -408,6 +408,7 @@ class _LoginScreenState extends State<LoginScreen>
                                             _emailController.text = user.email;
                                             _passwordController.text = 'a';
                                           });
+                                          _handleLogin();
                                         },
                                       ),
                                     )

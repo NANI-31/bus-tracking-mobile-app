@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:provider/provider.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:go_router/go_router.dart';
@@ -17,8 +18,10 @@ import 'widgets/location_display.dart';
 import 'widgets/bus_route_selectors.dart';
 import 'widgets/bus_assignment_card.dart';
 import 'widgets/live_tracking_control_panel.dart';
-import 'widgets/driver_map_view.dart';
+import 'package:collegebus/widgets/common/common_map_view.dart';
 import 'dart:async';
+import 'package:collegebus/widgets/success_modal.dart';
+import 'package:collegebus/widgets/sos_button.dart';
 import 'package:geolocator/geolocator.dart';
 
 class DriverDashboard extends StatefulWidget {
@@ -298,6 +301,13 @@ class _DriverDashboardState extends State<DriverDashboard>
     );
     final socketService = Provider.of<SocketService>(context, listen: false);
     final authService = Provider.of<AuthService>(context, listen: false);
+    final dataService = Provider.of<DataService>(context, listen: false);
+
+    // Update bus status to live
+    dataService.updateBusStatus(_myBus!.id, 'on-time').catchError((e) {
+      if (kDebugMode) print('Failed to update bus status: $e');
+    });
+
     locationService.startLocationTracking(
       onLocationUpdate: (position) {
         socketService.updateLocation({
@@ -307,13 +317,15 @@ class _DriverDashboardState extends State<DriverDashboard>
           'speed': position.speed,
           'heading': position.heading,
         });
-        if (mounted)
+        if (mounted) {
           setState(
             () => _currentLocation = LatLng(
               position.latitude,
               position.longitude,
             ),
           );
+          _checkRouteDeviation(position);
+        }
       },
     );
     setState(() => _isSharing = true);
@@ -326,13 +338,146 @@ class _DriverDashboardState extends State<DriverDashboard>
     );
   }
 
+  DateTime? _lastDeviationAlertTime;
+
+  String? _nextStopETA;
+
+  void _checkRouteDeviation(Position position) {
+    if (_selectedRoute == null) return;
+
+    // Build ordered list of points: Start -> Stops -> End
+    final points = [
+      LatLng(_selectedRoute!.startPoint.lat, _selectedRoute!.startPoint.lng),
+      ..._selectedRoute!.stopPoints.map((s) => LatLng(s.lat, s.lng)),
+      LatLng(_selectedRoute!.endPoint.lat, _selectedRoute!.endPoint.lng),
+    ];
+
+    double minDistance = double.infinity;
+
+    for (int i = 0; i < points.length - 1; i++) {
+      final p1 = points[i];
+      final p2 = points[i + 1];
+      final dist = _distanceToSegment(
+        LatLng(position.latitude, position.longitude),
+        p1,
+        p2,
+      );
+      if (dist < minDistance) minDistance = dist;
+    }
+
+    // Threshold: 200 meters
+    if (minDistance > 200) {
+      final now = DateTime.now();
+      if (_lastDeviationAlertTime == null ||
+          now.difference(_lastDeviationAlertTime!) >
+              const Duration(minutes: 1)) {
+        _lastDeviationAlertTime = now;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              '⚠️ You are off route! (${minDistance.toInt()}m away)',
+            ),
+            backgroundColor: AppColors.warning,
+            duration: const Duration(seconds: 5),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
+
+    // ETA Calculation
+    _calculateETA(position);
+  }
+
+  void _calculateETA(Position position) {
+    if (_selectedRoute == null) return;
+
+    double minDistance = double.infinity;
+    RoutePoint? nextStop;
+
+    for (final stop in _selectedRoute!.stopPoints) {
+      final dist = Geolocator.distanceBetween(
+        position.latitude,
+        position.longitude,
+        stop.lat,
+        stop.lng,
+      );
+      if (dist < minDistance) {
+        minDistance = dist;
+        nextStop = stop;
+      }
+    }
+
+    if (nextStop != null) {
+      // average speed 30km/h = ~8.33 m/s
+      final timeSeconds = minDistance / 8.33;
+      final timeMinutes = (timeSeconds / 60).ceil();
+
+      if (mounted) {
+        setState(() {
+          _nextStopETA = '$timeMinutes min to ${nextStop!.name}';
+        });
+      }
+    }
+  }
+
+  double _distanceToSegment(LatLng p, LatLng start, LatLng end) {
+    final double x = p.latitude;
+    final double y = p.longitude;
+    final double x1 = start.latitude;
+    final double y1 = start.longitude;
+    final double x2 = end.latitude;
+    final double y2 = end.longitude;
+
+    final double A = x - x1;
+    final double B = y - y1;
+    final double C = x2 - x1;
+    final double D = y2 - y1;
+
+    final double dot = A * C + B * D;
+    final double lenSq = C * C + D * D;
+    double param = -1;
+    if (lenSq != 0) // in case of 0 length line
+      param = dot / lenSq;
+
+    double xx, yy;
+
+    if (param < 0) {
+      xx = x1;
+      yy = y1;
+    } else if (param > 1) {
+      xx = x2;
+      yy = y2;
+    } else {
+      xx = x1 + param * C;
+      yy = y1 + param * D;
+    }
+
+    return Geolocator.distanceBetween(x, y, xx, yy);
+  }
+
   void _stopLocationSharing() {
     final locationService = Provider.of<LocationService>(
       context,
       listen: false,
     );
+    final dataService = Provider.of<DataService>(context, listen: false);
+
     locationService.stopLocationTracking();
-    setState(() => _isSharing = false);
+
+    // Revert bus status to offline
+    if (_myBus != null) {
+      dataService.updateBusStatus(_myBus!.id, 'not-running').catchError((e) {
+        if (kDebugMode) print('Failed to update bus status: $e');
+      });
+    }
+
+    if (mounted) {
+      setState(() {
+        _isSharing = false;
+        _nextStopETA = null;
+      });
+    }
     _saveSelections();
     ScaffoldMessenger.of(
       context,
@@ -352,50 +497,112 @@ class _DriverDashboardState extends State<DriverDashboard>
       collegeId: currentUser.collegeId,
       createdAt: DateTime.now(),
     );
-    await dataService.createBus(newBus);
-    if (!mounted) return;
-    setState(() => _myBus = newBus);
-    await _saveSelections();
-    _updateMarkers();
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: const Text('Bus assigned successfully!'),
-        backgroundColor: AppColors.success,
-      ),
-    );
+    try {
+      await dataService.createBus(newBus);
+      if (!mounted) return;
+      setState(() => _myBus = newBus);
+      await _saveSelections();
+      _updateMarkers();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Bus assigned successfully!'),
+          backgroundColor: AppColors.success,
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to assign bus: $e'),
+          backgroundColor: AppColors.error,
+        ),
+      );
+    }
   }
 
   Future<void> _handleRemoveAssignment() async {
     final dataService = Provider.of<DataService>(context, listen: false);
-    if (_myBus != null) await dataService.deleteBus(_myBus!.id);
-    await PersistenceService.remove('driver_bus_id');
-    await PersistenceService.remove('driver_bus_number');
-    await PersistenceService.remove('driver_route_id');
-    if (!mounted) return;
-    setState(() {
-      _myBus = null;
-      _selectedBusNumber = null;
-      _selectedRoute = null;
-    });
-    _updateMarkers();
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: const Text('Bus assignment removed'),
-        backgroundColor: Theme.of(context).colorScheme.secondary,
-      ),
-    );
+    try {
+      if (_myBus != null) await dataService.deleteBus(_myBus!.id);
+      await PersistenceService.remove('driver_bus_id');
+      await PersistenceService.remove('driver_bus_number');
+      await PersistenceService.remove('driver_route_id');
+      if (!mounted) return;
+      setState(() {
+        _myBus = null;
+        _selectedBusNumber = null;
+        _selectedRoute = null;
+      });
+      _updateMarkers();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Bus assignment removed'),
+          backgroundColor: Theme.of(context).colorScheme.secondary,
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to remove assignment: $e'),
+          backgroundColor: AppColors.error,
+        ),
+      );
+    }
   }
 
   Future<void> _handleAcceptAssignment(String busId) async {
     final dataService = Provider.of<DataService>(context, listen: false);
-    await dataService.acceptBusAssignment(busId);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: const Text('Assignment accepted!'),
-        backgroundColor: AppColors.success,
-      ),
-    );
-    _loadMyBus();
+    try {
+      await dataService.acceptBusAssignment(busId);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('Assignment accepted!'),
+            backgroundColor: AppColors.success,
+          ),
+        );
+        _loadMyBus();
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to accept: $e'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _handleRejectAssignment(String busId) async {
+    final dataService = Provider.of<DataService>(context, listen: false);
+    try {
+      await dataService.rejectBusAssignment(busId);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('Assignment declined'),
+            backgroundColor: Theme.of(context).colorScheme.secondary,
+          ),
+        );
+        setState(() {
+          _myBus = null;
+          _selectedBusNumber = null;
+        });
+        _loadMyBus();
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to decline: $e'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
+    }
   }
 
   @override
@@ -476,74 +683,245 @@ class _DriverDashboardState extends State<DriverDashboard>
   }
 
   Widget _buildPendingAssignmentUI(BusModel bus) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    // Glossy Gradient Colors
+    final gradientColors = isDark
+        ? [
+            const Color(0xFF2E3192),
+            const Color(0xFF1BFFFF),
+          ] // Deep Blue -> Cyan
+        : [
+            const Color(0xFF667EEA),
+            const Color(0xFF764BA2),
+          ]; // Soft Blue -> Purple
+
     return Container(
-      padding: const EdgeInsets.all(AppSizes.paddingMedium),
       decoration: BoxDecoration(
-        color: AppColors.warning.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.warning, width: 2),
-      ),
-      child: VStack([
-        HStack([
-          Icon(Icons.notification_important, color: AppColors.warning).shimmer(
-            primaryColor: AppColors.warning,
-            secondaryColor: Colors.white,
-          ),
-          12.widthBox,
-          'Incoming Assignment'.text.xl.bold.color(AppColors.warning).make(),
-        ]).pOnly(bottom: 12),
-        'You have been assigned to Bus Number:'.text.make(),
-        bus.busNumber.text.xl2.bold.make().pOnly(top: 4, bottom: 16),
-        HStack(
-          [
-            ElevatedButton(
-              onPressed: () => _handleAcceptAssignment(bus.id),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.success,
-                foregroundColor: AppColors.onPrimary,
-                minimumSize: const Size(120, 45),
-              ),
-              child: 'Accept'.text.make(),
-            ).shimmer(
-              primaryColor: AppColors.success,
-              secondaryColor: Colors.white.withOpacity(0.5),
-            ),
-            16.widthBox,
-            OutlinedButton(
-              onPressed: () {
-                // TODO: Implement reject assignment
-              },
-              style: OutlinedButton.styleFrom(
-                foregroundColor: AppColors.error,
-                side: BorderSide(color: AppColors.error),
-                minimumSize: const Size(120, 45),
-              ),
-              child: 'Reject'.text.make(),
-            ),
-          ],
-          axisSize: MainAxisSize.max,
-          alignment: MainAxisAlignment.center,
+        borderRadius: BorderRadius.circular(24),
+        gradient: LinearGradient(
+          colors: gradientColors,
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
         ),
-      ]),
+        boxShadow: [
+          BoxShadow(
+            color: gradientColors.last.withValues(alpha: 0.5),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      child: Stack(
+        children: [
+          // Glassy Overlay / Decoration
+          Positioned(
+            top: -20,
+            right: -20,
+            child: CircleAvatar(
+              radius: 60,
+              backgroundColor: Colors.white.withValues(alpha: 0.1),
+            ),
+          ),
+          Positioned(
+            bottom: -30,
+            left: -30,
+            child: CircleAvatar(
+              radius: 80,
+              backgroundColor: Colors.white.withValues(alpha: 0.1),
+            ),
+          ),
+
+          VStack([
+            HStack([
+              const Icon(
+                Icons.directions_bus_filled_rounded,
+                color: Colors.white,
+                size: 28,
+              ),
+              12.widthBox,
+              'New Trip Assignment'.text.white.xl.bold.make(),
+            ]).pOnly(bottom: 24),
+
+            'Bus Number'.text.white.white.make().opacity(value: 0.8),
+            bus.busNumber.text.xl6.white.bold.make().pOnly(bottom: 32),
+
+            HStack([
+              // Reject Button (Glassy Outlined)
+              OutlinedButton(
+                onPressed: () => _handleRejectAssignment(bus.id),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: Colors.white,
+                  side: const BorderSide(color: Colors.white70),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 16,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                ),
+                child: 'Decline'.text.make(),
+              ).expand(),
+
+              16.widthBox,
+
+              // Accept Button (Solid White)
+              ElevatedButton(
+                onPressed: () => _handleAcceptAssignment(bus.id),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.white,
+                  foregroundColor: gradientColors.first,
+                  elevation: 0,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 16,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                ),
+                child: 'START TRIP'.text.bold.make(),
+              ).expand(),
+            ]),
+          ]).p(24),
+        ],
+      ),
     );
   }
 
-  Widget _buildLiveTrackingTab() {
-    return VStack([
-      DriverMapView(
-        currentLocation: _currentLocation,
-        mapStyle: _mapStyle,
-        markers: _markers,
-        polylines: _polylines,
-        onMapCreated: (controller) {},
-      ).expand(),
-      LiveTrackingControlPanel(
-        bus: _myBus,
-        route: _selectedRoute,
-        isSharing: _isSharing,
-        currentLocation: _currentLocation,
-        onToggleSharing: _toggleLocationSharing,
+  Future<void> _handleTripComplete() async {
+    if (_myBus == null) return;
+
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Complete Trip?'),
+        content: const Text(
+          'This will mark your trip as finished and unassign you from this bus.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.success),
+            child: const Text(
+              'Complete Trip',
+              style: TextStyle(color: Colors.white),
+            ),
+          ),
+        ],
       ),
-    ]);
+    );
+
+    if (confirm == true) {
+      final dataService = Provider.of<DataService>(context, listen: false);
+      try {
+        _stopLocationSharing(); // Stop tracking first
+        await dataService.unassignDriverFromBus(_myBus!.id);
+
+        await PersistenceService.remove('driver_bus_id');
+        await PersistenceService.remove('driver_bus_number');
+        await PersistenceService.remove('driver_route_id');
+
+        if (mounted) {
+          setState(() {
+            _myBus = null;
+            _selectedBusNumber = null;
+            _selectedRoute = null;
+          });
+          _updateMarkers();
+
+          SuccessModal.show(
+            context: context,
+            title: 'Trip Completed',
+            message: 'Good job! You have been unassigned from the bus.',
+            primaryActionText: 'OK',
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Error completing trip: $e'),
+              backgroundColor: AppColors.error,
+            ),
+          );
+        }
+      }
+    }
+  }
+
+  Widget _buildLiveTrackingTab() {
+    return Stack(
+      children: [
+        Column(
+          children: [
+            CommonMapView(
+              currentLocation: _currentLocation,
+              mapStyle: _mapStyle,
+              markers: _markers,
+              polylines: _polylines,
+              onMapCreated: (controller) {},
+              initialZoom: 16.0,
+            ).expand(),
+            LiveTrackingControlPanel(
+              bus: _myBus,
+              route: _selectedRoute,
+              isSharing: _isSharing,
+              currentLocation: _currentLocation,
+              onToggleSharing: _toggleLocationSharing,
+            ),
+          ],
+        ),
+        // Trip Complete Floating Button (Visible only when tracking is active or assignment is accepted)
+        if (_myBus != null && _myBus!.assignmentStatus == 'accepted')
+          Positioned(
+            top: 16,
+            right: 16,
+            child: FloatingActionButton.extended(
+              onPressed: _handleTripComplete,
+              backgroundColor: AppColors.success,
+              icon: const Icon(Icons.check_circle_outline, color: Colors.white),
+              label: const Text(
+                'Trip Complete',
+                style: TextStyle(color: Colors.white),
+              ),
+            ),
+          ),
+        Positioned(
+          top: 16,
+          left: 16,
+          child: SOSButton(
+            currentLocation: _currentLocation,
+            busId: _myBus?.id,
+          ),
+        ),
+        if (_nextStopETA != null && _isSharing)
+          Positioned(
+            bottom: 240, // Above control panel
+            left: 16,
+            right: 16,
+            child: Card(
+              color: Colors.black87,
+              child: Padding(
+                padding: const EdgeInsets.all(12.0),
+                child: Text(
+                  'ETA: $_nextStopETA',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            ),
+          ),
+      ],
+    );
   }
 }

@@ -97,46 +97,42 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
             // Sections
             VStack([
-              // 1. Account Information
-              ProfileSectionCard(
-                title: l10n.accountInfo,
-                children: [
-                  ProfileListItem(
-                    leadingIcon: Icons.badge,
-                    iconColor: TwColors.blue.i400,
-                    title: l10n.role,
-                    subtitle: l10n.yourCurrentAccessLevel,
-                    trailing: user.role.displayName.text.bold
-                        .color(Theme.of(context).colorScheme.onSurface)
-                        .make(),
-                    showDivider: true,
+              // 1. Quick Stats Row (Replacing minimal Account Info)
+              HStack(
+                [
+                  _buildStatCard(
+                    context,
+                    l10n.role,
+                    user.role.displayName,
+                    Icons.badge_rounded,
+                    Colors.blue,
                   ),
-                  ProfileListItem(
-                    leadingIcon: Icons.school,
-                    iconColor: TwColors.purple.i400,
-                    title: l10n.collegeId,
-                    subtitle: l10n.institutionIdentifier,
-                    trailing:
-                        (user.collegeId.isNotEmpty ? user.collegeId : 'N/A')
-                            .text
-                            .bold
-                            .color(Theme.of(context).colorScheme.onSurface)
-                            .make(),
-                    showDivider: true,
-                  ),
-                  ProfileListItem(
-                    leadingIcon: Icons.phone,
-                    iconColor: TwColors.teal.i400,
-                    title: l10n.phone,
-                    subtitle: l10n.contactNumberForUpdates,
-                    trailing: (user.phoneNumber ?? 'Not provided').text.bold
-                        .color(Theme.of(context).colorScheme.onSurface)
-                        .make(),
-                    showDivider: false,
+                  12.widthBox,
+                  _buildStatCard(
+                    context,
+                    l10n.collegeId,
+                    user.collegeId.isNotEmpty ? user.collegeId : 'N/A',
+                    Icons.school_rounded,
+                    Colors.purple,
                   ),
                 ],
+                alignment: MainAxisAlignment.center,
+                axisSize: MainAxisSize.max,
+              ).wFull(context),
+
+              12.heightBox,
+
+              // Phone Number separate (full width or centered)
+              _buildStatCard(
+                context,
+                l10n.phone,
+                user.phoneNumber ?? 'Not provided',
+                Icons.phone_rounded,
+                Colors.teal,
+                fullWidth: true,
               ),
 
+              // Divider or spacing
               24.heightBox,
 
               // 2. Preferences Section
@@ -351,5 +347,48 @@ class _ProfileScreenState extends State<ProfileScreen> {
         );
       },
     );
+  }
+
+  Widget _buildStatCard(
+    BuildContext context,
+    String label,
+    String value,
+    IconData icon,
+    MaterialColor color, {
+    bool fullWidth = false,
+  }) {
+    return VxBox(
+          child: HStack([
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: color[50], // Light shade
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(icon, color: color[600], size: 24),
+            ),
+            12.widthBox,
+            VStack([
+              label.text
+                  .size(12)
+                  .color(
+                    Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                  )
+                  .make(),
+              4.heightBox,
+              value.text
+                  .size(16)
+                  .bold
+                  .color(Theme.of(context).colorScheme.onSurface)
+                  .make(),
+            ], crossAlignment: CrossAxisAlignment.start).expand(),
+          ]),
+        )
+        .color(Theme.of(context).cardColor)
+        .shadowSm
+        .roundedLg
+        .p12
+        .make()
+        .w(fullWidth ? double.infinity : context.percentWidth * 44);
   }
 }

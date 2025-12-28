@@ -1,12 +1,16 @@
-import express from "express";
+import express, { Request, Response, NextFunction } from "express";
 import dotenv from "dotenv";
 import cors from "cors";
 import { createServer } from "http";
 import { Server } from "socket.io";
-import connectDB from "./config/db";
-import { initializeFirebase } from "./utils/firebase";
 import { LRUCache } from "lru-cache";
 import { RateLimiterMemory } from "rate-limiter-flexible";
+import rateLimit from "express-rate-limit";
+
+import connectDB from "./config/db";
+import { initializeFirebase } from "./utils/firebase";
+import { authenticateSocket, AuthenticatedSocket } from "./utils/socketAuth";
+import logger from "./utils/logger";
 
 import userRoutes from "./routes/userRoutes";
 import busRoutes from "./routes/busRoutes";
@@ -16,14 +20,28 @@ import scheduleRoutes from "./routes/scheduleRoutes";
 import notificationRoutes from "./routes/notificationRoutes";
 import authRoutes from "./routes/authRoutes";
 import assignmentRoutes from "./routes/assignmentRoutes";
-import logger from "./utils/logger";
+import sosRoutes from "./routes/sosRoutes";
+import incidentRoutes from "./routes/incidentRoutes";
+import historyRoutes from "./routes/historyRoutes";
+import { Bus } from "./models/Bus";
+import { checkAndNotifyBusNearby } from "./utils/busNearbyLogic";
 
 dotenv.config();
 
 connectDB();
 initializeFirebase();
 
-import { authenticateSocket } from "./utils/socketAuth";
+const app = express();
+const httpServer = createServer(app);
+const io = new Server(httpServer, {
+  cors: {
+    origin: "*", // Allow all origins for mobile app
+    methods: ["GET", "POST"],
+  },
+});
+
+// Make io accessible to our router/controllers
+app.set("io", io);
 
 // LRU cache for bus metadata (max 500 entries, 30 min TTL)
 const busCache = new LRUCache<
@@ -40,27 +58,46 @@ const rateLimiter = new RateLimiterMemory({
   duration: 5,
 });
 
-const app = express();
-const httpServer = createServer(app);
-const io = new Server(httpServer, {
-  cors: {
-    origin: "*",
-    methods: ["GET", "POST"],
-  },
+app.use(
+  cors({
+    origin: true, // Allow any origin dynamically
+    credentials: true, // Allow cookies/auth headers
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
+  })
+);
+
+app.use(express.json());
+
+// Rate Limiting
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // Limit each IP to 100 requests per windowMs
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: "Too many requests from this IP, please try again after 15 minutes",
 });
 
-app.use(cors());
-app.use(express.json());
+// Apply rate limiting to all API routes
+app.use("/api/", apiLimiter);
 
 // Request logging middleware
 app.use((req, res, next) => {
+  const start = Date.now();
   logger.info(`${req.method} ${req.url}`);
   if (Object.keys(req.body).length > 0) {
     logger.info("📝 Body:", JSON.stringify(req.body, null, 2));
   }
-  if (Object.keys(req.query).length > 0) {
-    logger.info("🔍 Query:", JSON.stringify(req.query, null, 2));
-  }
+
+  // Response logger
+  res.on("finish", () => {
+    const duration = Date.now() - start;
+    const status = res.statusCode;
+    const color = status >= 500 ? "🔴" : status >= 400 ? "🟡" : "🟢";
+    logger.info(
+      `[Response] ${color} ${status} ${req.method} ${req.url} - ${duration}ms`
+    );
+  });
   next();
 });
 
@@ -73,6 +110,9 @@ app.use("/api/notifications", notificationRoutes);
 // app.use("/api/bus-numbers", busNumberRoutes); // Removed
 app.use("/api/auth", authRoutes);
 app.use("/api/assignments", assignmentRoutes);
+app.use("/api/sos", sosRoutes);
+app.use("/api/incidents", incidentRoutes);
+app.use("/api/history", historyRoutes);
 
 app.get("/", (req, res) => {
   res.setHeader("Content-Type", "text/html");
@@ -116,11 +156,53 @@ app.get("/", (req, res) => {
 io.use(authenticateSocket); // Secure all connections
 
 io.on("connection", (socket) => {
-  console.log("A user connected:", socket.id);
+  const authSocket = socket as AuthenticatedSocket;
+  const user = authSocket.user;
+
+  // Log connection
+  if (user) {
+    console.log(
+      `User connected: ${user.id} (${user.role}) - Socket ${socket.id}`
+    );
+
+    // If it's a driver, notify the college room
+    if (user.role === "driver" && user.collegeId) {
+      socket.to(user.collegeId).emit("driver_status_update", {
+        driverId: user.id,
+        status: "online",
+      });
+      console.log(`Driver ${user.id} is ONLINE`);
+    }
+
+    // Join their own room for direct messages
+    socket.join(user.id);
+  } else {
+    console.log("A user connected (unauthenticated):", socket.id);
+  }
 
   socket.on("join_college", (collegeId) => {
     socket.join(collegeId);
-    console.log(`User ${socket.id} joined college room: ${collegeId}`);
+    console.log(
+      `[Socket] User ${socket.id} (User: ${user?.id}) joined room: ${collegeId}`
+    );
+    // Debug: list rooms for this socket
+    console.log(
+      `[Socket] Current rooms for ${socket.id}:`,
+      Array.from(socket.rooms)
+    );
+  });
+
+  socket.on("bus_list_updated", () => {
+    if (user && user.collegeId) {
+      console.log(
+        `[Socket] Received bus_list_updated from ${user.id}. Broadcasting to room ${user.collegeId}`
+      );
+      socket.to(user.collegeId.toString()).emit("bus_list_updated");
+    } else {
+      console.log(
+        `[Socket] bus_list_updated received but user or collegeId missing. User: ${user?.id}`
+      );
+    }
   });
 
   socket.on("update_location", async (data) => {
@@ -136,9 +218,6 @@ io.on("connection", (socket) => {
     try {
       // Apply rate limiting per socket ID
       await rateLimiter.consume(socket.id);
-
-      const { Bus } = require("./models/Bus");
-      const { checkAndNotifyBusNearby } = require("./utils/busNearbyLogic");
 
       let busDetails = busCache.get(data.busId);
 
@@ -185,6 +264,23 @@ io.on("connection", (socket) => {
 
   socket.on("disconnect", () => {
     console.log("User disconnected:", socket.id);
+    if (user && user.role === "driver" && user.collegeId) {
+      socket.to(user.collegeId).emit("driver_status_update", {
+        driverId: user.id,
+        status: "offline",
+      });
+      console.log(`Driver ${user.id} is OFFLINE`);
+    }
+  });
+});
+
+// Global error error-handling middleware
+app.use((err: any, req: Request, res: Response, next: NextFunction) => {
+  console.error("💥 Global Error:", err);
+  res.status(err.status || 500).json({
+    success: false,
+    message: err.message || "Internal Server Error",
+    error: process.env.NODE_ENV === "development" ? err : {},
   });
 });
 

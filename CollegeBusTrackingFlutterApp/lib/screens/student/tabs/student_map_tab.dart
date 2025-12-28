@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:collegebus/models/bus_model.dart';
 import 'package:collegebus/utils/constants.dart';
+import 'package:collegebus/widgets/common/common_map_view.dart';
 import 'package:velocity_x/velocity_x.dart';
 
 class StudentMapTab extends StatelessWidget {
@@ -169,18 +170,13 @@ class StudentMapTab extends StatelessWidget {
 
       // Map
       (currentLocation != null
-              ? GoogleMap(
+              ? CommonMapView(
                   onMapCreated: onMapCreated,
-                  initialCameraPosition: CameraPosition(
-                    target: currentLocation!,
-                    zoom: 14.0,
-                  ),
+                  currentLocation: currentLocation,
                   markers: markers,
                   polylines: polylines,
-                  myLocationEnabled: true,
-                  myLocationButtonEnabled: true,
-                  mapType: MapType.normal,
-                  style: mapStyle,
+                  mapStyle: mapStyle,
+                  initialZoom: 14.0,
                 )
               : const Center(child: CircularProgressIndicator()))
           .expand(flex: 3),

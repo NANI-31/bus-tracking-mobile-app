@@ -86,10 +86,13 @@ const UserSchema: Schema = new Schema({
   },
   lastNearbyNotifiedBusId: { type: String },
   stopLocationGeo: {
-    type: { type: String, enum: ["Point"], default: "Point" },
-    coordinates: { type: [Number], index: "2dsphere" }, // [lng, lat]
+    type: { type: String, enum: ["Point"] }, // Remove default to prevent partial objects
+    coordinates: { type: [Number] }, // [lng, lat]
   },
 });
+
+// Index for geospatial queries
+UserSchema.index({ stopLocationGeo: "2dsphere" }, { sparse: true });
 
 // Pre-save hook to sync stopLocation -> stopLocationGeo
 UserSchema.pre<IUser>("save", function (next) {
@@ -98,6 +101,9 @@ UserSchema.pre<IUser>("save", function (next) {
       type: "Point",
       coordinates: [this.stopLocation.lng, this.stopLocation.lat],
     };
+  } else if (!this.stopLocationGeo?.coordinates?.length) {
+    // Ensure we don't save an invalid Partial object
+    this.stopLocationGeo = undefined;
   }
   next();
 });

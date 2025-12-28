@@ -361,14 +361,8 @@ class _StudentDashboardState extends State<StudentDashboard>
   void _updateMarkers() {
     final newMarkers = <Marker>{};
     if (_currentLocation != null) {
-      newMarkers.add(
-        Marker(
-          markerId: const MarkerId('current_location'),
-          position: _currentLocation!,
-          infoWindow: const InfoWindow(title: 'Your Location'),
-          icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
-        ),
-      );
+      // User location is handled by CommonMapView's myLocationEnabled: true (blue dot)
+      // Removed manual marker to prevent duplication
     }
     for (final bus in _filteredBuses) {
       _addBusMarker(bus, newMarkers);

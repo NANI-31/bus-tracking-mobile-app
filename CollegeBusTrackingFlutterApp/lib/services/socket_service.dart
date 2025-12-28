@@ -1,7 +1,9 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:socket_io_client/socket_io_client.dart' as io;
+import 'package:shared_preferences/shared_preferences.dart';
 
 class SocketService extends ChangeNotifier {
   io.Socket? _socket;
@@ -9,38 +11,40 @@ class SocketService extends ChangeNotifier {
   bool _isConnecting = false;
   String? _currentUrl;
   String? _token;
+  String? _lastJoinedCollegeId;
+  final List<Map<String, dynamic>> _eventQueue = [];
 
   bool get isConnected => _isConnected;
   bool get isConnecting => _isConnecting;
   String? get token => _token;
 
-  StreamController<Map<String, dynamic>>? _locationUpdateController;
-  StreamController<Map<String, dynamic>>? _busUpdateController;
-  StreamController<void>? _busListUpdateController;
-
   Stream<Map<String, dynamic>> get locationUpdateStream =>
-      _locationUpdateController?.stream ?? const Stream.empty();
+      _locationUpdateController.stream;
   Stream<Map<String, dynamic>> get busUpdateStream =>
-      _busUpdateController?.stream ?? const Stream.empty();
-  Stream<void> get busListUpdateStream =>
-      _busListUpdateController?.stream ?? const Stream.empty();
+      _busUpdateController.stream;
+  Stream<void> get busListUpdateStream => _busListUpdateController.stream;
+  Stream<Map<String, dynamic>> get driverStatusStream =>
+      _driverStatusController.stream;
 
-  void init(String url, {String? token}) {
-    _currentUrl = url;
-    _token = token;
-    _resetControllers();
-    _connect();
-  }
-
-  void _resetControllers() {
-    _locationUpdateController?.close();
-    _busUpdateController?.close();
-    _busListUpdateController?.close();
-
+  SocketService() {
     _locationUpdateController =
         StreamController<Map<String, dynamic>>.broadcast();
     _busUpdateController = StreamController<Map<String, dynamic>>.broadcast();
     _busListUpdateController = StreamController<void>.broadcast();
+    _driverStatusController =
+        StreamController<Map<String, dynamic>>.broadcast();
+  }
+
+  late final StreamController<Map<String, dynamic>> _locationUpdateController;
+  late final StreamController<Map<String, dynamic>> _busUpdateController;
+  late final StreamController<void> _busListUpdateController;
+  late final StreamController<Map<String, dynamic>> _driverStatusController;
+
+  Future<void> init(String url, {String? token}) async {
+    _currentUrl = url;
+    _token = token;
+    await _loadQueue();
+    _connect();
   }
 
   void updateAuth(String? token) {
@@ -93,13 +97,20 @@ class SocketService extends ChangeNotifier {
     notifyListeners();
     _socket = io.io(_currentUrl, options.build());
 
-    _socket!.onConnect((_) {
+    _socket!.onConnect((_) async {
       _isConnected = true;
       _isConnecting = false;
       notifyListeners();
       if (kDebugMode) {
         print('[SocketService] Connected');
       }
+
+      // Re-join last college if any
+      if (_lastJoinedCollegeId != null) {
+        joinCollege(_lastJoinedCollegeId!);
+      }
+
+      await _flushQueue();
     });
 
     _socket!.onDisconnect((_) {
@@ -129,39 +140,100 @@ class SocketService extends ChangeNotifier {
 
     // Location updates
     _socket!.on('location_updated', (data) {
-      _locationUpdateController?.add(Map<String, dynamic>.from(data));
+      _locationUpdateController.add(Map<String, dynamic>.from(data));
     });
 
     // Bus status updates
     _socket!.on('bus_updated', (data) {
-      _busUpdateController?.add(Map<String, dynamic>.from(data));
-      _busListUpdateController?.add(null);
+      _busUpdateController.add(Map<String, dynamic>.from(data));
+      _busListUpdateController.add(null);
+    });
+
+    // Driver status updates
+    _socket!.on('driver_status_update', (data) {
+      _driverStatusController.add(Map<String, dynamic>.from(data));
     });
 
     // General list updates
-    _socket!.on('bus_list_updated', (_) => _busListUpdateController?.add(null));
+    _socket!.on('bus_list_updated', (_) => _busListUpdateController.add(null));
   }
 
   void joinCollege(String collegeId) {
-    _socket?.emit('join_college', collegeId);
+    _lastJoinedCollegeId = collegeId;
+    if (_isConnected && _socket != null) {
+      _socket?.emit('join_college', collegeId);
+      if (kDebugMode) print('[SocketService] Joined college: $collegeId');
+    } else {
+      _queueEvent('join_college', collegeId);
+    }
   }
 
-  void updateLocation(Map<String, dynamic> data) {
-    _socket?.emit('update_location', data);
+  Future<void> updateLocation(Map<String, dynamic> data) async {
+    if (_isConnected && _socket != null) {
+      _socket?.emit('update_location', data);
+    } else {
+      await _queueEvent('update_location', data);
+    }
+  }
+
+  Future<void> _queueEvent(String event, dynamic data) async {
+    _eventQueue.add({'event': event, 'data': data});
+    await _saveQueue();
+    if (kDebugMode) {
+      print('[SocketService] Event queued: $event');
+    }
+  }
+
+  Future<void> _saveQueue() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('offline_socket_queue', json.encode(_eventQueue));
+  }
+
+  Future<void> _loadQueue() async {
+    final prefs = await SharedPreferences.getInstance();
+    final queueString = prefs.getString('offline_socket_queue');
+    if (queueString != null) {
+      try {
+        final List<dynamic> decoded = json.decode(queueString);
+        _eventQueue.clear();
+        _eventQueue.addAll(decoded.cast<Map<String, dynamic>>());
+      } catch (e) {
+        print('Error loading queue: $e');
+      }
+    }
+  }
+
+  Future<void> _flushQueue() async {
+    if (_eventQueue.isEmpty) return;
+    if (kDebugMode) {
+      print('[SocketService] Flushing queue: ${_eventQueue.length} events');
+    }
+
+    // Create a copy to iterate
+    final queueCopy = List<Map<String, dynamic>>.from(_eventQueue);
+    _eventQueue.clear(); // Optimistically clear
+    await _saveQueue();
+
+    for (final item in queueCopy) {
+      _socket?.emit(item['event'], item['data']);
+      // Small delay to prevent flooding
+      await Future.delayed(const Duration(milliseconds: 50));
+    }
   }
 
   void sendBusListUpdate() {
     _socket?.emit('bus_list_updated');
-    _busListUpdateController?.add(null);
+    _busListUpdateController.add(null);
   }
 
   @override
   void dispose() {
     _socket?.disconnect();
     _socket?.dispose();
-    _locationUpdateController?.close();
-    _busUpdateController?.close();
-    _busListUpdateController?.close();
+    _locationUpdateController.close();
+    _busUpdateController.close();
+    _busListUpdateController.close();
+    _driverStatusController.close();
     super.dispose();
   }
 }

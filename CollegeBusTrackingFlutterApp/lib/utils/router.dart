@@ -1,7 +1,6 @@
 import 'package:collegebus/screens/student/student_bus_stop_screen.dart';
 import 'package:collegebus/screens/student/student_home_screen.dart';
 import 'package:go_router/go_router.dart';
-import 'package:provider/provider.dart';
 import 'package:collegebus/services/auth_service.dart';
 import 'package:collegebus/auth/login_screen.dart';
 import 'package:collegebus/auth/register_screen.dart';
@@ -26,11 +25,14 @@ import 'package:collegebus/screens/coordinator/driver_selection_screen.dart';
 import 'package:collegebus/screens/coordinator/assignment_history_screen.dart';
 
 class AppRouter {
-  static final GoRouter router = GoRouter(
+  final AuthService authService;
+
+  AppRouter(this.authService);
+
+  late final GoRouter router = GoRouter(
+    refreshListenable: authService,
     initialLocation: '/login',
     redirect: (context, state) {
-      final authService = Provider.of<AuthService>(context, listen: false);
-
       // If auth service is still initializing, don't redirect yet
       if (!authService.isInitialized) {
         return null;

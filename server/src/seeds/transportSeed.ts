@@ -73,7 +73,7 @@ export const seedTransport = async (
 
     const bus = await Bus.create({
       busNumber: busNumber,
-      driverId: driverId,
+      driverId: null,
       routeId: route._id,
       collegeId: collegeId,
       isActive: true,

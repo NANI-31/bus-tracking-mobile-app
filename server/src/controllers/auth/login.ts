@@ -3,8 +3,10 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import User from "../../models/User";
 
-const JWT_SECRET =
-  process.env.JWT_SECRET || "your_jwt_secret_key_change_in_production";
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) {
+  throw new Error("JWT_SECRET must be set in environment variables");
+}
 
 export const login = async (req: Request, res: Response) => {
   try {
@@ -36,22 +38,34 @@ export const login = async (req: Request, res: Response) => {
 
     // Create token
     const token = jwt.sign(
-      { id: user._id, email: user.email, role: user.role },
+      {
+        id: user._id,
+        email: user.email,
+        role: user.role,
+        collegeId: user.collegeId,
+        approved: user.approved,
+      },
       JWT_SECRET,
       { expiresIn: "30d" }
+    );
+
+    const userData = {
+      id: user._id,
+      email: user.email,
+      fullName: user.fullName,
+      role: user.role,
+      collegeId: user.collegeId,
+      approved: user.approved,
+    };
+
+    console.log(
+      `[LoginSuccess] Email: ${user.email}, Role: ${user.role}, ID: ${user._id}`
     );
 
     res.json({
       success: true,
       token,
-      user: {
-        id: user._id,
-        email: user.email,
-        fullName: user.fullName,
-        role: user.role,
-        collegeId: user.collegeId,
-        approved: user.approved,
-      },
+      user: userData,
     });
   } catch (error) {
     console.error("Login error:", error);

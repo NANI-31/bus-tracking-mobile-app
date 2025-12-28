@@ -6,6 +6,10 @@ import 'package:collegebus/services/auth_service.dart';
 import 'package:collegebus/services/data_service.dart';
 import 'package:collegebus/utils/constants.dart';
 import 'package:collegebus/widgets/success_modal.dart';
+import 'package:collegebus/widgets/api_error_modal.dart';
+import 'package:collegebus/models/route_model.dart';
+import 'package:collegebus/models/bus_model.dart';
+import 'modules/bus_tab_components/route_selection_modal.dart';
 
 class DriverSelectionScreen extends StatefulWidget {
   final String busNumber;
@@ -35,31 +39,21 @@ class _DriverSelectionScreenState extends State<DriverSelectionScreen> {
 
     if (collegeId != null) {
       try {
-        // Fetch drivers and buses in parallel
+        // Fetch drivers, buses, and routes in parallel
         final results = await Future.wait([
           dataService.getUsersByRole(UserRole.driver, collegeId).first,
           dataService.getBusesByCollege(collegeId).first,
+          dataService.getRoutesByCollege(collegeId).first,
         ]);
 
         final drivers = results[0] as List<UserModel>;
-        final buses =
-            results[1]
-                as List<
-                  dynamic
-                >; // Stream<List<BusModel>> returns List<BusModel>
+        final buses = results[1] as List<BusModel>;
+        final routes = results[2] as List<RouteModel>;
 
         // Identify drivers who are already assigned to a bus (active assignment)
         final assignedDriverIds = buses
             .where((b) {
-              // Assuming BusModel needs to be cast or checked
-              // Since getBusesByCollege returns List<BusModel>
-              // Check if driverId is present and status is effectively 'assigned'
-              // We exclude 'rejected' or 'unassigned', but simpler is to check driverId length > 0
-              // However, we should be careful if 'unassigned' bus has driverId cleared?
-              // Usually driverId is cleared if unassigned.
-              // Let's assume if driverId is NOT empty, they are assigned/pending.
-              // Also check if it's NOT the current bus we are assigning (though we are assigning TO this bus, which might have old driver? No, we are selecting NEW driver)
-              return (b.driverId != null && b.driverId!.isNotEmpty);
+              return b.driverId.isNotEmpty;
             })
             .map((b) => b.driverId)
             .toSet();
@@ -70,6 +64,8 @@ class _DriverSelectionScreenState extends State<DriverSelectionScreen> {
 
         setState(() {
           _allDrivers = availableDrivers;
+          _allBuses = buses;
+          _allRoutes = routes;
           _isLoading = false;
         });
       } catch (e) {
@@ -79,11 +75,30 @@ class _DriverSelectionScreenState extends State<DriverSelectionScreen> {
     }
   }
 
+  List<BusModel> _allBuses = [];
+  List<RouteModel> _allRoutes = [];
+
   Future<void> _showAssignConfirmation(UserModel driver) async {
-    final result = await showDialog<String>(
+    // 1. Open Route Selection Modal
+    final selectedRoute = await showDialog<RouteModel>(
+      context: context,
+      builder: (context) => RouteSelectionModal(
+        routes: _allRoutes,
+        buses: _allBuses,
+        busNumberToAssign: widget.busNumber,
+      ),
+    );
+
+    // If no route selected (cancelled), just return
+    if (selectedRoute == null) return;
+
+    if (!mounted) return;
+
+    // 2. Show Final Confirmation
+    await showDialog<String>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('Assign Driver'),
+        title: const Text('Confirm Assignment'),
         content: RichText(
           text: TextSpan(
             style: TextStyle(
@@ -96,7 +111,12 @@ class _DriverSelectionScreenState extends State<DriverSelectionScreen> {
                 text: driver.fullName,
                 style: const TextStyle(fontWeight: FontWeight.bold),
               ),
-              const TextSpan(text: ' to bus '),
+              const TextSpan(text: ' and route '),
+              TextSpan(
+                text: selectedRoute.routeName,
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
+              const TextSpan(text: '\nto bus '),
               TextSpan(
                 text: widget.busNumber,
                 style: const TextStyle(fontWeight: FontWeight.bold),
@@ -121,26 +141,35 @@ class _DriverSelectionScreenState extends State<DriverSelectionScreen> {
                 listen: false,
               );
 
-              // Close the dialog immediately to show progress on screen
-              // But wait, the dialog itself is where we handle the error.
-              // Let's keep the logic inside the dialog but return the string.
+              final currentUser = authService.currentUserModel;
+              if (currentUser == null || currentUser.collegeId.isEmpty) {
+                Navigator.pop(dialogContext);
+                if (context.mounted) {
+                  ApiErrorModal.show(
+                    context: context,
+                    error: "Session Invalid. Please login again.",
+                  );
+                }
+                return;
+              }
 
               try {
                 await dataService.assignDriverToBus(
                   busNumber: widget.busNumber,
                   driverId: driver.id,
-                  collegeId: authService.currentUserModel!.collegeId,
+                  collegeId: currentUser.collegeId,
+                  routeId: selectedRoute.id,
                 );
 
                 if (context.mounted) {
-                  Navigator.pop(dialogContext); // Close Assign Dialog
+                  Navigator.pop(dialogContext); // Close Confirm Dialog
 
                   // Show Success Modal
                   await SuccessModal.show(
                     context: context,
                     title: 'Success',
                     message:
-                        'Successfully assigned ${driver.fullName} to ${widget.busNumber}',
+                        'Successfully assigned ${driver.fullName} and route ${selectedRoute.routeName}',
                     primaryActionText: 'OK',
                   );
 
@@ -150,31 +179,17 @@ class _DriverSelectionScreenState extends State<DriverSelectionScreen> {
                 }
               } catch (e) {
                 if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Error assigning driver: $e'),
-                      backgroundColor: AppColors.error,
-                    ),
-                  );
-                  Navigator.pop(dialogContext); // Close Assign Dialog
+                  Navigator.pop(dialogContext);
+                  ApiErrorModal.show(context: context, error: e);
                 }
               }
             },
             style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
-            child: const Text(
-              'Assign',
-              style: TextStyle(
-                color: Colors.white,
-              ), // or a color that contrasts with AppColors.primary
-            ),
+            child: const Text('Assign', style: TextStyle(color: Colors.white)),
           ),
         ],
       ),
     );
-
-    if (result != null && mounted) {
-      Navigator.pop(context, result);
-    }
   }
 
   @override

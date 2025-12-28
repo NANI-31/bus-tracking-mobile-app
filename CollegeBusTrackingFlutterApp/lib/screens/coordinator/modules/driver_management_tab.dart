@@ -11,6 +11,7 @@ class DriverManagementTab extends StatelessWidget {
   final List<UserModel> pendingApprovals;
   final List<UserModel> allDrivers;
   final List<BusModel> buses;
+  final Set<String> onlineDriverIds;
   final Function(UserModel) onApprove;
   final Function(UserModel) onReject;
 
@@ -19,6 +20,7 @@ class DriverManagementTab extends StatelessWidget {
     required this.pendingApprovals,
     required this.allDrivers,
     required this.buses,
+    required this.onlineDriverIds,
     required this.onApprove,
     required this.onReject,
   });
@@ -178,13 +180,31 @@ class DriverManagementTab extends StatelessWidget {
     return Card(
       margin: const EdgeInsets.only(bottom: AppSizes.paddingMedium),
       child: ListTile(
-        leading: CircleAvatar(
-          backgroundColor: Theme.of(context).primaryColor,
-          child: (driver.fullName.isNotEmpty ? driver.fullName[0] : '?')
-              .text
-              .white
-              .bold
-              .make(),
+        leading: Stack(
+          children: [
+            CircleAvatar(
+              backgroundColor: Theme.of(context).primaryColor,
+              child: (driver.fullName.isNotEmpty ? driver.fullName[0] : '?')
+                  .text
+                  .white
+                  .bold
+                  .make(),
+            ),
+            if (onlineDriverIds.contains(driver.id))
+              Positioned(
+                bottom: 0,
+                right: 0,
+                child: Container(
+                  width: 12,
+                  height: 12,
+                  decoration: BoxDecoration(
+                    color: Colors.greenAccent,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Colors.white, width: 2),
+                  ),
+                ),
+              ),
+          ],
         ),
         title: driver.fullName.text.semiBold.make(),
         subtitle: !isApproval
@@ -231,6 +251,7 @@ class DriverManagementTab extends StatelessWidget {
         label = l10n.accepted;
         break;
       case 'assigned':
+      case 'pending': // Backend uses 'pending', frontend treats as Assigned
         color = const Color(0xFFE67E22); // Orange
         label = l10n.assigned;
         break;

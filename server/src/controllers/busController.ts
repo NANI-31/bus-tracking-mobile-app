@@ -3,6 +3,7 @@ import { Bus, BusLocation, IBus } from "../models/Bus";
 import { BusAssignmentLog } from "../models/BusAssignmentLog";
 import User from "../models/User";
 import { sendTemplatedNotificationHelper } from "./notificationController";
+import { logHistoryHelper } from "./historyController";
 import { NOTIFICATION_TYPES } from "../constants/notificationTypes";
 import logger from "../utils/logger";
 
@@ -76,15 +77,25 @@ export const updateBus = async (req: Request, res: Response) => {
           status: "pending",
         });
         await newLog.save();
+
+        // History Log
+        await logHistoryHelper(
+          updatedBus.collegeId,
+          "assignment_creation",
+          `Bus ${updatedBus.busNumber} assigned to driver.`,
+          { assignmentId: newLog._id },
+          updatedBus._id,
+          updatedBus.driverId
+        );
       }
 
-      // Check if assignment was accepted
+      // Check if assignment was accepted (Driver accepted request)
       const isAccepted =
         body.assignmentStatus === "accepted" &&
         oldBus.assignmentStatus === "pending";
 
       if (isAccepted) {
-        // Update the log entry
+        // ... (existing logs)
         await BusAssignmentLog.findOneAndUpdate(
           {
             busId: updatedBus._id,
@@ -93,6 +104,15 @@ export const updateBus = async (req: Request, res: Response) => {
           },
           { status: "accepted", acceptedAt: new Date() },
           { sort: { assignedAt: -1 } }
+        );
+
+        await logHistoryHelper(
+          updatedBus.collegeId,
+          "assignment_acceptance",
+          `Driver accepted bus ${updatedBus.busNumber}.`,
+          {},
+          updatedBus._id,
+          updatedBus.driverId
         );
       }
 
@@ -108,8 +128,58 @@ export const updateBus = async (req: Request, res: Response) => {
           { status: "rejected", completedAt: new Date() },
           { sort: { assignedAt: -1 } }
         );
+
+        // History Log
+        await logHistoryHelper(
+          updatedBus.collegeId,
+          "assignment_rejection",
+          `Bus ${oldBus.busNumber} assignment rejected/revoked.`,
+          {},
+          oldBus._id.toString(),
+          oldBus.driverId?.toString()
+        );
+      }
+
+      // SIMULATION LOGIC: Trigger on "STARTED" status
+      if (updatedBus.busNumber === "9" && body.status === "STARTED") {
+        const io = req.app.get("io");
+        const { startSimulation } = require("../services/simulationService");
+        startSimulation(io, updatedBus._id.toString(), updatedBus.collegeId);
+      }
+
+      // Check if trip was completed (accepted -> unassigned)
+      const isCompleted =
+        body.assignmentStatus === "unassigned" &&
+        oldBus.assignmentStatus === "accepted";
+
+      if (isCompleted) {
+        await BusAssignmentLog.findOneAndUpdate(
+          { busId: oldBus._id, driverId: oldBus.driverId, status: "accepted" },
+          { status: "completed", completedAt: new Date() },
+          { sort: { assignedAt: -1 } }
+        );
+
+        // History Log
+        await logHistoryHelper(
+          updatedBus.collegeId,
+          "trip_completion",
+          `Trip completed for Bus ${oldBus.busNumber}.`,
+          {},
+          oldBus._id.toString(),
+          oldBus.driverId?.toString()
+        );
+
+        // STOP SIMULATION
+        if (oldBus.busNumber === "9") {
+          const { stopSimulation } = require("../services/simulationService");
+          stopSimulation(oldBus._id.toString());
+        }
       }
     }
+
+    // Broadcast update to college room
+    const io = req.app.get("io");
+    io.to(updatedBus.collegeId.toString()).emit("bus_list_updated");
 
     res.status(200).json(updatedBus);
   } catch (error) {

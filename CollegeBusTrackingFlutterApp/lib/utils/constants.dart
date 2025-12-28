@@ -1,6 +1,9 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import 'package:flutter_tailwind_css_colors/flutter_tailwind_css_colors.dart';
+
+// ... (AppColors, AppTheme, AppSizes, AppStrings classes remain unchanged)
 
 class AppColors {
   static const Color primary1 = Color(0xFF197FE6);
@@ -172,9 +175,16 @@ extension UserRoleExtension on UserRole {
 }
 
 class AppConstants {
-  // Use 10.0.2.2 for Android Emulator, 192.168.x.x for physical device, localhost for iOS/Web
-  static const String baseUrl = 'http://192.168.29.27:5000';
-  // static const String baseUrl =
-  // 'https://college-bus-tracking-server.onrender.com/api';
+  // Use 10.0.2.2 for Android Emulator, 192.168.x.x for physical device.
+
+  // Debug Mode (Development): Localhost (Requires 'adb reverse tcp:5000 tcp:5000')
+  static const String _devUrl = 'http://127.0.0.1:5000';
+
+  // Release Mode (Production): Render Server
+  static const String _prodUrl =
+      'https://college-bus-tracking-server.onrender.com';
+
+  // Automatically switch info based on build mode
+  static const String baseUrl = kReleaseMode ? _prodUrl : _devUrl;
   static const String apiBaseUrl = '$baseUrl/api';
 }

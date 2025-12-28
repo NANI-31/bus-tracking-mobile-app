@@ -1,6 +1,7 @@
 adb tcpip 5555
 adb connect 192.168.29.181:5555
 adb devices
+adb reverse tcp:5000 tcp:5000
 
 # Project Architecture Overview
 

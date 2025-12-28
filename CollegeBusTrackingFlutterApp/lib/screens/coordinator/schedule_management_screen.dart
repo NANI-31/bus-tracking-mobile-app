@@ -240,19 +240,32 @@ class _ScheduleManagementScreenState extends State<ScheduleManagementScreen>
                             createdAt: DateTime.now(),
                           );
 
-                          await firestoreService.createSchedule(schedule);
-                          if (!context.mounted) return;
-                          Navigator.of(context).pop();
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(
-                                '$shift shift timetable created successfully',
+                          try {
+                            await firestoreService.createSchedule(schedule);
+                            if (!context.mounted) return;
+                            Navigator.of(context).pop();
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  '$shift shift timetable created successfully',
+                                ),
+                                backgroundColor: Theme.of(
+                                  context,
+                                ).colorScheme.secondary,
                               ),
-                              backgroundColor: Theme.of(
-                                context,
-                              ).colorScheme.secondary,
-                            ),
-                          );
+                            );
+                          } catch (e) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  e.toString().replaceAll('Exception: ', ''),
+                                ),
+                                backgroundColor: Theme.of(
+                                  context,
+                                ).colorScheme.error,
+                              ),
+                            );
+                          }
                         }
                       : null,
                   child: const Text('Create Timetable'),
