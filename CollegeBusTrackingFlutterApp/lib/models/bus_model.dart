@@ -105,11 +105,12 @@ class BusLocationModel {
   });
 
   factory BusLocationModel.fromMap(Map<String, dynamic> map, String busId) {
+    final locData = map['currentLocation'] ?? map['location'];
     return BusLocationModel(
       busId: busId,
       currentLocation: LatLng(
-        map['currentLocation']['lat']?.toDouble() ?? 0.0,
-        map['currentLocation']['lng']?.toDouble() ?? 0.0,
+        locData?['lat']?.toDouble() ?? 0.0,
+        locData?['lng']?.toDouble() ?? 0.0,
       ),
       timestamp: map['timestamp'] != null
           ? DateTime.parse(map['timestamp'])

@@ -245,50 +245,60 @@ class _StudentDashboardState extends State<StudentDashboard>
       subscription.cancel();
     }
     _busLocationSubscriptions.clear();
-    final subscription = dataService
-        .getCollegeBusLocationsStream(collegeId)
-        .listen((locations) {
-          if (!mounted) return;
-          for (final location in locations) {
-            final bus = _allBuses.firstWhere(
-              (b) => b.id == location.busId,
-              orElse: () => BusModel(
-                id: '',
-                busNumber: '',
-                driverId: '',
-                routeId: '',
-                collegeId: '',
-                isActive: false,
-                createdAt: DateTime.now(),
-              ),
-            );
-            if (bus.id.isNotEmpty) {
-              // Cache the location
-              _liveLocations[bus.id] = location;
+    final subscription = dataService.getCollegeBusLocationsStream(collegeId).listen((
+      locations,
+    ) {
+      if (!mounted) return;
+      print('[StudentDashboard] Received ${locations.length} bus locations');
+      for (final location in locations) {
+        print(
+          '[StudentDashboard] Processing location for bus ${location.busId}: ${location.currentLocation}',
+        );
+        final bus = _allBuses.firstWhere(
+          (b) => b.id == location.busId,
+          orElse: () => BusModel(
+            id: '',
+            busNumber: '',
+            driverId: '',
+            routeId: '',
+            collegeId: '',
+            isActive: false,
+            createdAt: DateTime.now(),
+          ),
+        );
+        if (bus.id.isNotEmpty) {
+          // Cache the location
+          _liveLocations[bus.id] = location;
+          print('[StudentDashboard] Updating marker for bus ${bus.busNumber}');
 
-              // Allow update if status is active OR if we have fresh location data (trusting the stream)
-              final isFresh =
-                  location.timestamp
-                      .difference(DateTime.now())
-                      .inMinutes
-                      .abs() <
-                  5;
-              final isActive =
-                  bus.status != 'not-running' &&
-                  bus.assignmentStatus == 'accepted';
-
-              if (isActive || isFresh) {
-                _updateBusMarker(bus, location);
-              }
-            }
-          }
-        });
+          // Force update since we want to show the driver icon whenever we have data
+          // This addresses the user request to "add location icon for the driver"
+          // independently of status or strict freshness checks.
+          _updateBusMarker(bus, location);
+        } else {
+          print(
+            '[StudentDashboard] Bus not found for location ${location.busId}',
+          );
+        }
+      }
+    });
     _busLocationSubscriptions['all'] = subscription;
   }
 
   void _updateBusMarker(BusModel bus, BusLocationModel? location) {
     // If null passed, try to get from cache
     final loc = location ?? _liveLocations[bus.id];
+
+    // User Requirement: ❌ NO bus start marker ✅ ONLY the driver live location marker
+    if (loc == null) {
+      // If we don't have a live location, ensure any existing marker is removed
+      if (mounted) {
+        setState(() {
+          _markers.removeWhere((m) => m.markerId.value == 'bus_${bus.id}');
+        });
+      }
+      return;
+    }
 
     final route = _routes.firstWhere(
       (r) => r.id == bus.routeId,
@@ -451,16 +461,19 @@ class _StudentDashboardState extends State<StudentDashboard>
     // Use cached location if available
     final loc = _liveLocations[bus.id];
 
-    markers.add(
-      StudentMapHelper.createBusMarker(
-        bus: bus,
-        route: route,
-        location: loc,
-        currentLocation: _currentLocation,
-        isSelected: _selectedBus?.id == bus.id,
-        onTap: () => _selectBus(bus),
-      ),
-    );
+    // User Requirement: ❌ NO bus start marker ✅ ONLY the driver live location marker
+    if (loc != null) {
+      markers.add(
+        StudentMapHelper.createBusMarker(
+          bus: bus,
+          route: route,
+          location: loc, // Pass specific location
+          currentLocation: _currentLocation,
+          isSelected: _selectedBus?.id == bus.id,
+          onTap: () => _selectBus(bus),
+        ),
+      );
+    }
   }
 
   void _selectBus(BusModel bus) {

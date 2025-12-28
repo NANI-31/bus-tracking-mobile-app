@@ -75,6 +75,10 @@ class SocketService extends ChangeNotifier {
   }
 
   void _connect() {
+    print(
+      '[SocketService] _connect called. CurrentUrl: $_currentUrl, Token: $_token',
+    );
+
     if (_currentUrl == null) return;
     if (_token == null) {
       if (kDebugMode) {
@@ -95,15 +99,14 @@ class SocketService extends ChangeNotifier {
 
     _isConnecting = true;
     notifyListeners();
+    print('[SocketService] Attempting to connect to $_currentUrl...');
     _socket = io.io(_currentUrl, options.build());
 
     _socket!.onConnect((_) async {
       _isConnected = true;
       _isConnecting = false;
       notifyListeners();
-      if (kDebugMode) {
-        print('[SocketService] Connected');
-      }
+      print('[SocketService] Connected successfully to $_currentUrl');
 
       // Re-join last college if any
       if (_lastJoinedCollegeId != null) {
@@ -117,40 +120,37 @@ class SocketService extends ChangeNotifier {
       _isConnected = false;
       _isConnecting = false;
       notifyListeners();
-      if (kDebugMode) {
-        print('[SocketService] Disconnected');
-      }
+      print('[SocketService] Disconnected');
     });
 
     _socket!.onConnectError((err) {
       _isConnecting = false;
       notifyListeners();
-      if (kDebugMode) {
-        print('[SocketService] Connection Error: $err');
-      }
+      print('[SocketService] Connection Error: $err');
     });
 
     _socket!.onError((err) {
       _isConnecting = false;
       notifyListeners();
-      if (kDebugMode) {
-        print('[SocketService] Error: $err');
-      }
+      print('[SocketService] Error: $err');
     });
 
     // Location updates
     _socket!.on('location_updated', (data) {
+      print('[SocketService] Received location_updated: $data');
       _locationUpdateController.add(Map<String, dynamic>.from(data));
     });
 
     // Bus status updates
     _socket!.on('bus_updated', (data) {
+      print('[SocketService] Received bus_updated: $data');
       _busUpdateController.add(Map<String, dynamic>.from(data));
       _busListUpdateController.add(null);
     });
 
     // Driver status updates
     _socket!.on('driver_status_update', (data) {
+      print('[SocketService] Received driver_status_update: $data');
       _driverStatusController.add(Map<String, dynamic>.from(data));
     });
 
@@ -161,17 +161,20 @@ class SocketService extends ChangeNotifier {
   void joinCollege(String collegeId) {
     _lastJoinedCollegeId = collegeId;
     if (_isConnected && _socket != null) {
+      print('[SocketService] Emitting join_college: $collegeId');
       _socket?.emit('join_college', collegeId);
-      if (kDebugMode) print('[SocketService] Joined college: $collegeId');
     } else {
+      print('[SocketService] Queueing join_college: $collegeId');
       _queueEvent('join_college', collegeId);
     }
   }
 
   Future<void> updateLocation(Map<String, dynamic> data) async {
+    print('[SocketService] Emitting update_location: $data');
     if (_isConnected && _socket != null) {
       _socket?.emit('update_location', data);
     } else {
+      print('[SocketService] Socket not connected, queueing update_location');
       await _queueEvent('update_location', data);
     }
   }

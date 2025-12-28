@@ -20,7 +20,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   bool _isTestingNotification = false;
   final Dio _dio = Dio(
     BaseOptions(
-      baseUrl: 'http://192.168.29.27:5000/api',
+      // baseUrl: 'http://192.168.29.27:5000/api',
+      baseUrl: AppConstants.apiBaseUrl,
       connectTimeout: const Duration(seconds: 10),
       receiveTimeout: const Duration(seconds: 10),
     ),

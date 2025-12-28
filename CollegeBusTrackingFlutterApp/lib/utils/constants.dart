@@ -177,8 +177,20 @@ extension UserRoleExtension on UserRole {
 class AppConstants {
   // Use 10.0.2.2 for Android Emulator, 192.168.x.x for physical device.
 
-  // Debug Mode (Development): Localhost (Requires 'adb reverse tcp:5000 tcp:5000')
-  static const String _devUrl = 'http://127.0.0.1:5000';
+  // Host injected via --dart-define=API_HOST=192.168.x.x
+  static const String apiHost = String.fromEnvironment(
+    'API_HOST',
+    defaultValue: '127.0.0.1',
+  );
+
+  // Port injected via --dart-define=SERVER_PORT=XXXX
+  static const String serverPort = String.fromEnvironment(
+    'SERVER_PORT',
+    defaultValue: '5000',
+  );
+
+  // Debug Mode (Development): PC IP over Wi-Fi or Localhost (if using adb reverse)
+  static const String _devUrl = 'http://$apiHost:$serverPort';
 
   // Release Mode (Production): Render Server
   static const String _prodUrl =
