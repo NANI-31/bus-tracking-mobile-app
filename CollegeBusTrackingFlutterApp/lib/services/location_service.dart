@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
@@ -61,6 +62,12 @@ class LocationService {
 
   Future<LatLng?> getLastKnownLocation() async {
     try {
+      // On web, getLastKnownPosition is not supported
+      // Fall back to getCurrentPosition instead
+      if (kIsWeb) {
+        return await getCurrentLocation();
+      }
+
       final permission = await Geolocator.checkPermission();
       if (permission == LocationPermission.denied ||
           permission == LocationPermission.deniedForever) {
@@ -73,7 +80,8 @@ class LocationService {
       return null;
     } catch (e) {
       print('Error getting last known location: $e');
-      return null;
+      // On error, try to get current location as fallback
+      return await getCurrentLocation();
     }
   }
 

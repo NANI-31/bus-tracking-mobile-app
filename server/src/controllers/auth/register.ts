@@ -3,6 +3,7 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import User, { IUser } from "../../models/User";
 import crypto from "crypto";
+import logger from "../../utils/logger";
 
 const JWT_SECRET =
   process.env.JWT_SECRET || "your_jwt_secret_key_change_in_production";
@@ -78,7 +79,12 @@ export const register = async (req: Request, res: Response) => {
 
     // Create token
     const token = jwt.sign(
-      { id: newUser._id, email: newUser.email, role: newUser.role },
+      {
+        id: newUser._id,
+        email: newUser.email,
+        fullName: newUser.fullName, // Added fullName
+        role: newUser.role,
+      },
       JWT_SECRET,
       { expiresIn: "30d" }
     );
@@ -96,7 +102,7 @@ export const register = async (req: Request, res: Response) => {
       },
     });
   } catch (error) {
-    console.error("Registration error:", error);
+    logger.error("Registration error:", error);
     res.status(500).json({ message: "Server error during registration" });
   }
 };

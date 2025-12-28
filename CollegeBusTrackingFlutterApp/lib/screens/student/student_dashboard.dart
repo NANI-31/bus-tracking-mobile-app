@@ -86,6 +86,8 @@ class _StudentDashboardState extends State<StudentDashboard>
         _allBuses.map((bus) => bus.busNumber).toSet().toList()..sort();
   }
 
+  Map<String, BusLocationModel> _liveLocations = {};
+
   @override
   void initState() {
     super.initState();
@@ -261,7 +263,23 @@ class _StudentDashboardState extends State<StudentDashboard>
               ),
             );
             if (bus.id.isNotEmpty) {
-              _updateBusMarker(bus, location);
+              // Cache the location
+              _liveLocations[bus.id] = location;
+
+              // Allow update if status is active OR if we have fresh location data (trusting the stream)
+              final isFresh =
+                  location.timestamp
+                      .difference(DateTime.now())
+                      .inMinutes
+                      .abs() <
+                  5;
+              final isActive =
+                  bus.status != 'not-running' &&
+                  bus.assignmentStatus == 'accepted';
+
+              if (isActive || isFresh) {
+                _updateBusMarker(bus, location);
+              }
             }
           }
         });
@@ -269,6 +287,9 @@ class _StudentDashboardState extends State<StudentDashboard>
   }
 
   void _updateBusMarker(BusModel bus, BusLocationModel? location) {
+    // If null passed, try to get from cache
+    final loc = location ?? _liveLocations[bus.id];
+
     final route = _routes.firstWhere(
       (r) => r.id == bus.routeId,
       orElse: () => RouteModel(
@@ -287,7 +308,7 @@ class _StudentDashboardState extends State<StudentDashboard>
     final marker = StudentMapHelper.createBusMarker(
       bus: bus,
       route: route,
-      location: location,
+      location: loc,
       currentLocation: _currentLocation,
       isSelected: _selectedBus?.id == bus.id,
       onTap: () => _selectBus(bus),
@@ -297,17 +318,19 @@ class _StudentDashboardState extends State<StudentDashboard>
       _markers.removeWhere((m) => m.markerId.value == 'bus_${bus.id}');
       _markers.add(marker);
     });
-    if (_selectedBus?.id == bus.id &&
-        location != null &&
-        _mapController != null) {
+    if (_selectedBus?.id == bus.id && loc != null && _mapController != null) {
       _mapController!.animateCamera(
-        CameraUpdate.newLatLng(location.currentLocation),
+        CameraUpdate.newLatLng(loc.currentLocation),
       );
     }
   }
 
   void _applyFilters() {
-    List<BusModel> filtered = List.from(_allBuses);
+    // 1. Initial filter: Only show active, assigned, accepted buses
+    List<BusModel> filtered = _allBuses.where((bus) {
+      return bus.status != 'not-running' && bus.assignmentStatus == 'accepted';
+    }).toList();
+
     if (_selectedRouteType != null) {
       filtered = filtered.where((bus) {
         final route = _routes.firstWhere(
@@ -425,11 +448,14 @@ class _StudentDashboardState extends State<StudentDashboard>
         createdAt: DateTime.now(),
       ),
     );
+    // Use cached location if available
+    final loc = _liveLocations[bus.id];
+
     markers.add(
       StudentMapHelper.createBusMarker(
         bus: bus,
         route: route,
-        location: null,
+        location: loc,
         currentLocation: _currentLocation,
         isSelected: _selectedBus?.id == bus.id,
         onTap: () => _selectBus(bus),

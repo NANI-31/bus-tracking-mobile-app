@@ -89,7 +89,7 @@ class _DriverDashboardState extends State<DriverDashboard>
     final busId = PersistenceService.getString('driver_bus_id');
     final routeId = PersistenceService.getString('driver_route_id');
     final busNumber = PersistenceService.getString('driver_bus_number');
-    final isSharing = PersistenceService.getIsSharingLocation();
+    // final isSharing = PersistenceService.getIsSharingLocation(); // Removed auto-start logic
 
     if (mounted) {
       setState(() {
@@ -125,12 +125,10 @@ class _DriverDashboardState extends State<DriverDashboard>
           );
           _selectedRoute = existingRoute;
         }
-        _isSharing = isSharing;
       });
 
-      if (_isSharing && _myBus != null) {
-        _startLocationSharing();
-      }
+      // Removed auto-start of location sharing.
+      // User must explicitly tap "Start Trip" to begin sharing.
       _updateMarkers();
     }
   }

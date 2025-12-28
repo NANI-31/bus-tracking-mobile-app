@@ -111,7 +111,9 @@ class BusLocationModel {
         map['currentLocation']['lat']?.toDouble() ?? 0.0,
         map['currentLocation']['lng']?.toDouble() ?? 0.0,
       ),
-      timestamp: DateTime.parse(map['timestamp']),
+      timestamp: map['timestamp'] != null
+          ? DateTime.parse(map['timestamp'])
+          : DateTime.now(),
       speed: map['speed']?.toDouble(),
       heading: map['heading']?.toDouble(),
     );

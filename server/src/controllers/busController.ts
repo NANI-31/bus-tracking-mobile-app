@@ -59,9 +59,19 @@ export const updateBus = async (req: Request, res: Response) => {
           oldBus.driverId !== body.driverId);
 
       if (isNewAssignment && updatedBus.driverId) {
+        // Fetch Driver Name for logging
+        const driver = await User.findById(updatedBus.driverId);
+        const driverName = driver ? driver.fullName : "Unknown Driver";
+
+        // Note: Coordinator name would require req.user to be passed, assuming currently just "Coordinator"
+        // If authMiddleware attaches user, we can use (req as any).user.fullName
+        const coordinatorName = (req as any).user
+          ? (req as any).user.fullName
+          : "Coordinator";
+
         // Send notification to the newly assigned driver
         logger.info(
-          `[BusController] Driver assignment detected for bus ${updatedBus.busNumber} to driver ${updatedBus.driverId}`
+          `${coordinatorName} assigned bus ${updatedBus.busNumber} to driver ${driverName}`
         );
         await sendTemplatedNotificationHelper(
           updatedBus.driverId,
@@ -106,10 +116,15 @@ export const updateBus = async (req: Request, res: Response) => {
           { sort: { assignedAt: -1 } }
         );
 
+        const driverForSuccess = await User.findById(updatedBus.driverId);
+        const driverNameSuccess = driverForSuccess
+          ? driverForSuccess.fullName
+          : "Driver";
+
         await logHistoryHelper(
           updatedBus.collegeId,
           "assignment_acceptance",
-          `Driver accepted bus ${updatedBus.busNumber}.`,
+          `${driverNameSuccess} accept the assignment`,
           {},
           updatedBus._id,
           updatedBus.driverId
@@ -141,6 +156,15 @@ export const updateBus = async (req: Request, res: Response) => {
       }
 
       // SIMULATION LOGIC: Trigger on "STARTED" status
+      if (body.status === "STARTED") {
+        // Generalized logging even if not bus 9
+        // Assuming req.user is the driver
+        const driverNameStarted = (req as any).user
+          ? (req as any).user.fullName
+          : "Driver";
+        logger.info(`${driverNameStarted} started the drive`);
+      }
+
       if (updatedBus.busNumber === "9" && body.status === "STARTED") {
         const io = req.app.get("io");
         const { startSimulation } = require("../services/simulationService");
@@ -222,8 +246,9 @@ export const getBusLocation = async (req: Request, res: Response) => {
     const location = await BusLocation.findOne({
       busId: req.params.busId,
     }).sort({ timestamp: -1 });
-    if (!location)
-      return res.status(404).json({ message: "Location not found" });
+    // if (!location)
+    // return res.status(404).json({ message: "Location not found" });
+    if (!location) return res.status(200).json(null);
     res.status(200).json(location);
   } catch (error) {
     res.status(500).json({ message: (error as Error).message });

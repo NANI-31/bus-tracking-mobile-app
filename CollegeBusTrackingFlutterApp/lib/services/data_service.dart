@@ -284,6 +284,8 @@ class DataService extends ChangeNotifier {
       await _apiService.updateBus(busId, {
         'driverId': null,
         'assignmentStatus': 'unassigned',
+        'status': 'not-running',
+        'routeId': null,
       });
       _socketService.sendBusListUpdate();
       clearError();

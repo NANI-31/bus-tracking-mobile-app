@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import User from "../../models/User";
+import logger from "../../utils/logger";
 
 const JWT_SECRET = process.env.JWT_SECRET;
 if (!JWT_SECRET) {
@@ -41,6 +42,7 @@ export const login = async (req: Request, res: Response) => {
       {
         id: user._id,
         email: user.email,
+        fullName: user.fullName, // Added fullName
         role: user.role,
         collegeId: user.collegeId,
         approved: user.approved,
@@ -58,9 +60,29 @@ export const login = async (req: Request, res: Response) => {
       approved: user.approved,
     };
 
-    console.log(
-      `[LoginSuccess] Email: ${user.email}, Role: ${user.role}, ID: ${user._id}`
-    );
+    let idPrefix = "USR";
+    switch (user.role) {
+      case "student":
+        idPrefix = "STU";
+        break;
+      case "driver":
+        idPrefix = "DRI";
+        break;
+      case "teacher":
+        idPrefix = "TEA";
+        break;
+      case "parent":
+        idPrefix = "PAR";
+        break;
+      case "admin":
+        idPrefix = "ADM";
+        break;
+      case "busCoordinator":
+        idPrefix = "CRD";
+        break;
+    }
+
+    logger.info(`${user.fullName} (${user.role}) login`);
 
     res.json({
       success: true,
@@ -68,7 +90,7 @@ export const login = async (req: Request, res: Response) => {
       user: userData,
     });
   } catch (error) {
-    console.error("Login error:", error);
+    logger.error("Login error:", error);
     res.status(500).json({ message: "Server error during login" });
   }
 };

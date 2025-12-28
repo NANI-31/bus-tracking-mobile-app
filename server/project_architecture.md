@@ -1,7 +1,16 @@
 adb tcpip 5555
 adb connect 192.168.29.181:5555
+adb connect 192.168.29.22:5555
 adb devices
 adb reverse tcp:5000 tcp:5000
+
+cd c:\mobile\projects\CollegeBusTrackingFlutterApp
+adb -s 10BDAB187B0004J reverse tcp:5000 tcp:5000
+flutter run -d 10BDAB187B0004J
+
+cd c:\mobile\projects\CollegeBusTrackingFlutterApp
+adb -s GYTG8L7TFMIVSS6P reverse tcp:5000 tcp:5000
+flutter run -d GYTG8L7TFMIVSS6P
 
 # Project Architecture Overview
 
