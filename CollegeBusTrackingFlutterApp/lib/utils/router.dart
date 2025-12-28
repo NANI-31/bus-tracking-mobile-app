@@ -1,5 +1,6 @@
 import 'package:collegebus/screens/student/student_bus_stop_screen.dart';
 import 'package:collegebus/screens/student/student_home_screen.dart';
+import 'package:collegebus/screens/splash_screen.dart';
 import 'package:go_router/go_router.dart';
 import 'package:collegebus/services/auth_service.dart';
 import 'package:collegebus/auth/login_screen.dart';
@@ -31,7 +32,7 @@ class AppRouter {
 
   late final GoRouter router = GoRouter(
     refreshListenable: authService,
-    initialLocation: '/login',
+    initialLocation: '/',
     redirect: (context, state) {
       // If auth service is still initializing, don't redirect yet
       if (!authService.isInitialized) {
@@ -45,12 +46,13 @@ class AppRouter {
           state.matchedLocation == '/forgot-password' ||
           state.matchedLocation == '/otp-verify' ||
           state.matchedLocation.startsWith('/reset-password');
+      final isRootRoute = state.matchedLocation == '/';
 
       if (!isLoggedIn && !isLoginRoute) {
         return '/login';
       }
 
-      if (isLoggedIn && isLoginRoute) {
+      if (isLoggedIn && (isLoginRoute || isRootRoute)) {
         // Redirect to appropriate dashboard based on user role
         final userRole = authService.userRole;
         switch (userRole) {
@@ -65,13 +67,18 @@ class AppRouter {
           case UserRole.admin:
             return '/admin';
           default:
-            return null;
+            return '/login';
         }
+      }
+
+      if (isRootRoute && !isLoggedIn) {
+        return '/login';
       }
 
       return null;
     },
     routes: [
+      GoRoute(path: '/', builder: (context, state) => const SplashScreen()),
       GoRoute(path: '/login', builder: (context, state) => const LoginScreen()),
       GoRoute(
         path: '/register',

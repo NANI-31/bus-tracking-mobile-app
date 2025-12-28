@@ -18,11 +18,13 @@ const fixIndexes = async () => {
     console.log(`Target Database URI: ${maskedUri}`);
     await mongoose.connect(uri);
     console.log("Connected to MongoDB");
+    const db = mongoose.connection.db;
+    if (!db) {
+      throw new Error("MongoDB connection established but db is undefined");
+    }
 
     // DEBUG: List all collections
-    const collections = await mongoose.connection.db
-      .listCollections()
-      .toArray();
+    const collections = await db.listCollections().toArray();
     console.log("--- Existing Collections ---");
     collections.forEach((c) => console.log(` - ${c.name}`));
     console.log("----------------------------");
