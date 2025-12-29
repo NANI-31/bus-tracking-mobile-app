@@ -20,19 +20,7 @@ export const registerRoutes = (app: Express) => {
   app.use(express.json());
 
   // Rate Limiting
-  const apiLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 100, // Limit each IP to 100 requests per windowMs
-    standardHeaders: true,
-    legacyHeaders: false,
-    message:
-      "Too many requests from this IP, please try again after 15 minutes",
-  });
-
-  // Apply rate limiting to all API routes
-  app.use("/api/", apiLimiter);
-
-  // Request logging middleware
+  // Request logging middleware (Moved up to capture all requests)
   app.use((req, res, next) => {
     const start = Date.now();
     logger.info(`${req.method} ${req.url}`);
@@ -51,6 +39,18 @@ export const registerRoutes = (app: Express) => {
     });
     next();
   });
+
+  // Rate Limiting (DISABLED FOR DEBUGGING)
+  /*
+  const apiLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 100,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: "Too many requests",
+  });
+  app.use("/api/", apiLimiter);
+  */
 
   // Mount Unified API Routes
   app.use("/api", apiRouter);

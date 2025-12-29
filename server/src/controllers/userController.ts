@@ -35,6 +35,7 @@ export const getAllUsers = async (req: Request, res: Response) => {
     const users = await User.find();
     res.status(200).json(users);
   } catch (error) {
+    console.error("GETALLUSERS ERROR:", error);
     res.status(500).json({ message: (error as Error).message });
   }
 };

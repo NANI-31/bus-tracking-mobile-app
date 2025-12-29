@@ -12,6 +12,7 @@ if (!JWT_SECRET) {
 export const login = async (req: Request, res: Response) => {
   try {
     const { email, password } = req.body;
+    console.log("LOGIN REQUEST:", { email, passwordLength: password?.length });
 
     // Check user by email OR phone (logic from original controller)
     let user = await User.findOne({ email });
@@ -20,17 +21,25 @@ export const login = async (req: Request, res: Response) => {
     }
 
     if (!user) {
+      console.log("LOGIN FAIL: User not found");
       return res.status(400).json({ message: "Invalid credentials" });
     }
+
+    logger.info(`${user.fullName} (${user.role}) login attempt...`);
+    console.log("LOGIN: User found", { id: user._id, role: user.role });
 
     // Check password
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
+      console.log("LOGIN FAIL: Password mismatch");
+      logger.warn(`Invalid password for user: ${email}`);
       return res.status(400).json({ message: "Invalid credentials" });
     }
+    console.log("LOGIN: Password matched");
 
     // Check if email is verified
     if (user.role !== "parent" && !user.emailVerified) {
+      logger.warn(`Email not verified for user: ${email}`);
       return res.status(400).json({
         message: "Email not verified. Please verify your email.",
         requiresVerification: true,
@@ -38,6 +47,7 @@ export const login = async (req: Request, res: Response) => {
     }
 
     // Create token
+    console.log("LOGIN: Creating token...");
     const token = jwt.sign(
       {
         id: user._id,
@@ -50,6 +60,7 @@ export const login = async (req: Request, res: Response) => {
       JWT_SECRET,
       { expiresIn: "30d" }
     );
+    console.log("LOGIN: Token created");
 
     const userData = {
       id: user._id,
@@ -82,7 +93,7 @@ export const login = async (req: Request, res: Response) => {
         break;
     }
 
-    logger.info(`${user.fullName} (${user.role}) login`);
+    logger.info(`${user.fullName} (${user.role}) login successful.`);
 
     res.json({
       success: true,
@@ -90,7 +101,11 @@ export const login = async (req: Request, res: Response) => {
       user: userData,
     });
   } catch (error) {
-    logger.error("Login error:", error);
+    console.error("LOGIN CRITICAL ERROR:", error);
+    logger.error("Login error details:", error);
+    if (error instanceof Error) {
+      logger.error(`Stack trace: ${error.stack}`);
+    }
     res.status(500).json({ message: "Server error during login" });
   }
 };
