@@ -1,13 +1,18 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:collegebus/models/user_model.dart';
-import 'package:collegebus/services/api_service.dart';
+import 'package:collegebus/repositories/auth_repository.dart';
+import 'package:collegebus/repositories/user_repository.dart';
+import 'package:collegebus/repositories/notification_repository.dart';
 import 'package:collegebus/services/persistence_service.dart';
+import 'package:collegebus/services/secure_storage_service.dart';
 import 'package:collegebus/services/fcm_service.dart';
 import 'package:collegebus/utils/constants.dart';
 
 class AuthService extends ChangeNotifier {
-  ApiService? _apiService;
+  AuthRepository? _authRepo;
+  UserRepository? _userRepo;
+  NotificationRepository? _notificationRepo;
   UserModel? _currentUserModel;
   String? _token;
   bool _isInitialized = false;
@@ -18,8 +23,14 @@ class AuthService extends ChangeNotifier {
   UserRole? get userRole => _currentUserModel?.role;
   bool get isLoggedIn => _currentUserModel != null;
 
-  void updateApiService(ApiService apiService) {
-    _apiService = apiService;
+  void updateRepositories(
+    AuthRepository authRepo,
+    UserRepository userRepo,
+    NotificationRepository notificationRepo,
+  ) {
+    _authRepo = authRepo;
+    _userRepo = userRepo;
+    _notificationRepo = notificationRepo;
   }
 
   AuthService() {
@@ -37,7 +48,7 @@ class AuthService extends ChangeNotifier {
 
     if (token != null && userId != null) {
       _token = token;
-      if (_apiService != null) {
+      if (_userRepo != null) {
         await _loadUserModel(userId);
         await _registerFCMToken();
         _isInitialized = true;
@@ -55,8 +66,8 @@ class AuthService extends ChangeNotifier {
 
   Future<void> _loadUserModel(String uid) async {
     try {
-      if (_apiService == null) return;
-      final user = await _apiService!.getUser(uid);
+      if (_userRepo == null) return;
+      final user = await _userRepo!.getUser(uid);
       if (user != null) {
         _currentUserModel = user;
       } else {
@@ -77,7 +88,7 @@ class AuthService extends ChangeNotifier {
     String? phoneNumber,
     String? rollNumber,
   }) async {
-    if (_apiService == null) {
+    if (_authRepo == null) {
       return {'success': false, 'message': 'Service not available'};
     }
 
@@ -92,7 +103,7 @@ class AuthService extends ChangeNotifier {
         'rollNumber': rollNumber,
       };
 
-      final result = await _apiService!.register(userData);
+      final result = await _authRepo!.register(userData);
 
       if (result['success'] == true) {
         return {'success': true, 'message': 'Registration successful'};
@@ -114,12 +125,12 @@ class AuthService extends ChangeNotifier {
     required String email,
     required String password,
   }) async {
-    if (_apiService == null) {
+    if (_authRepo == null) {
       return {'success': false, 'message': 'Service not available'};
     }
 
     try {
-      final result = await _apiService!.login(email, password);
+      final result = await _authRepo!.login(email, password);
 
       if (result['success'] == true) {
         if (result['token'] != null) {
@@ -146,34 +157,37 @@ class AuthService extends ChangeNotifier {
   }
 
   Future<Map<String, dynamic>> sendOtp(String email) async {
-    if (_apiService == null)
+    if (_authRepo == null)
       return {'success': false, 'message': 'Service not available'};
-    return await _apiService!.sendOtp(email);
+    return await _authRepo!.sendOtp(email);
   }
 
   Future<Map<String, dynamic>> verifyOtp(String email, String otp) async {
-    if (_apiService == null)
+    if (_authRepo == null)
       return {'success': false, 'message': 'Service not available'};
-    return await _apiService!.verifyOtp(email, otp);
+    return await _authRepo!.verifyOtp(email, otp);
   }
 
   Future<Map<String, dynamic>> resetPassword(
     String email,
     String newPassword,
   ) async {
-    if (_apiService == null)
+    if (_authRepo == null)
       return {'success': false, 'message': 'Service not available'};
-    return await _apiService!.resetPassword(email, newPassword);
+    return await _authRepo!.resetPassword(email, newPassword);
   }
 
   Future<void> signOut() async {
     try {
-      if (_currentUserModel != null && _apiService != null) {
-        await _apiService!.removeFcmToken(_currentUserModel!.id);
+      if (_currentUserModel != null && _notificationRepo != null) {
+        await _notificationRepo!.removeFcmToken(_currentUserModel!.id);
       }
     } catch (e) {
       debugPrint('\x1B[31mError removing FCM token during logout: $e\x1B[0m');
     }
+
+    // Clear all secure storage data (driver data + auth token)
+    await SecureStorageService.clearAll();
 
     await PersistenceService.removeAuthToken();
     await PersistenceService.removeUserId();
@@ -188,13 +202,11 @@ class AuthService extends ChangeNotifier {
   }
 
   Future<void> _registerFCMToken() async {
-    if (_currentUserModel == null || _apiService == null) return;
+    if (_currentUserModel == null || _userRepo == null) return;
     try {
       final token = await FCMService().getStoredToken();
       if (token != null) {
-        await _apiService!.updateUser(_currentUserModel!.id, {
-          'fcmToken': token,
-        });
+        await _userRepo!.updateUser(_currentUserModel!.id, {'fcmToken': token});
         debugPrint('\x1B[32mFCM Token registered with backend\x1B[0m');
       }
     } catch (e) {

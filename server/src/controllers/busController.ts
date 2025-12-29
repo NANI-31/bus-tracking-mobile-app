@@ -1,10 +1,6 @@
 import { Request, Response } from "express";
 import { Bus, BusLocation, IBus } from "../models/Bus";
-import { BusAssignmentLog } from "../models/BusAssignmentLog";
-import User from "../models/User";
-import { sendTemplatedNotificationHelper } from "./notificationController";
-import { logHistoryHelper } from "./historyController";
-import { NOTIFICATION_TYPES } from "../constants/notificationTypes";
+import { getBusService } from "../services/busService";
 import logger from "../utils/logger";
 
 // Bus Operations
@@ -37,177 +33,29 @@ export const getAllBuses = async (req: Request, res: Response) => {
   }
 };
 
+/**
+ * Update bus - delegates business logic to BusService
+ */
 export const updateBus = async (req: Request, res: Response) => {
   try {
-    const oldBus = await Bus.findById(req.params.id);
-    if (!oldBus) return res.status(404).json({ message: "Bus not found" });
+    const io = req.app.get("io");
+    const busService = getBusService(io);
 
-    const updatedBus: any = await Bus.findByIdAndUpdate(
+    const requestingUserName = (req as any).user?.fullName;
+
+    const updatedBus = await busService.updateBus(
       req.params.id,
       req.body,
-      {
-        new: true,
-      }
+      requestingUserName
     );
-
-    if (updatedBus) {
-      const body = req.body as any;
-      // Check if driver assignment changed to pending
-      const isNewAssignment =
-        body.assignmentStatus === "pending" &&
-        (oldBus.assignmentStatus !== "pending" ||
-          oldBus.driverId !== body.driverId);
-
-      if (isNewAssignment && updatedBus.driverId) {
-        // Fetch Driver Name for logging
-        const driver = await User.findById(updatedBus.driverId);
-        const driverName = driver ? driver.fullName : "Unknown Driver";
-
-        // Note: Coordinator name would require req.user to be passed, assuming currently just "Coordinator"
-        // If authMiddleware attaches user, we can use (req as any).user.fullName
-        const coordinatorName = (req as any).user
-          ? (req as any).user.fullName
-          : "Coordinator";
-
-        // Send notification to the newly assigned driver
-        logger.info(
-          `${coordinatorName} assigned bus ${updatedBus.busNumber} to driver ${driverName}`
-        );
-        await sendTemplatedNotificationHelper(
-          updatedBus.driverId,
-          NOTIFICATION_TYPES.DRIVER_ASSIGNED,
-          { busNumber: updatedBus.busNumber }
-        );
-
-        // Create a new log entry
-        const newLog = new BusAssignmentLog({
-          busId: updatedBus._id,
-          driverId: updatedBus.driverId,
-          routeId: updatedBus.routeId,
-          status: "pending",
-        });
-        await newLog.save();
-
-        // History Log
-        await logHistoryHelper(
-          updatedBus.collegeId,
-          "assignment_creation",
-          `Bus ${updatedBus.busNumber} assigned to driver.`,
-          { assignmentId: newLog._id },
-          updatedBus._id,
-          updatedBus.driverId
-        );
-      }
-
-      // Check if assignment was accepted (Driver accepted request)
-      const isAccepted =
-        body.assignmentStatus === "accepted" &&
-        oldBus.assignmentStatus === "pending";
-
-      if (isAccepted) {
-        // ... (existing logs)
-        await BusAssignmentLog.findOneAndUpdate(
-          {
-            busId: updatedBus._id,
-            driverId: updatedBus.driverId,
-            status: "pending",
-          },
-          { status: "accepted", acceptedAt: new Date() },
-          { sort: { assignedAt: -1 } }
-        );
-
-        const driverForSuccess = await User.findById(updatedBus.driverId);
-        const driverNameSuccess = driverForSuccess
-          ? driverForSuccess.fullName
-          : "Driver";
-
-        await logHistoryHelper(
-          updatedBus.collegeId,
-          "assignment_acceptance",
-          `${driverNameSuccess} accept the assignment`,
-          {},
-          updatedBus._id,
-          updatedBus.driverId
-        );
-      }
-
-      // Check if assignment was rejected/removed
-      const isRemoved =
-        body.assignmentStatus === "unassigned" &&
-        oldBus.assignmentStatus === "pending";
-
-      if (isRemoved) {
-        // Update the log entry or mark as rejected
-        await BusAssignmentLog.findOneAndUpdate(
-          { busId: oldBus._id, driverId: oldBus.driverId, status: "pending" },
-          { status: "rejected", completedAt: new Date() },
-          { sort: { assignedAt: -1 } }
-        );
-
-        // History Log
-        await logHistoryHelper(
-          updatedBus.collegeId,
-          "assignment_rejection",
-          `Bus ${oldBus.busNumber} assignment rejected/revoked.`,
-          {},
-          oldBus._id.toString(),
-          oldBus.driverId?.toString()
-        );
-      }
-
-      // SIMULATION LOGIC: Trigger on "STARTED" status
-      if (body.status === "STARTED") {
-        // Generalized logging even if not bus 9
-        // Assuming req.user is the driver
-        const driverNameStarted = (req as any).user
-          ? (req as any).user.fullName
-          : "Driver";
-        logger.info(`${driverNameStarted} started the drive`);
-      }
-
-      if (updatedBus.busNumber === "9" && body.status === "STARTED") {
-        const io = req.app.get("io");
-        const { startSimulation } = require("../services/simulationService");
-        startSimulation(io, updatedBus._id.toString(), updatedBus.collegeId);
-      }
-
-      // Check if trip was completed (accepted -> unassigned)
-      const isCompleted =
-        body.assignmentStatus === "unassigned" &&
-        oldBus.assignmentStatus === "accepted";
-
-      if (isCompleted) {
-        await BusAssignmentLog.findOneAndUpdate(
-          { busId: oldBus._id, driverId: oldBus.driverId, status: "accepted" },
-          { status: "completed", completedAt: new Date() },
-          { sort: { assignedAt: -1 } }
-        );
-
-        // History Log
-        await logHistoryHelper(
-          updatedBus.collegeId,
-          "trip_completion",
-          `Trip completed for Bus ${oldBus.busNumber}.`,
-          {},
-          oldBus._id.toString(),
-          oldBus.driverId?.toString()
-        );
-
-        // STOP SIMULATION
-        if (oldBus.busNumber === "9") {
-          const { stopSimulation } = require("../services/simulationService");
-          stopSimulation(oldBus._id.toString());
-        }
-      }
-    }
-
-    // Broadcast update to college room
-    const io = req.app.get("io");
-    io.to(updatedBus.collegeId.toString()).emit("bus_list_updated");
 
     res.status(200).json(updatedBus);
   } catch (error) {
-    res.status(500).json({ message: (error as Error).message });
+    const message = (error as Error).message;
+    if (message === "Bus not found") {
+      return res.status(404).json({ message });
+    }
+    res.status(500).json({ message });
   }
 };
 

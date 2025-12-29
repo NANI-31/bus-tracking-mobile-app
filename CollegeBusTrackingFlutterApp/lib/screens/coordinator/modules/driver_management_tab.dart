@@ -289,7 +289,10 @@ class DriverManagementTab extends StatelessWidget {
                   Container(
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(16),
-                      gradient: canTrack
+                      gradient:
+                          (bus != null &&
+                              bus.isActive &&
+                              bus.status != 'not-running')
                           ? const LinearGradient(
                               colors: [Color(0xFF2E3192), Color(0xFF1BFFFF)],
                               begin: Alignment.topLeft,
@@ -301,7 +304,10 @@ class DriverManagementTab extends StatelessWidget {
                                 Colors.grey.shade300,
                               ],
                             ),
-                      boxShadow: canTrack
+                      boxShadow:
+                          (bus != null &&
+                              bus.isActive &&
+                              bus.status != 'not-running')
                           ? [
                               BoxShadow(
                                 color: const Color(0xFF2E3192).withOpacity(0.3),
@@ -312,17 +318,47 @@ class DriverManagementTab extends StatelessWidget {
                           : [],
                     ),
                     child: ElevatedButton.icon(
-                      onPressed: canTrack ? () => onTrack?.call(bus!) : null,
+                      onPressed: () {
+                        if (bus != null &&
+                            bus.isActive &&
+                            bus.status != 'not-running') {
+                          onTrack?.call(bus);
+                        } else {
+                          showDialog(
+                            context: context,
+                            builder: (ctx) => AlertDialog(
+                              title: const Text('Driver Not Active'),
+                              content: const Text(
+                                'The driver has not started location sharing yet.',
+                              ),
+                              actions: [
+                                TextButton(
+                                  onPressed: () => Navigator.pop(ctx),
+                                  child: const Text('OK'),
+                                ),
+                              ],
+                            ),
+                          );
+                        }
+                      },
                       icon: Icon(
                         Icons.location_searching,
                         size: 20,
-                        color: canTrack ? Colors.white : Colors.grey.shade400,
+                        color:
+                            (bus != null &&
+                                bus.isActive &&
+                                bus.status != 'not-running')
+                            ? Colors.white
+                            : Colors.grey.shade400,
                       ),
                       label: const Text('Track'),
                       style: ElevatedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         backgroundColor: Colors.transparent,
-                        foregroundColor: canTrack
+                        foregroundColor:
+                            (bus != null &&
+                                bus.isActive &&
+                                bus.status != 'not-running')
                             ? Colors.white
                             : Colors.grey.shade400,
                         shadowColor: Colors.transparent,

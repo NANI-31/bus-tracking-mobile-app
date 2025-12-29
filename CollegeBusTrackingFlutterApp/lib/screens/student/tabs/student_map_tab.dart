@@ -5,7 +5,7 @@ import 'package:collegebus/utils/constants.dart';
 import 'package:collegebus/widgets/maps/live_bus_map.dart';
 import 'package:velocity_x/velocity_x.dart';
 
-class StudentMapTab extends StatelessWidget {
+class StudentMapTab extends StatefulWidget {
   final LatLng? currentLocation;
   final List<BusModel> buses;
   final BusModel? selectedBus;
@@ -38,27 +38,37 @@ class StudentMapTab extends StatelessWidget {
   });
 
   @override
+  State<StudentMapTab> createState() => _StudentMapTabState();
+}
+
+class _StudentMapTabState extends State<StudentMapTab>
+    with AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true;
+
+  @override
   Widget build(BuildContext context) {
+    super.build(context);
     return VStack([
       // Location display
       VxBox(
             child: HStack([
               Icon(
                 Icons.location_on,
-                color: currentLocation != null
+                color: widget.currentLocation != null
                     ? Theme.of(context).colorScheme.primary
                     : Theme.of(
                         context,
                       ).colorScheme.onSurface.withValues(alpha: 0.6),
               ),
               AppSizes.paddingSmall.widthBox,
-              (currentLocation != null
-                      ? 'Your Location: ${currentLocation!.latitude.toStringAsFixed(4)}, ${currentLocation!.longitude.toStringAsFixed(4)}'
+              (widget.currentLocation != null
+                      ? 'Your Location: ${widget.currentLocation!.latitude.toStringAsFixed(4)}, ${widget.currentLocation!.longitude.toStringAsFixed(4)}'
                       : 'Acquiring location...')
                   .text
                   .medium
                   .color(
-                    currentLocation != null
+                    widget.currentLocation != null
                         ? Theme.of(context).colorScheme.primary
                         : Theme.of(
                             context,
@@ -69,7 +79,7 @@ class StudentMapTab extends StatelessWidget {
             ]),
           )
           .color(
-            currentLocation != null
+            widget.currentLocation != null
                 ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.1)
                 : Theme.of(
                     context,
@@ -83,7 +93,7 @@ class StudentMapTab extends StatelessWidget {
               HStack([
                 DropdownButtonFormField<String>(
                   isExpanded: true,
-                  initialValue: selectedRouteType,
+                  value: widget.selectedRouteType,
                   dropdownColor: Theme.of(context).colorScheme.surface,
                   decoration: const InputDecoration(
                     labelText: 'Route Type',
@@ -101,15 +111,15 @@ class StudentMapTab extends StatelessWidget {
                     DropdownMenuItem(value: 'pickup', child: Text('Pickup')),
                     DropdownMenuItem(value: 'drop', child: Text('Drop')),
                   ],
-                  onChanged: onRouteTypeSelected,
+                  onChanged: widget.onRouteTypeSelected,
                 ).expand(),
 
                 AppSizes.paddingSmall.widthBox,
 
                 DropdownButtonFormField<String>(
                   isExpanded: true,
-                  initialValue: allBusNumbers.contains(selectedBusNumber)
-                      ? selectedBusNumber
+                  value: widget.allBusNumbers.contains(widget.selectedBusNumber)
+                      ? widget.selectedBusNumber
                       : null,
                   dropdownColor: Theme.of(context).colorScheme.surface,
                   decoration: const InputDecoration(
@@ -125,23 +135,24 @@ class StudentMapTab extends StatelessWidget {
                       value: null,
                       child: Text('All Buses'),
                     ),
-                    ...allBusNumbers.map(
+                    ...widget.allBusNumbers.map(
                       (busNumber) => DropdownMenuItem(
                         value: busNumber,
                         child: Text(busNumber),
                       ),
                     ),
                   ],
-                  onChanged: onBusNumberSelected,
+                  onChanged: widget.onBusNumberSelected,
                 ).expand(),
               ]),
 
               AppSizes.paddingSmall.heightBox,
 
-              if (selectedBusNumber != null || selectedRouteType != null) ...[
+              if (widget.selectedBusNumber != null ||
+                  widget.selectedRouteType != null) ...[
                 AppSizes.paddingSmall.heightBox,
                 HStack([
-                  '$filteredBusesCount bus(es) found'.text
+                  '${widget.filteredBusesCount} bus(es) found'.text
                       .size(12)
                       .color(
                         Theme.of(
@@ -150,7 +161,7 @@ class StudentMapTab extends StatelessWidget {
                       )
                       .make(),
                   TextButton.icon(
-                    onPressed: onClearFilters,
+                    onPressed: widget.onClearFilters,
                     icon: const Icon(Icons.clear, size: 16),
                     label: const Text('Clear Filters'),
                     style: TextButton.styleFrom(
@@ -167,19 +178,19 @@ class StudentMapTab extends StatelessWidget {
           .p(AppSizes.paddingMedium),
 
       // Map
-      (currentLocation != null
+      (widget.currentLocation != null
               ? LiveBusMap(
-                  buses: buses,
-                  selectedBus: selectedBus,
-                  onMapCreated: onMapCreated,
-                  mapStyle: mapStyle,
-                  onBusTap: (bus) => onBusSelected(bus),
+                  buses: widget.buses,
+                  selectedBus: widget.selectedBus,
+                  onMapCreated: widget.onMapCreated,
+                  mapStyle: widget.mapStyle,
+                  onBusTap: (bus) => widget.onBusSelected(bus),
                 )
               : const Center(child: CircularProgressIndicator()))
           .expand(flex: 3),
 
       // Selected bus info
-      if (selectedBus != null)
+      if (widget.selectedBus != null)
         VxBox(
               child: VStack([
                 HStack([
@@ -192,7 +203,10 @@ class StudentMapTab extends StatelessWidget {
                   ),
                   AppSizes.paddingMedium.widthBox,
                   VStack([
-                    'Bus ${selectedBus!.busNumber}'.text.size(18).bold.make(),
+                    'Bus ${widget.selectedBus!.busNumber}'.text
+                        .size(18)
+                        .bold
+                        .make(),
                     4.heightBox,
                     'Selected Bus'.text
                         .size(14)
@@ -205,7 +219,7 @@ class StudentMapTab extends StatelessWidget {
                   ]).expand(),
                   IconButton(
                     icon: const Icon(Icons.close),
-                    onPressed: () => onBusSelected(null),
+                    onPressed: () => widget.onBusSelected(null),
                   ),
                 ]),
               ]),

@@ -2,14 +2,13 @@
 import { Request, Response } from "express";
 import Notification from "../models/Notification";
 import User from "../models/User";
-import {
-  sendNotificationToDevice,
-  sendNotificationToTopic,
-} from "../utils/firebase";
-import { buildNotificationMessage } from "../utils/buildNotification";
-import { NOTIFICATION_TYPES } from "../constants/notificationTypes";
+import { sendNotificationToDevice } from "../utils/firebase";
+import { getNotificationService } from "../services/notificationService";
 import logger from "../utils/logger";
 
+/**
+ * Create and send a notification
+ */
 export const sendNotification = async (req: Request, res: Response) => {
   try {
     const newNotification = new Notification(req.body);
@@ -32,6 +31,9 @@ export const sendNotification = async (req: Request, res: Response) => {
   }
 };
 
+/**
+ * Get all notifications for a user
+ */
 export const getUserNotifications = async (req: Request, res: Response) => {
   try {
     const notifications = await Notification.find({
@@ -43,6 +45,9 @@ export const getUserNotifications = async (req: Request, res: Response) => {
   }
 };
 
+/**
+ * Mark a notification as read
+ */
 export const markNotificationAsRead = async (req: Request, res: Response) => {
   try {
     const notification = await Notification.findByIdAndUpdate(
@@ -56,7 +61,9 @@ export const markNotificationAsRead = async (req: Request, res: Response) => {
   }
 };
 
-// Save/update FCM token for a user
+/**
+ * Update FCM token for a user - delegates to NotificationService
+ */
 export const updateFcmToken = async (req: Request, res: Response) => {
   try {
     const { userId, fcmToken } = req.body;
@@ -67,7 +74,8 @@ export const updateFcmToken = async (req: Request, res: Response) => {
         .json({ message: "userId and fcmToken are required" });
     }
 
-    await User.findByIdAndUpdate(userId, { fcmToken });
+    const notificationService = getNotificationService();
+    await notificationService.updateFcmToken(userId, fcmToken);
 
     res.status(200).json({ success: true, message: "FCM token updated" });
   } catch (error) {
@@ -75,7 +83,9 @@ export const updateFcmToken = async (req: Request, res: Response) => {
   }
 };
 
-// Remove FCM token for a user (Logout cleanup)
+/**
+ * Remove FCM token for a user - delegates to NotificationService
+ */
 export const removeFcmToken = async (req: Request, res: Response) => {
   try {
     const { userId } = req.body;
@@ -84,10 +94,8 @@ export const removeFcmToken = async (req: Request, res: Response) => {
       return res.status(400).json({ message: "userId is required" });
     }
 
-    await User.findByIdAndUpdate(userId, { $unset: { fcmToken: 1 } });
-    logger.info(
-      `[NotificationController] FCM token removed for user ${userId}`
-    );
+    const notificationService = getNotificationService();
+    await notificationService.removeFcmToken(userId);
 
     res.status(200).json({ success: true, message: "FCM token removed" });
   } catch (error) {
@@ -96,157 +104,44 @@ export const removeFcmToken = async (req: Request, res: Response) => {
   }
 };
 
-// Send test push notification using templates
+/**
+ * Send test push notification - delegates to NotificationService
+ */
 export const sendTestNotification = async (req: Request, res: Response) => {
   try {
     const { userId } = req.body;
 
-    // Sample test payloads using templates
-    const testPayloads = [
-      {
-        type: NOTIFICATION_TYPES.BUS_DELAYED,
-        payload: { busNumber: "12", delayMinutes: 15, reason: "heavy traffic" },
-      },
-      {
-        type: NOTIFICATION_TYPES.BUS_ARRIVING,
-        payload: { busNumber: "7", stopName: "Main Gate", etaMinutes: 5 },
-      },
-      {
-        type: NOTIFICATION_TYPES.BUS_NEARBY,
-        payload: { busNumber: "3", stopName: "Science Block" },
-      },
-      {
-        type: NOTIFICATION_TYPES.BUS_CANCELLED,
-        payload: { busNumber: "9", reason: "mechanical issue" },
-      },
-      {
-        type: NOTIFICATION_TYPES.NEXT_STOP,
-        payload: { busNumber: "5", stopName: "Library Stop" },
-      },
-    ];
+    const notificationService = getNotificationService();
+    const result = await notificationService.sendTestNotification(userId);
 
-    // Pick a random test payload
-    const randomPayload =
-      testPayloads[Math.floor(Math.random() * testPayloads.length)];
-
-    // Get user's language preference
-    let userLanguage: "en" | "hi" | "te" = "en";
-    if (userId) {
-      const user = await User.findById(userId);
-      if (user?.language && ["en", "hi", "te"].includes(user.language)) {
-        userLanguage = user.language as "en" | "hi" | "te";
-      }
-
-      // Build the notification message from template in user's language
-      const { title, message } = buildNotificationMessage(
-        randomPayload.type,
-        randomPayload.payload as unknown as Record<string, string | number>,
-        userLanguage
-      );
-
-      // Send to user's device if they have FCM token
-      if (user?.fcmToken) {
-        await sendNotificationToDevice(user.fcmToken, title, message, {
-          type: randomPayload.type,
-        });
-      }
-
-      return res.status(200).json({
-        success: true,
-        title,
-        message,
-        type: randomPayload.type,
-        language: userLanguage,
-        timestamp: new Date().toISOString(),
-      });
-    }
-
-    // Default response if no userId
-    const { title, message } = buildNotificationMessage(
-      randomPayload.type,
-      randomPayload.payload as unknown as Record<string, string | number>,
-      "en"
-    );
-
-    res.status(200).json({
-      success: true,
-      title,
-      message,
-      type: randomPayload.type,
-      timestamp: new Date().toISOString(),
-    });
+    res.status(200).json(result);
   } catch (error) {
     res.status(500).json({ message: "Error sending test notification", error });
   }
 };
 
-// Helper to send templated notification (reusable across controllers)
+/**
+ * Helper to send templated notification (reusable across controllers)
+ * Delegates to NotificationService
+ */
 export const sendTemplatedNotificationHelper = async (
   userId: string,
   type: string,
   payload: Record<string, string | number>,
   senderId?: string
 ) => {
-  try {
-    // Get user's language preference
-    const user = await User.findById(userId);
-    let userLanguage: "en" | "hi" | "te" = "en";
-    if (user?.language && ["en", "hi", "te"].includes(user.language)) {
-      userLanguage = user.language as "en" | "hi" | "te";
-    }
-
-    // Build the notification message from template in user's language
-    const { title, message } = buildNotificationMessage(
-      type,
-      payload,
-      userLanguage
-    );
-
-    logger.info(
-      `[NotificationController] Preparing to send ${type} to user ${userId} (Language: ${userLanguage})`
-    );
-
-    // Save to database
-    const newNotification = new Notification({
-      senderId: senderId,
-      receiverId: userId,
-      title,
-      message,
-      type,
-    });
-    await newNotification.save();
-
-    // Send FCM notification
-    if (user?.fcmToken) {
-      logger.info(
-        `[NotificationController] User ${userId} has FCM token. Sending...`
-      );
-      const success = await sendNotificationToDevice(
-        user.fcmToken,
-        title,
-        message,
-        {
-          type,
-          notificationId: newNotification._id.toString(),
-        }
-      );
-      logger.info(
-        `[NotificationController] Send result for user ${userId}: ${success}`
-      );
-    } else {
-      logger.warn(
-        `[NotificationController] User ${userId} has NO FCM token. Skipping push.`
-      );
-    }
-
-    return { success: true, notification: { title, message, type } };
-  } catch (error) {
-    console.error("Error in sendTemplatedNotificationHelper:", error);
-    throw error;
-  }
+  const notificationService = getNotificationService();
+  return notificationService.sendTemplatedNotification(
+    userId,
+    type,
+    payload,
+    senderId
+  );
 };
 
-// Send templated notification to a user
+/**
+ * Send templated notification to a user - HTTP endpoint
+ */
 export const sendTemplatedNotification = async (
   req: Request,
   res: Response
@@ -260,7 +155,12 @@ export const sendTemplatedNotification = async (
       });
     }
 
-    const result = await sendTemplatedNotificationHelper(userId, type, payload);
+    const notificationService = getNotificationService();
+    const result = await notificationService.sendTemplatedNotification(
+      userId,
+      type,
+      payload
+    );
     res.status(200).json(result);
   } catch (error) {
     res.status(500).json({
@@ -270,7 +170,9 @@ export const sendTemplatedNotification = async (
   }
 };
 
-// Send notification to all users of a college (via topic)
+/**
+ * Send notification to all users of a college - delegates to NotificationService
+ */
 export const sendCollegeNotification = async (req: Request, res: Response) => {
   try {
     const { collegeId, title, message } = req.body;
@@ -281,13 +183,16 @@ export const sendCollegeNotification = async (req: Request, res: Response) => {
       });
     }
 
-    // Topic format: college_<collegeId>
-    const topic = `college_${collegeId}`;
-    await sendNotificationToTopic(topic, title, message);
+    const notificationService = getNotificationService();
+    const result = await notificationService.sendCollegeNotification(
+      collegeId,
+      title,
+      message
+    );
 
     res.status(200).json({
       success: true,
-      message: `Notification sent to topic: ${topic}`,
+      message: `Notification sent to topic: ${result.topic}`,
     });
   } catch (error) {
     res

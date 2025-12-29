@@ -24,17 +24,45 @@ class DataService extends ChangeNotifier {
   // Cache for bus locations
   final Map<String, BusLocationModel> _cachedBusLocations = {};
 
+  // Track global subscription to prevent leaks
+  StreamSubscription? _locationCacheSubscription;
+  bool _isDisposed = false;
+
   void updateDependencies(ApiService api, SocketService socket) {
     _apiService = api;
-    _socketService = socket;
+
+    // Only update socket if it changed
+    if (_socketService != socket) {
+      _socketService = socket;
+      _setupSocketListener();
+    }
+  }
+
+  void _setupSocketListener() {
+    // Cancel existing subscription before creating new one
+    _locationCacheSubscription?.cancel();
 
     // Listen globally to update cache
-    _socketService.locationUpdateStream.listen((data) {
+    _locationCacheSubscription = _socketService.locationUpdateStream.listen((
+      data,
+    ) {
+      if (_isDisposed) return;
       if (data['busId'] != null) {
         final busId = data['busId'];
+        AppLogger.d(
+          '[DataService] Global cache update for bus $busId. Data: $data',
+        );
         _cachedBusLocations[busId] = BusLocationModel.fromMap(data, busId);
       }
     });
+  }
+
+  @override
+  void dispose() {
+    _isDisposed = true;
+    _locationCacheSubscription?.cancel();
+    _locationCacheSubscription = null;
+    super.dispose();
   }
 
   void clearError() {
@@ -49,7 +77,9 @@ class DataService extends ChangeNotifier {
     notifyListeners();
   }
 
-  DataService(this._apiService, this._socketService);
+  DataService(this._apiService, this._socketService) {
+    _setupSocketListener();
+  }
 
   Stream<List<BusLocationModel>> getCollegeBusLocationsStream(
     String collegeId,
@@ -59,6 +89,9 @@ class DataService extends ChangeNotifier {
       final initialLocations = _cachedBusLocations.values
           .where((l) => l.collegeId == collegeId)
           .toList();
+      AppLogger.d(
+        '[DataService] getCollegeBusLocationsStream: Emitting ${initialLocations.length} cached locations. Cache size: ${_cachedBusLocations.length}',
+      );
       if (initialLocations.isNotEmpty) {
         controller.add(initialLocations);
       }
@@ -70,6 +103,9 @@ class DataService extends ChangeNotifier {
         if (data['collegeId'] == collegeId) {
           final busId = data['busId'];
           final newLoc = BusLocationModel.fromMap(data, busId);
+          AppLogger.v(
+            '[DataService] Live update received from socket for bus $busId',
+          );
 
           // Update local list
           final index = currentLocations.indexWhere((l) => l.busId == busId);
@@ -121,10 +157,6 @@ class DataService extends ChangeNotifier {
   List<CollegeModel>? _cachedColleges;
   final Map<String, List<RouteModel>> _cachedRoutes = {};
   final Map<String, List<String>> _cachedBusNumbers = {};
-
-  void _init() {
-    // We can listen to socket service changes here if needed
-  }
 
   // User operations
   Future<UserModel?> getUser(String userId) async {
@@ -557,24 +589,24 @@ class DataService extends ChangeNotifier {
     BusLocationModel location,
   ) async {
     try {
+      // Round coordinates to 5 decimal places (~1m precision)
+      final lat = double.parse(
+        location.currentLocation.latitude.toStringAsFixed(5),
+      );
+      final lng = double.parse(
+        location.currentLocation.longitude.toStringAsFixed(5),
+      );
+
       _socketService.updateLocation({
         'busId': busId,
         'collegeId': collegeId,
-        'location': {
-          'lat': location.currentLocation.latitude,
-          'lng': location.currentLocation.longitude,
-        },
+        'location': {'lat': lat, 'lng': lng},
         'speed': location.speed ?? 0.0,
         'heading': location.heading ?? 0.0,
       });
 
-      await _apiService.updateBusLocation(
-        busId,
-        location.currentLocation.latitude,
-        location.currentLocation.longitude,
-        location.speed ?? 0.0,
-        location.heading ?? 0.0,
-      );
+      // NOTE: REST API call removed - server now handles persistence via write-behind buffer.
+      // This saves network round-trips and reduces battery usage.
       clearError();
     } catch (e) {
       _setError(e);

@@ -15,6 +15,7 @@ import 'package:collegebus/utils/map_style_helper.dart';
 import 'package:collegebus/services/theme_service.dart';
 import 'package:collegebus/services/socket_service.dart';
 import 'package:collegebus/services/persistence_service.dart';
+import 'package:collegebus/services/secure_storage_service.dart';
 import 'package:collegebus/utils/app_logger.dart';
 import 'widgets/location_display.dart';
 import 'widgets/bus_route_selectors.dart';
@@ -133,10 +134,10 @@ class _DriverDashboardState extends State<DriverDashboard>
   }
 
   Future<void> _loadSavedSelections() async {
-    final busId = PersistenceService.getString('driver_bus_id');
-    final routeId = PersistenceService.getString('driver_route_id');
-    final busNumber = PersistenceService.getString('driver_bus_number');
-    // final isSharing = PersistenceService.getIsSharingLocation(); // Removed auto-start logic
+    // Use encrypted secure storage for sensitive driver data
+    final busId = await SecureStorageService.getDriverBusId();
+    final routeId = await SecureStorageService.getDriverRouteId();
+    final busNumber = await SecureStorageService.getDriverBusNumber();
 
     if (mounted) {
       setState(() {
@@ -181,19 +182,15 @@ class _DriverDashboardState extends State<DriverDashboard>
   }
 
   Future<void> _saveSelections() async {
+    // Use encrypted secure storage for sensitive driver data
     if (_myBus != null) {
-      await PersistenceService.setString('driver_bus_id', _myBus!.id);
-      await PersistenceService.setString(
-        'driver_bus_number',
-        _myBus!.busNumber,
-      );
+      await SecureStorageService.setDriverBusId(_myBus!.id);
+      await SecureStorageService.setDriverBusNumber(_myBus!.busNumber);
       if (_selectedRoute != null) {
-        await PersistenceService.setString(
-          'driver_route_id',
-          _selectedRoute!.id,
-        );
+        await SecureStorageService.setDriverRouteId(_selectedRoute!.id);
       }
     }
+    // Keep sharing state in regular preferences (non-sensitive)
     await PersistenceService.setIsSharingLocation(_isSharing);
   }
 
@@ -379,7 +376,7 @@ class _DriverDashboardState extends State<DriverDashboard>
     }
   }
 
-  void _startLocationSharing() {
+  Future<void> _startLocationSharing() async {
     final locationService = Provider.of<LocationService>(
       context,
       listen: false,
@@ -387,6 +384,25 @@ class _DriverDashboardState extends State<DriverDashboard>
     final socketService = Provider.of<SocketService>(context, listen: false);
     final authService = Provider.of<AuthService>(context, listen: false);
     final dataService = Provider.of<DataService>(context, listen: false);
+
+    // SECURITY: Re-verify location permission before each trip start
+    final hasPermission = await locationService.checkLocationPermission();
+    if (!hasPermission) {
+      final granted = await locationService.requestLocationPermission();
+      if (!granted) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              DriverLocalizations.of(context)!.locationNotAvailable,
+            ),
+            backgroundColor: AppColors.error,
+            duration: const Duration(seconds: 4),
+          ),
+        );
+        return;
+      }
+    }
 
     // Update bus status to live
     dataService.updateBusStatus(_myBus!.id, 'on-time').catchError((e) {

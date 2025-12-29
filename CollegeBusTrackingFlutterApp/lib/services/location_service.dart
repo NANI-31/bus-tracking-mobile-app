@@ -86,6 +86,9 @@ class LocationService {
     }
   }
 
+  DateTime? _lastEmitTime;
+  static const int _minUpdateIntervalMs = 3000; // Min 3 seconds between updates
+
   Future<void> startLocationTracking({
     required Function(Position) onLocationUpdate,
     int intervalSeconds = 10,
@@ -100,6 +103,7 @@ class LocationService {
         if (!granted) return;
       }
 
+      // Increased distanceFilter for battery efficiency
       const locationSettings = LocationSettings(
         accuracy: LocationAccuracy.high,
         distanceFilter: 10, // Update every 10 meters
@@ -110,8 +114,19 @@ class LocationService {
             locationSettings: locationSettings,
           ).listen(
             (Position position) {
+              final now = DateTime.now();
+
+              // Time-based throttle: only emit if >= 3 seconds since last update
+              if (_lastEmitTime != null) {
+                final elapsed = now.difference(_lastEmitTime!).inMilliseconds;
+                if (elapsed < _minUpdateIntervalMs) {
+                  // Skip this update to save battery
+                  return;
+                }
+              }
+
+              _lastEmitTime = now;
               final latLng = LatLng(position.latitude, position.longitude);
-              // print('DEBUG: Location update received: ${latLng.latitude}, ${latLng.longitude}');
               _locationController.add(latLng);
               onLocationUpdate(position);
             },

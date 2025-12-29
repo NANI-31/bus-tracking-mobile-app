@@ -130,10 +130,43 @@ export const initializeSocket = (io: Server) => {
         const buses = await Bus.find({ collegeId, isActive: true });
         // FIX: Convert ObjectId to String because BusLocation stores busId as String
         const busIds = buses.map((b) => b._id.toString());
+        const busIdSet = new Set(busIds);
 
         if (busIds.length > 0) {
-          const locations = await BusLocation.aggregate([
-            { $match: { busId: { $in: busIds } } },
+          // 1. Get Buffered Locations (RAM) - These are the most "live"
+          const liveLocations: any[] = [];
+          const processedBusIds = new Set<string>();
+
+          locationBuffer.forEach((loc, bid) => {
+            if (busIdSet.has(bid)) {
+              liveLocations.push({
+                busId: bid,
+                collegeId: collegeId,
+                location: { lat: loc.lat, lng: loc.lng },
+                // Double check these fields match client expectation
+                currentLocation: { lat: loc.lat, lng: loc.lng },
+                speed: loc.speed,
+                heading: loc.heading,
+                timestamp: loc.timestamp,
+              });
+              processedBusIds.add(bid);
+            }
+          });
+          logger.info(
+            `[Socket] Found ${liveLocations.length} buffered locations.`
+          );
+
+          // 2. Get DB Locations (Disk) - Only recent ones to ensure "live" feel
+          // Filter for only locations in the last 15 minutes
+          const fifteenMinutesAgo = new Date(Date.now() - 15 * 60 * 1000);
+
+          const dbLocations = await BusLocation.aggregate([
+            {
+              $match: {
+                busId: { $in: busIds },
+                timestamp: { $gte: fifteenMinutesAgo }, // Strictly "live"
+              },
+            },
             { $sort: { timestamp: -1 } },
             {
               $group: {
@@ -142,33 +175,41 @@ export const initializeSocket = (io: Server) => {
               },
             },
           ]);
-
           logger.info(
-            `[Socket] Sending ${locations.length} cached locations to ${socket.id}`
+            `[Socket] Found ${dbLocations.length} recent DB locations.`
           );
 
-          locations.forEach((l) => {
+          // 3. Merge: Add DB location only if we don't have a buffered one (or DB is somehow newer)
+          dbLocations.forEach((l) => {
             const locData = l.latestLocation;
-            // Transform to match the structure expected by the client
-            // Client expects: { busId, collegeId, location: { lat, lng }, speed, heading, timestamp }
-            const payload = {
-              busId: locData.busId,
-              collegeId: collegeId, // ensuring collegeId is present
-              location: {
-                lat: locData.currentLocation?.lat,
-                lng: locData.currentLocation?.lng,
-              },
-              currentLocation: {
-                // Include this too for redundancy given the recent fix
-                lat: locData.currentLocation?.lat,
-                lng: locData.currentLocation?.lng,
-              },
-              speed: locData.speed,
-              heading: locData.heading,
-              timestamp: locData.timestamp,
-            };
-            socket.emit("location_updated", payload);
+            if (!processedBusIds.has(locData.busId)) {
+              const payload = {
+                busId: locData.busId,
+                collegeId: collegeId,
+                location: {
+                  lat: locData.currentLocation?.lat,
+                  lng: locData.currentLocation?.lng,
+                },
+                currentLocation: {
+                  lat: locData.currentLocation?.lat,
+                  lng: locData.currentLocation?.lng,
+                },
+                speed: locData.speed,
+                heading: locData.heading,
+                timestamp: locData.timestamp,
+              };
+              liveLocations.push(payload);
+            }
           });
+
+          if (liveLocations.length > 0) {
+            logger.info(
+              `[Socket] Sending ${liveLocations.length} live locations to ${socket.id}`
+            );
+            liveLocations.forEach((payload) => {
+              socket.emit("location_updated", payload);
+            });
+          }
         }
       } catch (err) {
         logger.error(`[Socket] Error fetching initial locations: ${err}`);

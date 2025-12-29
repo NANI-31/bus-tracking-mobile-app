@@ -8,6 +8,7 @@ import 'package:collegebus/services/location_service.dart';
 import 'package:collegebus/services/notification_service.dart';
 import 'package:collegebus/services/api_service.dart';
 import 'package:collegebus/services/fcm_service.dart';
+import 'package:collegebus/repositories/repositories.dart';
 import 'package:collegebus/utils/constants.dart';
 import 'package:collegebus/utils/router.dart';
 import 'package:collegebus/screens/splash_screen.dart';
@@ -107,11 +108,30 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
+        // Repository providers (singletons via BaseRepository)
+        Provider(create: (_) => AuthRepository()),
+        Provider(create: (_) => UserRepository()),
+        Provider(create: (_) => BusRepository()),
+        Provider(create: (_) => RouteRepository()),
+        Provider(create: (_) => ScheduleRepository()),
+        Provider(create: (_) => NotificationRepository()),
+        Provider(create: (_) => CollegeRepository()),
+        Provider(create: (_) => IncidentRepository()),
+
+        // ApiService (kept for backward compatibility with DataService)
         Provider(create: (_) => ApiService()),
 
-        ChangeNotifierProxyProvider<ApiService, AuthService>(
+        // AuthService with repository injection
+        ChangeNotifierProxyProvider3<
+          AuthRepository,
+          UserRepository,
+          NotificationRepository,
+          AuthService
+        >(
           create: (_) => AuthService(),
-          update: (_, api, auth) => auth!..updateApiService(api),
+          update: (_, authRepo, userRepo, notificationRepo, authService) =>
+              authService!
+                ..updateRepositories(authRepo, userRepo, notificationRepo),
         ),
 
         ChangeNotifierProxyProvider<AuthService, SocketService>(

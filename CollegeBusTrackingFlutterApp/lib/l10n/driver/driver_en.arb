@@ -39,5 +39,10 @@
   "currentLocationStats": "Current: {lat}, {lng}",
   "yourLocationLabel": "Your Location: {lat}, {lng}",
   "locationNotAvailable": "Location not available. Please enable location services.",
+  "locationPermissionRequired": "Location permission is required to start the trip. Please enable it in settings.",
+  "tripCompletedTitle": "Trip Completed",
+  "tripCompletedMessage": "Are you sure you want to complete this trip?",
+  "confirmComplete": "Complete",
+  "cancel": "Cancel",
   "busHeader": "Bus {busNumber}"
 }

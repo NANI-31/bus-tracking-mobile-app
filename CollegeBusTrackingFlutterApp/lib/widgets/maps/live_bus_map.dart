@@ -138,7 +138,7 @@ class _LiveBusMapState extends State<LiveBusMap> {
     return Marker(
       markerId: MarkerId(bus.id),
       position: loc.currentLocation,
-      rotation: loc.heading ?? 0.0,
+      rotation: 0.0, // Stable icon, ignores driver heading
       icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueAzure),
       // Ideal: Use StudentMapHelper.getBusIcon() if available/refactored
       infoWindow: InfoWindow(
