@@ -3,23 +3,185 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-
     <title>Server Status</title>
 
     <!-- Tailwind CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
+
+    <style>
+      /* === BACKGROUND GRID === */
+      body {
+        background-color: #050008;
+        background-image: linear-gradient(
+            rgba(0, 255, 255, 0.15) 1px,
+            transparent 1px
+          ),
+          linear-gradient(90deg, rgba(0, 255, 255, 0.15) 1px, transparent 1px);
+        background-size: 40px 40px;
+        animation: gridMove 20s linear infinite;
+      }
+
+      @keyframes gridMove {
+        from {
+          background-position: 0 0;
+        }
+        to {
+          background-position: 40px 40px;
+        }
+      }
+
+      /* === SCANLINES === */
+      body::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        background: repeating-linear-gradient(
+          to bottom,
+          rgba(0, 255, 255, 0.04),
+          rgba(0, 255, 255, 0.04) 1px,
+          transparent 1px,
+          transparent 3px
+        );
+        pointer-events: none;
+        z-index: 50;
+      }
+
+      /* === NEON GLOW === */
+      .neon {
+        text-shadow: 0 0 5px #22d3ee, 0 0 10px #22d3ee, 0 0 20px #0ff;
+      }
+
+      .neon-box {
+        box-shadow: 0 0 20px rgba(0, 255, 255, 0.4),
+          inset 0 0 20px rgba(0, 255, 255, 0.15);
+      }
+
+      /* === FLICKER EFFECT === */
+      .flicker {
+        animation: flicker 2.5s infinite;
+      }
+
+      @keyframes flicker {
+        0%,
+        100% {
+          opacity: 1;
+        }
+        5% {
+          opacity: 0.7;
+        }
+        10% {
+          opacity: 1;
+        }
+        15% {
+          opacity: 0.4;
+        }
+        20% {
+          opacity: 1;
+        }
+        100% {
+          opacity: 1;
+        }
+      }
+
+      /* === PARTICLES === */
+      .particle {
+        position: fixed;
+        width: 2px;
+        height: 2px;
+        background: #00ffff;
+        opacity: 0.8;
+        animation: float 10s linear infinite;
+      }
+
+      @keyframes float {
+        from {
+          transform: translateY(100vh) translateX(0);
+        }
+        to {
+          transform: translateY(-10vh) translateX(50px);
+        }
+      }
+
+      /* Prevent card width growing with typing */
+      .card-content {
+        width: max-content;
+        min-width: 200px; /* optional minimum for small screens */
+        max-width: 90vw; /* responsive max width */
+      }
+    </style>
   </head>
+
   <body
-    class="bg-slate-900 text-white h-screen flex items-center justify-center"
+    class="min-h-screen flex items-center justify-center font-mono overflow-hidden px-4"
   >
-    <div class="bg-slate-800 p-8 rounded-xl shadow-xl text-center space-y-4">
-      <h1 class="text-3xl font-bold text-emerald-400">🚀 Server is Running</h1>
+    <!-- PARTICLES -->
+    <script>
+      for (let i = 0; i < 40; i++) {
+        const p = document.createElement("div");
+        p.className = "particle";
+        p.style.left = Math.random() * 100 + "vw";
+        p.style.animationDuration = 5 + Math.random() * 10 + "s";
+        p.style.opacity = Math.random();
+        document.body.appendChild(p);
+      }
+    </script>
 
-      <p class="text-slate-300">
-        Status: <span class="text-emerald-500 font-semibold">Online</span>
-      </p>
+    <!-- TERMINAL CARD -->
+    <div
+      class="relative bg-black/80 backdrop-blur rounded-xl p-8 neon-box z-10 inline-block card-content text-center border border-cyan-400"
+    >
+      <div class="absolute top-2 left-3 text-cyan-400 text-xs sm:text-sm">
+        SYS://STATUS
+      </div>
+      <div class="absolute bottom-2 right-3 text-cyan-400 text-xs sm:text-sm">
+        BUILD_V1.0.0
+      </div>
 
-      <p class="text-slate-400 text-sm">Powered by Express + Render</p>
+      <div class="text-5xl sm:text-5xl mb-4 neon text-cyan-400">⌬</div>
+
+      <!-- Typing animation -->
+      <h1
+        id="typing-title"
+        class="text-3xl sm:text-3xl font-bold text-cyan-300 mb-4 neon"
+      ></h1>
+      <p id="typing-text" class="text-sm sm:text-base mb-6 text-cyan-400"></p>
+
+      <!-- Flickering status -->
+      <div
+        class="bg-cyan-950/70 text-cyan-300 px-3 sm:px-4 py-2 text-sm sm:text-base rounded-md border border-cyan-500 tracking-widest neon flicker"
+      >
+        STATUS: RUNNING
+      </div>
     </div>
+
+    <!-- TYPING ANIMATION -->
+    <script>
+      const titleText = "SERVER ONLINE";
+      const bodyText = "Node.js instance synchronized\n[ Render Cyber Cloud ]";
+
+      const titleEl = document.getElementById("typing-title");
+      const bodyEl = document.getElementById("typing-text");
+
+      let i = 0,
+        j = 0;
+
+      function typeTitle() {
+        if (i < titleText.length) {
+          titleEl.textContent += titleText.charAt(i++);
+          setTimeout(typeTitle, 80);
+        } else {
+          setTimeout(typeBody, 400);
+        }
+      }
+
+      function typeBody() {
+        if (j < bodyText.length) {
+          bodyEl.textContent += bodyText.charAt(j++);
+          setTimeout(typeBody, 35);
+        }
+      }
+
+      typeTitle();
+    </script>
   </body>
 </html>

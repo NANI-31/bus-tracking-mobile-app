@@ -21,6 +21,53 @@ const rateLimiter = new RateLimiterMemory({
   duration: 5,
 });
 
+// ============================================================
+// WRITE-BEHIND BUFFER: Accumulate location updates in memory
+// and flush to database periodically to reduce DB write load.
+// ============================================================
+interface BufferedLocation {
+  busId: string;
+  lat: number;
+  lng: number;
+  speed: number;
+  heading: number;
+  timestamp: Date;
+}
+const locationBuffer = new Map<string, BufferedLocation>();
+const DB_FLUSH_INTERVAL_MS = 10000; // Flush every 10 seconds
+
+// Flush buffer to database
+async function flushLocationBuffer() {
+  if (locationBuffer.size === 0) return;
+
+  const entries = Array.from(locationBuffer.values());
+  locationBuffer.clear();
+
+  logger.info(`[Socket] Flushing ${entries.length} buffered locations to DB`);
+
+  // Use bulkWrite for efficiency
+  const ops = entries.map((loc) => ({
+    insertOne: {
+      document: {
+        busId: loc.busId,
+        currentLocation: { lat: loc.lat, lng: loc.lng },
+        speed: loc.speed,
+        heading: loc.heading,
+        timestamp: loc.timestamp,
+      },
+    },
+  }));
+
+  try {
+    await BusLocation.bulkWrite(ops, { ordered: false });
+  } catch (err) {
+    logger.error(`[Socket] Error flushing location buffer: ${err}`);
+  }
+}
+
+// Start the flush interval
+setInterval(flushLocationBuffer, DB_FLUSH_INTERVAL_MS);
+
 export const initializeSocket = (io: Server) => {
   // Socket.IO Connection Handling
   io.use(authenticateSocket); // Secure all connections
@@ -143,26 +190,27 @@ export const initializeSocket = (io: Server) => {
 
     socket.on("update_location", async (data) => {
       // data: { busId, collegeId, location: { lat, lng }, speed, heading }
-      const { collegeId } = data;
-      // Broadcast to everyone in the same college room
-      // Broadcast to everyone in the same college room
-      socket.to(collegeId).emit("location_updated", data);
+      const { collegeId, busId } = data;
 
-      // Persist location to DB to avoid 404s on REST API polling
-      try {
-        const newLocation = new BusLocation({
-          busId: data.busId,
-          currentLocation: { lat: data.location.lat, lng: data.location.lng },
-          speed: data.speed,
-          heading: data.heading,
-        });
-        // Save asynchronously without blocking the socket flow too much
-        newLocation.save().catch((err) => {
-          logger.error(`Error saving location to DB: ${err.message}`);
-        });
-      } catch (e) {
-        logger.error(`Error saving location: ${e}`);
-      }
+      // Round coordinates to 5 decimal places (~1m precision) for efficiency
+      const lat = parseFloat(data.location.lat.toFixed(5));
+      const lng = parseFloat(data.location.lng.toFixed(5));
+
+      // Broadcast to everyone in the same college room (instant)
+      socket.to(collegeId).emit("location_updated", {
+        ...data,
+        location: { lat, lng },
+      });
+
+      // Add to write-behind buffer instead of direct DB write
+      locationBuffer.set(busId, {
+        busId,
+        lat,
+        lng,
+        speed: data.speed ?? 0,
+        heading: data.heading ?? 0,
+        timestamp: new Date(),
+      });
 
       let busName = data.busId;
       let busDetails = busCache.get(data.busId);
