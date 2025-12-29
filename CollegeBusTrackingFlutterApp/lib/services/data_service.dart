@@ -7,6 +7,7 @@ import 'package:collegebus/models/college_model.dart';
 import 'package:collegebus/models/notification_model.dart';
 import 'package:collegebus/models/schedule_model.dart';
 import 'package:collegebus/models/incident_model.dart';
+import 'package:collegebus/models/history_log_model.dart';
 import 'package:collegebus/utils/constants.dart';
 import 'package:collegebus/services/api_service.dart';
 import 'package:collegebus/services/socket_service.dart';
@@ -675,6 +676,29 @@ class DataService extends ChangeNotifier {
     try {
       await _apiService.createIncident(incident);
       clearError();
+    } catch (e) {
+      _setError(e);
+      rethrow;
+    }
+  }
+
+  /// Fetch history logs for a specific driver
+  Future<List<HistoryLogModel>> getDriverHistory(
+    String driverId, {
+    String? eventType,
+    int page = 1,
+    int limit = 50,
+  }) async {
+    try {
+      final response = await _apiService.getDriverHistory(
+        driverId,
+        eventType: eventType,
+        page: page,
+        limit: limit,
+      );
+      clearError();
+      final List data = response['data'] ?? [];
+      return data.map((e) => HistoryLogModel.fromMap(e)).toList();
     } catch (e) {
       _setError(e);
       rethrow;

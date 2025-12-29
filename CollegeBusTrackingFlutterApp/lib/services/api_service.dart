@@ -451,4 +451,25 @@ class ApiService {
       throw _handleError(e);
     }
   }
+
+  /// Fetch history logs for a specific driver
+  Future<Map<String, dynamic>> getDriverHistory(
+    String driverId, {
+    String? eventType,
+    int page = 1,
+    int limit = 50,
+  }) async {
+    try {
+      final params = <String, dynamic>{'page': page, 'limit': limit};
+      if (eventType != null) params['eventType'] = eventType;
+
+      final response = await _dio.get(
+        '/users/$driverId/history',
+        queryParameters: params,
+      );
+      return response.data;
+    } catch (e) {
+      throw _handleError(e);
+    }
+  }
 }
