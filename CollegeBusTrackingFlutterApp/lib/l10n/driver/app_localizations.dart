@@ -103,59 +103,245 @@ abstract class DriverLocalizations {
   /// **'Driver Dashboard'**
   String get dashboardTitle;
 
-  /// No description provided for @startTrip.
+  /// No description provided for @welcomeDriver.
   ///
   /// In en, this message translates to:
-  /// **'Start Trip'**
-  String get startTrip;
+  /// **'Welcome, {name}'**
+  String welcomeDriver(Object name);
 
-  /// No description provided for @endTrip.
+  /// No description provided for @busSetupTab.
   ///
   /// In en, this message translates to:
-  /// **'End Trip'**
-  String get endTrip;
+  /// **'Bus Setup'**
+  String get busSetupTab;
 
-  /// No description provided for @passengers.
+  /// No description provided for @liveTrackingTab.
   ///
   /// In en, this message translates to:
-  /// **'Passengers'**
-  String get passengers;
+  /// **'Live Tracking'**
+  String get liveTrackingTab;
 
-  /// No description provided for @route.
+  /// No description provided for @busRouteSelection.
   ///
   /// In en, this message translates to:
-  /// **'Route'**
-  String get route;
+  /// **'Bus & Route Selection'**
+  String get busRouteSelection;
 
-  /// No description provided for @incomingAssignment.
+  /// No description provided for @selectBusNumberLabel.
   ///
   /// In en, this message translates to:
-  /// **'Incoming Assignment'**
-  String get incomingAssignment;
+  /// **'Select Bus Number'**
+  String get selectBusNumberLabel;
 
-  /// No description provided for @accept.
+  /// No description provided for @selectBusNumberHint.
   ///
   /// In en, this message translates to:
-  /// **'Accept'**
-  String get accept;
+  /// **'Choose your bus number'**
+  String get selectBusNumberHint;
 
-  /// No description provided for @reject.
+  /// No description provided for @selectRouteLabel.
   ///
   /// In en, this message translates to:
-  /// **'Reject'**
-  String get reject;
+  /// **'Select Route'**
+  String get selectRouteLabel;
 
-  /// No description provided for @busNumber.
+  /// No description provided for @selectRouteHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose your route'**
+  String get selectRouteHint;
+
+  /// No description provided for @assignBusButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Assign Bus'**
+  String get assignBusButton;
+
+  /// No description provided for @busLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Bus: {busNumber}'**
+  String busLabel(Object busNumber);
+
+  /// No description provided for @routeLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Route: {routeName}'**
+  String routeLabel(Object routeName);
+
+  /// No description provided for @routeTypeDetails.
+  ///
+  /// In en, this message translates to:
+  /// **'Type: {routeType} | {start} -> {end}'**
+  String routeTypeDetails(Object end, Object routeType, Object start);
+
+  /// No description provided for @removeAssignmentButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove Assignment'**
+  String get removeAssignmentButton;
+
+  /// No description provided for @newTripAssignment.
+  ///
+  /// In en, this message translates to:
+  /// **'New Trip Assignment'**
+  String get newTripAssignment;
+
+  /// No description provided for @busNumberLabel.
   ///
   /// In en, this message translates to:
   /// **'Bus Number'**
-  String get busNumber;
+  String get busNumberLabel;
 
-  /// No description provided for @status.
+  /// No description provided for @declineButton.
   ///
   /// In en, this message translates to:
-  /// **'Status'**
-  String get status;
+  /// **'Decline'**
+  String get declineButton;
+
+  /// No description provided for @startTripButton.
+  ///
+  /// In en, this message translates to:
+  /// **'START TRIP'**
+  String get startTripButton;
+
+  /// No description provided for @pleaseAssignBusFirst.
+  ///
+  /// In en, this message translates to:
+  /// **'Please assign a bus first'**
+  String get pleaseAssignBusFirst;
+
+  /// No description provided for @locationSharingStarted.
+  ///
+  /// In en, this message translates to:
+  /// **'Location sharing started'**
+  String get locationSharingStarted;
+
+  /// No description provided for @offRouteAlert.
+  ///
+  /// In en, this message translates to:
+  /// **'⚠️ You are off route! ({distance}m away)'**
+  String offRouteAlert(Object distance);
+
+  /// No description provided for @etaToNextStop.
+  ///
+  /// In en, this message translates to:
+  /// **'{minutes} min to {stopName}'**
+  String etaToNextStop(Object minutes, Object stopName);
+
+  /// No description provided for @locationSharingStopped.
+  ///
+  /// In en, this message translates to:
+  /// **'Location sharing stopped'**
+  String get locationSharingStopped;
+
+  /// No description provided for @busAssignedSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Bus assigned successfully!'**
+  String get busAssignedSuccess;
+
+  /// No description provided for @assignBusError.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to assign bus: {error}'**
+  String assignBusError(Object error);
+
+  /// No description provided for @busAssignmentRemoved.
+  ///
+  /// In en, this message translates to:
+  /// **'Bus assignment removed'**
+  String get busAssignmentRemoved;
+
+  /// No description provided for @removeAssignmentError.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to remove assignment: {error}'**
+  String removeAssignmentError(Object error);
+
+  /// No description provided for @assignmentAccepted.
+  ///
+  /// In en, this message translates to:
+  /// **'Assignment accepted!'**
+  String get assignmentAccepted;
+
+  /// No description provided for @acceptAssignmentError.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to accept: {error}'**
+  String acceptAssignmentError(Object error);
+
+  /// No description provided for @assignmentDeclined.
+  ///
+  /// In en, this message translates to:
+  /// **'Assignment declined'**
+  String get assignmentDeclined;
+
+  /// No description provided for @declineAssignmentError.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to decline: {error}'**
+  String declineAssignmentError(Object error);
+
+  /// No description provided for @startPointMarker.
+  ///
+  /// In en, this message translates to:
+  /// **'Start: {name}'**
+  String startPointMarker(Object name);
+
+  /// No description provided for @endPointMarker.
+  ///
+  /// In en, this message translates to:
+  /// **'End: {name}'**
+  String endPointMarker(Object name);
+
+  /// No description provided for @stopPointMarker.
+  ///
+  /// In en, this message translates to:
+  /// **'Stop {index}: {name}'**
+  String stopPointMarker(Object index, Object name);
+
+  /// No description provided for @stopSharingLocation.
+  ///
+  /// In en, this message translates to:
+  /// **'Stop Sharing Location'**
+  String get stopSharingLocation;
+
+  /// No description provided for @startSharingLocation.
+  ///
+  /// In en, this message translates to:
+  /// **'Start Sharing Location'**
+  String get startSharingLocation;
+
+  /// No description provided for @sharingStatusMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Your location is being shared with students and teachers'**
+  String get sharingStatusMessage;
+
+  /// No description provided for @currentLocationStats.
+  ///
+  /// In en, this message translates to:
+  /// **'Current: {lat}, {lng}'**
+  String currentLocationStats(Object lat, Object lng);
+
+  /// No description provided for @yourLocationLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Your Location: {lat}, {lng}'**
+  String yourLocationLabel(Object lat, Object lng);
+
+  /// No description provided for @locationNotAvailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Location not available. Please enable location services.'**
+  String get locationNotAvailable;
+
+  /// No description provided for @busHeader.
+  ///
+  /// In en, this message translates to:
+  /// **'Bus {busNumber}'**
+  String busHeader(Object busNumber);
 }
 
 class _DriverLocalizationsDelegate extends LocalizationsDelegate<DriverLocalizations> {

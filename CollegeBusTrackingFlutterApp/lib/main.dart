@@ -11,10 +11,13 @@ import 'package:collegebus/services/fcm_service.dart';
 import 'package:collegebus/utils/constants.dart';
 import 'package:collegebus/utils/router.dart';
 import 'package:collegebus/screens/splash_screen.dart';
+import 'package:collegebus/utils/app_logger.dart';
 
 import 'package:collegebus/services/theme_service.dart';
 import 'package:collegebus/services/locale_service.dart';
 import 'package:collegebus/services/socket_service.dart';
+import 'package:google_maps_flutter_platform_interface/google_maps_flutter_platform_interface.dart';
+import 'package:google_maps_flutter_android/google_maps_flutter_android.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:collegebus/l10n/auth/login/auth_login_localizations.dart';
 import 'package:collegebus/l10n/auth/signup/auth_signup_localizations.dart';
@@ -48,6 +51,22 @@ class _AppInitializerState extends State<AppInitializer> {
   Future<void> _initializeApp() async {
     WidgetsFlutterBinding.ensureInitialized();
 
+    // Initialize Logger with File Support
+    await AppLogger.init();
+
+    // Initialize Google Maps Renderer (Android)
+    try {
+      final GoogleMapsFlutterPlatform mapsImplementation =
+          GoogleMapsFlutterPlatform.instance;
+      if (mapsImplementation is GoogleMapsFlutterAndroid) {
+        await mapsImplementation.initializeWithRenderer(
+          AndroidMapRenderer.latest,
+        );
+      }
+    } catch (e) {
+      AppLogger.e('Google Maps initialization error: $e');
+    }
+
     try {
       // Initialize Firebase
       await Firebase.initializeApp();
@@ -55,7 +74,7 @@ class _AppInitializerState extends State<AppInitializer> {
       // Initialize FCM Service
       await FCMService.initialize();
     } catch (e) {
-      debugPrint('Firebase/FCM initialization error: $e');
+      AppLogger.e('Firebase/FCM initialization error: $e');
     }
 
     try {

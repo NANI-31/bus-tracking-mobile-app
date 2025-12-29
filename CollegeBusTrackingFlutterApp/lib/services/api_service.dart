@@ -348,7 +348,7 @@ class ApiService {
       );
     } catch (e) {
       // Create a warning but don't blocking flow
-      debugPrint('Error removing FCM token: $e');
+      debugPrint('\x1B[31mError removing FCM token: $e\x1B[0m');
     }
   }
 

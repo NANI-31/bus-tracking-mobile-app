@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:collegebus/l10n/driver/app_localizations.dart';
 import 'package:velocity_x/velocity_x.dart';
 import 'package:collegebus/models/route_model.dart';
 import 'package:collegebus/utils/constants.dart';
@@ -40,10 +41,10 @@ class BusRouteSelectors extends StatelessWidget {
             )
             .toList(),
         onChanged: onBusNumberChanged,
-        decoration: const InputDecoration(
-          labelText: 'Select Bus Number',
-          border: OutlineInputBorder(),
-          hintText: 'Choose your bus number',
+        decoration: InputDecoration(
+          labelText: DriverLocalizations.of(context)!.selectBusNumberLabel,
+          border: const OutlineInputBorder(),
+          hintText: DriverLocalizations.of(context)!.selectBusNumberHint,
         ),
       ),
       AppSizes.paddingMedium.heightBox,
@@ -61,10 +62,10 @@ class BusRouteSelectors extends StatelessWidget {
             )
             .toList(),
         onChanged: onRouteChanged,
-        decoration: const InputDecoration(
-          labelText: 'Select Route',
-          border: OutlineInputBorder(),
-          hintText: 'Choose your route',
+        decoration: InputDecoration(
+          labelText: DriverLocalizations.of(context)!.selectRouteLabel,
+          border: const OutlineInputBorder(),
+          hintText: DriverLocalizations.of(context)!.selectRouteHint,
         ),
       ),
       AppSizes.paddingLarge.heightBox,
@@ -73,7 +74,7 @@ class BusRouteSelectors extends StatelessWidget {
         child: ElevatedButton.icon(
           onPressed: canAssign ? onAssign : null,
           icon: const Icon(Icons.directions_bus),
-          label: const Text('Assign Bus'),
+          label: Text(DriverLocalizations.of(context)!.assignBusButton),
           style: ElevatedButton.styleFrom(
             backgroundColor: Theme.of(context).primaryColor,
             foregroundColor: Theme.of(context).colorScheme.onPrimary,

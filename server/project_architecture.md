@@ -1,26 +1,3 @@
-adb tcpip 5555
-adb connect 192.168.29.181:5555
-adb connect 192.168.29.22:5555
-adb devices
-adb reverse tcp:5000 tcp:5000
-
-run the 1,2 individullay.
-adb -s 10BDAB187B0004J tcpip 5555
-adb -s GYTG8L7TFMIVSS6P tcpip 5555
-make sure wifi debugging enable and run individullay then disconnect cables.
-adb connect 192.168.29.181:5555
-adb connect 192.168.29.22:5555
-flutter run -d 192.168.29.181:5555 --dart-define=API_HOST=192.168.29.181 --dart-define=API_PORT=5000
-flutter run -d 192.168.29.22:5555 --dart-define=API_HOST=192.168.29.22 --dart-define=API_PORT=5000
-
-cd c:\mobile\projects\CollegeBusTrackingFlutterApp
-adb -s 10BDAB187B0004J reverse tcp:5000 tcp:5000
-flutter run -d 10BDAB187B0004J
-
-cd c:\mobile\projects\CollegeBusTrackingFlutterApp
-adb -s GYTG8L7TFMIVSS6P reverse tcp:5000 tcp:5000
-flutter run -d GYTG8L7TFMIVSS6P
-
 # Project Architecture Overview
 
 ## 1. High-Level Architecture

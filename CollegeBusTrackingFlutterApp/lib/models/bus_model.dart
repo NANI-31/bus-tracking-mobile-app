@@ -95,6 +95,7 @@ class BusLocationModel {
   final DateTime timestamp;
   final double? speed;
   final double? heading;
+  final String? collegeId;
 
   BusLocationModel({
     required this.busId,
@@ -102,6 +103,7 @@ class BusLocationModel {
     required this.timestamp,
     this.speed,
     this.heading,
+    this.collegeId,
   });
 
   factory BusLocationModel.fromMap(Map<String, dynamic> map, String busId) {
@@ -117,6 +119,7 @@ class BusLocationModel {
           : DateTime.now(),
       speed: map['speed']?.toDouble(),
       heading: map['heading']?.toDouble(),
+      collegeId: map['collegeId'],
     );
   }
 
@@ -129,6 +132,7 @@ class BusLocationModel {
       'timestamp': timestamp.toIso8601String(),
       'speed': speed,
       'heading': heading,
+      'collegeId': collegeId,
     };
   }
 }

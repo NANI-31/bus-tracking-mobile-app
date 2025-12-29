@@ -1,0 +1,15 @@
+flutter run | grep "I/flutter"
+
+flutter logs -d 192.168.29.181:5555 | Select-String "I/flutter"
+
+#ps1
+flutter logs -d 192.168.29.181:5555 | ForEach-Object {
+    if ($_ -match "^D/") {
+        Write-Host "[DEBUG] $_" -ForegroundColor Cyan
+    } elseif ($_ -match "^W/") {
+        Write-Host "[WARNING] $_" -ForegroundColor Yellow
+    } else {
+        Write-Host $_
+    }
+}
+

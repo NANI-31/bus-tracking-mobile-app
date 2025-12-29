@@ -1,0 +1,81 @@
+
+Waiting for another flutter command to release the startup lock...
+in two terminal when we run the flutter run, for same project,
+ this is shown. asflutter running cmd is not completed one of the terminal (first start)
+
+adb tcpip 5555
+adb connect 192.168.29.181:5555
+adb connect 192.168.29.22:5555
+adb reverse tcp:5000 tcp:5000
+
+flutter logs -d 192.168.29.181:5555 | Select-String "I/flutter"
+
+flutter run -d 192.168.29.181:5555 --dart-define=API_HOST=192.168.29.181 --dart-define=API_PORT=5000
+flutter run -d 192.168.29.22:5555 --dart-define=API_HOST=192.168.29.22 --dart-define=API_PORT=5000
+
+
+
+
+flutter connection one device 
+
+adb reverse tcp:5000 tcp:5000
+
+wifi:
+    adb tcpip 5555 (connect cable)
+    adb connect 192.168.29.181:5555 (disconnect cable)
+
+flutter connection two devices
+
+wifi:(run individullay or combine of 1 and 2 cmds)
+    adb -s 10BDAB187B0004J tcpip 5555
+    adb -s GYTG8L7TFMIVSS6P tcpip 5555
+    make sure wifi debugging enable and run individullay then disconnect cables.
+    adb connect 192.168.29.181:5555
+    adb connect 192.168.29.22:5555
+
+    flutter run -d 192.168.29.181:5555 --dart-define=API_HOST=192.168.29.181 --dart-define=API_PORT=5000
+flutter run -d 192.168.29.22:5555 --dart-define=API_HOST=192.168.29.22 --dart-define=API_PORT=5000
+
+const apiHost =
+    String.fromEnvironment('API_HOST', defaultValue: 'localhost');
+
+const apiPort =
+    String.fromEnvironment('API_PORT', defaultValue: '5000');
+
+final baseUrl = 'http://$apiHost:$apiPort';
+
+cable:
+    cd c:\mobile\projects\CollegeBusTrackingFlutterApp
+    adb -s 10BDAB187B0004J reverse tcp:5000 tcp:5000
+    flutter run -d 10BDAB187B0004J
+    cd c:\mobile\projects\CollegeBusTrackingFlutterApp
+    adb -s GYTG8L7TFMIVSS6P reverse tcp:5000 tcp:5000
+    flutter run -d GYTG8L7TFMIVSS6P
+
+cons:
+    initially the two devices run the flutter. 
+    when run the R cmd in one of the device, 
+    the connection to the server is gone in both devices.
+
+
+note: some times adb wont connection
+adb kill-server
+adb start-server
+
+8. How to Present This as a Strong Project
+When documenting or explaining:
+Emphasize:
+Real-time systems
+Socket communication
+Role-based access
+Scalability
+Add architecture diagram
+Mention future scope clearly
+
+If you want your project to stand out in reviews, ask this follow-up prompt:
+Now help me document this project with:
+Problem statement
+System architecture
+Tech stack justification
+Scalability explanation
+Future enhancements

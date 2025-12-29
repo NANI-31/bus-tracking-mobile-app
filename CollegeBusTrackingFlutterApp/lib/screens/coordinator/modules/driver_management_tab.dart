@@ -14,6 +14,7 @@ class DriverManagementTab extends StatelessWidget {
   final Set<String> onlineDriverIds;
   final Function(UserModel) onApprove;
   final Function(UserModel) onReject;
+  final Function(BusModel)? onTrack;
 
   const DriverManagementTab({
     super.key,
@@ -23,6 +24,7 @@ class DriverManagementTab extends StatelessWidget {
     required this.onlineDriverIds,
     required this.onApprove,
     required this.onReject,
+    this.onTrack,
   });
 
   @override
@@ -177,44 +179,47 @@ class DriverManagementTab extends StatelessWidget {
       status = bus.assignmentStatus;
     }
 
-    return Card(
+    final isOnline = onlineDriverIds.contains(driver.id);
+    final canTrack =
+        bus != null && bus.isActive; // Trackable if bus exists and is active
+
+    return Container(
       margin: const EdgeInsets.only(bottom: AppSizes.paddingMedium),
-      child: ListTile(
-        leading: Stack(
-          children: [
-            CircleAvatar(
-              backgroundColor: Theme.of(context).primaryColor,
-              child: (driver.fullName.isNotEmpty ? driver.fullName[0] : '?')
-                  .text
-                  .white
-                  .bold
-                  .make(),
-            ),
-            if (onlineDriverIds.contains(driver.id))
-              Positioned(
-                bottom: 0,
-                right: 0,
-                child: Container(
-                  width: 12,
-                  height: 12,
-                  decoration: BoxDecoration(
-                    color: Colors.greenAccent,
-                    shape: BoxShape.circle,
-                    border: Border.all(color: Colors.white, width: 2),
-                  ),
-                ),
-              ),
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(
+          color: Theme.of(context).dividerColor.withOpacity(0.1),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
+          ),
+        ],
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Theme.of(context).cardColor,
+            Theme.of(context).cardColor.withOpacity(0.8),
           ],
         ),
-        title: driver.fullName.text.semiBold.make(),
-        subtitle: !isApproval
-            ? _buildDriverStatusBadge(
+      ),
+      child: isApproval
+          ? ListTile(
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 20,
+                vertical: 8,
+              ),
+              leading: _buildAvatar(context, driver, isOnline),
+              title: driver.fullName.text.semiBold.size(16).make(),
+              subtitle: _buildDriverStatusBadge(
                 context,
                 status,
-              ).pOnly(top: 4).objectTopLeft()
-            : null,
-        trailing: isApproval
-            ? HStack([
+              ).pOnly(top: 8).objectTopLeft(),
+              trailing: HStack([
                 IconButton(
                   icon: Icon(Icons.check, color: AppColors.success),
                   onPressed: () => onApprove(driver),
@@ -223,20 +228,161 @@ class DriverManagementTab extends StatelessWidget {
                   icon: Icon(Icons.close, color: AppColors.error),
                   onPressed: () => onReject(driver),
                 ),
-              ])
-            : IconButton(
-                tooltip: 'View History',
-                icon: const Icon(Icons.history, color: Colors.grey),
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => DriverHistoryScreen(driver: driver),
-                    ),
-                  );
-                },
+              ]),
+            )
+          : ExpansionTile(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(24),
               ),
-      ),
+              collapsedShape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(24),
+              ),
+              tilePadding: const EdgeInsets.symmetric(
+                horizontal: 20,
+                vertical: 8,
+              ),
+              childrenPadding: const EdgeInsets.only(
+                left: 20,
+                right: 20,
+                bottom: 20,
+              ),
+              leading: _buildAvatar(context, driver, isOnline),
+              title: driver.fullName.text.semiBold.size(16).make(),
+              subtitle: _buildDriverStatusBadge(context, status).pOnly(top: 8),
+              children: [
+                Divider(
+                  color: Theme.of(context).dividerColor.withOpacity(0.05),
+                ),
+                12.heightBox,
+                HStack([
+                  ElevatedButton.icon(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => DriverHistoryScreen(driver: driver),
+                        ),
+                      );
+                    },
+                    icon: const Icon(Icons.history, size: 20),
+                    label: const Text('History'),
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      backgroundColor: Theme.of(
+                        context,
+                      ).scaffoldBackgroundColor,
+                      foregroundColor: Theme.of(
+                        context,
+                      ).textTheme.bodyLarge?.color,
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        side: BorderSide(
+                          color: Theme.of(
+                            context,
+                          ).dividerColor.withOpacity(0.1),
+                        ),
+                      ),
+                    ),
+                  ).expand(),
+                  const SizedBox(width: 12),
+                  Container(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(16),
+                      gradient: canTrack
+                          ? const LinearGradient(
+                              colors: [Color(0xFF2E3192), Color(0xFF1BFFFF)],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            )
+                          : LinearGradient(
+                              colors: [
+                                Colors.grey.shade200,
+                                Colors.grey.shade300,
+                              ],
+                            ),
+                      boxShadow: canTrack
+                          ? [
+                              BoxShadow(
+                                color: const Color(0xFF2E3192).withOpacity(0.3),
+                                blurRadius: 10,
+                                offset: const Offset(0, 4),
+                              ),
+                            ]
+                          : [],
+                    ),
+                    child: ElevatedButton.icon(
+                      onPressed: canTrack ? () => onTrack?.call(bus!) : null,
+                      icon: Icon(
+                        Icons.location_searching,
+                        size: 20,
+                        color: canTrack ? Colors.white : Colors.grey.shade400,
+                      ),
+                      label: const Text('Track'),
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        backgroundColor: Colors.transparent,
+                        foregroundColor: canTrack
+                            ? Colors.white
+                            : Colors.grey.shade400,
+                        shadowColor: Colors.transparent,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                      ),
+                    ),
+                  ).expand(),
+                ], alignment: MainAxisAlignment.spaceEvenly),
+              ],
+            ),
+    );
+  }
+
+  Widget _buildAvatar(BuildContext context, UserModel driver, bool isOnline) {
+    return Stack(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(2),
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            border: Border.all(
+              color: isOnline
+                  ? Colors.greenAccent
+                  : Colors.grey.withOpacity(0.2),
+              width: 2,
+            ),
+          ),
+          child: CircleAvatar(
+            radius: 24,
+            backgroundColor: Theme.of(context).primaryColor.withOpacity(0.1),
+            child: (driver.fullName.isNotEmpty ? driver.fullName[0] : '?').text
+                .size(20)
+                .color(Theme.of(context).primaryColor)
+                .bold
+                .make(),
+          ),
+        ),
+        if (isOnline)
+          Positioned(
+            bottom: 2,
+            right: 2,
+            child: Container(
+              width: 12,
+              height: 12,
+              decoration: BoxDecoration(
+                color: Colors.greenAccent,
+                shape: BoxShape.circle,
+                border: Border.all(color: Colors.white, width: 2),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.greenAccent.withOpacity(0.4),
+                    blurRadius: 4,
+                  ),
+                ],
+              ),
+            ),
+          ),
+      ],
     );
   }
 
@@ -247,16 +393,16 @@ class DriverManagementTab extends StatelessWidget {
 
     switch (status) {
       case 'accepted':
-        color = const Color(0xFF4CAF50); // Green
+        color = const Color(0xFF00C853); // Bright Green
         label = l10n.accepted;
         break;
       case 'assigned':
-      case 'pending': // Backend uses 'pending', frontend treats as Assigned
-        color = const Color(0xFFE67E22); // Orange
+      case 'pending':
+        color = const Color(0xFFFFAB00); // Amber
         label = l10n.assigned;
         break;
       case 'rejected':
-        color = const Color(0xFFE74C3C); // Red
+        color = const Color(0xFFFF1744); // Red Accent
         label = l10n.rejected;
         break;
       default:
@@ -265,30 +411,35 @@ class DriverManagementTab extends StatelessWidget {
     }
 
     return HStack([
-          VxBox().size(8, 8).color(color).roundedFull.make(),
+          VxBox().size(6, 6).color(color).roundedFull.make(),
           8.widthBox,
-          label.text.size(12).bold.color(color.withValues(alpha: 0.9)).make(),
+          label.text.size(12).semiBold.color(color.withOpacity(0.9)).make(),
         ])
         .pSymmetric(h: 12, v: 6)
         .box
-        .color(color.withValues(alpha: 0.1))
-        .rounded
+        .color(color.withOpacity(0.08))
+        .border(color: color.withOpacity(0.2))
+        .withRounded(value: 50)
         .make();
   }
 
   Widget _buildEmptyState(BuildContext context, String message, IconData icon) {
     return VStack(
       [
-        Icon(
-          icon,
-          size: 64,
-          color: AppColors.textSecondary.withValues(alpha: 0.5),
+        Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: Theme.of(context).primaryColor.withOpacity(0.05),
+            shape: BoxShape.circle,
+          ),
+          child: Icon(
+            icon,
+            size: 48,
+            color: Theme.of(context).primaryColor.withOpacity(0.5),
+          ),
         ),
-        AppSizes.paddingMedium.heightBox,
-        message.text
-            .size(18)
-            .color(AppColors.textSecondary.withValues(alpha: 0.5))
-            .make(),
+        24.heightBox,
+        message.text.size(16).color(AppColors.textSecondary).make(),
       ],
       alignment: MainAxisAlignment.center,
       crossAlignment: CrossAxisAlignment.center,

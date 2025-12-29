@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:socket_io_client/socket_io_client.dart' as io;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:collegebus/utils/app_logger.dart';
 
 class SocketService extends ChangeNotifier {
   io.Socket? _socket;
@@ -60,7 +61,7 @@ class SocketService extends ChangeNotifier {
       _isConnecting = false;
       notifyListeners();
       if (kDebugMode) {
-        print('[SocketService] Logged out: Disconnected and cleaned up.');
+        AppLogger.i('[SocketService] Logged out: Disconnected and cleaned up.');
       }
     } else {
       _reconnect();
@@ -75,14 +76,14 @@ class SocketService extends ChangeNotifier {
   }
 
   void _connect() {
-    print(
+    AppLogger.d(
       '[SocketService] _connect called. CurrentUrl: $_currentUrl, Token: $_token',
     );
 
     if (_currentUrl == null) return;
     if (_token == null) {
       if (kDebugMode) {
-        print('[SocketService] No token provided. Skipping connection.');
+        AppLogger.w('[SocketService] No token provided. Skipping connection.');
       }
       return;
     }
@@ -99,14 +100,14 @@ class SocketService extends ChangeNotifier {
 
     _isConnecting = true;
     notifyListeners();
-    print('[SocketService] Attempting to connect to $_currentUrl...');
+    AppLogger.i('[SocketService] Attempting to connect to $_currentUrl...');
     _socket = io.io(_currentUrl, options.build());
 
     _socket!.onConnect((_) async {
       _isConnected = true;
       _isConnecting = false;
       notifyListeners();
-      print('[SocketService] Connected successfully to $_currentUrl');
+      AppLogger.i('[SocketService] Connected successfully to $_currentUrl');
 
       // Re-join last college if any
       if (_lastJoinedCollegeId != null) {
@@ -120,37 +121,37 @@ class SocketService extends ChangeNotifier {
       _isConnected = false;
       _isConnecting = false;
       notifyListeners();
-      print('[SocketService] Disconnected');
+      AppLogger.w('[SocketService] Disconnected');
     });
 
     _socket!.onConnectError((err) {
       _isConnecting = false;
       notifyListeners();
-      print('[SocketService] Connection Error: $err');
+      AppLogger.e('[SocketService] Connection Error: $err');
     });
 
     _socket!.onError((err) {
       _isConnecting = false;
       notifyListeners();
-      print('[SocketService] Error: $err');
+      AppLogger.e('[SocketService] Error: $err');
     });
 
     // Location updates
     _socket!.on('location_updated', (data) {
-      print('[SocketService] Received location_updated: $data');
+      AppLogger.v('[SocketService] Received location_updated: $data');
       _locationUpdateController.add(Map<String, dynamic>.from(data));
     });
 
     // Bus status updates
     _socket!.on('bus_updated', (data) {
-      print('[SocketService] Received bus_updated: $data');
+      AppLogger.i('[SocketService] Received bus_updated: $data');
       _busUpdateController.add(Map<String, dynamic>.from(data));
       _busListUpdateController.add(null);
     });
 
     // Driver status updates
     _socket!.on('driver_status_update', (data) {
-      print('[SocketService] Received driver_status_update: $data');
+      AppLogger.i('[SocketService] Received driver_status_update: $data');
       _driverStatusController.add(Map<String, dynamic>.from(data));
     });
 
@@ -161,20 +162,22 @@ class SocketService extends ChangeNotifier {
   void joinCollege(String collegeId) {
     _lastJoinedCollegeId = collegeId;
     if (_isConnected && _socket != null) {
-      print('[SocketService] Emitting join_college: $collegeId');
+      AppLogger.i('[SocketService] Emitting join_college: $collegeId');
       _socket?.emit('join_college', collegeId);
     } else {
-      print('[SocketService] Queueing join_college: $collegeId');
+      AppLogger.w('[SocketService] Queueing join_college: $collegeId');
       _queueEvent('join_college', collegeId);
     }
   }
 
   Future<void> updateLocation(Map<String, dynamic> data) async {
-    print('[SocketService] Emitting update_location: $data');
+    AppLogger.v('[SocketService] Emitting update_location: $data');
     if (_isConnected && _socket != null) {
       _socket?.emit('update_location', data);
     } else {
-      print('[SocketService] Socket not connected, queueing update_location');
+      AppLogger.w(
+        '[SocketService] Socket not connected, queueing update_location',
+      );
       await _queueEvent('update_location', data);
     }
   }
@@ -183,7 +186,7 @@ class SocketService extends ChangeNotifier {
     _eventQueue.add({'event': event, 'data': data});
     await _saveQueue();
     if (kDebugMode) {
-      print('[SocketService] Event queued: $event');
+      AppLogger.d('[SocketService] Event queued: $event');
     }
   }
 
@@ -201,7 +204,7 @@ class SocketService extends ChangeNotifier {
         _eventQueue.clear();
         _eventQueue.addAll(decoded.cast<Map<String, dynamic>>());
       } catch (e) {
-        print('Error loading queue: $e');
+        AppLogger.e('Error loading queue: $e');
       }
     }
   }
@@ -209,7 +212,9 @@ class SocketService extends ChangeNotifier {
   Future<void> _flushQueue() async {
     if (_eventQueue.isEmpty) return;
     if (kDebugMode) {
-      print('[SocketService] Flushing queue: ${_eventQueue.length} events');
+      AppLogger.i(
+        '[SocketService] Flushing queue: ${_eventQueue.length} events',
+      );
     }
 
     // Create a copy to iterate

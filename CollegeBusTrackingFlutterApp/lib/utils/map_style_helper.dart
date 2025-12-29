@@ -1,4 +1,5 @@
 import 'package:flutter/services.dart' show rootBundle;
+import 'package:collegebus/utils/app_logger.dart';
 
 class MapStyleHelper {
   static String? _darkMapStyle;
@@ -12,7 +13,7 @@ class MapStyleHelper {
         );
       } catch (e) {
         // Fallback or silent error if asset is missing
-        print('Error loading map style: $e');
+        AppLogger.e('Error loading map style: $e');
       }
     }
   }

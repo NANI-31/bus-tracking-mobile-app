@@ -1,15 +1,16 @@
 import 'dart:async';
-import 'package:flutter/foundation.dart';
+
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:collegebus/utils/app_logger.dart';
 
 /// Background message handler - must be top-level function
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp();
-  debugPrint('Background message: ${message.notification?.title}');
+  AppLogger.i('Background message: ${message.notification?.title}');
 }
 
 class FCMService {
@@ -56,7 +57,7 @@ class FCMService {
       _fcmToken = token;
       _tokenController.add(token);
       _saveTokenLocally(token);
-      debugPrint('FCM Token refreshed: $token');
+      AppLogger.i('FCM Token refreshed: $token');
     });
 
     // Handle foreground messages
@@ -80,7 +81,7 @@ class FCMService {
       provisional: false,
     );
 
-    debugPrint('FCM Permission status: ${settings.authorizationStatus}');
+    AppLogger.i('FCM Permission status: ${settings.authorizationStatus}');
   }
 
   Future<void> _initLocalNotifications() async {
@@ -101,7 +102,7 @@ class FCMService {
     await _localNotifications.initialize(
       initSettings,
       onDidReceiveNotificationResponse: (details) {
-        debugPrint('Local notification tapped: ${details.payload}');
+        AppLogger.i('Local notification tapped: ${details.payload}');
       },
     );
 
@@ -125,12 +126,12 @@ class FCMService {
     try {
       _fcmToken = await _messaging.getToken();
       if (_fcmToken != null) {
-        debugPrint('FCM Token: $_fcmToken');
+        AppLogger.i('FCM Token: $_fcmToken');
         await _saveTokenLocally(_fcmToken!);
         _tokenController.add(_fcmToken!);
       }
     } catch (e) {
-      debugPrint('Error getting FCM token: $e');
+      AppLogger.e('Error getting FCM token: $e');
     }
   }
 
@@ -145,9 +146,9 @@ class FCMService {
   }
 
   void _handleForegroundMessage(RemoteMessage message) {
-    debugPrint('Foreground message received: ${message.notification?.title}');
-    debugPrint('Foreground message body: ${message.notification?.body}');
-    debugPrint('Foreground message data: ${message.data}');
+    AppLogger.i('Foreground message received: ${message.notification?.title}');
+    AppLogger.i('Foreground message body: ${message.notification?.body}');
+    AppLogger.i('Foreground message data: ${message.data}');
     _messageController.add(message);
 
     // Show local notification for foreground messages
@@ -180,7 +181,7 @@ class FCMService {
   }
 
   void _handleNotificationTap(RemoteMessage message) {
-    debugPrint('Notification tapped: ${message.notification?.title}');
+    AppLogger.i('Notification tapped: ${message.notification?.title}');
     // Handle navigation based on message data
     // You can use a navigation key to route to specific screens
   }
@@ -188,13 +189,13 @@ class FCMService {
   /// Subscribe to a topic (e.g., college-specific notifications)
   Future<void> subscribeToTopic(String topic) async {
     await _messaging.subscribeToTopic(topic);
-    debugPrint('Subscribed to topic: $topic');
+    AppLogger.i('Subscribed to topic: $topic');
   }
 
   /// Unsubscribe from a topic
   Future<void> unsubscribeFromTopic(String topic) async {
     await _messaging.unsubscribeFromTopic(topic);
-    debugPrint('Unsubscribed from topic: $topic');
+    AppLogger.i('Unsubscribed from topic: $topic');
   }
 
   void dispose() {

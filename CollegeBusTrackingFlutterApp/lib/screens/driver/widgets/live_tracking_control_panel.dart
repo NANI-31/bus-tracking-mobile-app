@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:collegebus/l10n/driver/app_localizations.dart';
 import 'package:velocity_x/velocity_x.dart';
 import 'package:collegebus/models/bus_model.dart';
 import 'package:collegebus/models/route_model.dart';
@@ -27,7 +28,9 @@ class LiveTrackingControlPanel extends StatelessWidget {
     return VStack([
           if (bus != null)
             VStack([
-              'Bus ${bus!.busNumber}'.text
+              DriverLocalizations.of(context)!
+                  .busHeader(bus!.busNumber)
+                  .text
                   .size(20)
                   .bold
                   .color(AppColors.textPrimary)
@@ -35,11 +38,18 @@ class LiveTrackingControlPanel extends StatelessWidget {
               AppSizes.paddingSmall.heightBox,
               if (route != null)
                 VStack([
-                  'Route: ${route!.routeName}'.text
+                  DriverLocalizations.of(context)!
+                      .routeLabel(route!.routeName)
+                      .text
                       .size(16)
                       .color(AppColors.textSecondary)
                       .make(),
-                  'Type: ${route!.routeType.toUpperCase()} | ${route!.startPoint.name} → ${route!.endPoint.name}'
+                  DriverLocalizations.of(context)!
+                      .routeTypeDetails(
+                        route!.routeType.toUpperCase(),
+                        route!.startPoint.name,
+                        route!.endPoint.name,
+                      )
                       .text
                       .size(14)
                       .color(AppColors.textSecondary)
@@ -51,8 +61,8 @@ class LiveTrackingControlPanel extends StatelessWidget {
             ]),
           CustomButton(
             text: isSharing
-                ? 'Stop Sharing Location'
-                : 'Start Sharing Location',
+                ? DriverLocalizations.of(context)!.stopSharingLocation
+                : DriverLocalizations.of(context)!.startSharingLocation,
             onPressed: onToggleSharing,
             backgroundColor: isSharing
                 ? Theme.of(context).colorScheme.error
@@ -78,14 +88,17 @@ class LiveTrackingControlPanel extends StatelessWidget {
           Icon(Icons.location_on, color: AppColors.success),
           AppSizes.paddingMedium.widthBox,
           VStack([
-            'Your location is being shared with students and teachers'.text
-                .color(AppColors.success)
-                .medium
-                .make(),
+            DriverLocalizations.of(
+              context,
+            )!.sharingStatusMessage.text.color(AppColors.success).medium.make(),
             if (currentLocation != null)
               VStack([
                 4.heightBox,
-                'Current: ${currentLocation!.latitude.toStringAsFixed(4)}, ${currentLocation!.longitude.toStringAsFixed(4)}'
+                DriverLocalizations.of(context)!
+                    .currentLocationStats(
+                      currentLocation!.latitude.toStringAsFixed(4),
+                      currentLocation!.longitude.toStringAsFixed(4),
+                    )
                     .text
                     .size(12)
                     .color(AppColors.success)

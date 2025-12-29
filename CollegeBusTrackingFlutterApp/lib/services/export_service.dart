@@ -4,6 +4,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:collegebus/models/bus_model.dart';
 import 'package:collegebus/models/user_model.dart';
+import 'package:collegebus/utils/app_logger.dart';
 
 class ExportService {
   Future<void> exportBuses(List<BusModel> buses) async {
@@ -54,7 +55,7 @@ class ExportService {
         XFile(file.path),
       ], text: 'Exported Report: $fileName');
     } catch (e) {
-      print('Error exporting file: $e');
+      AppLogger.e('Error exporting file: $e');
       throw e;
     }
   }

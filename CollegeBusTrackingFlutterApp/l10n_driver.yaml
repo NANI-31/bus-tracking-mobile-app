@@ -1,0 +1,3 @@
+arb-dir: lib/l10n/driver
+template-arb-file: driver_en.arb
+output-class: DriverLocalizations

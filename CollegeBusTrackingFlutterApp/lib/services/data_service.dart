@@ -11,6 +11,7 @@ import 'package:collegebus/utils/constants.dart';
 import 'package:collegebus/services/api_service.dart';
 import 'package:collegebus/services/socket_service.dart';
 import 'package:flutter/material.dart';
+import 'package:collegebus/utils/app_logger.dart';
 
 class DataService extends ChangeNotifier {
   ApiService _apiService;
@@ -19,9 +20,20 @@ class DataService extends ChangeNotifier {
 
   String? get lastError => _lastError;
 
+  // Cache for bus locations
+  final Map<String, BusLocationModel> _cachedBusLocations = {};
+
   void updateDependencies(ApiService api, SocketService socket) {
     _apiService = api;
     _socketService = socket;
+
+    // Listen globally to update cache
+    _socketService.locationUpdateStream.listen((data) {
+      if (data['busId'] != null) {
+        final busId = data['busId'];
+        _cachedBusLocations[busId] = BusLocationModel.fromMap(data, busId);
+      }
+    });
   }
 
   void clearError() {
@@ -37,6 +49,72 @@ class DataService extends ChangeNotifier {
   }
 
   DataService(this._apiService, this._socketService);
+
+  Stream<List<BusLocationModel>> getCollegeBusLocationsStream(
+    String collegeId,
+  ) {
+    return Stream.multi((controller) async {
+      // 1. Emit cached values IMMEDIATELY
+      final initialLocations = _cachedBusLocations.values
+          .where((l) => l.collegeId == collegeId)
+          .toList();
+      if (initialLocations.isNotEmpty) {
+        controller.add(initialLocations);
+      }
+
+      List<BusLocationModel> currentLocations = List.from(initialLocations);
+
+      // 2. Listen to socket updates
+      final subscription = _socketService.locationUpdateStream.listen((data) {
+        if (data['collegeId'] == collegeId) {
+          final busId = data['busId'];
+          final newLoc = BusLocationModel.fromMap(data, busId);
+
+          // Update local list
+          final index = currentLocations.indexWhere((l) => l.busId == busId);
+          if (index != -1) {
+            currentLocations[index] = newLoc;
+          } else {
+            currentLocations.add(newLoc);
+          }
+
+          if (!controller.isClosed) controller.add(List.from(currentLocations));
+        }
+      });
+      controller.onCancel = () => subscription.cancel();
+
+      // 3. Fetch initial data from API (to fill gaps)
+      Future<void> fetchAll() async {
+        try {
+          final apiLocations = await _apiService.getCollegeBusLocations(
+            collegeId,
+          );
+          // Merge API data
+          for (var loc in apiLocations) {
+            // Cache API result too
+            _cachedBusLocations[loc.busId] = loc;
+
+            final index = currentLocations.indexWhere(
+              (l) => l.busId == loc.busId,
+            );
+            if (index == -1) {
+              currentLocations.add(loc);
+            }
+            // If present, socket data is likely newer, or we rely on stream updates
+          }
+
+          if (!controller.isClosed) controller.add(List.from(currentLocations));
+          clearError();
+        } catch (e) {
+          _setError(e);
+          // Don't add error to controller to avoid breaking the stream for UI
+          // if (!controller.isClosed) controller.addError(e);
+        }
+      }
+
+      await fetchAll();
+    });
+  }
 
   // In-memory cache
   List<CollegeModel>? _cachedColleges;
@@ -195,6 +273,14 @@ class DataService extends ChangeNotifier {
   Future<BusModel?> getBusByDriver(String driverId) async {
     try {
       final buses = await _apiService.getAllBuses();
+      // DEBUG: Log found buses for this driver
+      for (var b in buses) {
+        if (b.driverId == driverId) {
+          AppLogger.d(
+            '[DataService] Found bus match: ${b.busNumber}, Active: ${b.isActive}, Status: ${b.assignmentStatus}',
+          );
+        }
+      }
       return buses.firstWhere((b) => b.driverId == driverId && b.isActive);
     } catch (e) {
       return null;
@@ -511,42 +597,6 @@ class DataService extends ChangeNotifier {
       final subscription = _socketService.locationUpdateStream.listen((data) {
         if (data['busId'] == busId) {
           controller.add(BusLocationModel.fromMap(data, busId));
-        }
-      });
-      controller.onCancel = () => subscription.cancel();
-    });
-  }
-
-  Stream<List<BusLocationModel>> getCollegeBusLocationsStream(
-    String collegeId,
-  ) {
-    return Stream.multi((controller) async {
-      List<BusLocationModel> currentLocations = [];
-      Future<void> fetchAll() async {
-        try {
-          currentLocations = await _apiService.getCollegeBusLocations(
-            collegeId,
-          );
-          if (!controller.isClosed) controller.add(currentLocations);
-          clearError();
-        } catch (e) {
-          _setError(e);
-          if (!controller.isClosed) controller.addError(e);
-        }
-      }
-
-      await fetchAll();
-      final subscription = _socketService.locationUpdateStream.listen((data) {
-        if (data['collegeId'] == collegeId) {
-          final busId = data['busId'];
-          final newLoc = BusLocationModel.fromMap(data, busId);
-          final index = currentLocations.indexWhere((l) => l.busId == busId);
-          if (index != -1) {
-            currentLocations[index] = newLoc;
-          } else {
-            currentLocations.add(newLoc);
-          }
-          if (!controller.isClosed) controller.add(List.from(currentLocations));
         }
       });
       controller.onCancel = () => subscription.cancel();

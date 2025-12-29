@@ -1,4 +1,5 @@
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:collegebus/utils/app_logger.dart';
 
 class NotificationService {
   static final FlutterLocalNotificationsPlugin _localNotifications =
@@ -16,6 +17,6 @@ class NotificationService {
     );
 
     await _localNotifications.initialize(initSettings);
-    print('Notification Service Initialized (Local Only)');
+    AppLogger.i('Notification Service Initialized (Local Only)');
   }
 }

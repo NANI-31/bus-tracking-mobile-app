@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:collegebus/utils/app_logger.dart';
 
 class LocationService {
   StreamSubscription<Position>? _positionStreamSubscription;
@@ -55,7 +56,7 @@ class LocationService {
 
       return LatLng(position.latitude, position.longitude);
     } catch (e) {
-      print('Error getting location: $e');
+      AppLogger.e('Error getting location: $e');
       return null;
     }
   }
@@ -79,7 +80,7 @@ class LocationService {
       }
       return null;
     } catch (e) {
-      print('Error getting last known location: $e');
+      AppLogger.e('Error getting last known location: $e');
       // On error, try to get current location as fallback
       return await getCurrentLocation();
     }
@@ -115,16 +116,16 @@ class LocationService {
               onLocationUpdate(position);
             },
             onError: (error) {
-              print('DEBUG: Location stream error: $error');
+              AppLogger.e('DEBUG: Location stream error: $error');
             },
             onDone: () {
-              print('DEBUG: Location stream completed');
+              AppLogger.w('DEBUG: Location stream completed');
             },
           );
 
-      print('DEBUG: Location tracking started successfully');
+      AppLogger.i('DEBUG: Location tracking started successfully');
     } catch (e) {
-      print('DEBUG: Error starting location tracking: $e');
+      AppLogger.e('DEBUG: Error starting location tracking: $e');
       // Location tracking failed, but app can continue
     }
   }
@@ -132,7 +133,7 @@ class LocationService {
   void stopLocationTracking() {
     _positionStreamSubscription?.cancel();
     _positionStreamSubscription = null;
-    print('DEBUG: Location tracking stopped');
+    AppLogger.i('DEBUG: Location tracking stopped');
   }
 
   bool get isTracking {

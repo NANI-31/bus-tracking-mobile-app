@@ -7,6 +7,7 @@ import 'package:collegebus/services/data_service.dart';
 import 'package:collegebus/utils/constants.dart';
 import 'package:collegebus/widgets/success_modal.dart';
 import 'package:collegebus/widgets/api_error_modal.dart';
+import 'package:collegebus/utils/app_logger.dart';
 import 'package:collegebus/models/route_model.dart';
 import 'package:collegebus/models/bus_model.dart';
 import 'modules/bus_tab_components/route_selection_modal.dart';
@@ -69,7 +70,7 @@ class _DriverSelectionScreenState extends State<DriverSelectionScreen> {
           _isLoading = false;
         });
       } catch (e) {
-        debugPrint('Error loading drivers: $e');
+        AppLogger.e('Error loading drivers: $e');
         setState(() => _isLoading = false);
       }
     }

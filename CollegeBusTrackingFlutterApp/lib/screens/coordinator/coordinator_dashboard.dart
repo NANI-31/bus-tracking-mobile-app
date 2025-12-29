@@ -46,6 +46,7 @@ class _CoordinatorDashboardState extends State<CoordinatorDashboard>
   List<UserModel> _pendingDrivers = [];
   List<String> _busNumbers = [];
   Set<String> _onlineDriverIds = {};
+  BusModel? _currentTrackingBus;
 
   // Stream subscriptions
   StreamSubscription<List<BusModel>>? _busesSubscription;
@@ -141,6 +142,14 @@ class _CoordinatorDashboardState extends State<CoordinatorDashboard>
       // Force refresh stream
       firestoreService.getBusNumbers(collegeId, forceRefresh: true);
     }
+  }
+
+  void _handleTrackDriver(BusModel bus) {
+    setState(() {
+      _currentTrackingBus = bus;
+      // Switch to Live Map tab (index 1)
+      _tabController.animateTo(1);
+    });
   }
 
   Future<void> _approveDriver(UserModel driver) async {
@@ -376,7 +385,10 @@ class _CoordinatorDashboardState extends State<CoordinatorDashboard>
                           pendingDrivers: _pendingDrivers,
                           busNumbers: _busNumbers,
                         ),
-                        const LiveMapTab(),
+                        LiveMapTab(
+                          buses: _buses,
+                          selectedBus: _currentTrackingBus,
+                        ),
                         DriverManagementTab(
                           pendingApprovals: _pendingDrivers,
                           allDrivers: _allDrivers,
@@ -384,6 +396,7 @@ class _CoordinatorDashboardState extends State<CoordinatorDashboard>
                           onlineDriverIds: _onlineDriverIds,
                           onApprove: _approveDriver,
                           onReject: _rejectDriver,
+                          onTrack: _handleTrackDriver,
                         ),
                         RoutesTab(routes: _routes, onRefresh: _loadRoutes),
                         BusNumbersTab(
@@ -411,7 +424,7 @@ class _CoordinatorDashboardState extends State<CoordinatorDashboard>
                       pendingDrivers: _pendingDrivers,
                       busNumbers: _busNumbers,
                     ),
-                    const LiveMapTab(),
+                    LiveMapTab(buses: _buses, selectedBus: _currentTrackingBus),
                     DriverManagementTab(
                       pendingApprovals: _pendingDrivers,
                       allDrivers: _allDrivers,
@@ -419,6 +432,7 @@ class _CoordinatorDashboardState extends State<CoordinatorDashboard>
                       onlineDriverIds: _onlineDriverIds,
                       onApprove: _approveDriver,
                       onReject: _rejectDriver,
+                      onTrack: _handleTrackDriver,
                     ),
                     RoutesTab(routes: _routes, onRefresh: _loadRoutes),
                     BusNumbersTab(

@@ -64,7 +64,7 @@ class AuthService extends ChangeNotifier {
       }
       notifyListeners();
     } catch (e) {
-      debugPrint('Error loading user model: $e');
+      debugPrint('\x1B[31mError loading user model: $e\x1B[0m');
     }
   }
 
@@ -172,7 +172,7 @@ class AuthService extends ChangeNotifier {
         await _apiService!.removeFcmToken(_currentUserModel!.id);
       }
     } catch (e) {
-      debugPrint('Error removing FCM token during logout: $e');
+      debugPrint('\x1B[31mError removing FCM token during logout: $e\x1B[0m');
     }
 
     await PersistenceService.removeAuthToken();
@@ -195,10 +195,10 @@ class AuthService extends ChangeNotifier {
         await _apiService!.updateUser(_currentUserModel!.id, {
           'fcmToken': token,
         });
-        debugPrint('FCM Token registered with backend');
+        debugPrint('\x1B[32mFCM Token registered with backend\x1B[0m');
       }
     } catch (e) {
-      debugPrint('Error registering FCM token: $e');
+      debugPrint('\x1B[31mError registering FCM token: $e\x1B[0m');
     }
   }
 }

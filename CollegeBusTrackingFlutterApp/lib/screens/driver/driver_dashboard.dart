@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:collegebus/l10n/driver/app_localizations.dart';
 import 'package:flutter/foundation.dart';
 import 'package:provider/provider.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
@@ -14,6 +15,7 @@ import 'package:collegebus/utils/map_style_helper.dart';
 import 'package:collegebus/services/theme_service.dart';
 import 'package:collegebus/services/socket_service.dart';
 import 'package:collegebus/services/persistence_service.dart';
+import 'package:collegebus/utils/app_logger.dart';
 import 'widgets/location_display.dart';
 import 'widgets/bus_route_selectors.dart';
 import 'widgets/bus_assignment_card.dart';
@@ -47,6 +49,9 @@ class _DriverDashboardState extends State<DriverDashboard>
   List<RouteModel> _routes = [];
   List<String> _busNumbers = [];
 
+  StreamSubscription? _busListSubscription;
+  StreamSubscription? _busUpdateSubscription;
+
   @override
   void initState() {
     super.initState();
@@ -57,13 +62,48 @@ class _DriverDashboardState extends State<DriverDashboard>
     _loadMyBus().then((_) => _loadSavedSelections());
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      Provider.of<ThemeService>(
-        context,
-        listen: false,
-      ).addListener(_handleThemeChange);
-      Provider.of<DataService>(context, listen: false).addListener(_loadMyBus);
+      final socketService = Provider.of<SocketService>(context, listen: false);
+      final dataService = Provider.of<DataService>(context, listen: false);
+      final themeService = Provider.of<ThemeService>(context, listen: false);
+      final authService = Provider.of<AuthService>(context, listen: false);
+
+      themeService.addListener(_handleThemeChange);
+      dataService.addListener(_loadMyBus);
+      authService.addListener(_handleAuthChange); // Listen for user load
+
+      // Auto-refresh when bus assignment attributes change
+      _busListSubscription = socketService.busListUpdateStream.listen((_) {
+        AppLogger.d('[DriverDashboard] Bus list updated, reloading my bus...');
+        if (mounted) _loadMyBus();
+      });
+
+      _busUpdateSubscription = socketService.busUpdateStream.listen((data) {
+        // Optionally filter by my bus ID if needed, but reloading is safe
+        AppLogger.d('[DriverDashboard] Bus updated, reloading my bus...');
+        if (mounted) _loadMyBus();
+      });
+
       _handleThemeChange();
+      // Try loading immediately in case user is already there
+      if (authService.currentUserModel != null) {
+        // Fix: Make sure to join the college room to receive updates
+        socketService.joinCollege(authService.currentUserModel!.collegeId);
+        _loadMyBus();
+      }
     });
+  }
+
+  void _handleAuthChange() {
+    if (!mounted) return;
+    final authService = Provider.of<AuthService>(context, listen: false);
+    final socketService = Provider.of<SocketService>(context, listen: false);
+
+    if (authService.currentUserModel != null) {
+      // User loaded (or changed), refresh bus assignment
+      // Fix: Join room when auth changes to logged in
+      socketService.joinCollege(authService.currentUserModel!.collegeId);
+      _loadMyBus();
+    }
   }
 
   void _handleThemeChange() {
@@ -78,10 +118,17 @@ class _DriverDashboardState extends State<DriverDashboard>
   void dispose() {
     _tabController.dispose();
     _positionSubscription?.cancel();
+    _busListSubscription?.cancel();
+    _busUpdateSubscription?.cancel();
+
     final themeService = Provider.of<ThemeService>(context, listen: false);
     themeService.removeListener(_handleThemeChange);
     final dataService = Provider.of<DataService>(context, listen: false);
     dataService.removeListener(_loadMyBus);
+
+    final authService = Provider.of<AuthService>(context, listen: false);
+    authService.removeListener(_handleAuthChange);
+
     super.dispose();
   }
 
@@ -184,18 +231,42 @@ class _DriverDashboardState extends State<DriverDashboard>
   Future<void> _loadMyBus() async {
     final authService = Provider.of<AuthService>(context, listen: false);
     final user = authService.currentUserModel;
-    if (user == null) return;
+    if (user == null) {
+      AppLogger.w('[DriverDashboard] _loadMyBus: No user logged in');
+      return;
+    }
+
+    AppLogger.d(
+      '[DriverDashboard] _loadMyBus: Fetching for driverId: ${user.id}',
+    );
     final dataService = Provider.of<DataService>(context, listen: false);
     final bus = await dataService.getBusByDriver(user.id);
-    if (bus != null && mounted) {
+
+    AppLogger.d(
+      '[DriverDashboard] _loadMyBus: Result bus: ${bus?.busNumber} (ID: ${bus?.id})',
+    );
+
+    if (mounted) {
       setState(() {
-        _myBus = bus;
-        _selectedBusNumber = bus.busNumber;
-        if (bus.routeId != null && _routes.isNotEmpty) {
-          try {
-            _selectedRoute = _routes.firstWhere((r) => r.id == bus.routeId);
-            // ignore: empty_catches
-          } catch (e) {}
+        if (bus != null) {
+          AppLogger.d(
+            '[DriverDashboard] _loadMyBus: Bus found, setting _myBus.',
+          );
+          _myBus = bus;
+          _selectedBusNumber = bus.busNumber;
+          if (bus.routeId != null && _routes.isNotEmpty) {
+            try {
+              _selectedRoute = _routes.firstWhere((r) => r.id == bus.routeId);
+            } catch (e) {}
+          }
+        } else {
+          AppLogger.d(
+            '[DriverDashboard] _loadMyBus: No bus found for driver, clearing _myBus.',
+          );
+          // If no bus assigned (or unassigned remotely), clear state
+          _myBus = null;
+          // Only clear selection if we were relying on the assigned bus
+          // _selectedBusNumber = null; // Optional: decide if we keep selection
         }
       });
       _updateMarkers();
@@ -216,7 +287,11 @@ class _DriverDashboardState extends State<DriverDashboard>
       Marker(
         markerId: const MarkerId('start'),
         position: startCoord,
-        infoWindow: InfoWindow(title: 'Start: ${route.startPoint.name}'),
+        infoWindow: InfoWindow(
+          title: DriverLocalizations.of(
+            context,
+          )!.startPointMarker(route.startPoint.name),
+        ),
         icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen),
       ),
     );
@@ -227,7 +302,11 @@ class _DriverDashboardState extends State<DriverDashboard>
       Marker(
         markerId: const MarkerId('end'),
         position: endCoord,
-        infoWindow: InfoWindow(title: 'End: ${route.endPoint.name}'),
+        infoWindow: InfoWindow(
+          title: DriverLocalizations.of(
+            context,
+          )!.endPointMarker(route.endPoint.name),
+        ),
         icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
       ),
     );
@@ -240,7 +319,11 @@ class _DriverDashboardState extends State<DriverDashboard>
         Marker(
           markerId: MarkerId('stop_$i'),
           position: coord,
-          infoWindow: InfoWindow(title: 'Stop ${i + 1}: ${stop.name}'),
+          infoWindow: InfoWindow(
+            title: DriverLocalizations.of(
+              context,
+            )!.stopPointMarker(i + 1, stop.name),
+          ),
           icon: BitmapDescriptor.defaultMarkerWithHue(
             BitmapDescriptor.hueOrange,
           ),
@@ -282,7 +365,11 @@ class _DriverDashboardState extends State<DriverDashboard>
     if (!_isSharing) {
       if (_myBus == null) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Please assign a bus first')),
+          SnackBar(
+            content: Text(
+              DriverLocalizations.of(context)!.pleaseAssignBusFirst,
+            ),
+          ),
         );
         return;
       }
@@ -303,7 +390,7 @@ class _DriverDashboardState extends State<DriverDashboard>
 
     // Update bus status to live
     dataService.updateBusStatus(_myBus!.id, 'on-time').catchError((e) {
-      if (kDebugMode) print('Failed to update bus status: $e');
+      AppLogger.e('Failed to update bus status: $e');
     });
 
     locationService.startLocationTracking(
@@ -330,7 +417,7 @@ class _DriverDashboardState extends State<DriverDashboard>
     _saveSelections();
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: const Text('Location sharing started'),
+        content: Text(DriverLocalizations.of(context)!.locationSharingStarted),
         backgroundColor: AppColors.success,
       ),
     );
@@ -373,7 +460,9 @@ class _DriverDashboardState extends State<DriverDashboard>
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              '⚠️ You are off route! (${minDistance.toInt()}m away)',
+              DriverLocalizations.of(
+                context,
+              )!.offRouteAlert(minDistance.toInt()),
             ),
             backgroundColor: AppColors.warning,
             duration: const Duration(seconds: 5),
@@ -413,7 +502,9 @@ class _DriverDashboardState extends State<DriverDashboard>
 
       if (mounted) {
         setState(() {
-          _nextStopETA = '$timeMinutes min to ${nextStop!.name}';
+          _nextStopETA = DriverLocalizations.of(
+            context,
+          )!.etaToNextStop(timeMinutes, nextStop!.name);
         });
       }
     }
@@ -466,7 +557,7 @@ class _DriverDashboardState extends State<DriverDashboard>
     // Revert bus status to offline
     if (_myBus != null) {
       dataService.updateBusStatus(_myBus!.id, 'not-running').catchError((e) {
-        if (kDebugMode) print('Failed to update bus status: $e');
+        AppLogger.e('Failed to update bus status: $e');
       });
     }
 
@@ -477,9 +568,11 @@ class _DriverDashboardState extends State<DriverDashboard>
       });
     }
     _saveSelections();
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text('Location sharing stopped')));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(DriverLocalizations.of(context)!.locationSharingStopped),
+      ),
+    );
   }
 
   Future<void> _handleAssignBus() async {
@@ -503,7 +596,7 @@ class _DriverDashboardState extends State<DriverDashboard>
       _updateMarkers();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text('Bus assigned successfully!'),
+          content: Text(DriverLocalizations.of(context)!.busAssignedSuccess),
           backgroundColor: AppColors.success,
         ),
       );
@@ -511,7 +604,9 @@ class _DriverDashboardState extends State<DriverDashboard>
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Failed to assign bus: $e'),
+          content: Text(
+            DriverLocalizations.of(context)!.assignBusError(e.toString()),
+          ),
           backgroundColor: AppColors.error,
         ),
       );
@@ -534,7 +629,7 @@ class _DriverDashboardState extends State<DriverDashboard>
       _updateMarkers();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text('Bus assignment removed'),
+          content: Text(DriverLocalizations.of(context)!.busAssignmentRemoved),
           backgroundColor: Theme.of(context).colorScheme.secondary,
         ),
       );
@@ -542,7 +637,11 @@ class _DriverDashboardState extends State<DriverDashboard>
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Failed to remove assignment: $e'),
+          content: Text(
+            DriverLocalizations.of(
+              context,
+            )!.removeAssignmentError(e.toString()),
+          ),
           backgroundColor: AppColors.error,
         ),
       );
@@ -556,7 +655,7 @@ class _DriverDashboardState extends State<DriverDashboard>
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: const Text('Assignment accepted!'),
+            content: Text(DriverLocalizations.of(context)!.assignmentAccepted),
             backgroundColor: AppColors.success,
           ),
         );
@@ -566,7 +665,11 @@ class _DriverDashboardState extends State<DriverDashboard>
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to accept: $e'),
+            content: Text(
+              DriverLocalizations.of(
+                context,
+              )!.acceptAssignmentError(e.toString()),
+            ),
             backgroundColor: AppColors.error,
           ),
         );
@@ -581,7 +684,7 @@ class _DriverDashboardState extends State<DriverDashboard>
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: const Text('Assignment declined'),
+            content: Text(DriverLocalizations.of(context)!.assignmentDeclined),
             backgroundColor: Theme.of(context).colorScheme.secondary,
           ),
         );
@@ -595,7 +698,11 @@ class _DriverDashboardState extends State<DriverDashboard>
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to decline: $e'),
+            content: Text(
+              DriverLocalizations.of(
+                context,
+              )!.declineAssignmentError(e.toString()),
+            ),
             backgroundColor: AppColors.error,
           ),
         );
@@ -610,7 +717,9 @@ class _DriverDashboardState extends State<DriverDashboard>
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        title: 'Welcome, ${user?.fullName ?? 'Driver'}'.text.ellipsis.make(),
+        title: DriverLocalizations.of(
+          context,
+        )!.welcomeDriver(user?.fullName ?? 'Driver').text.ellipsis.make(),
         backgroundColor: Theme.of(context).primaryColor,
         foregroundColor: Theme.of(context).colorScheme.onPrimary,
         actions: [
@@ -630,9 +739,15 @@ class _DriverDashboardState extends State<DriverDashboard>
             context,
           ).colorScheme.onPrimary.withValues(alpha: 0.7),
           indicatorColor: Theme.of(context).colorScheme.onPrimary,
-          tabs: const [
-            Tab(text: 'Bus Setup', icon: Icon(Icons.settings)),
-            Tab(text: 'Live Tracking', icon: Icon(Icons.map)),
+          tabs: [
+            Tab(
+              text: DriverLocalizations.of(context)!.busSetupTab,
+              icon: Icon(Icons.settings),
+            ),
+            Tab(
+              text: DriverLocalizations.of(context)!.liveTrackingTab,
+              icon: Icon(Icons.map),
+            ),
           ],
         ),
       ),
@@ -653,7 +768,9 @@ class _DriverDashboardState extends State<DriverDashboard>
       child: VStack([
         LocationDisplay(currentLocation: _currentLocation),
         VStack([
-          'Bus & Route Selection'.text.size(24).bold.make(),
+          DriverLocalizations.of(
+            context,
+          )!.busRouteSelection.text.size(24).bold.make(),
           AppSizes.paddingLarge.heightBox,
           if (_myBus == null)
             BusRouteSelectors(

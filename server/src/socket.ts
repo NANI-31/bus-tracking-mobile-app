@@ -71,15 +71,61 @@ export const initializeSocket = (io: Server) => {
       logger.info(`A user connected (unauthenticated): ${socket.id}`);
     }
 
-    socket.on("join_college", (collegeId) => {
+    socket.on("join_college", async (collegeId) => {
       socket.join(collegeId);
       logger.info(
         `[Socket] ${user?.fullName || "User"} joined room: ${collegeId}`
       );
-      // Debug: list rooms for this socket
-      logger.info(
-        `[Socket] Current rooms for ${socket.id}: ${Array.from(socket.rooms)}`
-      );
+
+      // IMMEDIATE LOCATION PUSH:
+      // Fetch latest locations for buses in this college and send to the joining user
+      try {
+        const buses = await Bus.find({ collegeId, isActive: true });
+        // FIX: Convert ObjectId to String because BusLocation stores busId as String
+        const busIds = buses.map((b) => b._id.toString());
+
+        if (busIds.length > 0) {
+          const locations = await BusLocation.aggregate([
+            { $match: { busId: { $in: busIds } } },
+            { $sort: { timestamp: -1 } },
+            {
+              $group: {
+                _id: "$busId",
+                latestLocation: { $first: "$$ROOT" },
+              },
+            },
+          ]);
+
+          logger.info(
+            `[Socket] Sending ${locations.length} cached locations to ${socket.id}`
+          );
+
+          locations.forEach((l) => {
+            const locData = l.latestLocation;
+            // Transform to match the structure expected by the client
+            // Client expects: { busId, collegeId, location: { lat, lng }, speed, heading, timestamp }
+            const payload = {
+              busId: locData.busId,
+              collegeId: collegeId, // ensuring collegeId is present
+              location: {
+                lat: locData.currentLocation?.lat,
+                lng: locData.currentLocation?.lng,
+              },
+              currentLocation: {
+                // Include this too for redundancy given the recent fix
+                lat: locData.currentLocation?.lat,
+                lng: locData.currentLocation?.lng,
+              },
+              speed: locData.speed,
+              heading: locData.heading,
+              timestamp: locData.timestamp,
+            };
+            socket.emit("location_updated", payload);
+          });
+        }
+      } catch (err) {
+        logger.error(`[Socket] Error fetching initial locations: ${err}`);
+      }
     });
 
     socket.on("bus_list_updated", () => {

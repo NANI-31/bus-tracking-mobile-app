@@ -63,7 +63,7 @@ class _LoginScreenState extends State<LoginScreen>
         _allColleges = colleges;
       });
     } catch (e) {
-      debugPrint('Error fetching test data: $e');
+      debugPrint('\x1B[31mError fetching test data: $e\x1B[0m');
     } finally {
       setState(() => _isFetchingTestUsers = false);
     }

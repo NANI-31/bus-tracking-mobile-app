@@ -2,13 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:collegebus/models/bus_model.dart';
 import 'package:collegebus/utils/constants.dart';
-import 'package:collegebus/widgets/common/common_map_view.dart';
+import 'package:collegebus/widgets/maps/live_bus_map.dart';
 import 'package:velocity_x/velocity_x.dart';
 
 class StudentMapTab extends StatelessWidget {
   final LatLng? currentLocation;
-  final Set<Marker> markers;
-  final Set<Polyline> polylines;
+  final List<BusModel> buses;
   final BusModel? selectedBus;
   final String? selectedRouteType;
   final String? selectedBusNumber;
@@ -24,8 +23,7 @@ class StudentMapTab extends StatelessWidget {
   const StudentMapTab({
     super.key,
     required this.currentLocation,
-    required this.markers,
-    required this.polylines,
+    required this.buses,
     required this.selectedBus,
     required this.selectedRouteType,
     required this.selectedBusNumber,
@@ -170,13 +168,12 @@ class StudentMapTab extends StatelessWidget {
 
       // Map
       (currentLocation != null
-              ? CommonMapView(
+              ? LiveBusMap(
+                  buses: buses,
+                  selectedBus: selectedBus,
                   onMapCreated: onMapCreated,
-                  currentLocation: currentLocation,
-                  markers: markers,
-                  polylines: polylines,
                   mapStyle: mapStyle,
-                  initialZoom: 14.0,
+                  onBusTap: (bus) => onBusSelected(bus),
                 )
               : const Center(child: CircularProgressIndicator()))
           .expand(flex: 3),
