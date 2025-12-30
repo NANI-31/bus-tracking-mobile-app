@@ -1,0 +1,27 @@
+stateDiagram-v2
+    [*] --> Inactive : Bus Created
+
+    Inactive --> AssignedPending : assign(driverId)
+    AssignedPending --> Ready : accept()
+    AssignedPending --> Inactive : reject()
+    
+    Ready --> OnRoute : startTrip()
+    OnRoute --> Delayed : detectDelay()
+    Delayed --> OnRoute : resumeOnTime()
+    
+    OnRoute --> TripCompleted : endTrip()
+    Delayed --> TripCompleted : endTrip()
+    
+    TripCompleted --> Ready : reset()
+    TripCompleted --> Inactive : unassign()
+    Ready --> Inactive : unassign()
+
+    state AssignedPending {
+        [*] --> WaitingForDriver
+        WaitingForDriver --> [*] : timeout
+    }
+
+    state OnRoute {
+        [*] --> Broadcasting
+        Broadcasting --> [*] : locationUpdate
+    }

@@ -1,0 +1,46 @@
+sequenceDiagram
+    autonumber
+    participant Coordinator
+    participant CoordinatorApp as Coordinator App
+    participant BusController as Bus Controller
+    participant BusModel as Bus DB
+    participant AssignmentLog as Assignment Log
+    participant NotificationService as Notification Service
+    participant DriverApp as Driver App
+    participant Driver
+
+    Coordinator->>CoordinatorApp: Select bus and driver
+    Coordinator->>CoordinatorApp: Tap Assign
+    
+    CoordinatorApp->>BusController: PUT /api/buses/busId/assign
+    
+    BusController->>BusModel: updateOne driverId status pending
+    BusModel-->>BusController: Update confirmed
+    
+    BusController->>AssignmentLog: insertOne status pending
+    AssignmentLog-->>BusController: Insert confirmed
+    
+    BusController->>NotificationService: notifyDriver
+    NotificationService->>DriverApp: FCM push notification
+    
+    BusController-->>CoordinatorApp: 200 Assignment sent
+    CoordinatorApp-->>Coordinator: Awaiting driver response
+
+    DriverApp-->>Driver: Display notification
+    Driver->>DriverApp: View assignment details
+    
+    alt Driver Accepts
+        Driver->>DriverApp: Tap Accept
+        DriverApp->>BusController: PUT accept-assignment
+        BusController->>BusModel: updateOne status accepted
+        BusController->>NotificationService: notifyCoordinator
+        NotificationService->>CoordinatorApp: FCM notification
+        DriverApp-->>Driver: Display assigned bus
+    else Driver Rejects
+        Driver->>DriverApp: Tap Reject
+        DriverApp->>BusController: PUT reject-assignment
+        BusController->>BusModel: clear driverId
+        BusController->>NotificationService: notifyCoordinator
+        NotificationService->>CoordinatorApp: FCM notification
+        CoordinatorApp-->>Coordinator: Driver rejected
+    end

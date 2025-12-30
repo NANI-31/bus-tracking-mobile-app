@@ -1,0 +1,42 @@
+sequenceDiagram
+    participant Driver as 🚌 Driver App
+    participant Student as 📱 Student App
+    participant Admin as 💻 Admin Portal
+    participant SocketServer as ⚡ Socket.IO Server
+    participant DB as 🗄️ MongoDB
+    participant FCM as 🔔 Firebase Cloud Messaging
+
+    Note over Driver, Admin: System Initialization & Handshake
+
+    Driver->>SocketServer: Connect (Auth Token)
+    SocketServer-->>Driver: Acknowledgement (SocketID assigned)
+    Driver->>SocketServer: Join Room ("bus_101")
+    
+    Student->>SocketServer: Connect (Auth Token)
+    SocketServer-->>Student: Acknowledgement
+    Student->>SocketServer: Join Room ("route_5")
+
+    Note over Driver, SocketServer: 📍 Continuous Location Stream (Every 3s)
+
+    loop Live Tracking
+        Driver->>SocketServer: emit('updateLocation', {lat, lng, heading})
+        SocketServer->>SocketServer: Validate Data
+        
+        par Broadcast to Route Subscribers
+            SocketServer-->>Student: emit('busLocation', {lat, lng})
+        and Persist Async
+            SocketServer->>DB: Update Bus Current Location
+        end
+    end
+
+    Note over Driver, Admin: 🚨 incident Reporting Event
+
+    Driver->>SocketServer: emit('reportIncident', {type: 'Breakdown'})
+    SocketServer->>DB: Create Incident Record
+    
+    par Notify Admins
+        SocketServer-->>Admin: emit('incidentAlert', {busId: '101'})
+    and Push Notification
+        SocketServer->>FCM: Send High Priority Notification
+        FCM-->>Student: Push Notification ("Bus Breakdown")
+    end

@@ -1,0 +1,55 @@
+sequenceDiagram
+    autonumber
+    participant Client as 📱 Mobile Client
+    participant Gateway as 🛡️ API Gateway / Middleware
+    participant AuthCtrl as 🔐 Auth Controller
+    participant UserDB as 🗄️ MongoDB (Users)
+    participant ProtectedRPC as 📦 Protected Service
+    participant SocketGW as 🔌 Socket.IO Gateway
+
+    note over Client, SocketGW: 🔒 PHASE 1: Authentication (Login)
+    
+    Client->>Gateway: POST /api/auth/login (email, password)
+    Gateway->>AuthCtrl: Route Request
+    AuthCtrl->>UserDB: Find User & Verify Password
+    
+    alt Invalid Credentials
+        UserDB-->>AuthCtrl: Null / Mismatch
+        AuthCtrl-->>Client: 401 Unauthorized
+    else Valid Credentials
+        UserDB-->>AuthCtrl: User Document
+        AuthCtrl->>AuthCtrl: Generate JWT (Sign Payload)
+        AuthCtrl-->>Client: 200 OK { token, userProfile }
+    end
+
+    note over Client, SocketGW: 🔐 PHASE 2: Authorization (HTTP Request)
+    
+    Client->>Gateway: GET /api/buses (Header: Bearer JWT)
+    Gateway->>Gateway: AuthMiddleware: Verify Signature & Expiry
+    
+    alt Invalid/Expired Token
+        Gateway-->>Client: 401 Unauthorized
+    else Valid Token
+        Gateway->>Gateway: RBAC: Check Role Permissions
+        
+        alt Role Denied
+            Gateway-->>Client: 403 Forbidden
+        else Role Allowed
+            Gateway->>ProtectedRPC: Forward Request
+            ProtectedRPC-->>Client: 200 OK (Data)
+        end
+    end
+
+    note over Client, SocketGW: ⚡ PHASE 3: Socket Authorization (Real-Time)
+    
+    Client->>SocketGW: WebSocket Handshake (auth: { token })
+    SocketGW->>SocketGW: Verify Token & Extract User
+    
+    alt Token Valid
+        SocketGW-->>Client: Connection Established
+        Client->>SocketGW: emit('joinRoute', routeId)
+        SocketGW->>SocketGW: Join Room
+    else Token Invalid
+        SocketGW-->>Client: Connection Error (Authentication Error)
+        SocketGW->>SocketGW: Disconnect
+    end

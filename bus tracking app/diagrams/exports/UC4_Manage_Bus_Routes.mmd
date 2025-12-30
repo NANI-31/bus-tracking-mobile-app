@@ -1,0 +1,32 @@
+flowchart LR
+    subgraph Actors
+        Coordinator((Bus Coordinator))
+        Admin((Admin))
+    end
+
+    subgraph System["College Bus Tracking System"]
+        UC1[Create Route]
+        UC2[Edit Route]
+        UC3[Delete Route]
+        UC4[Add Stop Points]
+        UC5[View All Routes]
+        UC6[Assign Route to Bus]
+    end
+
+    subgraph External
+        MongoDB([MongoDB Database])
+    end
+
+    Coordinator --> UC1
+    Coordinator --> UC2
+    Coordinator --> UC3
+    Coordinator --> UC5
+    Coordinator --> UC6
+    Admin --> UC1
+    Admin --> UC2
+    Admin --> UC3
+
+    UC1 -.->|includes| UC4
+    UC2 -.->|extends| UC4
+    UC1 --> MongoDB
+    UC2 --> MongoDB

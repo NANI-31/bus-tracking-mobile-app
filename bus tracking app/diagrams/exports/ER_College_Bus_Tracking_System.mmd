@@ -1,0 +1,77 @@
+erDiagram
+    User {
+        ObjectId _id PK
+        String name
+        String email
+        String passwordHash
+        String role
+        String fcmToken
+        Boolean isApproved
+        ObjectId assignedRouteId FK
+    }
+
+    Bus {
+        ObjectId _id PK
+        String registrationNumber
+        Integer capacity
+        String status
+        ObjectId currentDriverId FK
+        ObjectId currentRouteId FK
+    }
+
+    Route {
+        ObjectId _id PK
+        String routeName
+        String startPoint
+        String endPoint
+        Object[] stops
+    }
+
+    Incident {
+        ObjectId _id PK
+        String type
+        String description
+        String severity
+        String status
+        ObjectId reporterId FK
+        ObjectId busId FK
+        Date createdAt
+    }
+
+    Notification {
+        ObjectId _id PK
+        String title
+        String body
+        String type
+        Boolean isRead
+        ObjectId recipientId FK
+        Date sentAt
+    }
+
+    AssignmentLog {
+        ObjectId _id PK
+        ObjectId busId FK
+        ObjectId driverId FK
+        ObjectId routeId FK
+        Date startTime
+        Date endTime
+    }
+
+    %% Relationships
+    User ||--o{ Incident : "reports"
+    User ||--o{ Notification : "receives"
+    
+    %% Student subscribes to a route
+    Route ||--o{ User : "has subscribers"
+    
+    %% Bus assignment
+    Bus ||--o| User : "driven by (active)"
+    Bus }|--|| Route : "follows (active)"
+    
+    %% Incident scope
+    Bus ||--o{ Incident : "involved in"
+
+    %% Assignment History
+    Bus ||--o{ AssignmentLog : "has history"
+    User ||--o{ AssignmentLog : "has metrics"
+    Route ||--o{ AssignmentLog : "serviced in"

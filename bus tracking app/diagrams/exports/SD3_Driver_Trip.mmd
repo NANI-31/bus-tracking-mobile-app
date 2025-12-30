@@ -1,0 +1,38 @@
+sequenceDiagram
+    autonumber
+    participant Driver
+    participant DriverApp as Driver App
+    participant LocationService as Location Service
+    participant SocketServer as Socket.IO Server
+    participant BusController as Bus Controller
+    participant BusModel as Bus DB
+    participant HistoryModel as History DB
+
+    Driver->>DriverApp: Tap Start Trip
+    DriverApp->>LocationService: requestPermission()
+    LocationService-->>DriverApp: Permission granted
+    
+    DriverApp->>LocationService: getCurrentPosition()
+    LocationService-->>DriverApp: lat lng
+    
+    DriverApp->>SocketServer: emit tripStarted
+    SocketServer->>BusController: handleTripStart
+    
+    BusController->>BusModel: updateOne status on-time
+    BusModel-->>BusController: Update confirmed
+    
+    BusController->>HistoryModel: insertOne trip started
+    HistoryModel-->>BusController: Insert confirmed
+    
+    SocketServer-->>DriverApp: Trip started ack
+    DriverApp-->>Driver: Display Trip Active UI
+
+    Driver->>DriverApp: Tap End Trip
+    DriverApp->>SocketServer: emit tripEnded
+    
+    SocketServer->>BusController: handleTripEnd
+    BusController->>BusModel: updateOne status not-running
+    BusController->>HistoryModel: insertOne trip ended
+    
+    SocketServer-->>DriverApp: Trip ended ack
+    DriverApp-->>Driver: Display Trip Completed

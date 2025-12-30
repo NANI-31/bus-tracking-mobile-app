@@ -97,41 +97,42 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
             // Sections
             VStack([
-              // 1. Quick Stats Row (Replacing minimal Account Info)
-              HStack(
-                [
+              // 1. Quick Stats Column
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
                   _buildStatCard(
                     context,
                     l10n.role,
                     user.role.displayName,
                     Icons.badge_rounded,
                     Colors.blue,
+                    fullWidth: true,
                   ),
-                  12.widthBox,
+
+                  12.heightBox,
+
                   _buildStatCard(
                     context,
                     l10n.collegeId,
                     user.collegeId.isNotEmpty ? user.collegeId : 'N/A',
                     Icons.school_rounded,
                     Colors.purple,
+                    fullWidth: true,
+                  ),
+
+                  12.heightBox,
+
+                  _buildStatCard(
+                    context,
+                    l10n.phone,
+                    user.phoneNumber ?? 'Not provided',
+                    Icons.phone_rounded,
+                    Colors.teal,
+                    fullWidth: true,
                   ),
                 ],
-                alignment: MainAxisAlignment.center,
-                axisSize: MainAxisSize.max,
-              ).wFull(context),
-
-              12.heightBox,
-
-              // Phone Number separate (full width or centered)
-              _buildStatCard(
-                context,
-                l10n.phone,
-                user.phoneNumber ?? 'Not provided',
-                Icons.phone_rounded,
-                Colors.teal,
-                fullWidth: true,
               ),
-
               // Divider or spacing
               24.heightBox,
 

@@ -1,0 +1,39 @@
+flowchart TB
+    %% External Inputs
+    Driver[Driver App]
+
+    %% Processes
+    P2_1((2.1 \n Validate \n GPS Data))
+    P2_2((2.2 \n Update \n Bus State))
+    P2_3((2.3 \n Calculate \n ETA))
+    P2_4((2.4 \n Check \n Proximity))
+    P2_5((2.5 \n Broadcast \n Update))
+
+    %% Stores
+    D2[(D2 \n Bus DB)]
+    D3[(D3 \n Route DB)]
+    D4[(D4 \n History DB)]
+
+    %% External Output
+    Subscribers[Socket Subscribers]
+    NotifService[[Notification Service]]
+
+    %% Flows
+    Driver -->|Raw GPS Packet| P2_1
+    
+    P2_1 -->|Valid Data| P2_2
+    P2_1 -->|Invalid Data| Discard[Discard]
+
+    P2_2 -->|Current Location| D2
+    P2_2 -->|Location Log| D4
+    P2_2 -->|State Changed| P2_3
+
+    D3 -.->|Stop Locations| P2_3
+    P2_3 -->|ETA List| P2_4
+    P2_3 -->|ETA Value| P2_5
+
+    P2_4 -->|Triggers| NotifService
+    D3 -.->|Geofence Data| P2_4
+
+    P2_2 -->|Position Data| P2_5
+    P2_5 -->|Socket Event| Subscribers

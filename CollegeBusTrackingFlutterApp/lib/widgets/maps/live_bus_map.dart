@@ -16,9 +16,6 @@ class LiveBusMap extends StatefulWidget {
   final bool showUserLocation;
   final Function(GoogleMapController)? onMapCreated;
 
-  // Optional: Function to build custom markers if the default logic isn't enough
-  // For now, we'll implement standard logic inside.
-
   const LiveBusMap({
     super.key,
     required this.buses,
@@ -30,10 +27,10 @@ class LiveBusMap extends StatefulWidget {
   });
 
   @override
-  State<LiveBusMap> createState() => _LiveBusMapState();
+  State<LiveBusMap> createState() => LiveBusMapState();
 }
 
-class _LiveBusMapState extends State<LiveBusMap> {
+class LiveBusMapState extends State<LiveBusMap> {
   final Map<String, Marker> _markers = {};
   // Cache locations to handle updates
   final Map<String, BusLocationModel> _liveLocations = {};
@@ -41,6 +38,19 @@ class _LiveBusMapState extends State<LiveBusMap> {
   LatLng? _centerLocation;
   StreamSubscription? _locationSubscription;
   GoogleMapController? _mapController;
+
+  // Smart centering logic
+  bool _isFollowing = true;
+  bool _isProgrammaticMove = false;
+
+  void resumeFollowing() {
+    if (mounted) {
+      setState(() => _isFollowing = true);
+      if (widget.selectedBus != null) {
+        _animateToBus(widget.selectedBus!);
+      }
+    }
+  }
 
   @override
   void initState() {
@@ -55,8 +65,11 @@ class _LiveBusMapState extends State<LiveBusMap> {
     if (oldWidget.buses != widget.buses ||
         oldWidget.selectedBus != widget.selectedBus) {
       _updateAllMarkers();
+
+      // If a new bus is selected, or initial selection, reset following
       if (widget.selectedBus != null &&
           widget.selectedBus != oldWidget.selectedBus) {
+        _isFollowing = true;
         _animateToBus(widget.selectedBus!);
       }
     }
@@ -114,7 +127,6 @@ class _LiveBusMapState extends State<LiveBusMap> {
   void _updateAllMarkers() {
     final Map<String, Marker> newMarkers = {};
 
-    // Iterate through the buses passed to the widget (filtered list)
     for (var bus in widget.buses) {
       if (_liveLocations.containsKey(bus.id)) {
         final loc = _liveLocations[bus.id]!;
@@ -127,20 +139,19 @@ class _LiveBusMapState extends State<LiveBusMap> {
       _markers.clear();
       _markers.addAll(newMarkers);
     });
+
+    // Auto-center if following
+    if (_isFollowing && widget.selectedBus != null) {
+      _animateToBus(widget.selectedBus!);
+    }
   }
 
   Marker _createMarker(BusModel bus, BusLocationModel loc) {
-    // We can use StudentMapHelper or simple logic.
-    // Let's use simple logic for commonality, or import helper if complex icons needed.
-    // Given the requirement "make the map code as common", simpler is better for now unless specific UI requested.
-    // However, StudentMapHelper has rotation/custom icons. Let's try to simulate that.
-
     return Marker(
       markerId: MarkerId(bus.id),
       position: loc.currentLocation,
-      rotation: 0.0, // Stable icon, ignores driver heading
+      rotation: 0.0,
       icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueAzure),
-      // Ideal: Use StudentMapHelper.getBusIcon() if available/refactored
       infoWindow: InfoWindow(
         title: 'Bus ${bus.busNumber}',
         snippet: bus.status,
@@ -152,9 +163,15 @@ class _LiveBusMapState extends State<LiveBusMap> {
   void _animateToBus(BusModel bus) {
     if (_liveLocations.containsKey(bus.id) && _mapController != null) {
       final loc = _liveLocations[bus.id]!;
-      _mapController!.animateCamera(
-        CameraUpdate.newLatLngZoom(loc.currentLocation, 16.0),
-      );
+      _isProgrammaticMove = true;
+      _mapController!
+          .animateCamera(CameraUpdate.newLatLngZoom(loc.currentLocation, 16.0))
+          .then((_) {
+            // Reset flag after animation completes/starts
+            Future.delayed(const Duration(milliseconds: 500), () {
+              if (mounted) _isProgrammaticMove = false;
+            });
+          });
     }
   }
 
@@ -173,13 +190,23 @@ class _LiveBusMapState extends State<LiveBusMap> {
     return CommonMapView(
       currentLocation: _centerLocation!,
       markers: _markers.values.toSet(),
-      polylines: const {}, // Pass polylines if we assume route drawing later
+      polylines: const {},
       onMapCreated: (controller) {
         _mapController = controller;
         widget.onMapCreated?.call(controller);
       },
+      onCameraMoveStarted: () {
+        if (!_isProgrammaticMove) {
+          // User gesture detected
+          if (_isFollowing) {
+            setState(() => _isFollowing = false);
+          }
+        }
+      },
       initialZoom: 14.0,
       mapStyle: widget.mapStyle,
+      myLocationEnabled: widget.showUserLocation,
+      myLocationButtonEnabled: widget.showUserLocation,
     );
   }
 }

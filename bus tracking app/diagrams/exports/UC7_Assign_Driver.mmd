@@ -1,0 +1,31 @@
+flowchart LR
+    subgraph Actors
+        Coordinator((Bus Coordinator))
+        Driver((Driver))
+        Admin((Admin))
+    end
+
+    subgraph System["College Bus Tracking System"]
+        UC1[Assign Driver to Bus]
+        UC2[Accept Assignment]
+        UC3[Reject Assignment]
+        UC4[View Available Drivers]
+        UC5[View Available Buses]
+        UC6[Log Assignment]
+        UC7[Send Assignment Notification]
+    end
+
+    subgraph External
+        FCM([Firebase FCM])
+    end
+
+    Coordinator --> UC1
+    Coordinator --> UC4
+    Coordinator --> UC5
+    Admin --> UC1
+    Driver --> UC2
+    Driver --> UC3
+
+    UC1 -.->|includes| UC6
+    UC1 -.->|includes| UC7
+    UC7 --> FCM

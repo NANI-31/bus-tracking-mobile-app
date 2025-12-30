@@ -1,0 +1,36 @@
+flowchart TB
+    subgraph ExternalEntities
+        User[User \n Student/Teacher/Parent]
+        Driver[Driver]
+        Coordinator[Bus Coordinator]
+        Admin[System Admin]
+        Services[External Services \n Google Maps / FCM]
+    end
+
+    System((0.0 \n College Bus \n Tracking System))
+
+    %% User Flows
+    User -- Login Credentials --> System
+    System -- Bus Location & ETA --> User
+    System -- Notifications --> User
+
+    %% Driver Flows
+    Driver -- GPS Location --> System
+    Driver -- Trip Status --> System
+    Driver -- Incident Reports --> System
+    System -- Route Assignment --> Driver
+
+    %% Coordinator Flows
+    Coordinator -- Route Details --> System
+    Coordinator -- Bus Assignment --> System
+    System -- Operational Reports --> Coordinator
+
+    %% Admin Flows
+    Admin -- User Approvals --> System
+    System -- System Logs --> Admin
+
+    %% Service Flows
+    System -- Map Requests --> Services
+    Services -- Map Tiles/Geocoding --> System
+    System -- Push Payloads --> Services
+    Services -- Delivery Status --> System

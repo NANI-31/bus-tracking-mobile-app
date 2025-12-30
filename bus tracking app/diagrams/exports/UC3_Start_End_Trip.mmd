@@ -1,0 +1,30 @@
+flowchart LR
+    subgraph Actors
+        Driver((Driver))
+        Coordinator((Bus Coordinator))
+    end
+
+    subgraph System["College Bus Tracking System"]
+        UC1[Start Trip]
+        UC2[End Trip]
+        UC3[Broadcast Location]
+        UC4[Log Trip Event]
+        UC5[Notify Subscribers]
+    end
+
+    subgraph External
+        GPS([Device GPS])
+        SocketIO([Socket.IO Server])
+    end
+
+    Driver --> UC1
+    Driver --> UC2
+    Coordinator --> UC4
+
+    UC1 -.->|includes| UC3
+    UC1 -.->|includes| UC4
+    UC2 -.->|includes| UC4
+    UC1 -.->|extends| UC5
+
+    UC3 --> GPS
+    UC3 --> SocketIO

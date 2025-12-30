@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:provider/provider.dart';
 import 'package:collegebus/models/bus_model.dart';
+import 'package:collegebus/services/data_service.dart';
 import 'package:collegebus/utils/constants.dart';
 import 'package:collegebus/widgets/maps/live_bus_map.dart';
 import 'package:velocity_x/velocity_x.dart';
@@ -43,6 +45,14 @@ class StudentMapTab extends StatefulWidget {
 
 class _StudentMapTabState extends State<StudentMapTab>
     with AutomaticKeepAliveClientMixin {
+  GoogleMapController? _mapController;
+  final GlobalKey<LiveBusMapState> _mapStateKey = GlobalKey<LiveBusMapState>();
+
+  void _onMapCreated(GoogleMapController controller) {
+    _mapController = controller;
+    widget.onMapCreated(controller);
+  }
+
   @override
   bool get wantKeepAlive => true;
 
@@ -180,9 +190,10 @@ class _StudentMapTabState extends State<StudentMapTab>
       // Map
       (widget.currentLocation != null
               ? LiveBusMap(
+                  key: _mapStateKey,
                   buses: widget.buses,
                   selectedBus: widget.selectedBus,
-                  onMapCreated: widget.onMapCreated,
+                  onMapCreated: _onMapCreated, // Use local interceptor
                   mapStyle: widget.mapStyle,
                   onBusTap: (bus) => widget.onBusSelected(bus),
                 )
@@ -191,48 +202,72 @@ class _StudentMapTabState extends State<StudentMapTab>
 
       // Selected bus info
       if (widget.selectedBus != null)
-        VxBox(
-              child: VStack([
-                HStack([
-                  CircleAvatar(
-                    backgroundColor: Theme.of(context).primaryColor,
-                    child: Icon(
-                      Icons.directions_bus,
-                      color: Theme.of(context).colorScheme.onPrimary,
+        GestureDetector(
+          onTap: () {
+            // Re-enable auto-centering
+            _mapStateKey.currentState?.resumeFollowing();
+            // Also animate once to be sure
+            if (_mapController != null) {
+              final dataService = Provider.of<DataService>(
+                context,
+                listen: false,
+              );
+              dataService.getBusLocation(widget.selectedBus!.id).first.then((
+                location,
+              ) {
+                if (location != null && mounted) {
+                  _mapController!.animateCamera(
+                    CameraUpdate.newLatLngZoom(location.currentLocation, 16.0),
+                  );
+                }
+              });
+            }
+          },
+          child:
+              VxBox(
+                    child: VStack([
+                      HStack([
+                        CircleAvatar(
+                          backgroundColor: Theme.of(context).primaryColor,
+                          child: Icon(
+                            Icons.directions_bus,
+                            color: Theme.of(context).colorScheme.onPrimary,
+                          ),
+                        ),
+                        AppSizes.paddingMedium.widthBox,
+                        VStack([
+                          'Bus ${widget.selectedBus!.busNumber}'.text
+                              .size(18)
+                              .bold
+                              .make(),
+                          4.heightBox,
+                          'Tap to center on map'.text
+                              .size(12)
+                              .italic
+                              .color(
+                                Theme.of(
+                                  context,
+                                ).colorScheme.onSurface.withValues(alpha: 0.6),
+                              )
+                              .make(),
+                        ]).expand(),
+                        IconButton(
+                          icon: const Icon(Icons.close),
+                          onPressed: () => widget.onBusSelected(null),
+                        ),
+                      ]),
+                    ]),
+                  )
+                  .color(Theme.of(context).colorScheme.surface)
+                  .customRounded(
+                    const BorderRadius.only(
+                      topLeft: Radius.circular(AppSizes.radiusLarge),
+                      topRight: Radius.circular(AppSizes.radiusLarge),
                     ),
-                  ),
-                  AppSizes.paddingMedium.widthBox,
-                  VStack([
-                    'Bus ${widget.selectedBus!.busNumber}'.text
-                        .size(18)
-                        .bold
-                        .make(),
-                    4.heightBox,
-                    'Selected Bus'.text
-                        .size(14)
-                        .color(
-                          Theme.of(
-                            context,
-                          ).colorScheme.onSurface.withValues(alpha: 0.6),
-                        )
-                        .make(),
-                  ]).expand(),
-                  IconButton(
-                    icon: const Icon(Icons.close),
-                    onPressed: () => widget.onBusSelected(null),
-                  ),
-                ]),
-              ]),
-            )
-            .color(Theme.of(context).colorScheme.surface)
-            .customRounded(
-              const BorderRadius.only(
-                topLeft: Radius.circular(AppSizes.radiusLarge),
-                topRight: Radius.circular(AppSizes.radiusLarge),
-              ),
-            )
-            .make()
-            .p(AppSizes.paddingMedium),
+                  )
+                  .make()
+                  .p(AppSizes.paddingMedium),
+        ),
     ]);
   }
 }

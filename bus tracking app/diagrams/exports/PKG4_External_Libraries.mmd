@@ -1,0 +1,42 @@
+flowchart TB
+    subgraph MobileApp["📱 Flutter Mobile App"]
+        MobileCode["Application Code"]
+        
+        subgraph FlutterLibs["Flutter Packages (pub.dev)"]
+            MapsSDK["google_maps_flutter"]
+            SocketClient["socket_io_client"]
+            FCMClient["firebase_messaging"]
+            HttpLib["dio"]
+            StateLib["provider"]
+            StorageLib["flutter_secure_storage"]
+            LocLib["geolocator"]
+        end
+    end
+
+    subgraph BackendServer["⚙️ Node.js Backend"]
+        ServerCode["Server Code"]
+        
+        subgraph NodeLibs["NPM Packages"]
+            Express["express"]
+            SocketServer["socket.io"]
+            Mongoose["mongoose"]
+            FirebaseAdmin["firebase-admin"]
+            AuthLib["jsonwebtoken"]
+            Cors["cors"]
+        end
+    end
+
+    MobileCode --> MapsSDK
+    MobileCode --> SocketClient
+    MobileCode --> FCMClient
+    MobileCode --> HttpLib
+    MobileCode --> StateLib
+    MobileCode --> StorageLib
+    MobileCode --> LocLib
+
+    ServerCode --> Express
+    ServerCode --> SocketServer
+    ServerCode --> Mongoose
+    ServerCode --> FirebaseAdmin
+    ServerCode --> AuthLib
+    ServerCode --> Cors

@@ -1,0 +1,31 @@
+sequenceDiagram
+    autonumber
+    participant Driver
+    participant DriverApp as Driver App
+    participant IncidentController as Incident Controller
+    participant IncidentModel as Incident DB
+    participant NotificationService as Notification Service
+    participant CoordinatorApp as Coordinator App
+    participant Coordinator
+
+    Driver->>DriverApp: Navigate to Report Incident
+    DriverApp-->>Driver: Display incident form
+    
+    Driver->>DriverApp: Submit type description severity
+    DriverApp->>DriverApp: Capture GPS location
+    
+    DriverApp->>IncidentController: POST /api/incidents
+    
+    IncidentController->>IncidentController: Validate payload
+    IncidentController->>IncidentModel: insertOne status open
+    IncidentModel-->>IncidentController: Created incident
+    
+    IncidentController->>NotificationService: notifyCoordinators
+    NotificationService->>CoordinatorApp: FCM push notification
+    
+    IncidentController-->>DriverApp: 201 Incident reported
+    DriverApp-->>Driver: Incident reported successfully
+    
+    CoordinatorApp-->>Coordinator: Display notification
+    Coordinator->>CoordinatorApp: Tap notification
+    CoordinatorApp-->>Coordinator: View incident details

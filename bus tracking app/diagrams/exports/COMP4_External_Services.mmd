@@ -1,0 +1,41 @@
+flowchart LR
+    subgraph System["College Bus Tracking System"]
+        subgraph Backend["Backend Server"]
+            ExpressAPI["Express API"]
+            SocketIO["Socket.IO"]
+            NotifService["Notif Service"]
+        end
+
+        subgraph MobileApp["Flutter Mobile App"]
+            MapWidget["Map Widget"]
+            PushHandler["Push Handler"]
+        end
+    end
+
+    subgraph ExternalServices["External Services"]
+        subgraph Google["Google Cloud"]
+            GoogleMaps["Maps SDK"]
+            Geocoding["Geocoding API"]
+        end
+
+        subgraph Firebase["Firebase"]
+            FCM["Cloud Messaging"]
+            FirebaseAdmin["Admin SDK"]
+        end
+
+        subgraph MongoDB["MongoDB"]
+            Atlas[("Atlas Cluster")]
+        end
+
+        subgraph Email["Email"]
+            SMTP["SMTP Server"]
+        end
+    end
+
+    ExpressAPI --> Atlas
+    SocketIO --> Atlas
+    NotifService --> FirebaseAdmin
+    FirebaseAdmin --> FCM
+    FCM --> PushHandler
+    MapWidget --> GoogleMaps
+    ExpressAPI --> SMTP

@@ -1,0 +1,31 @@
+flowchart LR
+    subgraph Actors
+        Admin((Admin))
+        Coordinator((Bus Coordinator))
+        User((Pending User))
+    end
+
+    subgraph System["College Bus Tracking System"]
+        UC1[View Pending Users]
+        UC2[Approve User]
+        UC3[Reject User]
+        UC4[Send Approval Notification]
+        UC5[Send Rejection Notification]
+    end
+
+    subgraph External
+        FCM([Firebase FCM])
+    end
+
+    Admin --> UC1
+    Admin --> UC2
+    Admin --> UC3
+    Coordinator --> UC1
+    Coordinator --> UC2
+    User --> UC4
+    User --> UC5
+
+    UC2 -.->|includes| UC4
+    UC3 -.->|includes| UC5
+    UC4 --> FCM
+    UC5 --> FCM

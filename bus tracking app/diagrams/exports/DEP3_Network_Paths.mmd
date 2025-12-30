@@ -1,0 +1,55 @@
+flowchart TB
+    subgraph MobileClients["Mobile Clients"]
+        StudentMobile["Student App"]
+        DriverMobile["Driver App"]
+        CoordMobile["Coordinator App"]
+    end
+
+    subgraph CloudNetwork["Cloud Network"]
+        LB["Load Balancer"]
+        
+        subgraph AppCluster["App Cluster"]
+            API1["API Server 1"]
+            API2["API Server 2"]
+            WS1["WebSocket 1"]
+            WS2["WebSocket 2"]
+        end
+
+        Redis[("Redis Session")]
+    end
+
+    subgraph DataTier["Data Tier"]
+        MongoDB[("MongoDB Atlas")]
+    end
+
+    subgraph ExternalAPIs["External APIs"]
+        FCM["Firebase FCM"]
+        GoogleMaps["Google Maps"]
+    end
+
+    StudentMobile --> LB
+    DriverMobile --> LB
+    CoordMobile --> LB
+
+    StudentMobile <-.-> LB
+    DriverMobile <-.-> LB
+
+    LB --> API1
+    LB --> API2
+    LB --> WS1
+    LB --> WS2
+
+    API1 --> MongoDB
+    API2 --> MongoDB
+    WS1 --> MongoDB
+    WS2 --> MongoDB
+
+    WS1 <--> Redis
+    WS2 <--> Redis
+
+    API1 --> FCM
+    StudentMobile --> GoogleMaps
+    DriverMobile --> GoogleMaps
+
+    FCM -.-> StudentMobile
+    FCM -.-> DriverMobile

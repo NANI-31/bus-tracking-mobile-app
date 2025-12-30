@@ -1,0 +1,34 @@
+sequenceDiagram
+    autonumber
+    participant User
+    participant MobileApp as Mobile App
+    participant AuthController as Auth Controller
+    participant UserModel as User Model
+    participant JWTService as JWT Service
+
+    User->>MobileApp: Enter email and password
+    MobileApp->>MobileApp: Validate input fields
+    
+    alt Input Invalid
+        MobileApp-->>User: Display validation error
+    else Input Valid
+        MobileApp->>AuthController: POST /api/auth/login
+        AuthController->>UserModel: findOne by email
+        
+        alt User Not Found
+            UserModel-->>AuthController: null
+            AuthController-->>MobileApp: 401 Invalid credentials
+            MobileApp-->>User: Display error
+        else User Found
+            UserModel-->>AuthController: User document
+            AuthController->>AuthController: Verify password
+            
+            alt Password Match
+                AuthController->>JWTService: generateToken
+                JWTService-->>AuthController: JWT token
+                AuthController-->>MobileApp: 200 with token
+                MobileApp->>MobileApp: Store token
+                MobileApp-->>User: Navigate to Dashboard
+            end
+        end
+    end

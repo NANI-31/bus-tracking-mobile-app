@@ -1,0 +1,56 @@
+flowchart TB
+    subgraph UserDevices["User Devices"]
+        subgraph Android["Android Devices"]
+            AndroidStudent["Student App"]
+            AndroidDriver["Driver App"]
+        end
+        subgraph iOS["iOS Devices"]
+            iOSStudent["Student App"]
+            iOSTeacher["Teacher App"]
+        end
+    end
+
+    subgraph CloudInfra["Cloud Infrastructure"]
+        subgraph AppServer["Application Server"]
+            NodeJS["Node.js Runtime"]
+            Express["Express.js API"]
+            SocketIO["Socket.IO Server"]
+        end
+    end
+
+    subgraph ManagedServices["Managed Services"]
+        subgraph MongoDBAtlas["MongoDB Atlas"]
+            Primary[("Primary Node")]
+            Secondary1[("Secondary")]
+            Secondary2[("Secondary")]
+        end
+
+        subgraph FirebaseCloud["Firebase"]
+            FCM["Cloud Messaging"]
+        end
+
+        subgraph GoogleCloud["Google Cloud"]
+            MapsAPI["Maps API"]
+        end
+    end
+
+    AndroidStudent <--> Express
+    AndroidDriver <--> Express
+    iOSStudent <--> Express
+    iOSTeacher <--> Express
+
+    AndroidStudent <-.-> SocketIO
+    AndroidDriver <-.-> SocketIO
+    iOSStudent <-.-> SocketIO
+
+    Express --> Primary
+    SocketIO --> Primary
+    Primary --> Secondary1
+    Primary --> Secondary2
+
+    Express --> FCM
+    FCM --> AndroidStudent
+    FCM --> iOSStudent
+
+    AndroidStudent --> MapsAPI
+    AndroidDriver --> MapsAPI

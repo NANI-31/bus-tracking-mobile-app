@@ -1,0 +1,75 @@
+flowchart TB
+    subgraph Backend["src/"]
+        subgraph EntryPoint["Entry"]
+            index["index.ts"]
+            app["app.ts"]
+        end
+
+        subgraph API["API Layer"]
+            routes["routes/"]
+            subgraph RouteModules["Route Modules"]
+                authRoutes["authRoutes.ts"]
+                userRoutes["userRoutes.ts"]
+                busRoutes["busRoutes.ts"]
+                routeRoutes["routeRoutes.ts"]
+                incidentRoutes["incidentRoutes.ts"]
+            end
+        end
+
+        subgraph Controllers["Controller Layer"]
+            controllers["controllers/"]
+            subgraph ControllerModules["Controller Modules"]
+                authCtrl["authController.ts"]
+                userCtrl["userController.ts"]
+                busCtrl["busController.ts"]
+            end
+        end
+
+        subgraph Data["Data Layer"]
+            models["models/"]
+            subgraph ModelModules["Model Modules"]
+                User["User.ts"]
+                Bus["Bus.ts"]
+                Route["Route.ts"]
+                Incident["Incident.ts"]
+            end
+        end
+
+        subgraph Middleware["Middleware Layer"]
+            middleware["middleware/"]
+            authMW["authMiddleware.ts"]
+            rateLimiter["rateLimiter.ts"]
+            errorHandler["errorHandler.ts"]
+        end
+
+        subgraph Services["Service Layer"]
+            services["services/"]
+            notificationSvc["notificationService.ts"]
+        end
+
+        subgraph RealTime["Real-Time Layer"]
+            socket["socket.ts"]
+        end
+
+        subgraph Config["Configuration"]
+            config["config/"]
+            utils["utils/"]
+        end
+    end
+
+    index --> app
+    app --> routes
+    app --> middleware
+    app --> socket
+
+    routes --> RouteModules
+    RouteModules --> controllers
+    controllers --> ControllerModules
+    ControllerModules --> models
+    ControllerModules --> services
+
+    models --> ModelModules
+    middleware --> authMW
+    middleware --> rateLimiter
+    socket --> models
+    socket --> services

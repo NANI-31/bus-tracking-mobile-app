@@ -1,0 +1,36 @@
+flowchart LR
+    subgraph Actors
+        Student((Student))
+        Teacher((Teacher))
+        Driver((Driver))
+        Coordinator((Bus Coordinator))
+        Admin((Admin))
+    end
+
+    subgraph System["College Bus Tracking System"]
+        UC1[View Trip History]
+        UC2[View Driver History]
+        UC3[View Bus History]
+        UC4[Filter by Date]
+        UC5[Export History Report]
+    end
+
+    subgraph External
+        MongoDB([MongoDB Database])
+    end
+
+    Student --> UC1
+    Teacher --> UC1
+    Driver --> UC2
+    Coordinator --> UC2
+    Coordinator --> UC3
+    Admin --> UC2
+    Admin --> UC3
+    Admin --> UC5
+
+    UC1 -.->|extends| UC4
+    UC2 -.->|extends| UC4
+    UC3 -.->|extends| UC4
+    UC1 --> MongoDB
+    UC2 --> MongoDB
+    UC3 --> MongoDB

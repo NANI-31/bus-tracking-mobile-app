@@ -1,0 +1,51 @@
+classDiagram
+    class AuthController {
+        +register()
+        +login()
+        +verifyOtp()
+        +resetPassword()
+    }
+
+    class UserController {
+        +getProfile()
+        +updateProfile()
+        +approveUser()
+        +rejectUser()
+    }
+
+    class BusController {
+        +getAllBuses()
+        +assignDriver()
+        +acceptAssignment()
+        +rejectAssignment()
+    }
+
+    class IncidentController {
+        +createIncident()
+        +getIncidents()
+        +updateStatus()
+    }
+
+    class NotificationService {
+        +sendToUser()
+        +sendToMultiple()
+        +sendToTopic()
+    }
+
+    class SocketHandler {
+        +handleConnection()
+        +handleJoinRoom()
+        +handleUpdateLocation()
+        +broadcastToRoom()
+    }
+
+    class JWTService {
+        +generateToken()
+        +verifyToken()
+    }
+
+    AuthController --> JWTService : uses
+    AuthController --> NotificationService : uses
+    BusController --> SocketHandler : uses
+    BusController --> NotificationService : uses
+    IncidentController --> NotificationService : uses

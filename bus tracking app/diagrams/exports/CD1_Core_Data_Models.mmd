@@ -1,0 +1,49 @@
+classDiagram
+    class User {
+        +String _id
+        +String fullName
+        +String email
+        +String password
+        +String role
+        +String collegeId
+        +Boolean approved
+        +String fcmToken
+        +String routeId
+        +validatePassword()
+        +generateToken()
+    }
+
+    class College {
+        +ObjectId _id
+        +String name
+        +String[] allowedDomains
+        +Boolean verified
+        +String[] busNumbers
+    }
+
+    class Bus {
+        +ObjectId _id
+        +String busNumber
+        +String driverId
+        +String routeId
+        +String collegeId
+        +String status
+        +String assignmentStatus
+    }
+
+    class Route {
+        +ObjectId _id
+        +String routeName
+        +String routeType
+        +Object startPoint
+        +Object endPoint
+        +Object[] stopPoints
+        +String collegeId
+    }
+
+    College "1" -- "*" User : registers
+    College "1" -- "*" Bus : owns
+    College "1" -- "*" Route : defines
+    User "1" -- "0..1" Route : assigned to
+    Bus "*" -- "0..1" Route : services
+    Bus "1" -- "0..1" User : driven by

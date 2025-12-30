@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:collegebus/services/auth_service.dart';
+import 'package:collegebus/services/data_service.dart';
+import 'package:collegebus/models/bus_model.dart';
+import 'package:collegebus/models/route_model.dart';
 import 'package:collegebus/widgets/app_drawer.dart';
 import 'package:velocity_x/velocity_x.dart';
 import 'package:go_router/go_router.dart';
@@ -20,8 +23,13 @@ class StudentHomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final authService = Provider.of<AuthService>(context);
+    final dataService = Provider.of<DataService>(context);
     final user = authService.currentUserModel;
     final userName = user?.fullName.split(' ').first ?? 'Student';
+
+    if (user == null) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
@@ -40,47 +48,102 @@ class StudentHomeScreen extends StatelessWidget {
                 ),
               ],
             ),
-      body: VStack([
-        16.heightBox,
+      body: StreamBuilder<List<RouteModel>>(
+        stream: dataService.getRoutesByCollege(user.collegeId),
+        builder: (context, routeSnapshot) {
+          return StreamBuilder<List<BusModel>>(
+            stream: dataService.getBusesByCollege(user.collegeId),
+            builder: (context, busSnapshot) {
+              if (routeSnapshot.connectionState == ConnectionState.waiting ||
+                  busSnapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              }
 
-        // 1. Welcome Section
-        WelcomeSection(userName: userName),
-        16.heightBox,
+              final routes = routeSnapshot.data ?? [];
+              final buses = busSnapshot.data ?? [];
 
-        // 2. Bus Status Card
-        const BusStatusCard(),
-        20.heightBox,
+              RouteModel? assignedRoute;
+              BusModel? assignedBus;
 
-        // 3. Current Route Card
-        const RouteCard(),
-        16.heightBox,
+              if (user.routeId != null) {
+                final matchingRoutes = routes.where(
+                  (r) => r.id == user.routeId,
+                );
+                assignedRoute = matchingRoutes.isNotEmpty
+                    ? matchingRoutes.first
+                    : null;
 
-        // 4. Action Button
-        TrackBusButton(
-          onTap: () {
-            if (onTrackLive != null) {
-              onTrackLive!();
-            } else {
-              context.go('/student');
-            }
-          },
-        ),
-        16.heightBox,
+                final matchingBuses = buses.where(
+                  (b) => b.routeId == user.routeId,
+                );
+                assignedBus = matchingBuses.isNotEmpty
+                    ? matchingBuses.first
+                    : null;
+              }
 
-        // 5. Update Interval Text
-        HStack([
-          const Icon(Icons.circle, size: 8, color: Colors.greenAccent),
-          8.widthBox,
-          "Live location updates every 30 seconds".text
-              .size(13)
-              .color(
-                Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
-              )
-              .make(),
-        ], alignment: MainAxisAlignment.center).centered(),
+              return RefreshIndicator(
+                onRefresh: () async {
+                  // No-op manually as streams handle it, but keep for UI behavior
+                },
+                child: VStack([
+                  16.heightBox,
 
-        20.heightBox,
-      ]).pSymmetric(h: 20).scrollVertical(),
+                  // 1. Welcome Section
+                  WelcomeSection(userName: userName),
+                  16.heightBox,
+
+                  // 2. Bus Status Card
+                  BusStatusCard(
+                    bus: assignedBus,
+                    userStop: user.preferredStop ?? user.stopName,
+                    stopLocation: user.stopLocation,
+                  ),
+                  20.heightBox,
+
+                  // 3. Current Route Card
+                  RouteCard(
+                    route: assignedRoute,
+                    userStop: user.preferredStop ?? user.stopName,
+                  ),
+                  16.heightBox,
+
+                  // 4. Action Button
+                  TrackBusButton(
+                    onTap: () {
+                      if (onTrackLive != null) {
+                        onTrackLive!();
+                      } else {
+                        context.go('/student');
+                      }
+                    },
+                  ),
+                  16.heightBox,
+
+                  // 5. Update Interval Text
+                  HStack([
+                    const Icon(
+                      Icons.circle,
+                      size: 8,
+                      color: Colors.greenAccent,
+                    ),
+                    8.widthBox,
+                    "Live location updates every 30 seconds".text
+                        .size(13)
+                        .color(
+                          Theme.of(
+                            context,
+                          ).colorScheme.onSurface.withValues(alpha: 0.6),
+                        )
+                        .make(),
+                  ], alignment: MainAxisAlignment.center).centered(),
+
+                  20.heightBox,
+                ]).pSymmetric(h: 20).scrollVertical(),
+              );
+            },
+          );
+        },
+      ),
     );
   }
 }

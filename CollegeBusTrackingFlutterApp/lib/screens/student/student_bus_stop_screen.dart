@@ -16,6 +16,21 @@ class StudentBusStopScreen extends StatefulWidget {
 class _StudentBusStopScreenState extends State<StudentBusStopScreen> {
   String _searchQuery = "";
   String? _updatingStop;
+  late Stream<List<RouteModel>> _routesStream;
+  bool _isDialogOpen = false;
+
+  @override
+  void initState() {
+    super.initState();
+    final dataService = Provider.of<DataService>(context, listen: false);
+    final authService = Provider.of<AuthService>(context, listen: false);
+    final user = authService.currentUserModel;
+    if (user != null) {
+      _routesStream = dataService.getRoutesByCollege(user.collegeId);
+    } else {
+      _routesStream = Stream.value([]);
+    }
+  }
 
   Future<void> _updatePreferredStop(
     String stopName,
@@ -41,12 +56,25 @@ class _StudentBusStopScreenState extends State<StudentBusStopScreen> {
       });
       authService.updateCurrentUser(updatedUser);
       if (mounted) {
-        VxToast.show(context, msg: 'Stop updated to $stopName ($routeName)');
-        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Stop updated to $stopName ($routeName)'),
+            backgroundColor: Colors.green,
+            duration: const Duration(seconds: 2),
+            behavior:
+                SnackBarBehavior.floating, // Make it float to avoid overlapping
+          ),
+        );
+        // Navigator.pop(context); // Let user manually go back to see the selection
       }
     } catch (e) {
       if (mounted) {
-        VxToast.show(context, msg: 'Error updating stop: $e');
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error updating stop: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
       }
     } finally {
       if (mounted) {
@@ -58,7 +86,6 @@ class _StudentBusStopScreenState extends State<StudentBusStopScreen> {
   @override
   Widget build(BuildContext context) {
     final authService = Provider.of<AuthService>(context);
-    final firestoreService = Provider.of<DataService>(context);
     final apiService = Provider.of<ApiService>(context);
     final user = authService.currentUserModel;
 
@@ -115,7 +142,7 @@ class _StudentBusStopScreenState extends State<StudentBusStopScreen> {
 
         // Stops List
         StreamBuilder<List<RouteModel>>(
-          stream: firestoreService.getRoutesByCollege(user.collegeId),
+          stream: _routesStream,
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
               return const CircularProgressIndicator().centered().expand();
@@ -205,10 +232,10 @@ class _StudentBusStopScreenState extends State<StudentBusStopScreen> {
                   routeName: routeName,
                   isSelected: isSelected,
                   isUpdating: isUpdating,
-                  onTap: () => _updatePreferredStop(
+                  onTap: () => _showConfirmationDialog(
+                    context,
                     name,
                     routeId,
-                    null, // implicit ID
                     option['lat'] as double,
                     option['lng'] as double,
                     user.id,
@@ -223,6 +250,71 @@ class _StudentBusStopScreenState extends State<StudentBusStopScreen> {
         ),
       ]),
     );
+  }
+
+  Future<void> _showConfirmationDialog(
+    BuildContext context,
+    String stopName,
+    String routeId,
+    double lat,
+    double lng,
+    String userId,
+    ApiService apiService,
+    AuthService authService,
+    String routeName,
+  ) async {
+    if (_isDialogOpen) return;
+
+    _isDialogOpen = true;
+    await showDialog(
+      context: context,
+      barrierDismissible: false, // Force user to choose action
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text(
+          "Confirm Selection",
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+        content: Text(
+          "Do you want to set '$stopName' as your pickup point?",
+          style: const TextStyle(fontSize: 16),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text("Cancel", style: TextStyle(color: Colors.grey)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Theme.of(context).primaryColor,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            onPressed: () {
+              Navigator.pop(ctx); // Close dialog
+              _updatePreferredStop(
+                stopName,
+                routeId,
+                null,
+                lat,
+                lng,
+                userId,
+                apiService,
+                authService,
+                routeName,
+              );
+            },
+            child: const Text("Select", style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+
+    // Reset flag after dialog is closed
+    if (mounted) {
+      _isDialogOpen = false;
+    }
   }
 
   Widget _buildStopItem({

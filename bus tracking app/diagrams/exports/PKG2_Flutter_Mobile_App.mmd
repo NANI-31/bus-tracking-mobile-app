@@ -1,0 +1,54 @@
+flowchart TB
+    subgraph FlutterApp["lib/"]
+        subgraph Presentation["Presentation Layer"]
+            screens["screens/"]
+            widgets["widgets/"]
+        end
+
+        subgraph RoleScreens["screens/ by Role"]
+            auth["auth/"]
+            student["student/"]
+            teacher["teacher/"]
+            driver["driver/"]
+            coordinator["coordinator/"]
+            admin["admin/"]
+            common["common/"]
+        end
+
+        subgraph BusinessLogic["Business Logic Layer"]
+            services["services/"]
+            providers["providers/"]
+        end
+
+        subgraph ServiceModules["services/"]
+            api_service["api_service.dart"]
+            auth_service["auth_service.dart"]
+            socket_service["socket_service.dart"]
+            location_service["location_service.dart"]
+            firebase_service["firebase_service.dart"]
+        end
+
+        subgraph DataLayer["Data Layer"]
+            models["models/"]
+        end
+
+        subgraph Core["Core / Config"]
+            core["core/"]
+            utils["utils/"]
+            l10n["l10n/"]
+        end
+    end
+
+    screens --> RoleScreens
+    screens --> widgets
+    screens --> providers
+    
+    RoleScreens --> services
+    providers --> services
+    
+    services --> ServiceModules
+    services --> models
+    
+    screens --> core
+    screens --> utils
+    screens --> l10n

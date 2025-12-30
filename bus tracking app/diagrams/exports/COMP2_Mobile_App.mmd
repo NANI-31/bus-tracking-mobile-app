@@ -1,0 +1,36 @@
+flowchart TB
+    subgraph Presentation["Presentation Layer"]
+        Screens["Screens"]
+        Widgets["Widgets"]
+        subgraph RoleScreens["Role-Based Screens"]
+            StudentScreens["Student Screens"]
+            DriverScreens["Driver Screens"]
+            CoordScreens["Coordinator Screens"]
+        end
+    end
+
+    subgraph StateManagement["State Management"]
+        Providers["Providers"]
+        AuthProvider["Auth Provider"]
+        BusProvider["Bus Provider"]
+    end
+
+    subgraph ServiceLayer["Service Layer"]
+        ApiService["API Service"]
+        SocketService["Socket Service"]
+        LocationService["Location Service"]
+        FirebaseService["Firebase Service"]
+        StorageService["Storage Service"]
+    end
+
+    subgraph DataLayer["Data Layer"]
+        Models["Models"]
+        UserModel["User Model"]
+        BusModel["Bus Model"]
+    end
+
+    Screens --> Providers
+    Screens --> Widgets
+    RoleScreens --> Providers
+    Providers --> ServiceLayer
+    ApiService --> Models

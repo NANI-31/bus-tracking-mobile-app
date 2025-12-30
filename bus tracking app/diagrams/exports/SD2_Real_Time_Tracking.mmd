@@ -1,0 +1,31 @@
+sequenceDiagram
+    autonumber
+    participant Driver
+    participant DriverApp as Driver App
+    participant SocketServer as Socket.IO Server
+    participant LocationDB as BusLocation DB
+    participant StudentApp as Student App
+    participant GoogleMaps as Google Maps
+
+    DriverApp->>SocketServer: connect with auth token
+    SocketServer-->>DriverApp: Connection acknowledged
+    
+    StudentApp->>SocketServer: connect with auth token
+    SocketServer-->>StudentApp: Connection acknowledged
+    StudentApp->>SocketServer: joinRoom with routeId
+    SocketServer-->>StudentApp: Room joined
+
+    loop Every 5 seconds during trip
+        Driver->>DriverApp: GPS position update
+        DriverApp->>SocketServer: emit updateLocation
+        
+        par Persist to Database
+            SocketServer->>LocationDB: insertOne location
+            LocationDB-->>SocketServer: Write acknowledged
+        and Broadcast to Room
+            SocketServer->>StudentApp: emit busLocationUpdate
+        end
+        
+        StudentApp->>GoogleMaps: Update marker
+        GoogleMaps-->>StudentApp: Marker animated
+    end

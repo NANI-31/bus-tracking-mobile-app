@@ -1,0 +1,59 @@
+classDiagram
+    class BusLocation {
+        +ObjectId _id
+        +String busId
+        +Object currentLocation
+        +Date timestamp
+        +Number speed
+        +Number heading
+    }
+
+    class Schedule {
+        +ObjectId _id
+        +String routeId
+        +String busId
+        +String shift
+        +Object[] stopSchedules
+        +String collegeId
+        +Boolean isActive
+    }
+
+    class StopSchedule {
+        +String stopName
+        +String arrivalTime
+        +String departureTime
+    }
+
+    class BusAssignmentLog {
+        +ObjectId _id
+        +String busId
+        +String driverId
+        +String routeId
+        +Date assignedAt
+        +Date acceptedAt
+        +Date completedAt
+        +String status
+    }
+
+    class History {
+        +ObjectId _id
+        +String collegeId
+        +String busId
+        +String driverId
+        +String eventType
+        +String description
+        +Object metadata
+        +Date timestamp
+    }
+
+    class Bus {
+        +ObjectId _id
+        +String busNumber
+        +String status
+    }
+
+    Bus "1" -- "*" BusLocation : tracks
+    Bus "1" -- "*" Schedule : scheduled for
+    Bus "1" -- "*" BusAssignmentLog : has
+    Bus "1" -- "*" History : logged in
+    Schedule "1" *-- "*" StopSchedule : contains

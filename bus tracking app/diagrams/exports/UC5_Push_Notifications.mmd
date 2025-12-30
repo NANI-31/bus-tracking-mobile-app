@@ -1,0 +1,33 @@
+flowchart LR
+    subgraph Actors
+        Student((Student))
+        Teacher((Teacher))
+        Parent((Parent))
+        Driver((Driver))
+        Coordinator((Bus Coordinator))
+    end
+
+    subgraph System["College Bus Tracking System"]
+        UC1[Receive Bus Arrival Notification]
+        UC2[Receive Assignment Notification]
+        UC3[Receive Incident Alert]
+        UC4[Receive Trip Status Update]
+        UC5[Send Notification]
+    end
+
+    subgraph External
+        FCM([Firebase FCM])
+    end
+
+    Student --> UC1
+    Student --> UC4
+    Teacher --> UC1
+    Parent --> UC1
+    Driver --> UC2
+    Driver --> UC3
+    Coordinator --> UC3
+
+    UC5 --> FCM
+    UC1 -.->|triggered by| UC5
+    UC2 -.->|triggered by| UC5
+    UC3 -.->|triggered by| UC5

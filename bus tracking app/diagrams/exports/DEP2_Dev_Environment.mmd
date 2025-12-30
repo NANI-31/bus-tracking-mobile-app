@@ -1,0 +1,44 @@
+flowchart TB
+    subgraph DevMachine["Developer Workstation"]
+        VSCode["VS Code"]
+        Terminal["Terminal"]
+        
+        subgraph Backend["Backend Dev"]
+            NodeDev["Node.js dev"]
+            SocketDev["Socket.IO localhost"]
+        end
+
+        subgraph DBLocal["Local Database"]
+            MongoLocal[("MongoDB local")]
+        end
+    end
+
+    subgraph Emulators["Emulators"]
+        AndroidEmu["Android Emulator"]
+        iOSSim["iOS Simulator"]
+    end
+
+    subgraph PhysicalDev["Physical Devices"]
+        AndroidPhone["Android Phone"]
+        iPhone["iPhone"]
+    end
+
+    subgraph ExternalDev["External Dev Services"]
+        FirebaseDev["Firebase Dev"]
+        MapsDev["Maps Dev Key"]
+    end
+
+    VSCode --> Terminal
+    Terminal --> NodeDev
+    NodeDev --> MongoLocal
+
+    VSCode --> AndroidEmu
+    VSCode --> iOSSim
+    VSCode --> AndroidPhone
+
+    AndroidEmu <--> NodeDev
+    iOSSim <--> NodeDev
+    AndroidPhone <--> NodeDev
+
+    AndroidEmu --> FirebaseDev
+    AndroidEmu --> MapsDev

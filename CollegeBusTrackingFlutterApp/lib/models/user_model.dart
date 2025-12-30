@@ -16,6 +16,9 @@ class UserModel {
   final String? rollNumber;
   final String? preferredStop;
   final String? routeId;
+  final String? stopId;
+  final String? stopName;
+  final Map<String, double>? stopLocation;
   final String? fcmToken;
   final String language;
 
@@ -35,6 +38,9 @@ class UserModel {
     this.rollNumber,
     this.preferredStop,
     this.routeId,
+    this.stopId,
+    this.stopName,
+    this.stopLocation,
     this.fcmToken,
     this.language = 'en',
   });
@@ -63,6 +69,15 @@ class UserModel {
       rollNumber: map['rollNumber'],
       preferredStop: map['preferredStop'],
       routeId: map['routeId'],
+      stopId: map['stopId'],
+      stopName: map['stopName'],
+      stopLocation: map['stopLocation'] != null
+          ? Map<String, double>.from(
+              (map['stopLocation'] as Map).map(
+                (k, v) => MapEntry(k.toString(), (v as num).toDouble()),
+              ),
+            )
+          : null,
       fcmToken: map['fcmToken'],
       language: map['language'] ?? 'en',
     );
@@ -85,6 +100,9 @@ class UserModel {
       'rollNumber': rollNumber,
       'preferredStop': preferredStop,
       'routeId': routeId,
+      'stopId': stopId,
+      'stopName': stopName,
+      'stopLocation': stopLocation,
       'fcmToken': fcmToken,
       'language': language,
     };
@@ -106,6 +124,9 @@ class UserModel {
     String? rollNumber,
     String? preferredStop,
     String? routeId,
+    String? stopId,
+    String? stopName,
+    Map<String, double>? stopLocation,
     String? fcmToken,
     String? language,
   }) {
@@ -125,6 +146,9 @@ class UserModel {
       rollNumber: rollNumber ?? this.rollNumber,
       preferredStop: preferredStop ?? this.preferredStop,
       routeId: routeId ?? this.routeId,
+      stopId: stopId ?? this.stopId,
+      stopName: stopName ?? this.stopName,
+      stopLocation: stopLocation ?? this.stopLocation,
       fcmToken: fcmToken ?? this.fcmToken,
       language: language ?? this.language,
     );

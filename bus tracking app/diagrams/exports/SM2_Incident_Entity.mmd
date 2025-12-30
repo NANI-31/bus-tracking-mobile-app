@@ -1,0 +1,14 @@
+stateDiagram-v2
+    [*] --> Open : submit(reporterId, details)
+    
+    Open --> Investigating : startInvestigation(coordinatorId)
+    
+    Investigating --> Escalated : escalate(reason)
+    Investigating --> Resolved : resolve(resolution)
+    
+    Escalated --> Resolved : resolve(resolution)
+    
+    Resolved --> Reopened : reopen(reason)
+    Reopened --> Resolved : closeAgain(resolution)
+    
+    Resolved --> [*] : archive()

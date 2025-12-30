@@ -1,0 +1,45 @@
+classDiagram
+    class Incident {
+        +ObjectId _id
+        +String collegeId
+        +String busId
+        +String driverId
+        +String reporterId
+        +String type
+        +String description
+        +String severity
+        +String status
+        +Object location
+        +report()
+        +escalate()
+        +resolve()
+    }
+
+    class Notification {
+        +ObjectId _id
+        +String senderId
+        +String receiverId
+        +String message
+        +String type
+        +Date timestamp
+        +Boolean isRead
+        +send()
+        +markAsRead()
+    }
+
+    class User {
+        +String _id
+        +String fullName
+        +String role
+        +String fcmToken
+    }
+
+    class Bus {
+        +ObjectId _id
+        +String busNumber
+    }
+
+    User "1" -- "*" Incident : reports
+    User "1" -- "*" Notification : receives
+    Bus "0..1" -- "*" Incident : involved in
+    Incident "1" -- "*" Notification : triggers

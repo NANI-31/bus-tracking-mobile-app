@@ -1,0 +1,56 @@
+flowchart TB
+    subgraph EntryPoint["Entry Point"]
+        Index["index.ts"]
+    end
+
+    subgraph Middleware["Middleware Layer"]
+        AuthMiddleware["Auth Middleware"]
+        RateLimiter["Rate Limiter"]
+        ErrorHandler["Error Handler"]
+    end
+
+    subgraph Routes["Routes Layer"]
+        AuthRoutes["Auth Routes"]
+        UserRoutes["User Routes"]
+        BusRoutes["Bus Routes"]
+        RouteRoutes["Route Routes"]
+    end
+
+    subgraph Controllers["Controller Layer"]
+        AuthController["Auth Controller"]
+        UserController["User Controller"]
+        BusController["Bus Controller"]
+    end
+
+    subgraph Models["Model Layer"]
+        UserModel["User Model"]
+        BusModel["Bus Model"]
+        RouteModel["Route Model"]
+    end
+
+    subgraph Services["Service Layer"]
+        NotificationService["Notification Service"]
+        JWTService["JWT Service"]
+    end
+
+    subgraph RealTime["Real-Time Layer"]
+        SocketHandler["Socket.IO Handler"]
+    end
+
+    subgraph External["External Connections"]
+        MongoDB[("MongoDB")]
+        Firebase["Firebase FCM"]
+    end
+
+    Index --> Middleware
+    Index --> Routes
+    Index --> SocketHandler
+
+    Middleware --> Routes
+    Routes --> Controllers
+    Controllers --> Models
+    Controllers --> Services
+
+    Models --> MongoDB
+    Services --> Firebase
+    SocketHandler --> Models

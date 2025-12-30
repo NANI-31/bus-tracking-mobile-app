@@ -13,6 +13,7 @@ class CommonMapView extends StatelessWidget {
   final double initialZoom;
   final bool myLocationEnabled;
   final bool myLocationButtonEnabled;
+  final VoidCallback? onCameraMoveStarted;
 
   const CommonMapView({
     super.key,
@@ -24,6 +25,7 @@ class CommonMapView extends StatelessWidget {
     this.initialZoom = 14.0,
     this.myLocationEnabled = true,
     this.myLocationButtonEnabled = true,
+    this.onCameraMoveStarted,
   });
 
   @override
@@ -42,6 +44,7 @@ class CommonMapView extends StatelessWidget {
       polylines: polylines,
       myLocationEnabled: myLocationEnabled,
       myLocationButtonEnabled: myLocationButtonEnabled,
+      onCameraMoveStarted: onCameraMoveStarted,
       mapType: MapType.normal,
       style: mapStyle,
       zoomGesturesEnabled: true,

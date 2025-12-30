@@ -1,0 +1,45 @@
+flowchart TB
+    A([Start]) --> B[User opens app]
+    B --> C[Select Register]
+    C --> D[Display registration form]
+    D --> E[User enters details]
+    E --> F{Input valid?}
+    
+    F -- No --> G[Display validation errors]
+    G --> E
+    
+    F -- Yes --> H[Send POST /api/auth/register]
+    H --> I{Email exists?}
+    
+    I -- Yes --> J[Return 409 Conflict]
+    J --> K[Display error message]
+    K --> E
+    
+    I -- No --> L[Extract email domain]
+    L --> M{Domain in allowed list?}
+    
+    M -- Yes --> N[Set approved=true]
+    M -- No --> O[Set needsManualApproval=true]
+    
+    N --> P[Create User document]
+    O --> P
+    
+    P --> Q[Generate OTP]
+    Q --> R[Send OTP via email]
+    R --> S[Return success response]
+    S --> T[Navigate to OTP screen]
+    T --> U[User enters OTP]
+    U --> V[Send POST /api/auth/verify-otp]
+    V --> W{OTP valid?}
+    
+    W -- No --> X[Display Invalid OTP]
+    X --> U
+    
+    W -- Yes --> Y[Set emailVerified=true]
+    Y --> Z{Needs approval?}
+    
+    Z -- No --> AA[Navigate to Login]
+    Z -- Yes --> AB[Display Pending Approval]
+    
+    AA --> AC([End])
+    AB --> AC

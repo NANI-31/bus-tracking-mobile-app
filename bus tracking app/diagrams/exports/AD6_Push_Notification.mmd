@@ -1,0 +1,46 @@
+flowchart TD
+    A([Start System Event]) --> B[Identify notification type]
+    B --> C[Identify target recipients]
+    C --> D[Query User collection for FCM tokens]
+    D --> E{Recipients found?}
+    
+    E -- No --> F[Log No recipients]
+    F --> G([End])
+    
+    E -- Yes --> H[Build notification payload]
+    H --> I[Build data payload]
+    I --> J{Critical notification?}
+    
+    J -- Yes --> K[Set high priority]
+    J -- No --> L[Set normal priority]
+    
+    K --> M[For each FCM token]
+    L --> M
+    
+    M --> N[Send to Firebase FCM]
+    N --> O{Delivery successful?}
+    
+    O -- Yes --> P[Log message ID]
+    O -- No --> Q{Error type?}
+    
+    Q -- Invalid Token --> R[Remove stale token]
+    Q -- Transient Error --> S[Queue for retry]
+    Q -- Quota Exceeded --> T[Log and skip]
+    
+    R --> U[Create Notification document]
+    S --> U
+    T --> U
+    P --> U
+    
+    U --> V[FCM delivers to device]
+    V --> W{App state?}
+    
+    W -- Background --> X[Display system notification]
+    W -- Foreground --> Y[Display in-app banner]
+    
+    X --> Z[User taps notification]
+    Y --> Z
+    
+    Z --> AA[Navigate to relevant screen]
+    AA --> AB[Mark notification as read]
+    AB --> G

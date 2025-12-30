@@ -1,0 +1,41 @@
+flowchart TD
+    A([Start]) --> B[Coordinator navigates to Buses]
+    B --> C[Display list of buses]
+    C --> D[Select unassigned bus]
+    D --> E[Display driver selection modal]
+    E --> F[Select a driver]
+    F --> G{Assign route?}
+    
+    G -- Yes --> H[Select route]
+    G -- No --> I[Skip route selection]
+    
+    H --> J[Tap Confirm Assignment]
+    I --> J
+    
+    J --> K[Send PUT /api/buses/assign]
+    K --> L{Driver already assigned?}
+    
+    L -- Yes --> M[Display conflict warning]
+    M --> N{Coordinator confirms?}
+    N -- No --> E
+    N -- Yes --> O[Proceed with assignment]
+    
+    L -- No --> O
+    
+    O --> P[Update Bus document status pending]
+    P --> Q[Create BusAssignmentLog entry]
+    Q --> R[Send FCM to Driver]
+    R --> S[Display Awaiting response]
+    
+    S --> T[Driver receives notification]
+    T --> U[Driver views assignment]
+    U --> V{Driver decision?}
+    
+    V -- Accept --> W[Update status accepted]
+    W --> X[Send FCM to Coordinator]
+    X --> Y([End Assignment Active])
+    
+    V -- Reject --> Z[Clear Bus driverId]
+    Z --> AA[Send FCM to Coordinator]
+    AA --> AB[Display rejection prompt new driver]
+    AB --> E

@@ -1,0 +1,36 @@
+flowchart LR
+    subgraph Actors
+        Student((Student))
+        Teacher((Teacher))
+        Parent((Parent))
+        Driver((Driver))
+    end
+
+    subgraph System["College Bus Tracking System"]
+        UC1[View Live Bus Location]
+        UC2[Subscribe to Route Updates]
+        UC3[View ETA]
+        UC4[Receive Proximity Alert]
+        UC5[Broadcast Location]
+    end
+
+    subgraph External
+        GoogleMaps([Google Maps API])
+        SocketIO([Socket.IO Server])
+    end
+
+    Student --> UC1
+    Student --> UC2
+    Student --> UC3
+    Teacher --> UC1
+    Teacher --> UC2
+    Parent --> UC1
+    Parent --> UC3
+
+    Driver --> UC5
+
+    UC1 -.->|includes| UC2
+    UC1 -.->|extends| UC4
+    UC1 --> GoogleMaps
+    UC2 --> SocketIO
+    UC5 --> SocketIO

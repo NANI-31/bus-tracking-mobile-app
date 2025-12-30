@@ -1,0 +1,16 @@
+stateDiagram-v2
+    [*] --> Pending : create(busId, driverId, routeId)
+
+    Pending --> Accepted : accept()
+    Pending --> Rejected : reject()
+    Pending --> Rejected : timeout()
+    Pending --> Cancelled : cancel()
+
+    Accepted --> Active : startTrip()
+    Accepted --> Cancelled : cancel()
+
+    Active --> Completed : endTrip()
+
+    Rejected --> [*]
+    Cancelled --> [*]
+    Completed --> [*]

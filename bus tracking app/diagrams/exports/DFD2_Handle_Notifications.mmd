@@ -1,0 +1,35 @@
+flowchart TB
+    %% Inputs
+    TrackingSys((Tracking \n System))
+    AdminSys((Admin \n System))
+
+    %% Processes
+    P4_1((4.1 \n Receive \n Trigger))
+    P4_2((4.2 \n Determine \n Audience))
+    P4_3((4.3 \n Format \n Payload))
+    P4_4((4.4 \n Dispatch \n to FCM))
+    P4_5((4.5 \n Handle \n Failures))
+    
+    %% Stores
+    D1[(D1 \n User DB)]
+
+    %% External
+    FCM[Firebase FCM]
+
+    %% Flows
+    TrackingSys -->|Proximity Event| P4_1
+    AdminSys -->|Assignment Event| P4_1
+    
+    P4_1 -->|Event Info| P4_2
+    P4_1 -->|Event Type| P4_3
+
+    P4_2 <-->|Query Subscriptions| D1
+    P4_2 -->|Target Tokens| P4_4
+
+    P4_3 -->|Message Body| P4_4
+    
+    P4_4 -->|API Request| FCM
+    FCM -->|Response| P4_5
+
+    P4_5 -->|Invalid Token| D1
+    P4_5 -->|Success| Log[Log Success]

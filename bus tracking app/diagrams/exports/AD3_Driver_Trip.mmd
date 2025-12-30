@@ -1,0 +1,39 @@
+flowchart TD
+    A([Start]) --> B[Driver logs in]
+    B --> C[View Dashboard]
+    C --> D{Assignment exists?}
+    
+    D -- No --> E[Display No bus assigned]
+    E --> F([End])
+    
+    D -- Yes --> G[Display assigned bus and route]
+    G --> H[Driver taps Start Trip]
+    H --> I[Request location permission]
+    I --> J{Permission granted?}
+    
+    J -- No --> K[Display Location required]
+    K --> I
+    
+    J -- Yes --> L[Get current GPS position]
+    L --> M[Emit tripStarted via Socket.IO]
+    M --> N[Backend updates Bus status]
+    N --> O[Log to History collection]
+    O --> P[Broadcast trip start]
+    P --> Q[Start foreground location service]
+    Q --> R[Display Trip Active UI]
+    
+    R --> S[GPS update every 5s]
+    S --> T[Emit updateLocation]
+    T --> U[Backend persists location]
+    U --> V[Broadcast to route room]
+    
+    V --> W{Trip continues?}
+    W -- Yes --> S
+    W -- No --> X[Driver taps End Trip]
+    
+    X --> Y[Emit tripEnded]
+    Y --> Z[Update Bus status]
+    Z --> AA[Log trip completion]
+    AA --> AB[Stop foreground service]
+    AB --> AC[Display trip summary]
+    AC --> F

@@ -355,7 +355,7 @@ class _StudentDashboardState extends State<StudentDashboard>
                     ),
                     StudentMapTab(
                       currentLocation: _currentLocation,
-                      buses: _filteredBuses,
+                      buses: _selectedBus != null ? [_selectedBus!] : [],
                       selectedBus: _selectedBus,
                       selectedRouteType: _selectedRouteType,
                       selectedBusNumber: _selectedBusNumber,
@@ -388,7 +388,7 @@ class _StudentDashboardState extends State<StudentDashboard>
                   children: [
                     StudentMapTab(
                       currentLocation: _currentLocation,
-                      buses: _filteredBuses,
+                      buses: _selectedBus != null ? [_selectedBus!] : [],
                       selectedBus: _selectedBus,
                       selectedRouteType: _selectedRouteType,
                       selectedBusNumber: _selectedBusNumber,

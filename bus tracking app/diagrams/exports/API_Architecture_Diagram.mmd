@@ -1,0 +1,78 @@
+flowchart TB
+    %% Nodes Configuration
+    classDef client fill:#e1f5fe,stroke:#01579b,stroke-width:2px;
+    classDef api fill:#fff9c4,stroke:#fbc02d,stroke-width:2px;
+    classDef service fill:#e0f2f1,stroke:#00695c,stroke-width:2px;
+    classDef db fill:#f3e5f5,stroke:#8e24aa,stroke-width:2px;
+    classDef external fill:#ffebee,stroke:#c62828,stroke-width:2px;
+
+    %% Clients
+    subgraph Clients["📱 Client Applications (Flutter)"]
+        StudentApp["Student/Parent App"]:::client
+        DriverApp["Driver App"]:::client
+        AdminApp["Coordinator/Admin App"]:::client
+    end
+
+    %% Backend System
+    subgraph Backend["⚙️ Backend System (Node.js)"]
+        
+        subgraph APILayer["API Interays"]
+            Gateway["Express API Routes"]:::api
+            SocketIO["Socket.IO Manager"]:::api
+            AuthMW["Auth Middleware"]:::api
+        end
+
+        subgraph ServiceLayer["Business Logic"]
+            AuthSvc["Auth Service"]:::service
+            TrackSvc["Tracking Service"]:::service
+            ResSvc["Resource Service"]:::service
+            NotifSvc["Notification Service"]:::service
+        end
+
+        subgraph DataLayer["Persistence"]
+            MongoDB[("MongoDB Database")]:::db
+        end
+    end
+
+    %% External
+    subgraph External["🌐 External Services"]
+        GMaps["Google Maps API"]:::external
+        FCM["Firebase FCM"]:::external
+    end
+
+    %% Client -> API Interactions (HTTP)
+    StudentApp -- "GET /buses, /routes" --> Gateway
+    DriverApp -- "POST /auth/login" --> Gateway
+    AdminApp -- "POST /buses/assign" --> Gateway
+
+    %% Client -> Socket Interactions (Real-time)
+    StudentApp -. "on('busUpdate')" .- SocketIO
+    DriverApp -. "emit('updateLocation')" .- SocketIO
+    AdminApp -. "on('incidentAlert')" .- SocketIO
+
+    %% API Internal Flow
+    Gateway --> AuthMW
+    AuthMW --> AuthSvc
+    Gateway --> ResSvc
+    Gateway --> NotifSvc
+    
+    %% Socket Flow
+    SocketIO --> TrackSvc
+
+    %% Service -> Data Interactions
+    AuthSvc <--> MongoDB
+    ResSvc <--> MongoDB
+    TrackSvc --> MongoDB
+    NotifSvc --> MongoDB
+
+    %% Service -> External Interactions
+    NotifSvc -- "Send Push" --> FCM
+    ResSvc -- "Geocoding" --> GMaps
+    TrackSvc -- "Distance Matrix" --> GMaps
+
+    %% External Callbacks
+    FCM -. "Deliver Notification" .-> StudentApp
+    FCM -. "Deliver Notification" .-> DriverApp
+
+    %% Link styles
+    linkStyle default stroke-width:2px,fill:none

@@ -1,0 +1,32 @@
+flowchart LR
+    subgraph Actors
+        Driver((Driver))
+        Student((Student))
+        Coordinator((Bus Coordinator))
+        Admin((Admin))
+    end
+
+    subgraph System["College Bus Tracking System"]
+        UC1[Report Incident]
+        UC2[View Incident Details]
+        UC3[Update Incident Status]
+        UC4[Escalate Incident]
+        UC5[Resolve Incident]
+        UC6[Send Incident Alert]
+    end
+
+    subgraph External
+        FCM([Firebase FCM])
+    end
+
+    Driver --> UC1
+    Student --> UC1
+    Coordinator --> UC2
+    Coordinator --> UC3
+    Coordinator --> UC5
+    Admin --> UC4
+    Admin --> UC5
+
+    UC1 -.->|includes| UC6
+    UC4 -.->|includes| UC6
+    UC6 --> FCM

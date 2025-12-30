@@ -1,0 +1,38 @@
+flowchart LR
+    subgraph Actors
+        Student((Student))
+        Teacher((Teacher))
+        Driver((Driver))
+        Admin((Admin))
+        Parent((Parent))
+    end
+
+    subgraph System["College Bus Tracking System"]
+        UC1[Register Account]
+        UC2[Login]
+        UC3[Reset Password]
+        UC4[Verify OTP]
+        UC5[Approve User]
+    end
+
+    subgraph External
+        EmailGateway([Email Gateway])
+        OTPService([OTP Service])
+    end
+
+    Student --> UC1
+    Student --> UC2
+    Student --> UC3
+    Teacher --> UC1
+    Teacher --> UC2
+    Driver --> UC1
+    Driver --> UC2
+    Parent --> UC1
+    Parent --> UC2
+    Admin --> UC2
+    Admin --> UC5
+
+    UC1 -.->|includes| UC4
+    UC3 -.->|includes| UC4
+    UC4 --> OTPService
+    OTPService --> EmailGateway

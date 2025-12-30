@@ -1,0 +1,20 @@
+erDiagram
+    USER ||--o{ NOTIFICATION : receives
+    USER }o--|| COLLEGE : belongs_to
+    USER }o--o| ROUTE : assigned_to
+    USER ||--o{ INCIDENT : reports
+    USER ||--o{ BUS : drives
+
+    COLLEGE ||--o{ BUS : owns
+    COLLEGE ||--o{ ROUTE : defines
+    COLLEGE ||--o{ INCIDENT : tracks
+
+    BUS ||--o{ BUS_LOCATION : tracks
+    BUS ||--o{ SCHEDULE : scheduled_for
+    BUS }o--o| ROUTE : services
+    BUS ||--o{ BUS_ASSIGNMENT_LOG : has
+    BUS ||--o{ HISTORY : logged_in
+
+    ROUTE ||--o{ SCHEDULE : defines
+
+    INCIDENT ||--o{ NOTIFICATION : triggers

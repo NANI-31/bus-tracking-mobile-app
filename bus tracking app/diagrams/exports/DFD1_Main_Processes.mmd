@@ -1,0 +1,47 @@
+flowchart TB
+    %% External Entities
+    User[User]
+    Driver[Driver]
+    Coord[Coordinator]
+
+    %% Processes
+    P1((1.0 \n Manage \n Auth))
+    P2((2.0 \n Track \n Live Buses))
+    P3((3.0 \n Manage \n Resources))
+    P4((4.0 \n Handle \n Notifications))
+    P5((5.0 \n Manage \n Incidents))
+
+    %% Data Stores
+    D1[(D1 \n User DB)]
+    D2[(D2 \n Bus DB)]
+    D3[(D3 \n Route DB)]
+    D4[(D4 \n History DB)]
+    D5[(D5 \n Incident DB)]
+
+    %% Flows - Auth
+    User -->|Credentials| P1
+    P1 <-->|Read/Write Profile| D1
+    P1 -->|Session Token| User
+
+    %% Flows - Tracking
+    Driver -->|GPS Stream| P2
+    P2 -->|Update Location| D2
+    P2 -->|Log History| D4
+    P2 -->|Broadcast Location| User
+    P3 -.->|Route Info| P2
+
+    %% Flows - Resources
+    Coord -->|Bus/Route Data| P3
+    P3 <-->|CRUD| D2
+    P3 <-->|CRUD| D3
+    
+    %% Flows - Notifications
+    P2 -->|Proximity Event| P4
+    P5 -->|Incident Alert| P4
+    P4 -->|FCM Payload| User
+    P4 <-->|Fetch Tokens| D1
+
+    %% Flows - Incidents
+    Driver -->|Report Incident| P5
+    P5 <-->|Log Incident| D5
+    P5 -->|Status Update| Coord

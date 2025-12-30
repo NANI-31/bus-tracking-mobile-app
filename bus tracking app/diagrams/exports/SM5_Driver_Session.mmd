@@ -1,0 +1,26 @@
+stateDiagram-v2
+    [*] --> Offline
+
+    Offline --> OnlineIdle : login()
+    OnlineIdle --> Offline : logout()
+
+    OnlineIdle --> OnTrip : startTrip()
+    OnTrip --> OnlineIdle : endTrip()
+
+    OnlineIdle --> OnBreak : takeBreak()
+    OnBreak --> OnlineIdle : resumeDuty()
+    OnBreak --> Offline : logout()
+
+    OnTrip --> Emergency : triggerSOS()
+    Emergency --> OnTrip : resolveSOS()
+
+    OnlineIdle --> Offline : forceLogout()
+    OnTrip --> Offline : forceLogout()
+    OnBreak --> Offline : forceLogout()
+    Emergency --> Offline : forceLogout()
+
+    state OnTrip {
+        [*] --> Driving
+        Driving --> AtStop : arriveAtStop()
+        AtStop --> Driving : departStop()
+    }

@@ -1,0 +1,40 @@
+flowchart TD
+    A([Start]) --> B[Reporter navigates to Report Incident]
+    B --> C[Display incident form]
+    C --> D[Select incident type]
+    D --> E[Enter description]
+    E --> F[Select severity level]
+    F --> G[Tap Submit]
+    G --> H[Capture current GPS location]
+    H --> I[Send POST /api/incidents]
+    
+    I --> J[Backend validates payload]
+    J --> K[Create Incident document status open]
+    K --> L[Log to History collection]
+    
+    L --> M{Severity Critical?}
+    M -- Yes --> N[Send high-priority FCM]
+    M -- No --> O[Send normal FCM]
+    
+    N --> P[Return success response]
+    O --> P
+    
+    P --> Q[Display Incident reported]
+    Q --> R[Coordinator receives notification]
+    R --> S[Coordinator views details]
+    S --> T[Tap Start Investigation]
+    T --> U[Update status investigating]
+    
+    U --> V{Can resolve?}
+    V -- Yes --> W[Take action and Resolve]
+    V -- No --> X[Tap Escalate]
+    
+    X --> Y[Update status escalated]
+    Y --> Z[Send FCM to Admin]
+    Z --> AA[Admin resolves]
+    
+    W --> AB[Update status resolved]
+    AA --> AB
+    
+    AB --> AC[Send notification to reporter]
+    AC --> AD([End])

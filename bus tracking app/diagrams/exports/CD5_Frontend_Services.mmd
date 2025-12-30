@@ -1,0 +1,54 @@
+classDiagram
+    class ApiService {
+        -Dio _dio
+        -String baseUrl
+        +get()
+        +post()
+        +put()
+        +delete()
+    }
+
+    class AuthService {
+        +login()
+        +register()
+        +logout()
+        +getCurrentUser()
+    }
+
+    class SocketService {
+        +connect()
+        +disconnect()
+        +emit()
+        +on()
+        +joinRoom()
+    }
+
+    class LocationService {
+        +getCurrentPosition()
+        +startTracking()
+        +stopTracking()
+    }
+
+    class FirebaseService {
+        +initialize()
+        +getToken()
+        +setupMessageHandlers()
+    }
+
+    class StorageService {
+        +save()
+        +read()
+        +delete()
+        +saveToken()
+    }
+
+    class BusService {
+        +getAllBuses()
+        +assignDriver()
+        +acceptAssignment()
+    }
+
+    AuthService --> ApiService : uses
+    AuthService --> StorageService : uses
+    BusService --> ApiService : uses
+    FirebaseService --> StorageService : uses

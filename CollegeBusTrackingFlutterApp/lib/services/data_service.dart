@@ -120,12 +120,43 @@ class DataService extends ChangeNotifier {
       });
       controller.onCancel = () => subscription.cancel();
 
-      // 3. Fetch initial data from API (to fill gaps)
       Future<void> fetchAll() async {
         try {
-          final apiLocations = await _apiService.getCollegeBusLocations(
-            collegeId,
-          );
+          List<BusLocationModel> apiLocations = [];
+          try {
+            apiLocations = await _apiService.getCollegeBusLocations(collegeId);
+          } catch (e) {
+            AppLogger.e('[DataService] Bulk location fetch failed: $e');
+            // Continue to fallback
+          }
+
+          // Fallback: If bulk fetch returned nothing (or failed), fetch individually
+          if (apiLocations.isEmpty) {
+            AppLogger.d(
+              '[DataService] Bulk fetch empty/failed, attempting fallback to individual fetches',
+            );
+            try {
+              // Get all buses to find which ones to query
+              final allBuses = await _apiService.getAllBuses();
+              final collegeBuses = allBuses
+                  .where((b) => b.collegeId == collegeId && b.isActive)
+                  .toList();
+
+              if (collegeBuses.isNotEmpty) {
+                final futures = collegeBuses.map(
+                  (bus) => _apiService.getBusLocation(bus.id),
+                );
+                final results = await Future.wait(futures);
+                apiLocations = results.whereType<BusLocationModel>().toList();
+                AppLogger.d(
+                  '[DataService] Fallback retrieved ${apiLocations.length} locations',
+                );
+              }
+            } catch (e2) {
+              AppLogger.e('[DataService] Fallback fetch also failed: $e2');
+            }
+          }
+
           // Merge API data
           for (var loc in apiLocations) {
             // Cache API result too
@@ -134,7 +165,9 @@ class DataService extends ChangeNotifier {
             final index = currentLocations.indexWhere(
               (l) => l.busId == loc.busId,
             );
-            if (index == -1) {
+            if (index != -1) {
+              currentLocations[index] = loc;
+            } else {
               currentLocations.add(loc);
             }
             // If present, socket data is likely newer, or we rely on stream updates

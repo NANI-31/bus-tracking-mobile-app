@@ -1,0 +1,18 @@
+stateDiagram-v2
+    [*] --> Registered : register()
+
+    Registered --> PendingApproval : requireApproval()
+    Registered --> EmailVerification : autoApprove()
+
+    PendingApproval --> EmailVerification : approve(adminId)
+    PendingApproval --> Deactivated : reject(adminId, reason)
+
+    EmailVerification --> Active : verifyEmail(otp)
+
+    Active --> Suspended : suspend(adminId, reason)
+    Suspended --> Active : reactivate(adminId)
+
+    Active --> Deactivated : deactivate()
+    Suspended --> Deactivated : deactivate()
+
+    Deactivated --> [*]

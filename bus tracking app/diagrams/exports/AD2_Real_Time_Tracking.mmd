@@ -1,0 +1,40 @@
+flowchart TD
+    A([Start]) --> B[User opens app after login]
+    B --> C[Navigate to Dashboard Map]
+    C --> D{Route assigned?}
+    
+    D -- No --> E[Display Select route in Profile]
+    E --> F([End])
+    
+    D -- Yes --> G[Initialize Google Maps]
+    G --> H[Establish Socket.IO connection]
+    H --> I{Connection successful?}
+    
+    I -- No --> J[Display Retrying]
+    J --> K[Wait with backoff]
+    K --> H
+    
+    I -- Yes --> L[Emit joinRoom with routeId]
+    L --> M[Socket Server adds to room]
+    M --> N[Display map with stops]
+    
+    N --> O{Active bus on route?}
+    O -- No --> P[Display No active buses]
+    P --> Q[Wait for bus activity]
+    Q --> O
+    
+    O -- Yes --> R[Receive busLocationUpdate]
+    R --> S[Update marker position]
+    S --> T[Calculate ETA to stop]
+    T --> U[Display ETA on UI]
+    
+    U --> V{Bus near user stop?}
+    V -- Yes --> W[Display Bus approaching alert]
+    V -- No --> X[Continue monitoring]
+    
+    W --> Y{Trip still active?}
+    X --> Y
+    
+    Y -- Yes --> R
+    Y -- No --> Z[Display Trip ended]
+    Z --> F

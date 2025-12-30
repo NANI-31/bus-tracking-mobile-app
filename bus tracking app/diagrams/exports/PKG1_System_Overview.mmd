@@ -1,0 +1,51 @@
+flowchart TB
+    subgraph MobileApp["📱 Flutter Mobile Application"]
+        direction TB
+        Screens["screens/"]
+        Services["services/"]
+        Models["models/"]
+        Providers["providers/"]
+        Utils["utils/"]
+        L10n["l10n/"]
+    end
+
+    subgraph Backend["⚙️ Node.js Backend Server"]
+        direction TB
+        Routes["routes/"]
+        Controllers["controllers/"]
+        BackendModels["models/"]
+        Middleware["middleware/"]
+        BackendServices["services/"]
+        Socket["socket/"]
+    end
+
+    subgraph Database["🗄️ MongoDB Atlas"]
+        direction TB
+        Collections["Collections"]
+    end
+
+    subgraph ExternalServices["🌐 External Services"]
+        direction TB
+        Firebase["Firebase FCM"]
+        GoogleMaps["Google Maps API"]
+        EmailService["Email SMTP"]
+    end
+
+    Screens --> Services
+    Services --> Models
+    Services --> Providers
+    Providers --> Services
+
+    Routes --> Controllers
+    Controllers --> BackendModels
+    Controllers --> BackendServices
+    Controllers --> Middleware
+    Socket --> BackendModels
+
+    Services --> Routes
+    Services --> Socket
+
+    BackendModels --> Collections
+    BackendServices --> Firebase
+    BackendServices --> EmailService
+    Screens --> GoogleMaps

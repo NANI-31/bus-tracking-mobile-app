@@ -1,0 +1,31 @@
+sequenceDiagram
+    autonumber
+    participant SocketServer as Socket.IO Server
+    participant NotificationService as Notification Service
+    participant UserModel as User DB
+    participant FirebaseFCM as Firebase FCM
+    participant StudentApp as Student App
+    participant Student
+
+    SocketServer->>SocketServer: Detect bus within 500m of stop
+    SocketServer->>NotificationService: sendBusArrivingNotification
+    
+    NotificationService->>UserModel: find users by stopId
+    UserModel-->>NotificationService: Array of users with fcmTokens
+    
+    loop For each user
+        NotificationService->>FirebaseFCM: send notification
+        FirebaseFCM-->>NotificationService: Message ID success
+    end
+    
+    FirebaseFCM->>StudentApp: Deliver push notification
+    
+    alt App in Background
+        StudentApp->>StudentApp: Display system notification
+        Student->>StudentApp: Tap notification
+        StudentApp->>StudentApp: Navigate to tracking
+    else App in Foreground
+        StudentApp->>StudentApp: Display in-app banner
+    end
+    
+    StudentApp-->>Student: Bus is 2 mins away

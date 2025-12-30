@@ -1,0 +1,15 @@
+stateDiagram-v2
+    [*] --> Created : create(payload)
+
+    Created --> Queued : queue()
+    Queued --> Delivered : deliver(messageId)
+    Queued --> Failed : fail(error)
+
+    Failed --> Queued : retry()
+    Failed --> [*] : maxRetriesExceeded()
+
+    Delivered --> Read : read()
+    Delivered --> Expired : expire()
+
+    Read --> [*]
+    Expired --> [*]
