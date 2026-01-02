@@ -121,12 +121,27 @@ export const initializeSocket = (io: Server) => {
     socket.on("join_college", async (collegeId) => {
       socket.join(collegeId);
 
-      // If user is a busCoordinator, join the coordinators room for SOS
-      if (user && user.role === "busCoordinator") {
+      logger.info(
+        `[Socket Debug] join_college called. CollegeId: ${collegeId}. User: ${
+          user ? user.fullName : "Unknown"
+        }, Role: ${user ? user.role : "N/A"}`
+      );
+
+      // If user is a busCoordinator (or legacy 'coordinator'), join the coordinators room for SOS
+      if (
+        user &&
+        (user.role === "busCoordinator" || user.role === "coordinator")
+      ) {
         const coordRoom = `${collegeId}_coordinators`;
         socket.join(coordRoom);
         logger.info(
           `[Socket] Coordinator ${user.fullName} joined SOS room: ${coordRoom}`
+        );
+      } else {
+        logger.info(
+          `[Socket Debug] User ${
+            user ? user.fullName : "Unknown"
+          } DID NOT join coordinator room. Role mismatch or user missing.`
         );
       }
 
