@@ -65,4 +65,26 @@ class CollegeRepository extends BaseRepository {
       throw handleError(e);
     }
   }
+
+  /// Unified update for bus details (rename + metadata)
+  Future<void> updateBusDetails({
+    required String collegeId,
+    required String oldBusNumber,
+    String? newBusNumber,
+    Map<String, dynamic>? details,
+  }) async {
+    try {
+      await dio.put(
+        '/colleges/bus-numbers/update',
+        data: {
+          'collegeId': collegeId,
+          'oldBusNumber': oldBusNumber,
+          if (newBusNumber != null) 'newBusNumber': newBusNumber,
+          if (details != null) 'details': details,
+        },
+      );
+    } catch (e) {
+      throw handleError(e);
+    }
+  }
 }

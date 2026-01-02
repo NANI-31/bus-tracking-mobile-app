@@ -314,6 +314,7 @@ class DataService extends ChangeNotifier {
   Future<void> updateBus(String busId, Map<String, dynamic> data) async {
     try {
       await _apiService.updateBus(busId, data);
+      _socketService.sendBusListUpdate();
       clearError();
     } catch (e) {
       _setError(e);
@@ -619,6 +620,28 @@ class DataService extends ChangeNotifier {
       await _apiService.renameBusNumber(collegeId, oldBusNumber, newBusNumber);
       _cachedBusNumbers.remove(collegeId);
       // Also might need to refresh bus list as buses might have updated
+      _socketService.sendBusListUpdate();
+      clearError();
+    } catch (e) {
+      _setError(e);
+      rethrow;
+    }
+  }
+
+  Future<void> updateBusDetails({
+    required String collegeId,
+    required String oldBusNumber,
+    String? newBusNumber,
+    String? defaultRouteId,
+  }) async {
+    try {
+      await _apiService.updateBusDetails(
+        collegeId,
+        oldBusNumber,
+        newBusNumber: newBusNumber,
+        defaultRouteId: defaultRouteId,
+      );
+      _cachedBusNumbers.remove(collegeId);
       _socketService.sendBusListUpdate();
       clearError();
     } catch (e) {

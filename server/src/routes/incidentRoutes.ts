@@ -12,13 +12,13 @@ router.post("/", protect, createIncident);
 router.get(
   "/college/:collegeId",
   protect,
-  authorize("admin", "coordinator"),
+  authorize("admin", "busCoordinator"),
   getIncidentsByCollege
 );
 router.patch(
   "/:id/status",
   protect,
-  authorize("admin", "coordinator"),
+  authorize("admin", "busCoordinator"),
   updateIncidentStatus
 );
 

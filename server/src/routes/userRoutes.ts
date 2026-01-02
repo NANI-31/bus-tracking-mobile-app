@@ -19,7 +19,7 @@ router.get("/:id", protect, getUser);
 router.get(
   "/:id/history",
   protect,
-  authorize("admin", "coordinator"),
+  authorize("admin", "busCoordinator"),
   getDriverHistory
 );
 router.put("/:id", protect, updateUser);

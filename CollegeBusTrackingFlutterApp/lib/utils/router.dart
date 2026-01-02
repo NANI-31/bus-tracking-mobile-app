@@ -24,6 +24,8 @@ import 'package:collegebus/screens/common/notifications/notifications_screen.dar
 import 'package:collegebus/utils/constants.dart';
 import 'package:collegebus/screens/coordinator/driver_selection_screen.dart';
 import 'package:collegebus/screens/coordinator/assignment_history_screen.dart';
+import 'package:collegebus/screens/coordinator/modules/edit_bus_screen.dart';
+import 'package:collegebus/models/bus_model.dart';
 
 class AppRouter {
   final AuthService authService;
@@ -191,6 +193,14 @@ class AppRouter {
                 busId: busId,
                 busNumber: busNumber,
               );
+            },
+          ),
+          GoRoute(
+            path: 'edit-bus/:busNumber',
+            builder: (context, state) {
+              final busNumber = state.pathParameters['busNumber']!;
+              final bus = state.extra as BusModel?;
+              return EditBusScreen(busNumber: busNumber, bus: bus);
             },
           ),
         ],

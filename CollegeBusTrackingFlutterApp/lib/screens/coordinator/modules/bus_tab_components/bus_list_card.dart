@@ -135,7 +135,7 @@ class BusListCard extends StatelessWidget {
                 _buildActionButton(
                   context,
                   icon: Icons.edit_outlined,
-                  label: 'Rename',
+                  label: 'Edit Bus',
                   color: Colors.orange,
                   onPressed: onEdit,
                 ).expand(),

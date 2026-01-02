@@ -7,6 +7,7 @@ import {
   addBusNumber,
   removeBusNumber,
   renameBusNumber,
+  updateBusDetails,
 } from "../controllers/collegeController";
 
 import { protect, authorize } from "../middleware/authMiddleware";
@@ -36,6 +37,12 @@ router.put(
   protect,
   authorize("admin", "busCoordinator"),
   renameBusNumber
+);
+router.put(
+  "/bus-numbers/update",
+  protect,
+  authorize("admin", "busCoordinator"),
+  updateBusDetails
 );
 
 export default router;

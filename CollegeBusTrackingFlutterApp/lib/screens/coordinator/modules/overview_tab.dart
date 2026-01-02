@@ -28,117 +28,125 @@ class OverviewTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return VStack([
-      'System Overview'.text
-          .size(24)
-          .bold
-          .color(Theme.of(context).colorScheme.onSurface)
-          .make(),
-      AppSizes.paddingLarge.heightBox,
+    return SingleChildScrollView(
+      child: VStack([
+        'System Overview'.text
+            .size(24)
+            .bold
+            .color(Theme.of(context).colorScheme.onSurface)
+            .make(),
+        AppSizes.paddingLarge.heightBox,
 
-      // Statistics Cards
-      HStack([
-        _buildStatCard(
-          context,
-          'Total Routes',
-          routes.length.toString(),
-          Icons.route,
-          Theme.of(context).primaryColor,
-        ).expand(),
-        AppSizes.paddingMedium.widthBox,
-        _buildStatCard(
-          context,
-          'Active Buses',
-          buses.where((b) => b.isActive).length.toString(),
-          Icons.directions_bus,
-          Theme.of(context).colorScheme.secondary,
-        ).expand(),
-      ]),
+        // Statistics Cards
+        HStack([
+          _buildStatCard(
+            context,
+            'Total Routes',
+            routes.length.toString(),
+            Icons.route,
+            Theme.of(context).primaryColor,
+          ).expand(),
+          AppSizes.paddingMedium.widthBox,
+          _buildStatCard(
+            context,
+            'Active Buses',
+            buses.where((b) => b.isActive).length.toString(),
+            Icons.directions_bus,
+            Theme.of(context).colorScheme.secondary,
+          ).expand(),
+        ]),
 
-      AppSizes.paddingMedium.heightBox,
-
-      HStack([
-        _buildStatCard(
-          context,
-          'Pending Drivers',
-          pendingDrivers.length.toString(),
-          Icons.pending,
-          Theme.of(context).colorScheme.error,
-        ).expand(),
-        AppSizes.paddingMedium.widthBox,
-        _buildStatCard(
-          context,
-          'Bus Numbers',
-          busNumbers.length.toString(),
-          Icons.confirmation_number,
-          Theme.of(context).colorScheme.secondary,
-        ).expand(),
-      ]),
-
-      AppSizes.paddingMedium.heightBox,
-
-      // Broadcast Card
-      Card(
-        elevation: 2,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        child: InkWell(
-          onTap: () {
-            showDialog(
-              context: context,
-              builder: (context) => const BroadcastModal(),
-            );
-          },
-          borderRadius: BorderRadius.circular(16),
-          child: HStack([
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: AppColors.primary.withValues(alpha: 0.1),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                Icons.send_rounded,
-                color: AppColors.primary,
-                size: 28,
-              ),
-            ),
-            16.widthBox,
-            VStack([
-              'Send Broadcast Message'.text.bold.lg.make(),
-              'Notify all students, teachers & parents'.text
-                  .color(AppColors.textSecondary)
-                  .size(12)
-                  .make(),
-            ]).expand(),
-            Icon(Icons.chevron_right, color: AppColors.textSecondary),
-          ]).p(16),
-        ),
-      ),
-
-      if (activeSosCount > 0) ...[
         AppSizes.paddingMedium.heightBox,
+
+        HStack([
+          _buildStatCard(
+            context,
+            'Pending Drivers',
+            pendingDrivers.length.toString(),
+            Icons.pending,
+            Theme.of(context).colorScheme.error,
+          ).expand(),
+          AppSizes.paddingMedium.widthBox,
+          _buildStatCard(
+            context,
+            'Bus Numbers',
+            busNumbers.length.toString(),
+            Icons.confirmation_number,
+            Theme.of(context).colorScheme.secondary,
+          ).expand(),
+        ]),
+
+        AppSizes.paddingMedium.heightBox,
+
+        // Broadcast Card
         Card(
-          color: AppColors.error.withValues(alpha: 0.1),
+          elevation: 2,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
-            side: BorderSide(color: AppColors.error, width: 2),
           ),
-          child: HStack([
-            Icon(Icons.warning_amber_rounded, color: AppColors.error, size: 40),
-            16.widthBox,
-            VStack([
-              'EMERGENCY ALERTS'.text.color(AppColors.error).bold.xl.make(),
-              '$activeSosCount driver(s) requesting help!'.text
-                  .color(AppColors.error)
-                  .make(),
-            ]).expand(),
-            Icon(Icons.chevron_right, color: AppColors.error),
-          ]).p(16),
-        ).onTap(() {
-          onSosTap?.call();
-        }),
-      ],
-    ]).p(AppSizes.paddingMedium);
+          child: InkWell(
+            onTap: () {
+              showDialog(
+                context: context,
+                builder: (context) => const BroadcastModal(),
+              );
+            },
+            borderRadius: BorderRadius.circular(16),
+            child: HStack([
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withValues(alpha: 0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.send_rounded,
+                  color: AppColors.primary,
+                  size: 28,
+                ),
+              ),
+              16.widthBox,
+              VStack([
+                'Send Broadcast Message'.text.bold.lg.make(),
+                'Notify all students, teachers & parents'.text
+                    .color(AppColors.textSecondary)
+                    .size(12)
+                    .make(),
+              ]).expand(),
+              Icon(Icons.chevron_right, color: AppColors.textSecondary),
+            ]).p(16),
+          ),
+        ),
+
+        if (activeSosCount > 0) ...[
+          AppSizes.paddingMedium.heightBox,
+          Card(
+            color: AppColors.error.withValues(alpha: 0.1),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+              side: BorderSide(color: AppColors.error, width: 2),
+            ),
+            child: HStack([
+              Icon(
+                Icons.warning_amber_rounded,
+                color: AppColors.error,
+                size: 40,
+              ),
+              16.widthBox,
+              VStack([
+                'EMERGENCY ALERTS'.text.color(AppColors.error).bold.xl.make(),
+                '$activeSosCount driver(s) requesting help!'.text
+                    .color(AppColors.error)
+                    .make(),
+              ]).expand(),
+              Icon(Icons.chevron_right, color: AppColors.error),
+            ]).p(16),
+          ).onTap(() {
+            onSosTap?.call();
+          }),
+        ],
+      ]).p(AppSizes.paddingMedium),
+    );
   }
 
   Widget _buildStatCard(

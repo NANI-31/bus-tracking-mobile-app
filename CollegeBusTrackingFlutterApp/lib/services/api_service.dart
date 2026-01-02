@@ -135,6 +135,18 @@ class ApiService {
   Future<Map<String, dynamic>> broadcastToCollege(String message) =>
       _notificationRepo.broadcastToCollege(message);
 
+  Future<void> updateBusDetails(
+    String collegeId,
+    String oldBusNumber, {
+    String? newBusNumber,
+    String? defaultRouteId,
+  }) => _collegeRepo.updateBusDetails(
+    collegeId: collegeId,
+    oldBusNumber: oldBusNumber,
+    newBusNumber: newBusNumber,
+    details: defaultRouteId != null ? {'defaultRouteId': defaultRouteId} : null,
+  );
+
   // ============== College Operations (delegates to CollegeRepository) ==============
   Future<List<CollegeModel>> getAllColleges() => _collegeRepo.getAllColleges();
 
