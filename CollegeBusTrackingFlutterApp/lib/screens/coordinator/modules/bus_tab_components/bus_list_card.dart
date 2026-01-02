@@ -11,6 +11,8 @@ class BusListCard extends StatelessWidget {
   final UserModel? assignedDriver;
   final VoidCallback onTap;
   final VoidCallback onHistory;
+  final VoidCallback onEdit;
+  final VoidCallback onEditDriver;
   final VoidCallback onDelete;
 
   const BusListCard({
@@ -21,6 +23,8 @@ class BusListCard extends StatelessWidget {
     required this.assignedDriver,
     required this.onTap,
     required this.onHistory,
+    required this.onEdit,
+    required this.onEditDriver,
     required this.onDelete,
   });
 
@@ -57,11 +61,22 @@ class BusListCard extends StatelessWidget {
               onPressed: onHistory,
               tooltip: 'View History',
             ),
-          if (isOfficial)
+          IconButton(
+            icon: const Icon(Icons.person_outline, color: Colors.blue),
+            onPressed: onEditDriver,
+            tooltip: 'Edit Driver Name',
+          ),
+          if (isOfficial) ...[
+            IconButton(
+              icon: const Icon(Icons.edit, color: Colors.blue),
+              onPressed: onEdit,
+              tooltip: 'Edit Bus Number',
+            ),
             IconButton(
               icon: Icon(Icons.delete, color: AppColors.error),
               onPressed: onDelete,
             ),
+          ],
         ]),
       ),
     );

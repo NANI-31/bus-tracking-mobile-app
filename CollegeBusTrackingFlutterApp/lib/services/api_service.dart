@@ -144,6 +144,12 @@ class ApiService {
   Future<void> removeBusNumber(String collegeId, String busNumber) =>
       _collegeRepo.removeBusNumber(collegeId, busNumber);
 
+  Future<void> renameBusNumber(
+    String collegeId,
+    String oldBusNumber,
+    String newBusNumber,
+  ) => _collegeRepo.renameBusNumber(collegeId, oldBusNumber, newBusNumber);
+
   // ============== Incident Operations (delegates to IncidentRepository) ==============
   Future<Map<String, dynamic>> sendSOS({
     required String? busId,

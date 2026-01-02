@@ -21,8 +21,10 @@ flutter connection one device
 adb reverse tcp:5000 tcp:5000
 
 wifi:
-    adb tcpip 5555 (connect cable)
-    adb connect 192.168.29.181:5555 (disconnect cable)
+    adb tcpip 5555 
+    (connect cable)
+    adb connect 192.168.29.181:5555 
+    (disconnect cable)
 
 flutter connection two devices
 

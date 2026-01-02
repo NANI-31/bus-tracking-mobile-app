@@ -3,196 +3,16 @@ import 'package:provider/provider.dart';
 import 'package:velocity_x/velocity_x.dart';
 import 'package:collegebus/utils/constants.dart';
 import 'package:collegebus/models/route_model.dart';
-import 'package:collegebus/services/auth_service.dart';
 import 'package:collegebus/services/data_service.dart';
 import 'package:collegebus/l10n/coordinator/app_localizations.dart'
     as coord_l10n;
+import 'package:collegebus/screens/coordinator/modules/route_edit_screen.dart';
 
 class RoutesTab extends StatelessWidget {
   final List<RouteModel> routes;
   final Function() onRefresh;
 
   const RoutesTab({super.key, required this.routes, required this.onRefresh});
-
-  void _showCreateOrEditRouteDialog(BuildContext context, {RouteModel? route}) {
-    final l10n = coord_l10n.CoordinatorLocalizations.of(context)!;
-    final isEditing = route != null;
-    final TextEditingController nameController = TextEditingController(
-      text: route?.routeName ?? '',
-    );
-    final TextEditingController startController = TextEditingController(
-      text: route?.startPoint.name ?? '',
-    );
-    final TextEditingController endController = TextEditingController(
-      text: route?.endPoint.name ?? '',
-    );
-    String selectedType = route?.routeType ?? 'pickup';
-    List<TextEditingController> stopControllers = (route?.stopPoints ?? [])
-        .map((s) => TextEditingController(text: s.name))
-        .toList();
-    if (stopControllers.isEmpty) stopControllers.add(TextEditingController());
-
-    showDialog(
-      context: context,
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setState) {
-            return AlertDialog(
-              title: Text(isEditing ? l10n.editRoute : l10n.createRoute),
-              content: SingleChildScrollView(
-                child: VStack([
-                  TextField(
-                    controller: nameController,
-                    decoration: InputDecoration(labelText: l10n.routeName),
-                  ),
-                  8.heightBox,
-                  DropdownButtonFormField<String>(
-                    initialValue: selectedType,
-                    decoration: InputDecoration(labelText: l10n.routeType),
-                    items: [
-                      DropdownMenuItem(
-                        value: 'pickup',
-                        child: Text(l10n.pickup),
-                      ),
-                      DropdownMenuItem(value: 'drop', child: Text(l10n.drop)),
-                    ],
-                    onChanged: (value) {
-                      setState(() {
-                        selectedType = value!;
-                      });
-                    },
-                  ),
-                  8.heightBox,
-                  TextField(
-                    controller: startController,
-                    decoration: InputDecoration(labelText: l10n.startPoint),
-                    enabled: !isEditing,
-                  ),
-                  8.heightBox,
-                  ...stopControllers.asMap().entries.map((entry) {
-                    int idx = entry.key;
-                    TextEditingController controller = entry.value;
-                    return HStack([
-                      TextField(
-                        controller: controller,
-                        decoration: InputDecoration(
-                          labelText: '${l10n.stopPoint} ${idx + 1}',
-                        ),
-                      ).expand(),
-                      IconButton(
-                        icon: const Icon(
-                          Icons.remove_circle,
-                          color: Colors.red,
-                        ),
-                        onPressed: stopControllers.length > 1
-                            ? () {
-                                setState(() {
-                                  stopControllers.removeAt(idx);
-                                });
-                              }
-                            : null,
-                      ),
-                    ]);
-                  }),
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: TextButton.icon(
-                      icon: const Icon(Icons.add),
-                      label: Text(l10n.addStop),
-                      onPressed: () {
-                        setState(() {
-                          stopControllers.add(TextEditingController());
-                        });
-                      },
-                    ),
-                  ),
-                  TextField(
-                    controller: endController,
-                    decoration: InputDecoration(labelText: l10n.endPoint),
-                    enabled: !isEditing,
-                  ),
-                ]),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  child: Text(l10n.cancel),
-                ),
-                ElevatedButton(
-                  onPressed: () async {
-                    final firestoreService = Provider.of<DataService>(
-                      context,
-                      listen: false,
-                    );
-                    final authService = Provider.of<AuthService>(
-                      context,
-                      listen: false,
-                    );
-                    final collegeId = authService.currentUserModel?.collegeId;
-                    if (collegeId == null) return;
-                    final stops = stopControllers
-                        .map((c) => c.text.trim())
-                        .where((s) => s.isNotEmpty)
-                        .toList();
-                    if (startController.text.trim().isEmpty ||
-                        endController.text.trim().isEmpty) {
-                      return;
-                    }
-                    if (isEditing) {
-                      await firestoreService.updateRoute(route.id, {
-                        'routeName': nameController.text.trim(),
-                        'routeType': selectedType,
-                        'stopPoints': stops
-                            .map(
-                              (s) => {
-                                'name': s,
-                                'location': {'lat': 0, 'lng': 0},
-                              },
-                            )
-                            .toList(),
-                        'updatedAt': DateTime.now().toIso8601String(),
-                      });
-                    } else {
-                      final newRoute = RouteModel(
-                        id: DateTime.now().millisecondsSinceEpoch.toString(),
-                        routeName: nameController.text.trim().isNotEmpty
-                            ? nameController.text.trim()
-                            : '${startController.text.trim()} - ${endController.text.trim()}',
-                        routeType: selectedType,
-                        startPoint: RoutePoint(
-                          name: startController.text.trim(),
-                          lat: 0,
-                          lng: 0,
-                        ),
-                        endPoint: RoutePoint(
-                          name: endController.text.trim(),
-                          lat: 0,
-                          lng: 0,
-                        ),
-                        stopPoints: stops
-                            .map((s) => RoutePoint(name: s, lat: 0, lng: 0))
-                            .toList(),
-                        collegeId: collegeId,
-                        createdBy: authService.currentUserModel?.id ?? '',
-                        isActive: true,
-                        createdAt: DateTime.now(),
-                        updatedAt: null,
-                      );
-                      await firestoreService.createRoute(newRoute);
-                    }
-                    if (!context.mounted) return;
-                    Navigator.of(context).pop();
-                    onRefresh();
-                  },
-                  child: Text(isEditing ? l10n.save : l10n.create),
-                ),
-              ],
-            );
-          },
-        );
-      },
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -202,7 +22,13 @@ class RoutesTab extends StatelessWidget {
         [
           l10n.routes.text.size(20).bold.make(),
           ElevatedButton.icon(
-            onPressed: () => _showCreateOrEditRouteDialog(context),
+            onPressed: () async {
+              final result = await Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const RouteEditScreen()),
+              );
+              if (result == true) onRefresh();
+            },
             icon: const Icon(Icons.add),
             label: Text(l10n.createRoute),
             style: ElevatedButton.styleFrom(
@@ -309,7 +135,13 @@ class RoutesTab extends StatelessWidget {
                         ],
                         onSelected: (value) async {
                           if (value == 'edit') {
-                            _showCreateOrEditRouteDialog(context, route: route);
+                            final result = await Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => RouteEditScreen(route: route),
+                              ),
+                            );
+                            if (result == true) onRefresh();
                           } else if (value == 'delete') {
                             final confirmed = await showDialog<bool>(
                               context: context,

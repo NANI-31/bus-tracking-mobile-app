@@ -47,6 +47,13 @@ export const updateUser = async (req: Request, res: Response) => {
     });
     if (!updatedUser)
       return res.status(404).json({ message: "User not found" });
+
+    // Emit socket event for real-time updates
+    const io = req.app.get("io");
+    if (updatedUser.collegeId) {
+      io.to(updatedUser.collegeId.toString()).emit("user_list_updated");
+    }
+
     res.status(200).json(updatedUser);
   } catch (error) {
     res.status(500).json({ message: (error as Error).message });

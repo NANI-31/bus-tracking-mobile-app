@@ -229,6 +229,19 @@ export const initializeSocket = (io: Server) => {
       }
     });
 
+    socket.on("user_list_updated", () => {
+      if (user && user.collegeId) {
+        logger.info(
+          `[Socket] Received user_list_updated from ${user.fullName}. Broadcasting to room ${user.collegeId}`
+        );
+        socket.to(user.collegeId.toString()).emit("user_list_updated");
+      } else {
+        logger.info(
+          `[Socket] user_list_updated received but user or collegeId missing. User: ${user?.id}`
+        );
+      }
+    });
+
     socket.on("update_location", async (data) => {
       // data: { busId, collegeId, location: { lat, lng }, speed, heading }
       const { collegeId, busId } = data;

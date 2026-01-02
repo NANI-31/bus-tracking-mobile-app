@@ -14,6 +14,7 @@ class DriverManagementTab extends StatelessWidget {
   final Set<String> onlineDriverIds;
   final Function(UserModel) onApprove;
   final Function(UserModel) onReject;
+  final Function(UserModel)? onEditDriver;
   final Function(BusModel)? onTrack;
 
   const DriverManagementTab({
@@ -24,6 +25,7 @@ class DriverManagementTab extends StatelessWidget {
     required this.onlineDriverIds,
     required this.onApprove,
     required this.onReject,
+    this.onEditDriver,
     this.onTrack,
   });
 
@@ -255,6 +257,32 @@ class DriverManagementTab extends StatelessWidget {
                 ),
                 12.heightBox,
                 HStack([
+                  ElevatedButton.icon(
+                    onPressed: () {
+                      onEditDriver?.call(driver);
+                    },
+                    icon: const Icon(Icons.edit, size: 20),
+                    label: const Text('Edit'),
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      backgroundColor: Theme.of(
+                        context,
+                      ).scaffoldBackgroundColor,
+                      foregroundColor: Theme.of(
+                        context,
+                      ).textTheme.bodyLarge?.color,
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        side: BorderSide(
+                          color: Theme.of(
+                            context,
+                          ).dividerColor.withOpacity(0.1),
+                        ),
+                      ),
+                    ),
+                  ).expand(),
+                  const SizedBox(width: 12),
                   ElevatedButton.icon(
                     onPressed: () {
                       Navigator.push(

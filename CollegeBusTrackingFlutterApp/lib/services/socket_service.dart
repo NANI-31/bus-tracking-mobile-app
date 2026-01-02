@@ -24,6 +24,8 @@ class SocketService extends ChangeNotifier {
   Stream<Map<String, dynamic>> get busUpdateStream =>
       _busUpdateController.stream;
   Stream<void> get busListUpdateStream => _busListUpdateController.stream;
+  Stream<void> get routeListUpdateStream => _routeListUpdateController.stream;
+  Stream<void> get userListUpdateStream => _userListUpdateController.stream;
   Stream<Map<String, dynamic>> get driverStatusStream =>
       _driverStatusController.stream;
 
@@ -32,6 +34,8 @@ class SocketService extends ChangeNotifier {
         StreamController<Map<String, dynamic>>.broadcast();
     _busUpdateController = StreamController<Map<String, dynamic>>.broadcast();
     _busListUpdateController = StreamController<void>.broadcast();
+    _routeListUpdateController = StreamController<void>.broadcast();
+    _userListUpdateController = StreamController<void>.broadcast();
     _driverStatusController =
         StreamController<Map<String, dynamic>>.broadcast();
   }
@@ -39,6 +43,8 @@ class SocketService extends ChangeNotifier {
   late final StreamController<Map<String, dynamic>> _locationUpdateController;
   late final StreamController<Map<String, dynamic>> _busUpdateController;
   late final StreamController<void> _busListUpdateController;
+  late final StreamController<void> _routeListUpdateController;
+  late final StreamController<void> _userListUpdateController;
   late final StreamController<Map<String, dynamic>> _driverStatusController;
 
   Future<void> init(String url, {String? token}) async {
@@ -157,6 +163,14 @@ class SocketService extends ChangeNotifier {
 
     // General list updates
     _socket!.on('bus_list_updated', (_) => _busListUpdateController.add(null));
+    _socket!.on(
+      'route_list_updated',
+      (_) => _routeListUpdateController.add(null),
+    );
+    _socket!.on(
+      'user_list_updated',
+      (_) => _userListUpdateController.add(null),
+    );
   }
 
   void joinCollege(String collegeId) {
@@ -241,6 +255,8 @@ class SocketService extends ChangeNotifier {
     _locationUpdateController.close();
     _busUpdateController.close();
     _busListUpdateController.close();
+    _routeListUpdateController.close();
+    _userListUpdateController.close();
     _driverStatusController.close();
     super.dispose();
   }

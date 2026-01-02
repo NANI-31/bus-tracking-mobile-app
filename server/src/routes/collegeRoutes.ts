@@ -6,6 +6,7 @@ import {
   getBusNumbers,
   addBusNumber,
   removeBusNumber,
+  renameBusNumber,
 } from "../controllers/collegeController";
 
 import { protect, authorize } from "../middleware/authMiddleware";
@@ -21,14 +22,20 @@ router.get("/:collegeId/bus-numbers", protect, getBusNumbers);
 router.post(
   "/bus-numbers",
   protect,
-  authorize("admin", "coordinator"),
+  authorize("admin", "busCoordinator"),
   addBusNumber
 );
 router.delete(
   "/:collegeId/bus-numbers/:busNumber",
   protect,
-  authorize("admin", "coordinator"),
+  authorize("admin", "busCoordinator"),
   removeBusNumber
+);
+router.put(
+  "/bus-numbers/rename",
+  protect,
+  authorize("admin", "busCoordinator"),
+  renameBusNumber
 );
 
 export default router;

@@ -45,4 +45,24 @@ class CollegeRepository extends BaseRepository {
       throw handleError(e);
     }
   }
+
+  /// Rename a bus number
+  Future<void> renameBusNumber(
+    String collegeId,
+    String oldBusNumber,
+    String newBusNumber,
+  ) async {
+    try {
+      await dio.put(
+        '/colleges/bus-numbers/rename',
+        data: {
+          'collegeId': collegeId,
+          'oldBusNumber': oldBusNumber,
+          'newBusNumber': newBusNumber,
+        },
+      );
+    } catch (e) {
+      throw handleError(e);
+    }
+  }
 }

@@ -50,6 +50,11 @@ export const addBusNumber = async (req: Request, res: Response) => {
       college.busNumbers.push(busNumber);
       await college.save();
     }
+
+    // Broadcast update
+    const io = req.app.get("io");
+    io.to(collegeId.toString()).emit("bus_list_updated");
+
     res.status(200).json(college.busNumbers);
   } catch (error) {
     res.status(500).json({ message: (error as Error).message });
@@ -64,6 +69,41 @@ export const removeBusNumber = async (req: Request, res: Response) => {
 
     college.busNumbers = college.busNumbers.filter((n) => n !== busNumber);
     await college.save();
+
+    // Broadcast update
+    const io = req.app.get("io");
+    io.to(collegeId.toString()).emit("bus_list_updated");
+
+    res.status(200).json(college.busNumbers);
+  } catch (error) {
+    res.status(500).json({ message: (error as Error).message });
+  }
+};
+
+export const renameBusNumber = async (req: Request, res: Response) => {
+  try {
+    const { collegeId, oldBusNumber, newBusNumber } = req.body;
+    const college = await College.findById(collegeId);
+    if (!college) return res.status(404).json({ message: "College not found" });
+
+    // 1. Update allowlist in College
+    const index = college.busNumbers.indexOf(oldBusNumber);
+    if (index !== -1) {
+      college.busNumbers[index] = newBusNumber;
+      await college.save();
+    }
+
+    // 2. Update actual Bus documents
+    const { Bus } = require("../models/Bus"); // Lazy import to avoid circular dep if any
+    await Bus.updateMany(
+      { collegeId, busNumber: oldBusNumber },
+      { busNumber: newBusNumber }
+    );
+
+    // Broadcast update
+    const io = req.app.get("io");
+    io.to(collegeId.toString()).emit("bus_list_updated");
+
     res.status(200).json(college.busNumbers);
   } catch (error) {
     res.status(500).json({ message: (error as Error).message });

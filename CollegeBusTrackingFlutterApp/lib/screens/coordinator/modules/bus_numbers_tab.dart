@@ -64,6 +64,70 @@ class _BusNumbersTabState extends State<BusNumbersTab>
     super.dispose();
   }
 
+  void _showRenameBusNumberDialog(BuildContext context, String oldBusNumber) {
+    final l10n = coord_l10n.CoordinatorLocalizations.of(context)!;
+    final TextEditingController busNumberController = TextEditingController(
+      text: oldBusNumber,
+    );
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Edit Bus Number'),
+          content: TextField(
+            controller: busNumberController,
+            decoration: InputDecoration(
+              labelText: l10n.busNumber,
+              hintText: l10n.enterBusNumber,
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text(l10n.cancel),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                final newBusNumber = busNumberController.text.trim();
+                if (newBusNumber.isEmpty || newBusNumber == oldBusNumber)
+                  return;
+
+                final authService = Provider.of<AuthService>(
+                  context,
+                  listen: false,
+                );
+                final firestoreService = Provider.of<DataService>(
+                  context,
+                  listen: false,
+                );
+                final collegeId = authService.currentUserModel?.collegeId;
+
+                if (collegeId != null) {
+                  await firestoreService.renameBusNumber(
+                    collegeId,
+                    oldBusNumber,
+                    newBusNumber,
+                  );
+                  if (!context.mounted) return;
+                  Navigator.of(context).pop();
+                  widget.onRefresh();
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Bus renamed to $newBusNumber'),
+                      backgroundColor: Theme.of(context).colorScheme.secondary,
+                    ),
+                  );
+                }
+              },
+              child: Text(l10n.save),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   void _showCreateBusNumberDialog(BuildContext context) {
     final l10n = coord_l10n.CoordinatorLocalizations.of(context)!;
     final TextEditingController busNumberController = TextEditingController();
@@ -114,6 +178,66 @@ class _BusNumbersTabState extends State<BusNumbersTab>
                 }
               },
               child: Text(l10n.add),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _showEditDriverNameDialog(BuildContext context, UserModel driver) {
+    final l10n = coord_l10n.CoordinatorLocalizations.of(context)!;
+    final TextEditingController nameController = TextEditingController(
+      text: driver.fullName,
+    );
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Edit Driver Name'),
+          content: TextField(
+            controller: nameController,
+            decoration: InputDecoration(
+              labelText: 'Name',
+              hintText: 'Enter driver name',
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text(l10n.cancel),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                final newName = nameController.text.trim();
+                if (newName.isEmpty || newName == driver.fullName) return;
+
+                final firestoreService = Provider.of<DataService>(
+                  context,
+                  listen: false,
+                );
+
+                try {
+                  await firestoreService.updateUser(driver.id, {
+                    'fullName': newName,
+                  });
+                  if (!context.mounted) return;
+                  Navigator.of(context).pop();
+                  widget.onRefresh(); // Refresh list to show new name
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Driver name updated to $newName')),
+                  );
+                } catch (e) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Failed to update name: $e'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
+              },
+              child: Text(l10n.save),
             ),
           ],
         );
@@ -339,8 +463,19 @@ class _BusNumbersTabState extends State<BusNumbersTab>
               '/coordinator/assignment-history/${assignedBus.id}/$busNumber',
             );
           },
+          onEdit: () => _showRenameBusNumberDialog(context, busNumber),
+          onEditDriver: () {
+            if (assignedDriver != null) {
+              _showEditDriverNameDialog(context, assignedDriver);
+            }
+          },
           onDelete: () async {
-            if (isAssigned) {
+            // Allow delete if NOT assigned OR (assigned but status is unassigned)
+            final canDelete =
+                !isAssigned ||
+                (isAssigned && assignedBus.assignmentStatus == 'unassigned');
+
+            if (!canDelete) {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
                   content: Text(l10n.cannotDeleteAssigned),
@@ -384,6 +519,11 @@ class _BusNumbersTabState extends State<BusNumbersTab>
               final collegeId = authService.currentUserModel?.collegeId;
 
               if (collegeId != null) {
+                // If there is an associated Bus document (even if unassigned), delete it too
+                if (isAssigned) {
+                  await firestoreService.deleteBus(assignedBus.id);
+                }
+
                 await firestoreService.removeBusNumber(collegeId, busNumber);
                 widget.onRefresh();
                 if (!context.mounted) return;

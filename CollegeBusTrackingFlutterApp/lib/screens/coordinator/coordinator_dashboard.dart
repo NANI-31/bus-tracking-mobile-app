@@ -176,6 +176,64 @@ class _CoordinatorDashboardState extends State<CoordinatorDashboard>
     }
   }
 
+  void _handleEditDriver(UserModel driver) {
+    final TextEditingController nameController = TextEditingController(
+      text: driver.fullName,
+    );
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Edit Driver Name'),
+          content: TextField(
+            controller: nameController,
+            decoration: const InputDecoration(
+              labelText: 'Name',
+              hintText: 'Enter driver name',
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                final newName = nameController.text.trim();
+                if (newName.isEmpty || newName == driver.fullName) return;
+
+                final firestoreService = Provider.of<DataService>(
+                  context,
+                  listen: false,
+                );
+
+                try {
+                  await firestoreService.updateUser(driver.id, {
+                    'fullName': newName,
+                  });
+                  if (!context.mounted) return;
+                  Navigator.of(context).pop();
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Driver name updated to $newName')),
+                  );
+                } catch (e) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Failed to update name: $e'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
+              },
+              child: const Text('Save'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   Future<void> _showExportDialog(BuildContext context) async {
     await showDialog(
       context: context,
@@ -396,6 +454,7 @@ class _CoordinatorDashboardState extends State<CoordinatorDashboard>
                           onlineDriverIds: _onlineDriverIds,
                           onApprove: _approveDriver,
                           onReject: _rejectDriver,
+                          onEditDriver: _handleEditDriver,
                           onTrack: _handleTrackDriver,
                         ),
                         RoutesTab(routes: _routes, onRefresh: _loadRoutes),
@@ -432,6 +491,7 @@ class _CoordinatorDashboardState extends State<CoordinatorDashboard>
                       onlineDriverIds: _onlineDriverIds,
                       onApprove: _approveDriver,
                       onReject: _rejectDriver,
+                      onEditDriver: _handleEditDriver,
                       onTrack: _handleTrackDriver,
                     ),
                     RoutesTab(routes: _routes, onRefresh: _loadRoutes),

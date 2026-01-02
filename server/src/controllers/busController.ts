@@ -63,6 +63,11 @@ export const deleteBus = async (req: Request, res: Response) => {
   try {
     const bus = await Bus.findByIdAndDelete(req.params.id);
     if (!bus) return res.status(404).json({ message: "Bus not found" });
+
+    // Broadcast update to college room
+    const io = req.app.get("io");
+    io.to(bus.collegeId.toString()).emit("bus_list_updated");
+
     res.status(200).json({ message: "Bus deleted successfully" });
   } catch (error) {
     res.status(500).json({ message: (error as Error).message });

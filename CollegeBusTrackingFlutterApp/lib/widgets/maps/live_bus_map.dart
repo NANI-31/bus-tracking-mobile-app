@@ -168,7 +168,7 @@ class LiveBusMapState extends State<LiveBusMap> {
           .animateCamera(CameraUpdate.newLatLngZoom(loc.currentLocation, 16.0))
           .then((_) {
             // Reset flag after animation completes/starts
-            Future.delayed(const Duration(milliseconds: 500), () {
+            Future.delayed(const Duration(milliseconds: 1500), () {
               if (mounted) _isProgrammaticMove = false;
             });
           });
@@ -187,26 +187,45 @@ class LiveBusMapState extends State<LiveBusMap> {
       return const Center(child: CircularProgressIndicator());
     }
 
-    return CommonMapView(
-      currentLocation: _centerLocation!,
-      markers: _markers.values.toSet(),
-      polylines: const {},
-      onMapCreated: (controller) {
-        _mapController = controller;
-        widget.onMapCreated?.call(controller);
-      },
-      onCameraMoveStarted: () {
-        if (!_isProgrammaticMove) {
-          // User gesture detected
-          if (_isFollowing) {
-            setState(() => _isFollowing = false);
-          }
-        }
-      },
-      initialZoom: 14.0,
-      mapStyle: widget.mapStyle,
-      myLocationEnabled: widget.showUserLocation,
-      myLocationButtonEnabled: widget.showUserLocation,
+    return Stack(
+      children: [
+        CommonMapView(
+          currentLocation: _centerLocation!,
+          markers: _markers.values.toSet(),
+          polylines: const {},
+          onMapCreated: (controller) {
+            _mapController = controller;
+            widget.onMapCreated?.call(controller);
+          },
+          onCameraMoveStarted: () {
+            if (!_isProgrammaticMove) {
+              // User gesture detected
+              if (_isFollowing) {
+                setState(() => _isFollowing = false);
+              }
+            }
+          },
+          initialZoom: 14.0,
+          mapStyle: widget.mapStyle,
+          myLocationEnabled: widget.showUserLocation,
+          myLocationButtonEnabled: widget.showUserLocation,
+        ),
+        if (!_isFollowing && widget.selectedBus != null)
+          Positioned(
+            bottom: 20,
+            left: 0,
+            right: 0,
+            child: Center(
+              child: FloatingActionButton.extended(
+                onPressed: resumeFollowing,
+                backgroundColor: Theme.of(context).primaryColor,
+                foregroundColor: Colors.white,
+                icon: const Icon(Icons.gps_fixed),
+                label: const Text("Recenter Bus"),
+              ),
+            ),
+          ),
+      ],
     );
   }
 }

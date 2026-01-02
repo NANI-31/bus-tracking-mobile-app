@@ -212,19 +212,27 @@ class DataService extends ChangeNotifier {
   }
 
   Stream<List<UserModel>> getUsersByRole(UserRole role, String collegeId) {
-    return Stream.fromFuture(
-      _apiService
-          .getAllUsers()
-          .then(
-            (users) => users
-                .where((u) => u.role == role && u.collegeId == collegeId)
-                .toList(),
-          )
-          .catchError((e) {
-            _setError(e);
-            throw e;
-          }),
-    );
+    return Stream.multi((controller) async {
+      Future<void> fetch() async {
+        try {
+          final allUsers = await _apiService.getAllUsers();
+          final filteredUsers = allUsers
+              .where((u) => u.role == role && u.collegeId == collegeId)
+              .toList();
+          if (!controller.isClosed) controller.add(filteredUsers);
+          clearError();
+        } catch (e) {
+          _setError(e);
+          if (!controller.isClosed) controller.addError(e);
+        }
+      }
+
+      await fetch();
+      final subscription = _socketService.userListUpdateStream.listen(
+        (_) => fetch(),
+      );
+      controller.onCancel = () => subscription.cancel();
+    });
   }
 
   Stream<List<UserModel>> getAllUsers() {
@@ -498,22 +506,30 @@ class DataService extends ChangeNotifier {
     String collegeId, {
     bool forceRefresh = false,
   }) {
-    if (!forceRefresh && _cachedRoutes.containsKey(collegeId)) {
-      return Stream.value(_cachedRoutes[collegeId]!);
-    }
-    return Stream.fromFuture(
-      _apiService
-          .getRoutesByCollege(collegeId)
-          .then((routes) {
-            _cachedRoutes[collegeId] = routes;
-            clearError();
-            return routes;
-          })
-          .catchError((e) {
-            _setError(e);
-            throw e;
-          }),
-    );
+    return Stream.multi((controller) async {
+      Future<void> fetch() async {
+        try {
+          final routes = await _apiService.getRoutesByCollege(collegeId);
+          _cachedRoutes[collegeId] = routes;
+          if (!controller.isClosed) controller.add(routes);
+          clearError();
+        } catch (e) {
+          _setError(e);
+          if (!controller.isClosed) controller.addError(e);
+        }
+      }
+
+      // If cached and not forcing refresh, emit cached first
+      if (!forceRefresh && _cachedRoutes.containsKey(collegeId)) {
+        controller.add(_cachedRoutes[collegeId]!);
+      }
+
+      await fetch();
+      final subscription = _socketService.routeListUpdateStream.listen(
+        (_) => fetch(),
+      );
+      controller.onCancel = () => subscription.cancel();
+    });
   }
 
   Future<void> deleteRoute(String routeId) async {
@@ -593,26 +609,51 @@ class DataService extends ChangeNotifier {
     }
   }
 
+  Future<void> renameBusNumber(
+    String collegeId,
+    String oldBusNumber,
+    String newBusNumber,
+  ) async {
+    try {
+      await _apiService.renameBusNumber(collegeId, oldBusNumber, newBusNumber);
+      _cachedBusNumbers.remove(collegeId);
+      // Also might need to refresh bus list as buses might have updated
+      _socketService.sendBusListUpdate();
+      clearError();
+    } catch (e) {
+      _setError(e);
+      rethrow;
+    }
+  }
+
   Stream<List<String>> getBusNumbers(
     String collegeId, {
     bool forceRefresh = false,
   }) {
-    if (!forceRefresh && _cachedBusNumbers.containsKey(collegeId)) {
-      return Stream.value(_cachedBusNumbers[collegeId]!);
-    }
-    return Stream.fromFuture(
-      _apiService
-          .getBusNumbers(collegeId)
-          .then((numbers) {
-            _cachedBusNumbers[collegeId] = numbers;
-            clearError();
-            return numbers;
-          })
-          .catchError((e) {
-            _setError(e);
-            throw e;
-          }),
-    );
+    return Stream.multi((controller) async {
+      Future<void> fetch() async {
+        try {
+          final numbers = await _apiService.getBusNumbers(collegeId);
+          _cachedBusNumbers[collegeId] = numbers;
+          if (!controller.isClosed) controller.add(numbers);
+          clearError();
+        } catch (e) {
+          _setError(e);
+          if (!controller.isClosed) controller.addError(e);
+        }
+      }
+
+      // If cached and not forcing refresh, emit cached first
+      if (!forceRefresh && _cachedBusNumbers.containsKey(collegeId)) {
+        controller.add(_cachedBusNumbers[collegeId]!);
+      }
+
+      await fetch();
+      final subscription = _socketService.busListUpdateStream.listen(
+        (_) => fetch(),
+      );
+      controller.onCancel = () => subscription.cancel();
+    });
   }
 
   // Bus location operations
