@@ -28,6 +28,9 @@ class SocketService extends ChangeNotifier {
   Stream<void> get userListUpdateStream => _userListUpdateController.stream;
   Stream<Map<String, dynamic>> get driverStatusStream =>
       _driverStatusController.stream;
+  Stream<Map<String, dynamic>> get sosAlertStream => _sosAlertController.stream;
+  Stream<Map<String, dynamic>> get sosResolvedStream =>
+      _sosResolvedController.stream;
 
   SocketService() {
     _locationUpdateController =
@@ -38,6 +41,8 @@ class SocketService extends ChangeNotifier {
     _userListUpdateController = StreamController<void>.broadcast();
     _driverStatusController =
         StreamController<Map<String, dynamic>>.broadcast();
+    _sosAlertController = StreamController<Map<String, dynamic>>.broadcast();
+    _sosResolvedController = StreamController<Map<String, dynamic>>.broadcast();
   }
 
   late final StreamController<Map<String, dynamic>> _locationUpdateController;
@@ -46,6 +51,8 @@ class SocketService extends ChangeNotifier {
   late final StreamController<void> _routeListUpdateController;
   late final StreamController<void> _userListUpdateController;
   late final StreamController<Map<String, dynamic>> _driverStatusController;
+  late final StreamController<Map<String, dynamic>> _sosAlertController;
+  late final StreamController<Map<String, dynamic>> _sosResolvedController;
 
   Future<void> init(String url, {String? token}) async {
     _currentUrl = url;
@@ -171,6 +178,16 @@ class SocketService extends ChangeNotifier {
       'user_list_updated',
       (_) => _userListUpdateController.add(null),
     );
+
+    _socket!.on('sos_alert', (data) {
+      AppLogger.e('[SocketService] RECEIVED SOS ALERT: $data');
+      _sosAlertController.add(Map<String, dynamic>.from(data));
+    });
+
+    _socket!.on('sos_resolved', (data) {
+      AppLogger.i('[SocketService] SOS RESOLVED: $data');
+      _sosResolvedController.add(Map<String, dynamic>.from(data));
+    });
   }
 
   void joinCollege(String collegeId) {
@@ -193,6 +210,24 @@ class SocketService extends ChangeNotifier {
         '[SocketService] Socket not connected, queueing update_location',
       );
       await _queueEvent('update_location', data);
+    }
+  }
+
+  void triggerSos(Map<String, dynamic> data) {
+    AppLogger.e('[SocketService] EMITTING TRIGGER SOS: $data');
+    if (_isConnected && _socket != null) {
+      _socket?.emit('trigger_sos', data);
+    } else {
+      _queueEvent('trigger_sos', data);
+    }
+  }
+
+  void resolveSos(String sosId) {
+    AppLogger.i('[SocketService] EMITTING RESOLVE SOS: $sosId');
+    if (_isConnected && _socket != null) {
+      _socket?.emit('resolve_sos', {'sos_id': sosId});
+    } else {
+      _queueEvent('resolve_sos', {'sos_id': sosId});
     }
   }
 
@@ -258,6 +293,8 @@ class SocketService extends ChangeNotifier {
     _routeListUpdateController.close();
     _userListUpdateController.close();
     _driverStatusController.close();
+    _sosAlertController.close();
+    _sosResolvedController.close();
     super.dispose();
   }
 }

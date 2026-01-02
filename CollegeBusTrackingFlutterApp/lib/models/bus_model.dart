@@ -5,6 +5,7 @@ class BusModel {
   final String busNumber;
   final String driverId;
   final String? routeId;
+  final String? defaultRouteId;
   final String collegeId;
   final bool isActive;
   final String status;
@@ -18,6 +19,7 @@ class BusModel {
     required this.busNumber,
     required this.driverId,
     this.routeId,
+    this.defaultRouteId,
     required this.collegeId,
     this.isActive = true,
     this.status = 'on-time',
@@ -33,6 +35,7 @@ class BusModel {
       busNumber: map['busNumber'] ?? '',
       driverId: map['driverId'] ?? '',
       routeId: map['routeId'],
+      defaultRouteId: map['defaultRouteId'],
       collegeId: map['collegeId'] ?? '',
       isActive: map['isActive'] ?? true,
       status: map['status'] ?? 'on-time',
@@ -50,6 +53,7 @@ class BusModel {
       'busNumber': busNumber,
       'driverId': driverId,
       'routeId': routeId,
+      'defaultRouteId': defaultRouteId,
       'collegeId': collegeId,
       'isActive': isActive,
       'status': status,
@@ -65,6 +69,7 @@ class BusModel {
     String? busNumber,
     String? driverId,
     String? routeId,
+    String? defaultRouteId,
     String? collegeId,
     bool? isActive,
     String? status,
@@ -78,6 +83,7 @@ class BusModel {
       busNumber: busNumber ?? this.busNumber,
       driverId: driverId ?? this.driverId,
       routeId: routeId ?? this.routeId,
+      defaultRouteId: defaultRouteId ?? this.defaultRouteId,
       collegeId: collegeId ?? this.collegeId,
       isActive: isActive ?? this.isActive,
       status: status ?? this.status,

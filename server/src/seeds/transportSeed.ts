@@ -20,27 +20,17 @@ export const seedTransport = async (
 ) => {
   console.log(`Seeding Transport for college with domain ${domain}...`);
 
-  for (let i = 1; i <= 15; i++) {
+  const numBuses = routesData.length;
+
+  for (let i = 1; i <= numBuses; i++) {
     // 1. Get Route Data (static or fallback)
     const staticRoute = routesData[i - 1];
-    const busNumber = staticRoute
-      ? staticRoute.busNumber
-      : `${domain.split(".")[0].toUpperCase()}-${i
-          .toString()
-          .padStart(2, "0")}`;
-    const routeName = staticRoute
-      ? staticRoute.routeName
-      : `Route ${i} - Extended Coverage`;
-    const stops = staticRoute
-      ? staticRoute.stops
-      : ["Main Gate", "Central Plaza", "Library Square", "Sports Complex"];
+    const busNumber = staticRoute.busNumber;
+    const routeName = staticRoute.routeName;
+    const stops = staticRoute.stops;
 
     // 1. Get Pre-seeded Driver (Only for first bus)
-    // Only assign a driver to the first bus (KKR-01 or similar)
-    // All other buses should be unassigned (driverId: null)
     const driver = i === 1 ? drivers[0] : null;
-
-    // Use null explicitly if no driver, ensuring the field is null in DB
     const driverId = driver ? driver._id : null;
 
     // 2. Prepare Stops with Geo
@@ -75,6 +65,7 @@ export const seedTransport = async (
       busNumber: busNumber,
       driverId: null,
       routeId: route._id,
+      defaultRouteId: route._id,
       collegeId: collegeId,
       isActive: true,
       status: randomStatus,

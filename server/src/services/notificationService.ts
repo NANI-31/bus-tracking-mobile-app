@@ -1,7 +1,9 @@
-import User from "../models/User";
+import User, { UserRole } from "../models/User";
 import Notification from "../models/Notification";
+import { logHistoryHelper } from "../controllers/historyController";
 import {
   sendNotificationToDevice,
+  sendNotificationToDevices,
   sendNotificationToTopic,
 } from "../utils/firebase";
 import { buildNotificationMessage } from "../utils/buildNotification";
@@ -160,6 +162,67 @@ export class NotificationService {
     const topic = `college_${collegeId}`;
     await sendNotificationToTopic(topic, title, message);
     return { success: true, topic };
+  }
+
+  /**
+   * Broadcast message to specifically Students, Teachers, and Parents
+   */
+  async broadcastNotification(
+    collegeId: string,
+    senderId: string,
+    message: string
+  ): Promise<{ success: boolean; count: number }> {
+    const title = "College Announcement";
+    const type = NOTIFICATION_TYPES.GENERAL_ANNOUNCEMENT;
+
+    // 1. Find target users
+    const users = await User.find({
+      collegeId,
+      role: { $in: [UserRole.Student, UserRole.Teacher, UserRole.Parent] },
+      fcmToken: { $exists: true, $ne: null },
+    });
+
+    if (users.length === 0) {
+      return { success: true, count: 0 };
+    }
+
+    const fcmTokens = users
+      .map((u) => u.fcmToken)
+      .filter((t): t is string => !!t);
+
+    // 2. Save notifications to DB for each user
+    const notificationDocs = users.map((u) => ({
+      senderId,
+      receiverId: u._id,
+      title,
+      message,
+      type,
+    }));
+    await Notification.insertMany(notificationDocs);
+
+    // 3. Send push notifications in batches (FCM limit is 500)
+    const batchSize = 500;
+    let successCount = 0;
+
+    for (let i = 0; i < fcmTokens.length; i += batchSize) {
+      const batch = fcmTokens.slice(i, i + batchSize);
+      const result = await sendNotificationToDevices(batch, title, message, {
+        type,
+      });
+      successCount += result.success;
+    }
+
+    // 4. Log to college history
+    await logHistoryHelper(
+      collegeId,
+      "broadcast_announcement",
+      `Broadcast message sent to ${users.length} users: ${message}`,
+      { senderId, message },
+      undefined,
+      senderId
+    );
+
+    return { success: true, count: users.length };
   }
 
   /**

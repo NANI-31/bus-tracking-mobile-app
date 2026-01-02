@@ -46,4 +46,17 @@ class NotificationRepository extends BaseRepository {
       debugPrint('\x1B[31mError removing FCM token: $e\x1B[0m');
     }
   }
+
+  /// Broadcast a message to the entire college (Students, Teachers, Parents)
+  Future<Map<String, dynamic>> broadcastToCollege(String message) async {
+    try {
+      final response = await dio.post(
+        '/notifications/broadcast',
+        data: {'message': message},
+      );
+      return response.data;
+    } catch (e) {
+      throw handleError(e);
+    }
+  }
 }

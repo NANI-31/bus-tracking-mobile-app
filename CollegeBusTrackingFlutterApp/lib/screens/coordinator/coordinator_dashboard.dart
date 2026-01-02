@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:intl/intl.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
@@ -9,6 +10,7 @@ import 'package:collegebus/services/socket_service.dart';
 import 'package:collegebus/models/user_model.dart';
 import 'package:collegebus/models/bus_model.dart';
 import 'package:collegebus/models/route_model.dart';
+import 'package:collegebus/models/sos_model.dart';
 import 'package:collegebus/utils/constants.dart';
 import 'package:collegebus/widgets/app_drawer.dart';
 import 'package:collegebus/services/theme_service.dart';
@@ -54,6 +56,10 @@ class _CoordinatorDashboardState extends State<CoordinatorDashboard>
   StreamSubscription<List<UserModel>>? _driversSubscription;
   StreamSubscription<List<String>>? _busNumbersSubscription;
   StreamSubscription<Map<String, dynamic>>? _driverStatusSubscription;
+  StreamSubscription? _sosSubscription;
+  StreamSubscription? _sosResolvedSubscription;
+
+  List<SosModel> _activeSosAlerts = [];
 
   @override
   void initState() {
@@ -121,6 +127,39 @@ class _CoordinatorDashboardState extends State<CoordinatorDashboard>
           .listen((busNumbers) {
             if (mounted) setState(() => _busNumbers = busNumbers);
           });
+
+      // SOS Alerts
+      _sosSubscription = socketService.sosAlertStream.listen((data) {
+        if (mounted) {
+          final sos = SosModel.fromMap(data);
+          setState(() {
+            _activeSosAlerts.insert(0, sos);
+          });
+          _showSOSAlert(sos);
+        }
+      });
+
+      _sosResolvedSubscription = socketService.sosResolvedStream.listen((data) {
+        if (mounted) {
+          final sosId = data['sos_id'];
+          setState(() {
+            _activeSosAlerts.removeWhere((s) => s.sosId == sosId);
+          });
+        }
+      });
+
+      // Load initial active SOS
+      firestoreService.getActiveSos(collegeId).then((alerts) {
+        if (mounted) {
+          setState(() {
+            _activeSosAlerts = alerts;
+          });
+          // Persistence: Show alert if there are any active SOS when logging in
+          if (_activeSosAlerts.isNotEmpty) {
+            _showSOSAlert(_activeSosAlerts.first);
+          }
+        }
+      });
     }
   }
 
@@ -234,6 +273,248 @@ class _CoordinatorDashboardState extends State<CoordinatorDashboard>
     );
   }
 
+  void _showSOSAlert(SosModel sos) {
+    if (!mounted) return;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: Colors.red.shade900,
+        title: const Row(
+          children: [
+            Icon(Icons.report_problem_rounded, color: Colors.white, size: 32),
+            SizedBox(width: 12),
+            Text(
+              'EMERGENCY SOS',
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'A driver has triggered an SOS alert!',
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+                fontSize: 18,
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Bus: ${sos.busNumber}',
+              style: const TextStyle(color: Colors.white),
+            ),
+            Text(
+              'Time: ${DateFormat('hh:mm a').format(sos.timestamp.toLocal())}',
+              style: const TextStyle(color: Colors.white),
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'Immediate action is required.',
+              style: TextStyle(color: Colors.white),
+            ),
+          ],
+        ),
+        actions: [
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              _handleTrackDriver(
+                BusModel(
+                  id: sos.busId,
+                  busNumber: sos.busId,
+                  driverId: sos.userId,
+                  collegeId: sos.collegeId,
+                  createdAt: DateTime.now(),
+                ),
+              );
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.white,
+              foregroundColor: Colors.red.shade900,
+            ),
+            child: const Text(
+              'TRACK ON MAP',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              _resolveSos(sos.sosId);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.green,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text(
+              'RESOLVE',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('DISMISS', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showActiveSosList() {
+    if (!mounted || _activeSosAlerts.isEmpty) return;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        height: MediaQuery.of(context).size.height * 0.7,
+        decoration: BoxDecoration(
+          color: Theme.of(context).scaffoldBackgroundColor,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        child: Column(
+          children: [
+            Container(
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              decoration: BoxDecoration(
+                color: Colors.red.shade900,
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(20),
+                ),
+              ),
+              child: Center(
+                child: Text(
+                  'ACTIVE SOS ALERTS (${_activeSosAlerts.length})',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 18,
+                  ),
+                ),
+              ),
+            ),
+            Expanded(
+              child: ListView.separated(
+                padding: const EdgeInsets.all(16),
+                itemCount: _activeSosAlerts.length,
+                separatorBuilder: (ctx, i) => const Divider(),
+                itemBuilder: (ctx, index) {
+                  final sos = _activeSosAlerts[index];
+                  return Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.red.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.red.shade900),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              'Bus: ${sos.busNumber}',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                              ),
+                            ),
+                            Text(
+                              DateFormat(
+                                'hh:mm a',
+                              ).format(sos.timestamp.toLocal()),
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: Colors.grey,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: ElevatedButton.icon(
+                                icon: const Icon(Icons.map, size: 18),
+                                label: const Text('TRACK'),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.white,
+                                  foregroundColor: Colors.red.shade900,
+                                ),
+                                onPressed: () {
+                                  Navigator.pop(context);
+                                  _handleTrackDriver(
+                                    BusModel(
+                                      id: sos.busId,
+                                      busNumber: sos.busId,
+                                      driverId: sos.userId,
+                                      collegeId: sos.collegeId,
+                                      createdAt: DateTime.now(),
+                                    ),
+                                  );
+                                },
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: ElevatedButton.icon(
+                                icon: const Icon(Icons.check, size: 18),
+                                label: const Text('RESOLVE'),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.green,
+                                  foregroundColor: Colors.white,
+                                ),
+                                onPressed: () {
+                                  Navigator.pop(context);
+                                  _resolveSos(sos.sosId);
+                                },
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _resolveSos(String sosId) async {
+    final dataService = Provider.of<DataService>(context, listen: false);
+    try {
+      await dataService.resolveSos(sosId);
+      if (mounted) {
+        setState(() {
+          _activeSosAlerts.removeWhere((s) => s.sosId == sosId);
+        });
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('SOS alert resolved.')));
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Failed to resolve SOS: $e')));
+      }
+    }
+  }
+
   Future<void> _showExportDialog(BuildContext context) async {
     await showDialog(
       context: context,
@@ -295,6 +576,8 @@ class _CoordinatorDashboardState extends State<CoordinatorDashboard>
     _driversSubscription?.cancel();
     _busNumbersSubscription?.cancel();
     _driverStatusSubscription?.cancel();
+    _sosSubscription?.cancel();
+    _sosResolvedSubscription?.cancel();
     super.dispose();
   }
 
@@ -442,6 +725,8 @@ class _CoordinatorDashboardState extends State<CoordinatorDashboard>
                           buses: _buses,
                           pendingDrivers: _pendingDrivers,
                           busNumbers: _busNumbers,
+                          activeSosCount: _activeSosAlerts.length,
+                          onSosTap: _showActiveSosList,
                         ),
                         LiveMapTab(
                           buses: _buses,
@@ -482,6 +767,8 @@ class _CoordinatorDashboardState extends State<CoordinatorDashboard>
                       buses: _buses,
                       pendingDrivers: _pendingDrivers,
                       busNumbers: _busNumbers,
+                      activeSosCount: _activeSosAlerts.length,
+                      onSosTap: _showActiveSosList,
                     ),
                     LiveMapTab(buses: _buses, selectedBus: _currentTrackingBus),
                     DriverManagementTab(
@@ -533,6 +820,27 @@ class _CoordinatorDashboardState extends State<CoordinatorDashboard>
                       label: 'Profile',
                     ),
                   ],
+                )
+              : null,
+          floatingActionButton: _activeSosAlerts.isNotEmpty
+              ? FloatingActionButton.extended(
+                  onPressed: () {
+                    if (_activeSosAlerts.length > 1) {
+                      _showActiveSosList();
+                    } else {
+                      _showSOSAlert(_activeSosAlerts.first);
+                    }
+                  },
+                  backgroundColor: AppColors.error,
+                  icon: const Icon(Icons.warning, color: Colors.white),
+                  label:
+                      (_activeSosAlerts.length > 1
+                              ? '(${_activeSosAlerts.length}) ACTIVE ALERTS'
+                              : 'ACTIVE SOS')
+                          .text
+                          .white
+                          .bold
+                          .make(),
                 )
               : null,
         );

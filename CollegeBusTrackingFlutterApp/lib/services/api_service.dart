@@ -132,6 +132,9 @@ class ApiService {
   Future<void> removeFcmToken(String userId) =>
       _notificationRepo.removeFcmToken(userId);
 
+  Future<Map<String, dynamic>> broadcastToCollege(String message) =>
+      _notificationRepo.broadcastToCollege(message);
+
   // ============== College Operations (delegates to CollegeRepository) ==============
   Future<List<CollegeModel>> getAllColleges() => _collegeRepo.getAllColleges();
 
@@ -153,9 +156,16 @@ class ApiService {
   // ============== Incident Operations (delegates to IncidentRepository) ==============
   Future<Map<String, dynamic>> sendSOS({
     required String? busId,
+    required String? routeId,
     required double lat,
     required double lng,
-  }) => _incidentRepo.sendSOS(busId: busId, lat: lat, lng: lng);
+  }) =>
+      _incidentRepo.sendSOS(busId: busId, routeId: routeId, lat: lat, lng: lng);
+
+  Future<void> resolveSos(String sosId) => _incidentRepo.resolveSos(sosId);
+
+  Future<List<Map<String, dynamic>>> getActiveSos(String collegeId) =>
+      _incidentRepo.getActiveSos(collegeId);
 
   Future<void> createIncident(IncidentModel incident) =>
       _incidentRepo.createIncident(incident);

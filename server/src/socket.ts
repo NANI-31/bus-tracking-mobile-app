@@ -120,6 +120,16 @@ export const initializeSocket = (io: Server) => {
 
     socket.on("join_college", async (collegeId) => {
       socket.join(collegeId);
+
+      // If user is a busCoordinator, join the coordinators room for SOS
+      if (user && user.role === "busCoordinator") {
+        const coordRoom = `${collegeId}_coordinators`;
+        socket.join(coordRoom);
+        logger.info(
+          `[Socket] Coordinator ${user.fullName} joined SOS room: ${coordRoom}`
+        );
+      }
+
       logger.info(
         `[Socket] ${user?.fullName || "User"} joined room: ${collegeId}`
       );
@@ -239,6 +249,26 @@ export const initializeSocket = (io: Server) => {
         logger.info(
           `[Socket] user_list_updated received but user or collegeId missing. User: ${user?.id}`
         );
+      }
+    });
+
+    socket.on("trigger_sos", (data) => {
+      if (user && user.collegeId) {
+        const coordRoom = `${user.collegeId.toString()}_coordinators`;
+        logger.info(
+          `[Socket] SOS triggered by ${user.fullName}. Broadcasting to SOS room ${coordRoom}`
+        );
+        socket.to(coordRoom).emit("sos_alert", data);
+      }
+    });
+
+    socket.on("resolve_sos", (data) => {
+      if (user && user.collegeId) {
+        const coordRoom = `${user.collegeId.toString()}_coordinators`;
+        logger.info(
+          `[Socket] SOS resolved. Broadcasting to SOS room ${coordRoom}`
+        );
+        socket.to(coordRoom).emit("sos_resolved", data);
       }
     });
 

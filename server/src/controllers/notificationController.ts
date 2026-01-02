@@ -200,3 +200,39 @@ export const sendCollegeNotification = async (req: Request, res: Response) => {
       .json({ message: "Error sending college notification", error });
   }
 };
+
+/**
+ * Broadcast notification to Students, Teachers, and Parents
+ */
+export const broadcastNotification = async (req: Request, res: Response) => {
+  try {
+    const { message } = req.body;
+    const collegeId = (req as any).user?.collegeId;
+    const senderId = (req as any).user?.id;
+
+    if (!collegeId || !senderId) {
+      return res
+        .status(401)
+        .json({ message: "Unauthorized or missing college context" });
+    }
+
+    if (!message) {
+      return res.status(400).json({ message: "Message is required" });
+    }
+
+    const notificationService = getNotificationService();
+    const result = await notificationService.broadcastNotification(
+      collegeId,
+      senderId,
+      message
+    );
+
+    res.status(200).json(result);
+  } catch (error) {
+    logger.error(`[NotificationController] Broadcast error: ${error}`);
+    res.status(500).json({
+      message: "Error sending broadcast notification",
+      error: (error as Error).message,
+    });
+  }
+};

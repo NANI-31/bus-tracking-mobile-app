@@ -4,6 +4,7 @@ export interface IBus extends Document {
   busNumber: string;
   driverId: string;
   routeId?: string;
+  defaultRouteId?: string;
   collegeId: string;
   isActive: boolean;
   status: "on-time" | "delayed" | "not-running";
@@ -17,6 +18,7 @@ const BusSchema: Schema = new Schema({
   busNumber: { type: String, required: true },
   driverId: { type: String, required: false, ref: "User" },
   routeId: { type: Schema.Types.ObjectId, ref: "Route" },
+  defaultRouteId: { type: Schema.Types.ObjectId, ref: "Route" },
   collegeId: { type: Schema.Types.ObjectId, required: true, ref: "College" },
   isActive: { type: Boolean, default: true },
   status: {

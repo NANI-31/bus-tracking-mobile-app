@@ -34,12 +34,8 @@ const runSeed = async () => {
     for (const collegeData of collegesData) {
       console.log(`\n--- Seeding ${collegeData.name} ---`);
 
-      // 0. Pre-generate 15 Bus Numbers
-      const busNumbers = Array.from(
-        { length: 15 },
-        (_, i) =>
-          `${collegeData.shortName}-${(i + 1).toString().padStart(2, "0")}`
-      );
+      // 0. Pre-generate Bus Numbers from routes
+      const busNumbers = collegeData.routes.map((r: any) => r.busNumber);
 
       // 1. Seed College
       const college = await seedColleges({

@@ -13,7 +13,11 @@ export const getHistory = async (req: Request, res: Response) => {
       limit = 20,
     } = req.query;
 
-    const query: any = { collegeId: (req as any).user.collegeId };
+    const collegeId = (req as any).user.collegeId;
+    if (!collegeId) {
+      return res.status(400).json({ message: "College ID missing" });
+    }
+    const query: any = { collegeId };
 
     if (busId) query.busId = busId;
     if (driverId) query.driverId = driverId;

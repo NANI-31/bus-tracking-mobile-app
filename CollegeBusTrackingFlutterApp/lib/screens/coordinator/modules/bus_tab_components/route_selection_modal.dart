@@ -149,57 +149,105 @@ class _RouteSelectionModalState extends State<RouteSelectionModal> {
 
               // Routes List
               Expanded(
-                child: filteredRoutes.isEmpty
-                    ? const Center(child: Text('No routes found'))
-                    : ListView.separated(
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        itemCount: filteredRoutes.length,
-                        separatorBuilder: (context, index) =>
-                            const Divider(height: 1),
-                        itemBuilder: (context, index) {
-                          final route = filteredRoutes[index];
-                          final isSelected = _selectedRoute?.id == route.id;
-                          final conflictingBus = _findBusWithRoute(route.id);
+                child: Builder(
+                  builder: (context) {
+                    String? defaultRouteId;
+                    try {
+                      defaultRouteId = widget.buses
+                          .firstWhere(
+                            (b) => b.busNumber == widget.busNumberToAssign,
+                          )
+                          .defaultRouteId;
+                    } catch (_) {}
 
-                          return ListTile(
-                            title: Text(
-                              route.routeName,
-                              style: TextStyle(
-                                fontWeight: isSelected
-                                    ? FontWeight.bold
-                                    : FontWeight.normal,
-                                color: isSelected
-                                    ? AppColors.primary
-                                    : Theme.of(
-                                        context,
-                                      ).textTheme.bodyLarge?.color,
-                              ),
-                            ),
-                            subtitle: conflictingBus != null
-                                ? Text(
-                                    'Assigned to Bus ${conflictingBus.busNumber}',
-                                    style: TextStyle(
-                                      color: AppColors.warning,
-                                      fontSize: 12,
+                    return filteredRoutes.isEmpty
+                        ? const Center(child: Text('No routes found'))
+                        : ListView.separated(
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            itemCount: filteredRoutes.length,
+                            separatorBuilder: (context, index) =>
+                                const Divider(height: 1),
+                            itemBuilder: (context, index) {
+                              final route = filteredRoutes[index];
+                              final isSelected = _selectedRoute?.id == route.id;
+                              final isDefault = route.id == defaultRouteId;
+                              final conflictingBus = _findBusWithRoute(
+                                route.id,
+                              );
+
+                              return ListTile(
+                                title: Row(
+                                  children: [
+                                    Expanded(
+                                      child: Text(
+                                        route.routeName,
+                                        style: TextStyle(
+                                          fontWeight: isSelected
+                                              ? FontWeight.bold
+                                              : FontWeight.normal,
+                                          color: isSelected
+                                              ? AppColors.primary
+                                              : Theme.of(
+                                                  context,
+                                                ).textTheme.bodyLarge?.color,
+                                        ),
+                                      ),
                                     ),
-                                  )
-                                : Text('${route.stopPoints.length} stops'),
-                            trailing: isSelected
-                                ? Icon(
-                                    Icons.check_circle,
-                                    color: AppColors.primary,
-                                  )
-                                : null,
-                            tileColor: isSelected
-                                ? AppColors.primary.withValues(alpha: 0.1)
-                                : null,
-                            onTap: () => _handleRouteSelection(route),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
-                            ),
+                                    if (isDefault)
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 8,
+                                          vertical: 2,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: AppColors.success.withValues(
+                                            alpha: 0.1,
+                                          ),
+                                          borderRadius: BorderRadius.circular(
+                                            12,
+                                          ),
+                                          border: Border.all(
+                                            color: AppColors.success,
+                                          ),
+                                        ),
+                                        child: Text(
+                                          'DEFAULT',
+                                          style: TextStyle(
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.bold,
+                                            color: AppColors.success,
+                                          ),
+                                        ),
+                                      ),
+                                  ],
+                                ),
+                                subtitle: conflictingBus != null
+                                    ? Text(
+                                        'Assigned to Bus ${conflictingBus.busNumber}',
+                                        style: TextStyle(
+                                          color: AppColors.warning,
+                                          fontSize: 12,
+                                        ),
+                                      )
+                                    : Text('${route.stopPoints.length} stops'),
+                                trailing: isSelected
+                                    ? Icon(
+                                        Icons.check_circle,
+                                        color: AppColors.primary,
+                                      )
+                                    : null,
+                                tileColor: isSelected
+                                    ? AppColors.primary.withValues(alpha: 0.1)
+                                    : null,
+                                onTap: () => _handleRouteSelection(route),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                              );
+                            },
                           );
-                        },
-                      ),
+                  },
+                ),
               ),
 
               // Bottom Actions
@@ -231,20 +279,42 @@ class _RouteSelectionModalState extends State<RouteSelectionModal> {
                     ),
                     const SizedBox(width: 16),
                     Expanded(
-                      child: ElevatedButton(
-                        onPressed: _selectedRoute == null
-                            ? null
-                            : () => Navigator.pop(context, _selectedRoute),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.primary,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          elevation: 0,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                        ),
-                        child: const Text('Assign Route'),
+                      child: Builder(
+                        builder: (context) {
+                          String? defaultRouteId;
+                          try {
+                            defaultRouteId = widget.buses
+                                .firstWhere(
+                                  (b) =>
+                                      b.busNumber == widget.busNumberToAssign,
+                                )
+                                .defaultRouteId;
+                          } catch (_) {}
+
+                          final isDefault =
+                              _selectedRoute != null &&
+                              _selectedRoute!.id == defaultRouteId;
+
+                          return ElevatedButton(
+                            onPressed: _selectedRoute == null
+                                ? null
+                                : () => Navigator.pop(context, _selectedRoute),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.primary,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              elevation: 0,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                            ),
+                            child: Text(
+                              isDefault
+                                  ? 'Assign Default Route'
+                                  : 'Assign Route',
+                            ),
+                          );
+                        },
                       ),
                     ),
                   ],

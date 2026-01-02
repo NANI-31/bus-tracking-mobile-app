@@ -12,6 +12,7 @@ export interface AuthRequest extends Request {
     email: string;
     role: string;
     fullName?: string;
+    collegeId: any;
   };
 }
 
@@ -35,6 +36,7 @@ export const protect = async (
         email: decoded.email,
         role: decoded.role,
         fullName: decoded.fullName,
+        collegeId: decoded.collegeId,
       };
 
       next();

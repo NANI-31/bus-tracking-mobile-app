@@ -8,6 +8,7 @@ import 'package:collegebus/models/notification_model.dart';
 import 'package:collegebus/models/schedule_model.dart';
 import 'package:collegebus/models/incident_model.dart';
 import 'package:collegebus/models/history_log_model.dart';
+import 'package:collegebus/models/sos_model.dart';
 import 'package:collegebus/utils/constants.dart';
 import 'package:collegebus/services/api_service.dart';
 import 'package:collegebus/services/socket_service.dart';
@@ -739,6 +740,16 @@ class DataService extends ChangeNotifier {
     }
   }
 
+  Future<void> broadcastNotification(String message) async {
+    try {
+      await _apiService.broadcastToCollege(message);
+      clearError();
+    } catch (e) {
+      _setError(e);
+      rethrow;
+    }
+  }
+
   // Approval operations
   Future<void> approveUser(String userId, String approverId) async {
     try {
@@ -767,11 +778,36 @@ class DataService extends ChangeNotifier {
 
   Future<void> sendSOS({
     required String? busId,
+    required String? routeId,
     required double lat,
     required double lng,
   }) async {
     try {
-      await _apiService.sendSOS(busId: busId, lat: lat, lng: lng);
+      await _apiService.sendSOS(
+        busId: busId,
+        routeId: routeId,
+        lat: lat,
+        lng: lng,
+      );
+    } catch (e) {
+      _setError(e);
+      rethrow;
+    }
+  }
+
+  Future<void> resolveSos(String sosId) async {
+    try {
+      await _apiService.resolveSos(sosId);
+    } catch (e) {
+      _setError(e);
+      rethrow;
+    }
+  }
+
+  Future<List<SosModel>> getActiveSos(String collegeId) async {
+    try {
+      final results = await _apiService.getActiveSos(collegeId);
+      return results.map((m) => SosModel.fromMap(m)).toList();
     } catch (e) {
       _setError(e);
       rethrow;

@@ -7,9 +7,14 @@ import 'package:collegebus/utils/constants.dart';
 class SOSButton extends StatelessWidget {
   final LatLng? currentLocation;
   final String? busId;
+  final String? routeId;
 
-  const SOSButton({Key? key, required this.currentLocation, this.busId})
-    : super(key: key);
+  const SOSButton({
+    Key? key,
+    required this.currentLocation,
+    this.busId,
+    this.routeId,
+  }) : super(key: key);
 
   Future<void> _handleSOS(BuildContext context) async {
     if (currentLocation == null) {
@@ -50,6 +55,7 @@ class SOSButton extends StatelessWidget {
         final dataService = Provider.of<DataService>(context, listen: false);
         await dataService.sendSOS(
           busId: busId,
+          routeId: routeId,
           lat: currentLocation!.latitude,
           lng: currentLocation!.longitude,
         );

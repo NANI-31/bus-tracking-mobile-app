@@ -1029,6 +1029,7 @@ class _DriverDashboardState extends State<DriverDashboard>
           child: SOSButton(
             currentLocation: _currentLocation,
             busId: _myBus?.id,
+            routeId: _selectedRoute?.id,
           ),
         ),
         if (_nextStopETA != null && _isSharing)

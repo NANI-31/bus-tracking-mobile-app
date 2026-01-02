@@ -6,6 +6,7 @@ class IncidentRepository extends BaseRepository {
   /// Send an SOS alert
   Future<Map<String, dynamic>> sendSOS({
     required String? busId,
+    required String? routeId,
     required double lat,
     required double lng,
   }) async {
@@ -14,10 +15,30 @@ class IncidentRepository extends BaseRepository {
         '/sos',
         data: {
           'busId': busId,
+          'routeId': routeId,
           'location': {'lat': lat, 'lng': lng},
         },
       );
       return response.data;
+    } catch (e) {
+      throw handleError(e);
+    }
+  }
+
+  /// Resolve an active SOS alert
+  Future<void> resolveSos(String sosId) async {
+    try {
+      await dio.put('/sos/$sosId/resolve');
+    } catch (e) {
+      throw handleError(e);
+    }
+  }
+
+  /// Get active SOS alerts for a college
+  Future<List<Map<String, dynamic>>> getActiveSos(String collegeId) async {
+    try {
+      final response = await dio.get('/sos/active/$collegeId');
+      return List<Map<String, dynamic>>.from(response.data);
     } catch (e) {
       throw handleError(e);
     }

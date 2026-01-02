@@ -1,7 +1,7 @@
 import { Server } from "socket.io";
 import { Bus, IBus } from "../models/Bus";
 import { BusAssignmentLog } from "../models/BusAssignmentLog";
-import User from "../models/User";
+import User, { UserRole } from "../models/User";
 import { sendTemplatedNotificationHelper } from "../controllers/notificationController";
 import { logHistoryHelper } from "../controllers/historyController";
 import { NOTIFICATION_TYPES } from "../constants/notificationTypes";
@@ -87,6 +87,75 @@ export class BusService {
     if (newStatus === "unassigned" && oldStatus === "accepted") {
       await this.handleTripCompletion(oldBus, updatedBus);
     }
+
+    // Route changed (or assigned for the first time)
+    if (this.isRouteChange(oldBus, updateData)) {
+      await this.handleRouteChange(updatedBus);
+    }
+  }
+
+  /**
+   * Check if the route has changed
+   */
+  private isRouteChange(oldBus: IBus, updateData: Partial<IBus>): boolean {
+    return (
+      !!updateData.routeId &&
+      updateData.routeId.toString() !== oldBus.routeId?.toString()
+    );
+  }
+
+  /**
+   * Handle route change notifications
+   */
+  private async handleRouteChange(bus: IBus): Promise<void> {
+    // If assigned back to default, do nothing as per user request
+    if (bus.routeId?.toString() === bus.defaultRouteId?.toString()) {
+      logger.info(
+        `Bus ${bus.busNumber} assigned to its default route. No notification needed.`
+      );
+      return;
+    }
+
+    logger.info(
+      `Bus ${bus.busNumber} assigned to non-default route ${bus.routeId}. Sending notifications.`
+    );
+
+    // Find all users associated with this route
+    const usersToNotify = await User.find({
+      routeId: bus.routeId,
+      role: { $in: [UserRole.Student, UserRole.Parent, UserRole.Teacher] },
+      fcmToken: { $exists: true, $ne: null },
+    });
+
+    if (usersToNotify.length === 0) {
+      logger.info(`No users found to notify for route ${bus.routeId}`);
+      return;
+    }
+
+    // Send notifications to each user
+    for (const user of usersToNotify) {
+      try {
+        await sendTemplatedNotificationHelper(
+          user._id.toString(),
+          NOTIFICATION_TYPES.ROUTE_CHANGE,
+          {
+            busNumber: bus.busNumber,
+            routeName: "assigned route", // We could fetch actual route name if needed
+          }
+        );
+      } catch (err) {
+        logger.error(`Failed to notify user ${user._id}: ${err}`);
+      }
+    }
+
+    // Log to history
+    await logHistoryHelper(
+      bus.collegeId.toString(),
+      "route_assignment_change",
+      `Bus ${bus.busNumber} assigned to a temporary route.`,
+      { routeId: bus.routeId },
+      bus._id.toString()
+    );
   }
 
   /**

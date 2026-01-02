@@ -8,6 +8,7 @@ import {
   removeFcmToken,
   sendCollegeNotification,
   sendTemplatedNotification,
+  broadcastNotification,
 } from "../controllers/notificationController";
 
 import { protect, authorize } from "../middleware/authMiddleware";
@@ -29,6 +30,12 @@ router.post(
   protect,
   authorize("admin", "coordinator"),
   sendCollegeNotification
+);
+router.post(
+  "/broadcast",
+  protect,
+  authorize("admin", "coordinator"),
+  broadcastNotification
 );
 router.get("/user/:userId", protect, getUserNotifications);
 router.put("/:id/read", protect, markNotificationAsRead);
