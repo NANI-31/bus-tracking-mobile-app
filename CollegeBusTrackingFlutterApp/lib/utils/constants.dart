@@ -180,7 +180,7 @@ class AppConstants {
   // Host injected via --dart-define=API_HOST=192.168.x.x
   static const String apiHost = String.fromEnvironment(
     'API_HOST',
-    defaultValue: '192.168.29.27', // Updated to your PC's LAN IP
+    defaultValue: '127.0.0.1',
   );
 
   // Port injected via --dart-define=SERVER_PORT=XXXX

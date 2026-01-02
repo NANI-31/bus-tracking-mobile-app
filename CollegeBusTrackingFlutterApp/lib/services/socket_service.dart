@@ -179,6 +179,10 @@ class SocketService extends ChangeNotifier {
       (_) => _userListUpdateController.add(null),
     );
 
+    _socket!.on('sos_room_joined', (data) {
+      AppLogger.i('[SocketService] JOINED SOS ROOM: $data');
+    });
+
     _socket!.on('sos_alert', (data) {
       AppLogger.e('[SocketService] RECEIVED SOS ALERT: $data');
       _sosAlertController.add(Map<String, dynamic>.from(data));

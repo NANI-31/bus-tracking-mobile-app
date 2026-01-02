@@ -75,6 +75,11 @@ class _CoordinatorDashboardState extends State<CoordinatorDashboard>
 
     if (collegeId != null) {
       final socketService = Provider.of<SocketService>(context, listen: false);
+      socketService.addListener(_handleSocketConnectionChange);
+
+      // Trigger once in case already connected
+      if (socketService.isConnected) _handleSocketConnectionChange();
+
       socketService.joinCollege(collegeId);
 
       _driverStatusSubscription = socketService.driverStatusStream.listen((
@@ -138,6 +143,22 @@ class _CoordinatorDashboardState extends State<CoordinatorDashboard>
           _showSOSAlert(sos);
         }
       });
+
+      // DEBUG: Listen for room join confirmation
+      // This is a dynamic listener not in the service stream yet, but we can access the raw socket if needed
+      // Or better, just add a one-off here via the service helper if expose
+      // Ideally, the service should expose a stream for 'joined'.
+      // For now, let's just log vigorously in the service, but here we only have streams.
+
+      // Let's add a quick debug snackbar on general socket connection
+      if (socketService.isConnected) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Socket Connected! Listening for SOS...'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
 
       _sosResolvedSubscription = socketService.sosResolvedStream.listen((data) {
         if (mounted) {
@@ -568,6 +589,22 @@ class _CoordinatorDashboardState extends State<CoordinatorDashboard>
     );
   }
 
+  bool _hasShownConnectionSuccess = false;
+
+  void _handleSocketConnectionChange() {
+    final socketService = Provider.of<SocketService>(context, listen: false);
+    if (socketService.isConnected && !_hasShownConnectionSuccess && mounted) {
+      _hasShownConnectionSuccess = true;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Socket Connected! Listening for SOS...'),
+          backgroundColor: Colors.green,
+          duration: Duration(seconds: 3),
+        ),
+      );
+    }
+  }
+
   @override
   void dispose() {
     _tabController.dispose();
@@ -578,6 +615,10 @@ class _CoordinatorDashboardState extends State<CoordinatorDashboard>
     _driverStatusSubscription?.cancel();
     _sosSubscription?.cancel();
     _sosResolvedSubscription?.cancel();
+
+    final socketService = Provider.of<SocketService>(context, listen: false);
+    socketService.removeListener(_handleSocketConnectionChange);
+
     super.dispose();
   }
 
