@@ -22,6 +22,7 @@ class ApiService {
   final NotificationRepository _notificationRepo = NotificationRepository();
   final CollegeRepository _collegeRepo = CollegeRepository();
   final IncidentRepository _incidentRepo = IncidentRepository();
+  final PaymentRepository _paymentRepo = PaymentRepository();
 
   // ============== Auth Operations (delegates to AuthRepository) ==============
   Future<Map<String, dynamic>> register(Map<String, dynamic> userData) =>
@@ -181,4 +182,16 @@ class ApiService {
 
   Future<void> createIncident(IncidentModel incident) =>
       _incidentRepo.createIncident(incident);
+
+  // ============== Payment Operations (delegates to PaymentRepository) ==============
+  Future<Map<String, dynamic>> createPaymentOrder(
+    int amount,
+    String currency,
+  ) => _paymentRepo.createOrder(amount, currency);
+
+  Future<Map<String, dynamic>> verifyPayment(
+    String orderId,
+    String paymentId,
+    String signature,
+  ) => _paymentRepo.verifyPayment(orderId, paymentId, signature);
 }

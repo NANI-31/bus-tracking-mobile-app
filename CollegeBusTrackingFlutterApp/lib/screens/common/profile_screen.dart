@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
+import 'package:collegebus/screens/common/payment_screen.dart';
 import 'package:collegebus/services/auth_service.dart';
 import 'package:collegebus/services/data_service.dart';
 import 'package:collegebus/utils/constants.dart';
@@ -247,6 +248,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     title: l10n.termsConditions,
                     subtitle: l10n.legalUsageRequirements,
                     onTap: () => context.push('/student/terms-conditions'),
+                    showDivider: true,
+                  ),
+                  // Payment Option
+                  ProfileListItem(
+                    leadingIcon: Icons.payment_rounded,
+                    iconColor: TwColors.green.i400, // Green for money
+                    title: "Payments",
+                    subtitle: "Pay fees & dues",
+                    onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const PaymentScreen()),
+                    ), // Using direct push for now or can register route
                     showDivider: false,
                   ),
                 ],

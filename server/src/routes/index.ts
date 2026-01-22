@@ -10,6 +10,7 @@ import assignmentRoutes from "./assignmentRoutes";
 import sosRoutes from "./sosRoutes";
 import incidentRoutes from "./incidentRoutes";
 import historyRoutes from "./historyRoutes";
+import paymentRoutes from "./paymentRoutes";
 
 const router = Router();
 
@@ -24,5 +25,6 @@ router.use("/assignments", assignmentRoutes);
 router.use("/sos", sosRoutes);
 router.use("/incidents", incidentRoutes);
 router.use("/history", historyRoutes);
+router.use("/payment", paymentRoutes);
 
 export default router;

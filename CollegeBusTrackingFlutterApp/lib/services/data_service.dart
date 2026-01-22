@@ -869,4 +869,38 @@ class DataService extends ChangeNotifier {
       rethrow;
     }
   }
+
+  // Payment operations
+  Future<Map<String, dynamic>> createPaymentOrder(
+    int amount,
+    String currency,
+  ) async {
+    try {
+      final result = await _apiService.createPaymentOrder(amount, currency);
+      clearError();
+      return result;
+    } catch (e) {
+      _setError(e);
+      rethrow;
+    }
+  }
+
+  Future<Map<String, dynamic>> verifyPayment(
+    String orderId,
+    String paymentId,
+    String signature,
+  ) async {
+    try {
+      final result = await _apiService.verifyPayment(
+        orderId,
+        paymentId,
+        signature,
+      );
+      clearError();
+      return result;
+    } catch (e) {
+      _setError(e);
+      rethrow;
+    }
+  }
 }

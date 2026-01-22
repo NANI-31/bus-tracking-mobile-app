@@ -104,7 +104,7 @@ class _LoginScreenState extends State<LoginScreen>
             route = '/student';
             break;
           case UserRole.teacher:
-            route = '/teacher';
+            route = '/student';
             break;
           case UserRole.driver:
             route = '/driver';
