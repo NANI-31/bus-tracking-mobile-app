@@ -23,6 +23,9 @@ export interface ISos {
   longitude: number;
   timestamp: Date;
   status: SosStatus;
+  resolvedAt?: Date;
+  resolvedBy?: string;
+  resolutionNotes?: string;
 }
 
 /**
@@ -83,11 +86,20 @@ const SosSchema = new Schema<SosDocument>(
       enum: Object.values(SosStatus),
       default: SosStatus.ACTIVE,
     },
+    resolvedAt: {
+      type: Date,
+    },
+    resolvedBy: {
+      type: String,
+    },
+    resolutionNotes: {
+      type: String,
+    },
   },
   {
     collection: "sos_alerts",
     versionKey: false,
-  }
+  },
 );
 
 /**

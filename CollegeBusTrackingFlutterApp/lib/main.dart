@@ -2,21 +2,30 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
-import 'package:collegebus/services/auth_service.dart';
-import 'package:collegebus/services/data_service.dart';
-import 'package:collegebus/services/location_service.dart';
-import 'package:collegebus/services/notification_service.dart';
-import 'package:collegebus/services/api_service.dart';
-import 'package:collegebus/services/fcm_service.dart';
-import 'package:collegebus/repositories/repositories.dart';
-import 'package:collegebus/utils/constants.dart';
-import 'package:collegebus/utils/router.dart';
+import 'services/auth/auth_service.dart';
+import 'services/api/api_service.dart';
+import 'services/core/data_service.dart';
+import 'services/bus/bus_service.dart';
+import 'services/user/user_service.dart';
+import 'services/route/route_service.dart';
+import 'services/college/college_service.dart';
+import 'services/incident/incident_service.dart';
+import 'services/notification/notification_data_service.dart';
+import 'services/payment/payment_service.dart';
+import 'services/bus/location_service.dart';
+import 'services/notification/notification_service.dart';
+import 'services/notification/fcm_service.dart';
+import 'services/admin/super_admin_service.dart';
+import 'services/admin/college_admin_service.dart';
+import 'repositories/repositories.dart';
+import 'utils/constants.dart';
+import 'utils/router.dart';
 import 'package:collegebus/screens/splash_screen.dart';
 import 'package:collegebus/utils/app_logger.dart';
 
-import 'package:collegebus/services/theme_service.dart';
-import 'package:collegebus/services/locale_service.dart';
-import 'package:collegebus/services/socket_service.dart';
+import 'services/core/theme_service.dart';
+import 'services/core/locale_service.dart';
+import 'services/api/socket_service.dart';
 import 'package:google_maps_flutter_platform_interface/google_maps_flutter_platform_interface.dart';
 import 'package:google_maps_flutter_android/google_maps_flutter_android.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -117,6 +126,8 @@ class MyApp extends StatelessWidget {
         Provider(create: (_) => NotificationRepository()),
         Provider(create: (_) => CollegeRepository()),
         Provider(create: (_) => IncidentRepository()),
+        Provider(create: (_) => AuditRepository()),
+        Provider(create: (_) => SystemRepository()),
 
         // ApiService (kept for backward compatibility with DataService)
         Provider(create: (_) => ApiService()),
@@ -134,6 +145,7 @@ class MyApp extends StatelessWidget {
                 ..updateRepositories(authRepo, userRepo, notificationRepo),
         ),
 
+        // SocketService (depends on AuthService)
         ChangeNotifierProxyProvider<AuthService, SocketService>(
           create: (_) => SocketService(),
           update: (_, auth, socket) {
@@ -148,13 +160,95 @@ class MyApp extends StatelessWidget {
           },
         ),
 
-        ChangeNotifierProxyProvider2<ApiService, SocketService, DataService>(
-          create: (context) => DataService(
+        // Admin Services
+        ChangeNotifierProvider(create: (_) => SuperAdminService()),
+
+        // CollegeAdminService (depends on SocketService)
+        ChangeNotifierProxyProvider<SocketService, CollegeAdminService>(
+          create: (context) => CollegeAdminService(
+            socketService: Provider.of<SocketService>(context, listen: false),
+          ),
+          update: (context, socket, previous) =>
+              previous ?? CollegeAdminService(socketService: socket),
+        ),
+
+        // Domain Services
+        ChangeNotifierProxyProvider2<ApiService, SocketService, BusService>(
+          create: (context) => BusService(
             Provider.of<ApiService>(context, listen: false),
             Provider.of<SocketService>(context, listen: false),
           ),
-          update: (_, api, socket, dataService) =>
-              dataService!..updateDependencies(api, socket),
+          update: (_, api, socket, service) =>
+              service!..updateDependencies(api, socket),
+        ),
+        ChangeNotifierProxyProvider2<ApiService, SocketService, UserService>(
+          create: (context) => UserService(
+            Provider.of<ApiService>(context, listen: false),
+            Provider.of<SocketService>(context, listen: false),
+          ),
+          update: (_, api, socket, service) =>
+              service!..updateDependencies(api, socket),
+        ),
+        ChangeNotifierProxyProvider2<ApiService, SocketService, RouteService>(
+          create: (context) => RouteService(
+            Provider.of<ApiService>(context, listen: false),
+            Provider.of<SocketService>(context, listen: false),
+          ),
+          update: (_, api, socket, service) =>
+              service!..updateDependencies(api, socket),
+        ),
+        ChangeNotifierProxyProvider<ApiService, CollegeService>(
+          create: (context) =>
+              CollegeService(Provider.of<ApiService>(context, listen: false)),
+          update: (_, api, service) => service!..updateDependencies(api),
+        ),
+        ChangeNotifierProxyProvider<ApiService, IncidentService>(
+          create: (context) =>
+              IncidentService(Provider.of<ApiService>(context, listen: false)),
+          update: (_, api, service) => service!..updateDependencies(api),
+        ),
+        ChangeNotifierProxyProvider<ApiService, NotificationDataService>(
+          create: (context) => NotificationDataService(
+            Provider.of<ApiService>(context, listen: false),
+          ),
+          update: (_, api, service) => service!..updateDependencies(api),
+        ),
+        ChangeNotifierProxyProvider<ApiService, PaymentService>(
+          create: (context) =>
+              PaymentService(Provider.of<ApiService>(context, listen: false)),
+          update: (_, api, service) => service!..updateDependencies(api),
+        ),
+
+        // DataService (Facade)
+        ChangeNotifierProxyProvider6<
+          BusService,
+          UserService,
+          RouteService,
+          CollegeService,
+          IncidentService,
+          NotificationDataService,
+          DataService
+        >(
+          create: (context) => DataService(
+            Provider.of<BusService>(context, listen: false),
+            Provider.of<UserService>(context, listen: false),
+            Provider.of<RouteService>(context, listen: false),
+            Provider.of<CollegeService>(context, listen: false),
+            Provider.of<IncidentService>(context, listen: false),
+            Provider.of<NotificationDataService>(context, listen: false),
+            Provider.of<PaymentService>(context, listen: false),
+          ),
+          update:
+              (context, bus, user, route, college, incident, notif, service) =>
+                  service!..updateServices(
+                    bus,
+                    user,
+                    route,
+                    college,
+                    incident,
+                    notif,
+                    Provider.of<PaymentService>(context, listen: false),
+                  ),
         ),
 
         Provider(create: (_) => LocationService()),

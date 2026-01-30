@@ -3,7 +3,7 @@ import {
   sendSOS,
   resolveSos,
   getActiveSos,
-} from "../controllers/sosController";
+} from "../controllers/sos.controller";
 import { protect, authorize } from "../middleware/authMiddleware";
 
 const router = express.Router();
@@ -12,24 +12,31 @@ const router = express.Router();
 router.post(
   "/",
   protect,
-  authorize("driver", "busCoordinator", "admin"),
-  sendSOS
+  authorize("driver", "busCoordinator", "collegeAdmin", "superAdmin"),
+  sendSOS,
 );
 
 // Only busCoordinators and admins can resolve SOS
 router.put(
   "/:id/resolve",
   protect,
-  authorize("busCoordinator", "admin"),
-  resolveSos
+  authorize("busCoordinator", "collegeAdmin", "superAdmin"),
+  resolveSos,
 );
 
-// Only busCoordinators and admins can view active SOS lists for their college
+// Only busCoordinators and admins can view lists
 router.get(
   "/active/:collegeId",
   protect,
-  authorize("busCoordinator", "admin"),
-  getActiveSos
+  authorize("busCoordinator", "collegeAdmin", "superAdmin"),
+  getActiveSos,
+);
+
+router.get(
+  "/logs/:collegeId",
+  protect,
+  authorize("busCoordinator", "collegeAdmin", "superAdmin"),
+  getActiveSos, // I'll change the controller to handle status filter
 );
 
 export default router;

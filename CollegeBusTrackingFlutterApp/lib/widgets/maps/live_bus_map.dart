@@ -4,8 +4,8 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:provider/provider.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:collegebus/models/bus_model.dart';
-import 'package:collegebus/services/data_service.dart';
-import 'package:collegebus/services/auth_service.dart';
+import 'package:collegebus/services/core/data_service.dart';
+import 'package:collegebus/services/auth/auth_service.dart';
 import 'package:collegebus/widgets/common/common_map_view.dart';
 
 class LiveBusMap extends StatefulWidget {

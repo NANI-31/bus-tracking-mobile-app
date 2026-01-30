@@ -19,7 +19,7 @@ export interface AuthRequest extends Request {
 export const protect = async (
   req: AuthRequest,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   let token;
 
@@ -64,4 +64,39 @@ export const authorize = (...roles: string[]) => {
     }
     next();
   };
+};
+
+export const superAdminOnly = authorize("superAdmin");
+
+export const collegeAdminOnly = (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction,
+) => {
+  if (!req.user) {
+    return res.status(401).json({ message: "Not authenticated" });
+  }
+
+  if (req.user.role === "superAdmin") {
+    return next(); // Super admin can access anything
+  }
+
+  if (req.user.role !== "collegeAdmin") {
+    return res.status(403).json({ message: "College Admin access required" });
+  }
+
+  // Cross-tenant check: If collegeId is present in params/body, it must match user's collegeId
+  const targetCollegeId =
+    req.params.collegeId || req.body.collegeId || req.query.collegeId;
+
+  if (
+    targetCollegeId &&
+    targetCollegeId.toString() !== req.user.collegeId.toString()
+  ) {
+    return res.status(403).json({
+      message: "Access denied. You can only manage your own college.",
+    });
+  }
+
+  next();
 };

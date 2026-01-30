@@ -26,9 +26,19 @@ class IncidentRepository extends BaseRepository {
   }
 
   /// Resolve an active SOS alert
-  Future<void> resolveSos(String sosId) async {
+  Future<void> resolveSos(String sosId, {String? notes}) async {
     try {
-      await dio.put('/sos/$sosId/resolve');
+      await dio.put('/sos/$sosId/resolve', data: {'resolutionNotes': notes});
+    } catch (e) {
+      throw handleError(e);
+    }
+  }
+
+  /// Fetch SOS logs (resolved alerts) for a college
+  Future<List<Map<String, dynamic>>> getSosLogs(String collegeId) async {
+    try {
+      final response = await dio.get('/sos/logs/$collegeId');
+      return List<Map<String, dynamic>>.from(response.data);
     } catch (e) {
       throw handleError(e);
     }

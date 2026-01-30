@@ -149,7 +149,16 @@ class AppStrings {
   static const String signIn = 'Sign In';
 }
 
-enum UserRole { student, teacher, driver, busCoordinator, admin, parent }
+enum UserRole {
+  student,
+  teacher,
+  driver,
+  busCoordinator,
+  admin,
+  parent,
+  collegeAdmin,
+  superAdmin,
+}
 
 extension UserRoleExtension on UserRole {
   String get displayName {
@@ -166,6 +175,10 @@ extension UserRoleExtension on UserRole {
         return 'Admin';
       case UserRole.parent:
         return 'Parent';
+      case UserRole.collegeAdmin:
+        return 'College Admin';
+      case UserRole.superAdmin:
+        return 'Super Admin';
     }
   }
 
@@ -198,5 +211,5 @@ class AppConstants {
 
   // Automatically switch info based on build mode
   static const String baseUrl = kReleaseMode ? _prodUrl : _devUrl;
-  static const String apiBaseUrl = '$baseUrl/api';
+  static const String apiBaseUrl = '$baseUrl/api/v1';
 }

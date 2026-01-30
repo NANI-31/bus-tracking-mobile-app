@@ -29,6 +29,9 @@ class SosModel {
   final double longitude;
   final DateTime timestamp;
   final SosStatus status;
+  final DateTime? resolvedAt;
+  final String? resolvedBy;
+  final String? resolutionNotes;
 
   SosModel({
     required this.sosId,
@@ -42,6 +45,9 @@ class SosModel {
     required this.longitude,
     required this.timestamp,
     required this.status,
+    this.resolvedAt,
+    this.resolvedBy,
+    this.resolutionNotes,
   });
 
   factory SosModel.fromMap(Map<String, dynamic> map) {
@@ -75,6 +81,9 @@ class SosModel {
       'longitude': longitude,
       'timestamp': timestamp.toIso8601String(),
       'status': status.value,
+      'resolvedAt': resolvedAt?.toIso8601String(),
+      'resolvedBy': resolvedBy,
+      'resolutionNotes': resolutionNotes,
     };
   }
 
@@ -90,6 +99,9 @@ class SosModel {
     double? longitude,
     DateTime? timestamp,
     SosStatus? status,
+    DateTime? resolvedAt,
+    String? resolvedBy,
+    String? resolutionNotes,
   }) {
     return SosModel(
       sosId: sosId ?? this.sosId,
@@ -103,6 +115,9 @@ class SosModel {
       longitude: longitude ?? this.longitude,
       timestamp: timestamp ?? this.timestamp,
       status: status ?? this.status,
+      resolvedAt: resolvedAt ?? this.resolvedAt,
+      resolvedBy: resolvedBy ?? this.resolvedBy,
+      resolutionNotes: resolutionNotes ?? this.resolutionNotes,
     );
   }
 }

@@ -1,7 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:collegebus/utils/constants.dart';
 import 'package:collegebus/utils/app_exceptions.dart';
-import 'package:collegebus/services/persistence_service.dart';
+import 'package:collegebus/services/core/persistence_service.dart';
 
 /// Base repository with shared Dio instance and error handling.
 /// All domain repositories should extend this class.

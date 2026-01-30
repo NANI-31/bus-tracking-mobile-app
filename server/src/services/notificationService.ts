@@ -1,6 +1,6 @@
 import User, { UserRole } from "../models/User";
 import Notification from "../models/Notification";
-import { logHistoryHelper } from "../controllers/historyController";
+import { logHistoryHelper } from "../controllers/history.controller";
 import {
   sendNotificationToDevice,
   sendNotificationToDevices,
@@ -33,7 +33,7 @@ export class NotificationService {
     userId: string,
     type: string,
     payload: Record<string, string | number>,
-    senderId?: string
+    senderId?: string,
   ): Promise<{
     success: boolean;
     notification: { title: string; message: string; type: string };
@@ -45,11 +45,11 @@ export class NotificationService {
     const { title, message } = buildNotificationMessage(
       type,
       payload,
-      userLanguage
+      userLanguage,
     );
 
     logger.info(
-      `[NotificationService] Preparing to send ${type} to user ${userId} (Language: ${userLanguage})`
+      `[NotificationService] Preparing to send ${type} to user ${userId} (Language: ${userLanguage})`,
     );
 
     // Save to database
@@ -116,7 +116,7 @@ export class NotificationService {
       const { title, message } = buildNotificationMessage(
         randomPayload.type,
         randomPayload.payload as unknown as Record<string, string | number>,
-        userLanguage
+        userLanguage,
       );
 
       if (user?.fcmToken) {
@@ -139,7 +139,7 @@ export class NotificationService {
     const { title, message } = buildNotificationMessage(
       randomPayload.type,
       randomPayload.payload as unknown as Record<string, string | number>,
-      "en"
+      "en",
     );
 
     return {
@@ -157,7 +157,7 @@ export class NotificationService {
   async sendCollegeNotification(
     collegeId: string,
     title: string,
-    message: string
+    message: string,
   ): Promise<{ success: boolean; topic: string }> {
     const topic = `college_${collegeId}`;
     await sendNotificationToTopic(topic, title, message);
@@ -170,7 +170,7 @@ export class NotificationService {
   async broadcastNotification(
     collegeId: string,
     senderId: string,
-    message: string
+    message: string,
   ): Promise<{ success: boolean; count: number }> {
     const title = "College Announcement";
     const type = NOTIFICATION_TYPES.GENERAL_ANNOUNCEMENT;
@@ -219,7 +219,7 @@ export class NotificationService {
       `Broadcast message sent to ${users.length} users: ${message}`,
       { senderId, message },
       undefined,
-      senderId
+      senderId,
     );
 
     return { success: true, count: users.length };
@@ -232,25 +232,25 @@ export class NotificationService {
     user: any,
     title: string,
     message: string,
-    data: Record<string, string>
+    data: Record<string, string>,
   ): Promise<boolean> {
     if (user?.fcmToken) {
       logger.info(
-        `[NotificationService] User ${user._id} has FCM token. Sending...`
+        `[NotificationService] User ${user._id} has FCM token. Sending...`,
       );
       const success = await sendNotificationToDevice(
         user.fcmToken,
         title,
         message,
-        data
+        data,
       );
       logger.info(
-        `[NotificationService] Send result for user ${user._id}: ${success}`
+        `[NotificationService] Send result for user ${user._id}: ${success}`,
       );
       return success;
     } else {
       logger.warn(
-        `[NotificationService] User ${user?._id} has NO FCM token. Skipping push.`
+        `[NotificationService] User ${user?._id} has NO FCM token. Skipping push.`,
       );
       return false;
     }

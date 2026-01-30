@@ -8,7 +8,7 @@ import {
   getCollegeBusLocations,
   updateBus,
   deleteBus,
-} from "../controllers/busController";
+} from "../controllers/bus.controller";
 
 import { protect, authorize } from "../middleware/authMiddleware";
 
@@ -22,14 +22,14 @@ router.put(
   "/:id",
   protect,
   authorize("admin", "busCoordinator", "driver"),
-  updateBus
+  updateBus,
 );
 router.delete("/:id", protect, authorize("admin", "busCoordinator"), deleteBus);
 router.post(
   "/location",
   protect,
   authorize("driver", "busCoordinator"),
-  updateBusLocation
+  updateBusLocation,
 );
 router.get("/:busId/location", protect, getBusLocation);
 

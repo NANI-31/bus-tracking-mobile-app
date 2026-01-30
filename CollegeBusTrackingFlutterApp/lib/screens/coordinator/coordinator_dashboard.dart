@@ -4,16 +4,16 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 
-import 'package:collegebus/services/auth_service.dart';
-import 'package:collegebus/services/data_service.dart';
-import 'package:collegebus/services/socket_service.dart';
+import 'package:collegebus/services/auth/auth_service.dart';
+import 'package:collegebus/services/core/data_service.dart';
+import 'package:collegebus/services/api/socket_service.dart';
 import 'package:collegebus/models/user_model.dart';
 import 'package:collegebus/models/bus_model.dart';
 import 'package:collegebus/models/route_model.dart';
 import 'package:collegebus/models/sos_model.dart';
 import 'package:collegebus/utils/constants.dart';
 import 'package:collegebus/widgets/app_drawer.dart';
-import 'package:collegebus/services/theme_service.dart';
+import 'package:collegebus/services/core/theme_service.dart';
 import 'package:collegebus/screens/notifications_screen.dart';
 import 'package:collegebus/screens/coordinator/schedule_management_screen.dart';
 import 'package:collegebus/screens/common/profile_screen.dart';
@@ -27,7 +27,7 @@ import 'package:collegebus/screens/coordinator/modules/bus_numbers_tab.dart';
 import 'package:collegebus/screens/coordinator/modules/live_map_tab.dart';
 import 'package:collegebus/l10n/coordinator/app_localizations.dart'
     as coord_l10n;
-import 'package:collegebus/services/export_service.dart';
+import 'package:collegebus/services/core/export_service.dart';
 
 class CoordinatorDashboard extends StatefulWidget {
   const CoordinatorDashboard({super.key});

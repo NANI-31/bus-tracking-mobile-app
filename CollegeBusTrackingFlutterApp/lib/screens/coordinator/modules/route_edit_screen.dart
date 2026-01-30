@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:velocity_x/velocity_x.dart';
 import 'package:collegebus/models/route_model.dart';
-import 'package:collegebus/services/auth_service.dart';
-import 'package:collegebus/services/data_service.dart';
+import 'package:collegebus/services/auth/auth_service.dart';
+import 'package:collegebus/services/core/data_service.dart';
 import 'package:collegebus/utils/constants.dart';
 import 'package:collegebus/l10n/coordinator/app_localizations.dart'
     as coord_l10n;

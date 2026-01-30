@@ -6,8 +6,8 @@ import {
   updateUser,
   deleteUser,
   verifyEmail,
-} from "../controllers/userController";
-import { getDriverHistory } from "../controllers/historyController";
+} from "../controllers/user.controller";
+import { getDriverHistory } from "../controllers/history.controller";
 
 import { protect, authorize } from "../middleware/authMiddleware";
 
@@ -20,10 +20,15 @@ router.get(
   "/:id/history",
   protect,
   authorize("admin", "busCoordinator"),
-  getDriverHistory
+  getDriverHistory,
 );
 router.put("/:id", protect, updateUser);
 router.put("/:id/verify-email", protect, verifyEmail);
-router.delete("/:id", protect, authorize("admin"), deleteUser);
+router.delete(
+  "/:id",
+  protect,
+  authorize("superAdmin", "collegeAdmin"),
+  deleteUser,
+);
 
 export default router;

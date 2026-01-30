@@ -2,14 +2,14 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
-import 'package:collegebus/services/auth_service.dart';
-import 'package:collegebus/services/data_service.dart';
-import 'package:collegebus/services/location_service.dart';
+import 'package:collegebus/services/auth/auth_service.dart';
+import 'package:collegebus/services/core/data_service.dart';
+import 'package:collegebus/services/bus/location_service.dart';
 import 'package:collegebus/models/bus_model.dart';
 import 'package:collegebus/models/route_model.dart';
-import 'package:collegebus/services/theme_service.dart';
-import 'package:collegebus/services/socket_service.dart';
-import 'package:collegebus/services/persistence_service.dart';
+import 'package:collegebus/services/core/theme_service.dart';
+import 'package:collegebus/services/api/socket_service.dart';
+import 'package:collegebus/services/core/persistence_service.dart';
 
 // Import the new modules
 import 'tabs/student_map_tab.dart';

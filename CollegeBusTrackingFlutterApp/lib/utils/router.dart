@@ -2,7 +2,7 @@ import 'package:collegebus/screens/student/student_bus_stop_screen.dart';
 import 'package:collegebus/screens/student/student_home_screen.dart';
 import 'package:collegebus/screens/splash_screen.dart';
 import 'package:go_router/go_router.dart';
-import 'package:collegebus/services/auth_service.dart';
+import 'package:collegebus/services/auth/auth_service.dart';
 import 'package:collegebus/auth/login_screen.dart';
 import 'package:collegebus/auth/register_screen.dart';
 
@@ -16,6 +16,8 @@ import 'package:collegebus/screens/driver/driver_dashboard.dart';
 import 'package:collegebus/screens/coordinator/coordinator_dashboard.dart';
 import 'package:collegebus/screens/coordinator/schedule_management_screen.dart';
 import 'package:collegebus/screens/admin/admin_dashboard.dart';
+import 'package:collegebus/screens/college_admin/college_admin_dashboard.dart';
+import 'package:collegebus/screens/super_admin/super_admin_dashboard.dart';
 import 'package:collegebus/screens/common/profile_screen.dart';
 import 'package:collegebus/screens/student/student_change_password_screen.dart';
 import 'package:collegebus/screens/common/privacy_policy_screen.dart';
@@ -68,6 +70,10 @@ class AppRouter {
             return '/coordinator';
           case UserRole.admin:
             return '/admin';
+          case UserRole.collegeAdmin:
+            return '/college-admin';
+          case UserRole.superAdmin:
+            return '/super-admin';
           default:
             return '/login';
         }
@@ -208,6 +214,14 @@ class AppRouter {
       GoRoute(
         path: '/admin',
         builder: (context, state) => const AdminDashboard(),
+      ),
+      GoRoute(
+        path: '/college-admin',
+        builder: (context, state) => const CollegeAdminDashboard(),
+      ),
+      GoRoute(
+        path: '/super-admin',
+        builder: (context, state) => const SuperAdminDashboard(),
       ),
     ],
   );

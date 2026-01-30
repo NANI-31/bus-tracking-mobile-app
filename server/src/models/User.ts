@@ -7,6 +7,8 @@ export enum UserRole {
   BusCoordinator = "busCoordinator",
   Admin = "admin",
   Parent = "parent",
+  CollegeAdmin = "collegeAdmin",
+  SuperAdmin = "superAdmin",
 }
 
 export enum UserLanguage {
@@ -58,17 +60,32 @@ const UserSchema: Schema = new Schema({
   role: {
     type: String,
     required: true,
-    enum: ["student", "teacher", "driver", "busCoordinator", "admin", "parent"],
+    enum: [
+      "student",
+      "teacher",
+      "driver",
+      "busCoordinator",
+      "admin",
+      "collegeAdmin",
+      "superAdmin",
+      "parent",
+    ],
     default: UserRole.Student,
   },
-  collegeId: { type: Schema.Types.ObjectId, required: true, ref: "College" },
+  collegeId: {
+    type: Schema.Types.ObjectId,
+    ref: "College",
+    required: function (this: any) {
+      return this.role !== "superAdmin";
+    },
+  },
   approved: { type: Boolean, default: false },
   emailVerified: { type: Boolean, default: false },
   needsManualApproval: { type: Boolean, default: false },
   approverId: { type: String, ref: "User" },
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date },
-  phoneNumber: { type: String },
+  phoneNumber: { type: String, unique: true, sparse: true },
   rollNumber: { type: String },
   preferredStop: { type: String },
   fcmToken: { type: String },

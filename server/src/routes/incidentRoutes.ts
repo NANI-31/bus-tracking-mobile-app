@@ -3,7 +3,7 @@ import {
   createIncident,
   getIncidentsByCollege,
   updateIncidentStatus,
-} from "../controllers/incidentController";
+} from "../controllers/incident.controller";
 import { protect, authorize } from "../middleware/authMiddleware";
 
 const router = express.Router();
@@ -13,13 +13,13 @@ router.get(
   "/college/:collegeId",
   protect,
   authorize("admin", "busCoordinator"),
-  getIncidentsByCollege
+  getIncidentsByCollege,
 );
 router.patch(
   "/:id/status",
   protect,
   authorize("admin", "busCoordinator"),
-  updateIncidentStatus
+  updateIncidentStatus,
 );
 
 export default router;

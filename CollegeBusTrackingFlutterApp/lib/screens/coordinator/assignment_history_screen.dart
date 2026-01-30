@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:collegebus/models/assignment_log_model.dart';
-import 'package:collegebus/services/data_service.dart';
+import 'package:collegebus/services/core/data_service.dart';
 import 'package:collegebus/utils/constants.dart';
 import 'package:provider/provider.dart';
 import 'package:velocity_x/velocity_x.dart';

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:provider/provider.dart';
 import 'package:collegebus/models/bus_model.dart';
-import 'package:collegebus/services/data_service.dart';
+import 'package:collegebus/services/core/data_service.dart';
 import 'package:collegebus/utils/constants.dart';
 import 'package:collegebus/widgets/maps/live_bus_map.dart';
 import 'package:velocity_x/velocity_x.dart';

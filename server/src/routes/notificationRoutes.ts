@@ -9,7 +9,7 @@ import {
   sendCollegeNotification,
   sendTemplatedNotification,
   broadcastNotification,
-} from "../controllers/notificationController";
+} from "../controllers/notification.controller";
 
 import { protect, authorize } from "../middleware/authMiddleware";
 
@@ -19,14 +19,14 @@ router.post(
   "/",
   protect,
   authorize("admin", "busCoordinator"),
-  sendNotification
+  sendNotification,
 );
 router.post("/test", protect, authorize("admin"), sendTestNotification);
 router.post(
   "/templated",
   protect,
   authorize("admin", "busCoordinator"),
-  sendTemplatedNotification
+  sendTemplatedNotification,
 );
 router.post("/fcm-token", protect, updateFcmToken);
 router.post("/remove-fcm-token", protect, removeFcmToken);
@@ -34,13 +34,13 @@ router.post(
   "/college",
   protect,
   authorize("admin", "busCoordinator"),
-  sendCollegeNotification
+  sendCollegeNotification,
 );
 router.post(
   "/broadcast",
   protect,
   authorize("admin", "busCoordinator"),
-  broadcastNotification
+  broadcastNotification,
 );
 router.get("/user/:userId", protect, getUserNotifications);
 router.put("/:id/read", protect, markNotificationAsRead);

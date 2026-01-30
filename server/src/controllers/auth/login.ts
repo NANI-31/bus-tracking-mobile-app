@@ -14,11 +14,10 @@ export const login = async (req: Request, res: Response) => {
     const { email, password } = req.body;
     console.log("LOGIN REQUEST:", { email, passwordLength: password?.length });
 
-    // Check user by email OR phone (logic from original controller)
-    let user = await User.findOne({ email });
-    if (!user) {
-      user = await User.findOne({ phoneNumber: email });
-    }
+    // Check user by email OR phone
+    const user = await User.findOne({
+      $or: [{ email: email }, { phoneNumber: email }],
+    });
 
     if (!user) {
       console.log("LOGIN FAIL: User not found");
@@ -58,7 +57,7 @@ export const login = async (req: Request, res: Response) => {
         approved: user.approved,
       },
       JWT_SECRET,
-      { expiresIn: "30d" }
+      { expiresIn: "30d" },
     );
     console.log("LOGIN: Token created");
 

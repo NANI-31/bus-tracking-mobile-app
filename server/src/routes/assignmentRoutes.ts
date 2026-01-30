@@ -2,7 +2,7 @@ import express from "express";
 import {
   getAssignmentLogsByBus,
   getAssignmentLogsByDriver,
-} from "../controllers/assignmentController";
+} from "../controllers/assignment.controller";
 
 import { protect } from "../middleware/authMiddleware";
 

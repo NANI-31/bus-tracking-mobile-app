@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:razorpay_flutter/razorpay_flutter.dart';
 import 'package:provider/provider.dart';
-import 'package:collegebus/services/data_service.dart';
-import 'package:collegebus/services/auth_service.dart';
+import 'package:collegebus/services/core/data_service.dart';
+import 'package:collegebus/services/auth/auth_service.dart';
 import 'package:collegebus/utils/app_logger.dart';
 
 // We'll use standard colors to avoid dependency issues if any

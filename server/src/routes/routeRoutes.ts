@@ -5,7 +5,7 @@ import {
   getRoutesByCollege,
   updateRoute,
   deleteRoute,
-} from "../controllers/routeController";
+} from "../controllers/route.controller";
 
 import { protect, authorize } from "../middleware/authMiddleware";
 
@@ -19,7 +19,7 @@ router.delete(
   "/:id",
   protect,
   authorize("admin", "busCoordinator"),
-  deleteRoute
+  deleteRoute,
 );
 
 export default router;

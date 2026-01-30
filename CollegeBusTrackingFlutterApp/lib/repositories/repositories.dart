@@ -13,3 +13,5 @@ export 'schedule_repository.dart';
 export 'notification_repository.dart';
 export 'college_repository.dart';
 export 'incident_repository.dart';
+export 'audit_repository.dart';
+export 'system_repository.dart';

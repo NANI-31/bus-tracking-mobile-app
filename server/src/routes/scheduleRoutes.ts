@@ -4,7 +4,7 @@ import {
   getSchedule,
   getSchedulesByRoute,
   getSchedulesByCollege,
-} from "../controllers/scheduleController";
+} from "../controllers/schedule.controller";
 
 import { protect, authorize } from "../middleware/authMiddleware";
 

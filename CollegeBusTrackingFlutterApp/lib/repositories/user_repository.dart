@@ -18,7 +18,7 @@ class UserRepository extends BaseRepository {
     try {
       final response = await dio.get('/users');
       return (response.data as List)
-          .map((data) => UserModel.fromMap(data, data['_id']))
+          .map((data) => UserModel.fromMap(data, data['_id'] ?? ''))
           .toList();
     } catch (e) {
       throw handleError(e);
@@ -61,6 +61,15 @@ class UserRepository extends BaseRepository {
         queryParameters: params,
       );
       return response.data;
+    } catch (e) {
+      throw handleError(e);
+    }
+  }
+
+  /// Delete a user
+  Future<void> deleteUser(String userId) async {
+    try {
+      await dio.delete('/users/$userId');
     } catch (e) {
       throw handleError(e);
     }

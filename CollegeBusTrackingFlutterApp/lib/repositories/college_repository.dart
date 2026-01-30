@@ -8,7 +8,7 @@ class CollegeRepository extends BaseRepository {
     try {
       final response = await dio.get('/colleges');
       return (response.data as List)
-          .map((data) => CollegeModel.fromMap(data, data['_id']))
+          .map((data) => CollegeModel.fromMap(data, data['_id'] ?? ''))
           .toList();
     } catch (e) {
       throw handleError(e);
@@ -82,6 +82,27 @@ class CollegeRepository extends BaseRepository {
           if (newBusNumber != null) 'newBusNumber': newBusNumber,
           if (details != null) 'details': details,
         },
+      );
+    } catch (e) {
+      throw handleError(e);
+    }
+  }
+
+  /// Super Admin: Verify a college
+  Future<void> verifyCollege(String collegeId) async {
+    try {
+      await dio.put('/admin/super/colleges/$collegeId/verify');
+    } catch (e) {
+      throw handleError(e);
+    }
+  }
+
+  /// Super Admin: Suspend a college
+  Future<void> suspendCollege(String collegeId, String reason) async {
+    try {
+      await dio.put(
+        '/admin/super/colleges/$collegeId/suspend',
+        data: {'reason': reason},
       );
     } catch (e) {
       throw handleError(e);

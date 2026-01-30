@@ -2,8 +2,8 @@ import { Server } from "socket.io";
 import { Bus, IBus } from "../models/Bus";
 import { BusAssignmentLog } from "../models/BusAssignmentLog";
 import User, { UserRole } from "../models/User";
-import { sendTemplatedNotificationHelper } from "../controllers/notificationController";
-import { logHistoryHelper } from "../controllers/historyController";
+import { sendTemplatedNotificationHelper } from "../controllers/notification.controller";
+import { logHistoryHelper } from "../controllers/history.controller";
 import { NOTIFICATION_TYPES } from "../constants/notificationTypes";
 import logger from "../utils/logger";
 
@@ -24,7 +24,7 @@ export class BusService {
   async updateBus(
     busId: string,
     updateData: Partial<IBus>,
-    requestingUserName?: string
+    requestingUserName?: string,
   ): Promise<IBus> {
     const oldBus = await Bus.findById(busId);
     if (!oldBus) {
@@ -44,7 +44,7 @@ export class BusService {
       oldBus,
       updatedBus,
       updateData,
-      requestingUserName
+      requestingUserName,
     );
 
     // Handle simulation triggers
@@ -63,7 +63,7 @@ export class BusService {
     oldBus: IBus,
     updatedBus: IBus,
     updateData: Partial<IBus>,
-    requestingUserName?: string
+    requestingUserName?: string,
   ): Promise<void> {
     const newStatus = updateData.assignmentStatus;
     const oldStatus = oldBus.assignmentStatus;
@@ -111,13 +111,13 @@ export class BusService {
     // If assigned back to default, do nothing as per user request
     if (bus.routeId?.toString() === bus.defaultRouteId?.toString()) {
       logger.info(
-        `Bus ${bus.busNumber} assigned to its default route. No notification needed.`
+        `Bus ${bus.busNumber} assigned to its default route. No notification needed.`,
       );
       return;
     }
 
     logger.info(
-      `Bus ${bus.busNumber} assigned to non-default route ${bus.routeId}. Sending notifications.`
+      `Bus ${bus.busNumber} assigned to non-default route ${bus.routeId}. Sending notifications.`,
     );
 
     // Find all users associated with this route
@@ -141,7 +141,7 @@ export class BusService {
           {
             busNumber: bus.busNumber,
             routeName: "assigned route", // We could fetch actual route name if needed
-          }
+          },
         );
       } catch (err) {
         logger.error(`Failed to notify user ${user._id}: ${err}`);
@@ -154,7 +154,7 @@ export class BusService {
       "route_assignment_change",
       `Bus ${bus.busNumber} assigned to a temporary route.`,
       { routeId: bus.routeId },
-      bus._id.toString()
+      bus._id.toString(),
     );
   }
 
@@ -174,7 +174,7 @@ export class BusService {
    */
   private async handleNewAssignment(
     bus: IBus,
-    coordinatorName: string = "Coordinator"
+    coordinatorName: string = "Coordinator",
   ): Promise<void> {
     if (!bus.driverId) return;
 
@@ -182,14 +182,14 @@ export class BusService {
     const driverName = driver?.fullName || "Unknown Driver";
 
     logger.info(
-      `${coordinatorName} assigned bus ${bus.busNumber} to driver ${driverName}`
+      `${coordinatorName} assigned bus ${bus.busNumber} to driver ${driverName}`,
     );
 
     // Send notification
     await sendTemplatedNotificationHelper(
       bus.driverId.toString(),
       NOTIFICATION_TYPES.DRIVER_ASSIGNED,
-      { busNumber: bus.busNumber }
+      { busNumber: bus.busNumber },
     );
 
     // Create assignment log
@@ -208,7 +208,7 @@ export class BusService {
       `Bus ${bus.busNumber} assigned to driver.`,
       { assignmentId: newLog._id },
       bus._id.toString(),
-      bus.driverId.toString()
+      bus.driverId.toString(),
     );
   }
 
@@ -223,7 +223,7 @@ export class BusService {
         status: "pending",
       },
       { status: "accepted", acceptedAt: new Date() },
-      { sort: { assignedAt: -1 } }
+      { sort: { assignedAt: -1 } },
     );
 
     const driver = await User.findById(bus.driverId);
@@ -235,7 +235,7 @@ export class BusService {
       `${driverName} accepted the assignment`,
       {},
       bus._id.toString(),
-      bus.driverId?.toString()
+      bus.driverId?.toString(),
     );
   }
 
@@ -244,12 +244,12 @@ export class BusService {
    */
   private async handleRejectedAssignment(
     oldBus: IBus,
-    updatedBus: IBus
+    updatedBus: IBus,
   ): Promise<void> {
     await BusAssignmentLog.findOneAndUpdate(
       { busId: oldBus._id, driverId: oldBus.driverId, status: "pending" },
       { status: "rejected", completedAt: new Date() },
-      { sort: { assignedAt: -1 } }
+      { sort: { assignedAt: -1 } },
     );
 
     await logHistoryHelper(
@@ -258,7 +258,7 @@ export class BusService {
       `Bus ${oldBus.busNumber} assignment rejected/revoked.`,
       {},
       oldBus._id.toString(),
-      oldBus.driverId?.toString()
+      oldBus.driverId?.toString(),
     );
   }
 
@@ -267,12 +267,12 @@ export class BusService {
    */
   private async handleTripCompletion(
     oldBus: IBus,
-    updatedBus: IBus
+    updatedBus: IBus,
   ): Promise<void> {
     await BusAssignmentLog.findOneAndUpdate(
       { busId: oldBus._id, driverId: oldBus.driverId, status: "accepted" },
       { status: "completed", completedAt: new Date() },
-      { sort: { assignedAt: -1 } }
+      { sort: { assignedAt: -1 } },
     );
 
     await logHistoryHelper(
@@ -281,7 +281,7 @@ export class BusService {
       `Trip completed for Bus ${oldBus.busNumber}.`,
       {},
       oldBus._id.toString(),
-      oldBus.driverId?.toString()
+      oldBus.driverId?.toString(),
     );
 
     // Stop simulation if bus 9
@@ -297,7 +297,7 @@ export class BusService {
   private async handleSimulationTriggers(
     oldBus: IBus,
     updatedBus: IBus,
-    updateData: Partial<IBus>
+    updateData: Partial<IBus>,
   ): Promise<void> {
     // Cast to any since request body may contain "STARTED" which isn't in IBus type
     const requestStatus = (updateData as any).status;
@@ -311,7 +311,7 @@ export class BusService {
         startSimulation(
           this.io,
           updatedBus._id.toString(),
-          updatedBus.collegeId.toString()
+          updatedBus.collegeId.toString(),
         );
       }
     }

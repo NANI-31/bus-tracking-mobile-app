@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
-import 'package:collegebus/services/auth_service.dart';
-import 'package:collegebus/services/data_service.dart';
+import 'package:collegebus/services/auth/auth_service.dart';
+import 'package:collegebus/services/core/data_service.dart';
 import 'package:collegebus/models/user_model.dart';
 import 'package:collegebus/models/college_model.dart';
 import 'package:collegebus/utils/constants.dart';

@@ -5,7 +5,7 @@ import bcrypt from "bcryptjs";
 export const seedUsers = async (
   collegeId: string,
   domain: string,
-  prefix: string
+  prefix: string,
 ) => {
   console.log(`Seeding Users for college with domain ${domain}...`);
 
@@ -25,6 +25,12 @@ export const seedUsers = async (
       count: 1,
     },
     { name: "Admin", role: UserRole.Admin, prefix: "ad", count: 1 },
+    {
+      name: "College Admin",
+      role: UserRole.CollegeAdmin,
+      prefix: "ca",
+      count: 1,
+    },
   ];
 
   const users: any[] = [];

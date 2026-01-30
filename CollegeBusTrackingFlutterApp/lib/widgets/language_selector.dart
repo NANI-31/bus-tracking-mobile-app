@@ -2,7 +2,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:velocity_x/velocity_x.dart';
-import 'package:collegebus/services/locale_service.dart';
+import 'package:collegebus/services/core/locale_service.dart';
 
 class LanguageSelector extends StatelessWidget {
   const LanguageSelector({super.key});

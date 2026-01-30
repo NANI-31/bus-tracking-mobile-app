@@ -6,6 +6,12 @@ class CollegeModel {
   final String createdBy;
   final DateTime createdAt;
   final DateTime? updatedAt;
+  // New fields for admin module
+  final String? adminId; // Assigned college admin user ID
+  final bool suspended;
+  final Map<String, dynamic>? settings; // College-specific settings
+  final DateTime? suspendedAt;
+  final String? suspensionReason;
 
   CollegeModel({
     required this.id,
@@ -15,17 +21,36 @@ class CollegeModel {
     required this.createdBy,
     required this.createdAt,
     this.updatedAt,
+    this.adminId,
+    this.suspended = false,
+    this.settings,
+    this.suspendedAt,
+    this.suspensionReason,
   });
 
   factory CollegeModel.fromMap(Map<String, dynamic> map, String id) {
+    DateTime parseDate(dynamic value) {
+      if (value is String) return DateTime.parse(value);
+      return DateTime.now();
+    }
+
     return CollegeModel(
       id: id,
       name: map['name'] ?? '',
       allowedDomains: List<String>.from(map['allowedDomains'] ?? []),
       verified: map['verified'] ?? false,
       createdBy: map['createdBy'] ?? '',
-      createdAt: DateTime.parse(map['createdAt']),
-      updatedAt: map['updatedAt'] != null ? DateTime.parse(map['updatedAt']) : null,
+      createdAt: parseDate(map['createdAt']),
+      updatedAt: map['updatedAt'] != null ? parseDate(map['updatedAt']) : null,
+      adminId: map['adminId'],
+      suspended: map['suspended'] ?? false,
+      settings: map['settings'] != null
+          ? Map<String, dynamic>.from(map['settings'])
+          : null,
+      suspendedAt: map['suspendedAt'] != null
+          ? parseDate(map['suspendedAt'])
+          : null,
+      suspensionReason: map['suspensionReason'],
     );
   }
 
@@ -37,6 +62,11 @@ class CollegeModel {
       'createdBy': createdBy,
       'createdAt': createdAt.toIso8601String(),
       'updatedAt': updatedAt?.toIso8601String(),
+      'adminId': adminId,
+      'suspended': suspended,
+      'settings': settings,
+      'suspendedAt': suspendedAt?.toIso8601String(),
+      'suspensionReason': suspensionReason,
     };
   }
 
@@ -48,6 +78,11 @@ class CollegeModel {
     String? createdBy,
     DateTime? createdAt,
     DateTime? updatedAt,
+    String? adminId,
+    bool? suspended,
+    Map<String, dynamic>? settings,
+    DateTime? suspendedAt,
+    String? suspensionReason,
   }) {
     return CollegeModel(
       id: id ?? this.id,
@@ -57,6 +92,22 @@ class CollegeModel {
       createdBy: createdBy ?? this.createdBy,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
+      adminId: adminId ?? this.adminId,
+      suspended: suspended ?? this.suspended,
+      settings: settings ?? this.settings,
+      suspendedAt: suspendedAt ?? this.suspendedAt,
+      suspensionReason: suspensionReason ?? this.suspensionReason,
     );
+  }
+
+  /// Check if college is active (verified and not suspended)
+  bool get isActive => verified && !suspended;
+
+  /// Get a setting value with type safety
+  T? getSetting<T>(String key) {
+    if (settings == null) return null;
+    final value = settings![key];
+    if (value is T) return value;
+    return null;
   }
 }

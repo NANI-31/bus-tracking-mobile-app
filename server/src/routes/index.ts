@@ -27,4 +27,15 @@ router.use("/incidents", incidentRoutes);
 router.use("/history", historyRoutes);
 router.use("/payment", paymentRoutes);
 
+// Admin Routes
+import collegeAdminRoutes from "./collegeAdmin.routes";
+import superAdminRoutes from "./superAdmin.routes";
+import auditRoutes from "./audit.routes";
+import systemConfigRoutes from "./systemConfig.routes";
+
+router.use("/admin/college", collegeAdminRoutes);
+router.use("/admin/super", superAdminRoutes);
+router.use("/admin/audit-logs", auditRoutes);
+router.use("/admin/system-config", systemConfigRoutes);
+
 export default router;

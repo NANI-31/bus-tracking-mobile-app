@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:velocity_x/velocity_x.dart';
 import 'package:collegebus/models/user_model.dart';
-import 'package:collegebus/services/auth_service.dart';
+import 'package:collegebus/services/auth/auth_service.dart';
 import 'package:collegebus/utils/constants.dart';
 import 'package:collegebus/widgets/success_modal.dart';
 

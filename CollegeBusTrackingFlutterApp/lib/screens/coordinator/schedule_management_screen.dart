@@ -5,8 +5,8 @@ import 'package:velocity_x/velocity_x.dart';
 import 'package:collegebus/models/bus_model.dart';
 import 'package:collegebus/models/route_model.dart';
 import 'package:collegebus/models/schedule_model.dart';
-import 'package:collegebus/services/auth_service.dart';
-import 'package:collegebus/services/data_service.dart';
+import 'package:collegebus/services/auth/auth_service.dart';
+import 'package:collegebus/services/core/data_service.dart';
 import 'package:collegebus/utils/constants.dart';
 import 'package:collegebus/widgets/app_drawer.dart';
 

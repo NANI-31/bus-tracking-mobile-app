@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:collegebus/services/data_service.dart';
+import 'package:collegebus/services/core/data_service.dart';
 import 'package:collegebus/utils/constants.dart';
 import 'package:collegebus/widgets/success_modal.dart';
 import 'package:collegebus/widgets/api_error_modal.dart';

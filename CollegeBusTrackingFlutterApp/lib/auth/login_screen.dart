@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
-import 'package:collegebus/services/auth_service.dart';
+import 'package:collegebus/services/auth/auth_service.dart';
 import 'package:collegebus/widgets/custom_input_field.dart';
 import 'package:velocity_x/velocity_x.dart';
 
@@ -12,7 +12,7 @@ import 'package:collegebus/l10n/auth/login/auth_login_localizations.dart';
 import 'package:collegebus/widgets/language_selector.dart';
 import 'package:collegebus/models/user_model.dart';
 import 'package:collegebus/models/college_model.dart';
-import 'package:collegebus/services/api_service.dart';
+import 'package:collegebus/services/api/api_service.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -114,6 +114,12 @@ class _LoginScreenState extends State<LoginScreen>
             break;
           case UserRole.admin:
             route = '/admin';
+            break;
+          case UserRole.collegeAdmin:
+            route = '/college-admin';
+            break;
+          case UserRole.superAdmin:
+            route = '/super-admin';
             break;
           case null:
             route = '/login';
@@ -309,15 +315,25 @@ class _LoginScreenState extends State<LoginScreen>
                                         _selectedTestRole = selected
                                             ? role
                                             : null;
-                                        _selectedTestCollege =
-                                            null; // Reset college on role change
+                                        _selectedTestCollege = null;
+
+                                        // Auto-fill for Super Admin
+                                        if (selected &&
+                                            role == UserRole.superAdmin) {
+                                          _emailController.text =
+                                              'super@admin.com';
+                                          _passwordController.text =
+                                              'a'; // Dev password
+                                          // _handleLogin(); // Uncomment if auto-login desired
+                                        }
                                       });
                                     },
                                   ),
                                 )
                                 .toList(),
                           ),
-                          if (_selectedTestRole != null) ...[
+                          if (_selectedTestRole != null &&
+                              _selectedTestRole != UserRole.superAdmin) ...[
                             const SizedBox(height: 12),
                             const Text(
                               'Select College:',
@@ -354,15 +370,19 @@ class _LoginScreenState extends State<LoginScreen>
                             ),
                           ],
                           if (_selectedTestRole != null &&
-                              _selectedTestCollege != null) ...[
+                              (_selectedTestRole == UserRole.superAdmin ||
+                                  _selectedTestCollege != null)) ...[
                             const SizedBox(height: 12),
                             if (_isFetchingTestUsers)
-                              const CircularProgressIndicator().centered()
+                              const CircularProgressIndicator()
                             else if (_allTestUsers
                                 .where(
                                   (u) =>
                                       u.role == _selectedTestRole &&
-                                      u.collegeId == _selectedTestCollege!.id,
+                                      (_selectedTestRole ==
+                                              UserRole.superAdmin ||
+                                          u.collegeId ==
+                                              _selectedTestCollege!.id),
                                 )
                                 .isEmpty)
                               const Padding(
@@ -383,13 +403,16 @@ class _LoginScreenState extends State<LoginScreen>
                                     .where(
                                       (u) =>
                                           u.role == _selectedTestRole &&
-                                          u.collegeId ==
-                                              _selectedTestCollege!.id,
+                                          (_selectedTestRole ==
+                                                  UserRole.superAdmin ||
+                                              u.collegeId ==
+                                                  _selectedTestCollege!.id),
                                     )
                                     // Ensure unique IDs to prevent UI confusion
                                     .fold<List<UserModel>>([], (list, u) {
-                                      if (!list.any((e) => e.id == u.id))
+                                      if (!list.any((e) => e.id == u.id)) {
                                         list.add(u);
+                                      }
                                       return list;
                                     })
                                     .map(
@@ -413,7 +436,7 @@ class _LoginScreenState extends State<LoginScreen>
                                       ),
                                     )
                                     .toList(),
-                              ).centered(),
+                              ),
                           ],
                         ],
                       ),
@@ -422,7 +445,7 @@ class _LoginScreenState extends State<LoginScreen>
                     // --- TESTING TOOL END ---
 
                     // Account Input
-                    l10n.email.text.semiBold
+                    l10n.emailOrPhone.text.semiBold
                         .color(
                           Theme.of(context).textTheme.bodyLarge?.color ??
                               AppColors.textPrimary,

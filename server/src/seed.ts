@@ -6,6 +6,7 @@ import { seedColleges } from "./seeds/collegeSeed";
 import { seedUsers } from "./seeds/userSeed";
 import { seedTransport } from "./seeds/transportSeed";
 import { UserRole } from "./models/User";
+require("dotenv").config();
 
 import Route from "./models/Route";
 import { Bus } from "./models/Bus";
@@ -17,8 +18,11 @@ import { collegesData } from "./seedData/collegesData";
 dotenv.config();
 
 const runSeed = async () => {
-  const mongoUri =
-    "mongodb+srv://nani:nani@cluster0.nkgeayy.mongodb.net/college_bus_tracking?retryWrites=true&w=majority";
+  const mongoUri = process.env.MONGO_URI;
+
+  if (!mongoUri) {
+    throw new Error("MONGO_URI is not defined in environment variables");
+  }
 
   try {
     console.log("Connecting to MongoDB...");
@@ -48,7 +52,7 @@ const runSeed = async () => {
       const users = await seedUsers(
         college._id.toString(),
         collegeData.domain,
-        collegeData.shortName
+        collegeData.shortName,
       );
 
       const coordinator = users.find((u) => u.role === UserRole.BusCoordinator);
@@ -65,9 +69,28 @@ const runSeed = async () => {
         coordinator._id.toString(),
         collegeData.routes,
         collegeData.domain,
-        drivers
+        drivers,
       );
     }
+
+    // 4. Seed Global Super Admin
+    console.log("\n--- Seeding Global Super Admin ---");
+    const password = "a"; // Fixed password for dev
+    const salt = await import("bcryptjs").then((bcrypt) => bcrypt.genSalt(10));
+    const passwordHash = await import("bcryptjs").then((bcrypt) =>
+      bcrypt.hash(password, salt),
+    );
+
+    await User.create({
+      _id: (await import("crypto")).randomUUID(),
+      fullName: "System Super Admin",
+      email: "super@admin.com",
+      password: passwordHash,
+      role: UserRole.SuperAdmin,
+      approved: true,
+      emailVerified: true,
+    });
+    console.log("Global Super Admin created: super@admin.com / password123");
 
     console.log("\nMASTER SEED COMPLETE");
     process.exit(0);

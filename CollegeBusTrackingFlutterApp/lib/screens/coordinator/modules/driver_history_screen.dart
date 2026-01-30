@@ -4,7 +4,7 @@ import 'package:intl/intl.dart';
 import 'package:velocity_x/velocity_x.dart';
 import 'package:collegebus/models/user_model.dart';
 import 'package:collegebus/models/history_log_model.dart';
-import 'package:collegebus/services/data_service.dart';
+import 'package:collegebus/services/core/data_service.dart';
 import 'package:collegebus/utils/constants.dart';
 
 class DriverHistoryScreen extends StatefulWidget {

@@ -14,7 +14,7 @@ export const registerRoutes = (app: Express) => {
       credentials: true, // Allow cookies/auth headers
       methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
       allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
-    })
+    }),
   );
 
   app.use(express.json());
@@ -34,7 +34,7 @@ export const registerRoutes = (app: Express) => {
       const status = res.statusCode;
       const color = status >= 500 ? "🔴" : status >= 400 ? "🟡" : "🟢";
       logger.info(
-        `[Response] ${color} ${status} ${req.method} ${req.url} - ${duration}ms`
+        `[Response] ${color} ${status} ${req.method} ${req.url} - ${duration}ms`,
       );
     });
     next();
@@ -53,7 +53,7 @@ export const registerRoutes = (app: Express) => {
   */
 
   // Mount Unified API Routes
-  app.use("/api", apiRouter);
+  app.use("/api/v1", apiRouter);
 
   // Static files and Root route
   app.use(express.static(path.join(__dirname, "../public"))); // Adjusted path for src/ folder
