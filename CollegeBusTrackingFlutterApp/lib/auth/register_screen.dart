@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:email_validator/email_validator.dart';
-import 'package:collegebus/services/auth/auth_service.dart';
-import 'package:collegebus/services/core/data_service.dart';
+import 'package:collegebus/providers/providers.dart';
+import 'package:collegebus/providers/college_provider.dart';
 import 'package:collegebus/widgets/custom_input_field.dart';
 import 'package:collegebus/widgets/custom_button.dart';
 import 'package:collegebus/utils/constants.dart';
@@ -20,14 +20,14 @@ import 'package:collegebus/auth/widgets/role_selection_grid.dart';
 import 'package:collegebus/auth/widgets/college_selection_field.dart';
 import 'package:collegebus/auth/widgets/coordinator_email_field.dart';
 
-class RegisterScreen extends StatefulWidget {
+class RegisterScreen extends ConsumerStatefulWidget {
   const RegisterScreen({super.key});
 
   @override
-  State<RegisterScreen> createState() => _RegisterScreenState();
+  ConsumerState<RegisterScreen> createState() => _RegisterScreenState();
 }
 
-class _RegisterScreenState extends State<RegisterScreen> {
+class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController(text: 'nani');
   final _emailController = TextEditingController(
@@ -56,15 +56,19 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   Future<void> _fetchColleges() async {
     setState(() => _isLoadingColleges = true);
-    final firestoreService = Provider.of<DataService>(context, listen: false);
-    firestoreService.getAllColleges().listen((colleges) {
+    try {
+      final colleges = await ref.read(collegeServiceProvider.future);
       if (mounted) {
         setState(() {
           _colleges = colleges;
           _isLoadingColleges = false;
         });
       }
-    });
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoadingColleges = false);
+      }
+    }
   }
 
   @override
@@ -87,7 +91,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     setState(() => _isLoading = true);
 
     try {
-      final authService = Provider.of<AuthService>(context, listen: false);
+      final authNotifier = ref.read(authProvider.notifier);
       String email = '';
       String collegeId = '';
       String? rollNumber = _selectedRole == UserRole.student
@@ -136,7 +140,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         }
       }
 
-      final result = await authService.registerUser(
+      final result = await authNotifier.registerUser(
         email: email,
         password: _passwordController.text,
         fullName: _nameController.text.trim(),
@@ -148,7 +152,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
       if (result['success']) {
         if (email.isNotEmpty) {
-          final otpResult = await authService.sendOtp(email);
+          final otpResult = await authNotifier.sendOtp(email);
           if (otpResult['success']) {
             if (!mounted) return;
             context.push(

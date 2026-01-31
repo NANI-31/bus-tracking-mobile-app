@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:collegebus/utils/constants.dart';
 import 'package:velocity_x/velocity_x.dart';
 
-class StudentInfoTab extends StatelessWidget {
+class StudentInfoTab extends ConsumerWidget {
   final List<String> allBusNumbers;
   final List<String> allStops;
 
@@ -13,7 +14,7 @@ class StudentInfoTab extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return VStack([
       'Information'.text.size(24).bold.make(),
       AppSizes.paddingLarge.heightBox,

@@ -1,96 +1,46 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:velocity_x/velocity_x.dart';
 import 'package:collegebus/models/bus_model.dart';
 import 'package:collegebus/models/route_model.dart';
 import 'package:collegebus/models/schedule_model.dart';
-import 'package:collegebus/services/auth/auth_service.dart';
-import 'package:collegebus/services/core/data_service.dart';
+import 'package:collegebus/providers/auth_provider.dart';
+import 'package:collegebus/providers/bus_provider.dart';
+import 'package:collegebus/providers/route_provider.dart';
+import 'package:collegebus/providers/api_provider.dart';
 import 'package:collegebus/utils/constants.dart';
 import 'package:collegebus/widgets/app_drawer.dart';
 
-class ScheduleManagementScreen extends StatefulWidget {
+class ScheduleManagementScreen extends ConsumerStatefulWidget {
   const ScheduleManagementScreen({super.key});
 
   @override
-  State<ScheduleManagementScreen> createState() =>
+  ConsumerState<ScheduleManagementScreen> createState() =>
       _ScheduleManagementScreenState();
 }
 
-class _ScheduleManagementScreenState extends State<ScheduleManagementScreen>
+class _ScheduleManagementScreenState
+    extends ConsumerState<ScheduleManagementScreen>
     with SingleTickerProviderStateMixin {
   late final TabController _tabController;
-
-  List<ScheduleModel> _firstShiftSchedules = [];
-  List<ScheduleModel> _secondShiftSchedules = [];
-  List<RouteModel> _routes = [];
-  List<BusModel> _buses = [];
-
-  // Stream subscriptions
-  StreamSubscription? _routesSubscription;
-  StreamSubscription? _busesSubscription;
-  StreamSubscription? _schedulesSubscription;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
-    _loadData();
   }
 
   @override
   void dispose() {
     _tabController.dispose();
-    _routesSubscription?.cancel();
-    _busesSubscription?.cancel();
-    _schedulesSubscription?.cancel();
     super.dispose();
   }
 
-  Future<void> _loadData() async {
-    final authService = Provider.of<AuthService>(context, listen: false);
-    final firestoreService = Provider.of<DataService>(context, listen: false);
-    final collegeId = authService.currentUserModel?.collegeId;
-
-    if (collegeId == null) return;
-
-    await _routesSubscription?.cancel();
-    _routesSubscription = firestoreService.getRoutesByCollege(collegeId).listen(
-      (routes) {
-        if (mounted) {
-          setState(() => _routes = routes);
-        }
-      },
-    );
-
-    await _busesSubscription?.cancel();
-    _busesSubscription = firestoreService.getBusesByCollege(collegeId).listen((
-      buses,
-    ) {
-      if (mounted) {
-        setState(() => _buses = buses);
-      }
-    });
-
-    await _schedulesSubscription?.cancel();
-    _schedulesSubscription = firestoreService
-        .getSchedulesByCollege(collegeId)
-        .listen((schedules) {
-          if (mounted) {
-            setState(() {
-              _firstShiftSchedules = schedules
-                  .where((s) => s.shift == '1st')
-                  .toList();
-              _secondShiftSchedules = schedules
-                  .where((s) => s.shift == '2nd')
-                  .toList();
-            });
-          }
-        });
-  }
-
-  void _showCreateScheduleDialog(String shift) {
+  void _showCreateScheduleDialog({
+    required String shift,
+    required List<RouteModel> routes,
+    required List<BusModel> buses,
+  }) {
     RouteModel? selectedRoute;
     BusModel? selectedBus;
 
@@ -103,12 +53,12 @@ class _ScheduleManagementScreenState extends State<ScheduleManagementScreen>
               title: 'Create $shift Shift Timetable'.text.make(),
               content: VStack([
                 DropdownButtonFormField<RouteModel>(
-                  initialValue: selectedRoute,
+                  value: selectedRoute,
                   decoration: const InputDecoration(
                     labelText: 'Select Route',
                     border: OutlineInputBorder(),
                   ),
-                  items: _routes
+                  items: routes
                       .map(
                         (route) => DropdownMenuItem(
                           value: route,
@@ -128,12 +78,12 @@ class _ScheduleManagementScreenState extends State<ScheduleManagementScreen>
                 ),
                 16.heightBox,
                 DropdownButtonFormField<BusModel>(
-                  initialValue: selectedBus,
+                  value: selectedBus,
                   decoration: const InputDecoration(
                     labelText: 'Select Bus',
                     border: OutlineInputBorder(),
                   ),
-                  items: _buses
+                  items: buses
                       .map(
                         (bus) => DropdownMenuItem(
                           value: bus,
@@ -169,9 +119,7 @@ class _ScheduleManagementScreenState extends State<ScheduleManagementScreen>
                               .make(),
                         ]).box
                         .padding(const EdgeInsets.all(12))
-                        .color(
-                          Theme.of(context).primaryColor.withValues(alpha: 0.1),
-                        )
+                        .color(Theme.of(context).primaryColor.withValues(alpha: 0.1))
                         .rounded
                         .make(),
                     16.heightBox,
@@ -201,14 +149,8 @@ class _ScheduleManagementScreenState extends State<ScheduleManagementScreen>
                 ElevatedButton(
                   onPressed: selectedRoute != null && selectedBus != null
                       ? () async {
-                          final authService = Provider.of<AuthService>(
-                            context,
-                            listen: false,
-                          );
-                          final firestoreService = Provider.of<DataService>(
-                            context,
-                            listen: false,
-                          );
+                          final user = ref.read(currentUserProvider);
+                          final api = ref.read(apiServiceProvider);
 
                           // Create stop schedules without specific times
                           final stopSchedules = <StopSchedule>[];
@@ -235,13 +177,13 @@ class _ScheduleManagementScreenState extends State<ScheduleManagementScreen>
                             busId: selectedBus!.id,
                             shift: shift,
                             stopSchedules: stopSchedules,
-                            collegeId: authService.currentUserModel!.collegeId,
-                            createdBy: authService.currentUserModel!.id,
+                            collegeId: user!.collegeId,
+                            createdBy: user.id,
                             createdAt: DateTime.now(),
                           );
 
                           try {
-                            await firestoreService.createSchedule(schedule);
+                            await api.createSchedule(schedule);
                             if (!context.mounted) return;
                             Navigator.of(context).pop();
                             ScaffoldMessenger.of(context).showSnackBar(
@@ -280,12 +222,23 @@ class _ScheduleManagementScreenState extends State<ScheduleManagementScreen>
 
   @override
   Widget build(BuildContext context) {
+    final user = ref.watch(currentUserProvider);
+    final collegeId = user?.collegeId;
+
+    if (collegeId == null) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Loading...')),
+        body: const Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    final routesAsync = ref.watch(collegeRoutesProvider(collegeId));
+    final busesAsync = ref.watch(collegeBusesStreamProvider(collegeId));
+    final schedulesAsync = ref.watch(collegeSchedulesProvider(collegeId));
+
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      drawer: AppDrawer(
-        user: Provider.of<AuthService>(context).currentUserModel,
-        authService: Provider.of<AuthService>(context),
-      ),
+      drawer: AppDrawer(user: user),
       appBar: AppBar(
         backgroundColor: Theme.of(context).primaryColor,
         foregroundColor: Theme.of(context).colorScheme.onPrimary,
@@ -302,50 +255,84 @@ class _ScheduleManagementScreenState extends State<ScheduleManagementScreen>
           ],
         ),
       ),
-      body: TabBarView(
-        controller: _tabController,
-        children: [
-          _buildScheduleTab('1st', _firstShiftSchedules),
-          _buildScheduleTab('2nd', _secondShiftSchedules),
-        ],
+      body: schedulesAsync.when(
+        data: (schedules) => routesAsync.when(
+          data: (routes) => busesAsync.when(
+            data: (buses) => TabBarView(
+              controller: _tabController,
+              children: [
+                _buildScheduleTab(
+                  '1st',
+                  schedules.where((s) => s.shift == '1st').toList(),
+                  routes,
+                  buses,
+                ),
+                _buildScheduleTab(
+                  '2nd',
+                  schedules.where((s) => s.shift == '2nd').toList(),
+                  routes,
+                  buses,
+                ),
+              ],
+            ),
+            loading: () => const Center(child: CircularProgressIndicator()),
+            error: (e, s) => Center(child: Text('Error: $e')),
+          ),
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (e, s) => Center(child: Text('Error: $e')),
+        ),
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (e, s) => Center(child: Text('Error: $e')),
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () {
-          final currentShift = _tabController.index == 0 ? '1st' : '2nd';
-          _showCreateScheduleDialog(currentShift);
-        },
-        backgroundColor: Theme.of(context).primaryColor,
-        foregroundColor: Theme.of(context).colorScheme.onPrimary,
-        icon: const Icon(Icons.add),
-        label: const Text('Create Timetable'),
+      floatingActionButton: schedulesAsync.maybeWhen(
+        data: (schedules) => routesAsync.maybeWhen(
+          data: (routes) => busesAsync.maybeWhen(
+            data: (buses) => FloatingActionButton.extended(
+              onPressed: () {
+                final currentShift = _tabController.index == 0 ? '1st' : '2nd';
+                _showCreateScheduleDialog(
+                  shift: currentShift,
+                  routes: routes,
+                  buses: buses,
+                );
+              },
+              backgroundColor: Theme.of(context).primaryColor,
+              foregroundColor: Theme.of(context).colorScheme.onPrimary,
+              icon: const Icon(Icons.add),
+              label: const Text('Create Timetable'),
+            ),
+            orElse: () => null,
+          ),
+          orElse: () => null,
+        ),
+        orElse: () => null,
       ),
     );
   }
 
-  Widget _buildScheduleTab(String shift, List<ScheduleModel> schedules) {
+  Widget _buildScheduleTab(
+    String shift,
+    List<ScheduleModel> schedules,
+    List<RouteModel> routes,
+    List<BusModel> buses,
+  ) {
     if (schedules.isEmpty) {
       return VStack(
         [
           Icon(
             shift == '1st' ? Icons.wb_sunny : Icons.nights_stay,
             size: 64,
-            color: Theme.of(
-              context,
-            ).colorScheme.onSurface.withValues(alpha: 0.6),
+            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
           ),
           AppSizes.paddingMedium.heightBox,
           'No $shift shift timetables created yet'.text
               .size(18)
-              .color(
-                Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
-              )
+              .color(Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6))
               .make(),
           AppSizes.paddingSmall.heightBox,
           'Tap the + button to create a timetable'.text
               .size(14)
-              .color(
-                Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
-              )
+              .color(Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6))
               .make(),
         ],
         alignment: MainAxisAlignment.center,
@@ -358,7 +345,7 @@ class _ScheduleManagementScreenState extends State<ScheduleManagementScreen>
       itemCount: schedules.length,
       itemBuilder: (context, index) {
         final schedule = schedules[index];
-        final route = _routes.firstWhere(
+        final route = routes.firstWhere(
           (r) => r.id == schedule.routeId,
           orElse: () => RouteModel(
             id: '',
@@ -373,7 +360,7 @@ class _ScheduleManagementScreenState extends State<ScheduleManagementScreen>
             createdAt: DateTime.now(),
           ),
         );
-        final bus = _buses.firstWhere(
+        final bus = buses.firstWhere(
           (b) => b.id == schedule.busId,
           orElse: () => BusModel(
             id: '',
@@ -442,15 +429,12 @@ class _ScheduleManagementScreenState extends State<ScheduleManagementScreen>
                   );
                   if (confirmed == true) {
                     if (!context.mounted) return;
-                    final firestoreService = Provider.of<DataService>(
-                      context,
-                      listen: false,
-                    );
-                    await firestoreService.deleteSchedule(schedule.id);
+                    final api = ref.read(apiServiceProvider);
+                    await api.deleteSchedule(schedule.id);
                     if (!context.mounted) return;
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
-                        content: Text('Timetable deleted successfully'),
+                        content: const Text('Timetable deleted successfully'),
                         backgroundColor: Theme.of(
                           context,
                         ).colorScheme.secondary,

@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
-import 'package:provider/provider.dart';
 import 'package:collegebus/models/bus_model.dart';
-import 'package:collegebus/services/core/data_service.dart';
+import 'package:collegebus/providers/api_provider.dart';
 import 'package:collegebus/utils/constants.dart';
 import 'package:collegebus/widgets/maps/live_bus_map.dart';
 import 'package:velocity_x/velocity_x.dart';
 
-class StudentMapTab extends StatefulWidget {
+class StudentMapTab extends ConsumerStatefulWidget {
+  // ... (rest of the fields)
   final LatLng? currentLocation;
   final List<BusModel> buses;
   final BusModel? selectedBus;
@@ -40,10 +41,10 @@ class StudentMapTab extends StatefulWidget {
   });
 
   @override
-  State<StudentMapTab> createState() => _StudentMapTabState();
+  ConsumerState<StudentMapTab> createState() => _StudentMapTabState();
 }
 
-class _StudentMapTabState extends State<StudentMapTab>
+class _StudentMapTabState extends ConsumerState<StudentMapTab>
     with AutomaticKeepAliveClientMixin {
   GoogleMapController? _mapController;
   final GlobalKey<LiveBusMapState> _mapStateKey = GlobalKey<LiveBusMapState>();
@@ -208,13 +209,8 @@ class _StudentMapTabState extends State<StudentMapTab>
             _mapStateKey.currentState?.resumeFollowing();
             // Also animate once to be sure
             if (_mapController != null) {
-              final dataService = Provider.of<DataService>(
-                context,
-                listen: false,
-              );
-              dataService.getBusLocation(widget.selectedBus!.id).first.then((
-                location,
-              ) {
+              final api = ref.read(apiServiceProvider);
+              api.getBusLocation(widget.selectedBus!.id).then((location) {
                 if (location != null && mounted) {
                   _mapController!.animateCamera(
                     CameraUpdate.newLatLngZoom(location.currentLocation, 16.0),

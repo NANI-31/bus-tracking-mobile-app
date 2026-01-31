@@ -1,26 +1,36 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:collegebus/providers/auth_provider.dart';
 import 'package:collegebus/utils/constants.dart';
 import 'package:velocity_x/velocity_x.dart';
 
-class StudentNotificationsScreen extends StatefulWidget {
+class StudentNotificationsScreen extends ConsumerStatefulWidget {
   const StudentNotificationsScreen({super.key});
 
   @override
-  State<StudentNotificationsScreen> createState() =>
+  ConsumerState<StudentNotificationsScreen> createState() =>
       _StudentNotificationsScreenState();
 }
 
 class _StudentNotificationsScreenState
-    extends State<StudentNotificationsScreen> {
+    extends ConsumerState<StudentNotificationsScreen> {
   int _selectedFilterIndex = 0;
   final List<String> _filters = ["All", "Important", "Updates"];
 
   @override
   Widget build(BuildContext context) {
+    // ignore: unused_local_variable
+    final user = ref.watch(currentUserProvider);
     final colorScheme = Theme.of(context).colorScheme;
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      appBar: AppBar(
+        title: const Text('Notifications'),
+        elevation: 0,
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+        foregroundColor: colorScheme.onSurface,
+      ),
       body: SafeArea(
         child: VStack([
           // 1. Header

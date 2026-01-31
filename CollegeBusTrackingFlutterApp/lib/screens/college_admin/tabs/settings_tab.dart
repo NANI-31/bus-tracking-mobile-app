@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:collegebus/utils/constants.dart';
 
-class SettingsTab extends StatelessWidget {
+class SettingsTab extends ConsumerWidget {
   const SettingsTab({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(AppSizes.paddingMedium),
       child: Column(

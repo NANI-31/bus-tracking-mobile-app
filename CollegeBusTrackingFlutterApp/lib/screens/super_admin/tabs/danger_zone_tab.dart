@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:collegebus/utils/constants.dart';
 
-class DangerZoneTab extends StatelessWidget {
+class DangerZoneTab extends ConsumerWidget {
   const DangerZoneTab({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,

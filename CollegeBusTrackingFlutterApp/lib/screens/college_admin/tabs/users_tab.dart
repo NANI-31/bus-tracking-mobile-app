@@ -1,25 +1,24 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-
-import 'package:collegebus/services/admin/college_admin_service.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:collegebus/providers/admin_provider.dart';
 import 'package:collegebus/utils/constants.dart';
 import 'package:collegebus/screens/college_admin/widgets/user_card.dart';
 
-class UsersTab extends StatefulWidget {
+class UsersTab extends ConsumerStatefulWidget {
   const UsersTab({super.key});
 
   @override
-  State<UsersTab> createState() => _UsersTabState();
+  ConsumerState<UsersTab> createState() => _UsersTabState();
 }
 
-class _UsersTabState extends State<UsersTab> {
+class _UsersTabState extends ConsumerState<UsersTab> {
   UserRole? _selectedRoleFilter;
   bool? _selectedApprovalFilter;
   String _searchQuery = '';
 
   @override
   Widget build(BuildContext context) {
-    final collegeAdminService = Provider.of<CollegeAdminService>(context);
+    final collegeAdminService = ref.watch(collegeAdminServiceProvider);
     final collegeUsers = collegeAdminService.collegeUsers;
 
     // Filtered users logic moved here
@@ -105,7 +104,7 @@ class _UsersTabState extends State<UsersTab> {
                   itemCount: filteredUsersList.length,
                   itemBuilder: (context, index) {
                     final user = filteredUsersList[index];
-                    return UserCard(user: user, caService: collegeAdminService);
+                    return UserCard(user: user);
                   },
                 ),
         ),

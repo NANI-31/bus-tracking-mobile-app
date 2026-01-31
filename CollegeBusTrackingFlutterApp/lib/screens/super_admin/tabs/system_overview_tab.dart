@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fl_chart/fl_chart.dart';
-import 'package:collegebus/services/admin/super_admin_service.dart';
+import 'package:collegebus/providers/admin_provider.dart';
 import 'package:collegebus/models/user_model.dart';
 import 'package:collegebus/models/audit_log_model.dart';
 import 'package:collegebus/utils/constants.dart';
@@ -9,7 +9,7 @@ import 'package:collegebus/widgets/analytics/analytics_charts.dart';
 import 'package:collegebus/screens/super_admin/widgets/super_admin_stat_card.dart';
 import 'package:collegebus/screens/super_admin/widgets/system_health_card.dart';
 
-class SystemOverviewTab extends StatelessWidget {
+class SystemOverviewTab extends ConsumerWidget {
   final int totalColleges;
   final int verifiedColleges;
   final int totalUsers;
@@ -32,8 +32,8 @@ class SystemOverviewTab extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
-    final saService = Provider.of<SuperAdminService>(context);
+  Widget build(BuildContext context, WidgetRef ref) {
+    final saService = ref.watch(superAdminServiceProvider);
     final activeSosCount = saService.globalActiveSos.length;
 
     return SingleChildScrollView(

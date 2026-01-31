@@ -16,7 +16,7 @@ class ExportService {
     for (var bus in buses) {
       rows.add([
         bus.busNumber,
-        bus.driverId ?? 'Unassigned',
+        bus.driverId.isEmpty ? 'Unassigned' : bus.driverId,
         bus.routeId ?? 'N/A',
         bus.assignmentStatus,
         bus.createdAt.toIso8601String(),

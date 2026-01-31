@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:collegebus/models/bus_model.dart';
 import 'package:collegebus/models/route_model.dart';
 import 'package:collegebus/utils/constants.dart';
 import 'package:velocity_x/velocity_x.dart';
 
-class StudentBusListTab extends StatefulWidget {
+class StudentBusListTab extends ConsumerStatefulWidget {
   final List<BusModel> filteredBuses;
   final List<RouteModel> routes;
   final BusModel? selectedBus;
@@ -23,10 +24,10 @@ class StudentBusListTab extends StatefulWidget {
   });
 
   @override
-  State<StudentBusListTab> createState() => _StudentBusListTabState();
+  ConsumerState<StudentBusListTab> createState() => _StudentBusListTabState();
 }
 
-class _StudentBusListTabState extends State<StudentBusListTab> {
+class _StudentBusListTabState extends ConsumerState<StudentBusListTab> {
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
   String _selectedStatus = 'all'; // Default to 'all'

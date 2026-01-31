@@ -67,6 +67,10 @@ class CollegeAdminService extends ChangeNotifier {
       final allColleges = results[1] as List<CollegeModel>;
       final allBuses = results[2] as List<BusModel>;
 
+      debugPrint(
+        'SERVICE: Fetched ${allUsers.length} total users, ${allColleges.length} colleges, ${allBuses.length} buses',
+      );
+
       _college = allColleges.firstWhere((c) => c.id == collegeId);
       _collegeUsers = allUsers.where((u) => u.collegeId == collegeId).toList();
       _collegeBuses = allBuses.where((b) => b.collegeId == collegeId).toList();
@@ -76,6 +80,9 @@ class CollegeAdminService extends ChangeNotifier {
 
       AppLogger.d(
         'College Dashboard loaded for $collegeId: ${_collegeUsers.length} users, ${_pendingUsers.length} pending',
+      );
+      debugPrint(
+        'SERVICE: Filtered for $collegeId: ${_collegeUsers.length} users, ${_pendingUsers.length} pending',
       );
 
       // Start listening to live locations if socket is available
@@ -252,11 +259,21 @@ class CollegeAdminService extends ChangeNotifier {
     }
   }
 
+  bool _disposed = false;
+
   @override
   void dispose() {
+    _disposed = true;
     _locationSubscription?.cancel();
     _sosAlertSubscription?.cancel();
     _sosResolvedSubscription?.cancel();
     super.dispose();
+  }
+
+  @override
+  void notifyListeners() {
+    if (!_disposed) {
+      super.notifyListeners();
+    }
   }
 }

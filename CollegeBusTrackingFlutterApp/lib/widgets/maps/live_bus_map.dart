@@ -1,14 +1,14 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:collegebus/models/bus_model.dart';
-import 'package:collegebus/services/core/data_service.dart';
-import 'package:collegebus/services/auth/auth_service.dart';
+import 'package:collegebus/providers/auth_provider.dart';
+import 'package:collegebus/providers/bus_provider.dart';
 import 'package:collegebus/widgets/common/common_map_view.dart';
 
-class LiveBusMap extends StatefulWidget {
+class LiveBusMap extends ConsumerStatefulWidget {
   final List<BusModel> buses;
   final BusModel? selectedBus;
   final Function(BusModel)? onBusTap;
@@ -27,16 +27,15 @@ class LiveBusMap extends StatefulWidget {
   });
 
   @override
-  State<LiveBusMap> createState() => LiveBusMapState();
+  ConsumerState<LiveBusMap> createState() => LiveBusMapState();
 }
 
-class LiveBusMapState extends State<LiveBusMap> {
+class LiveBusMapState extends ConsumerState<LiveBusMap> {
   final Map<String, Marker> _markers = {};
   // Cache locations to handle updates
   final Map<String, BusLocationModel> _liveLocations = {};
 
   LatLng? _centerLocation;
-  StreamSubscription? _locationSubscription;
   GoogleMapController? _mapController;
 
   // Smart centering logic
@@ -56,7 +55,6 @@ class LiveBusMapState extends State<LiveBusMap> {
   void initState() {
     super.initState();
     _initLocation();
-    _setupLocationStream();
   }
 
   @override
@@ -72,24 +70,6 @@ class LiveBusMapState extends State<LiveBusMap> {
         _isFollowing = true;
         _animateToBus(widget.selectedBus!);
       }
-    }
-  }
-
-  void _setupLocationStream() {
-    final dataService = Provider.of<DataService>(context, listen: false);
-    final authService = Provider.of<AuthService>(context, listen: false);
-    final collegeId = authService.currentUserModel?.collegeId;
-
-    if (collegeId != null) {
-      _locationSubscription = dataService
-          .getCollegeBusLocationsStream(collegeId)
-          .listen((locations) {
-            if (!mounted) return;
-            for (var loc in locations) {
-              _liveLocations[loc.busId] = loc;
-            }
-            _updateAllMarkers();
-          });
     }
   }
 
@@ -177,12 +157,28 @@ class LiveBusMapState extends State<LiveBusMap> {
 
   @override
   void dispose() {
-    _locationSubscription?.cancel();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    final user = ref.watch(currentUserProvider);
+    final collegeId = user?.collegeId;
+
+    if (collegeId != null) {
+      ref.listen<AsyncValue<List<BusLocationModel>>>(
+        collegeBusLocationsProvider(collegeId),
+        (previous, next) {
+          next.whenData((locations) {
+            for (var loc in locations) {
+              _liveLocations[loc.busId] = loc;
+            }
+            _updateAllMarkers();
+          });
+        },
+      );
+    }
+
     if (_centerLocation == null) {
       return const Center(child: CircularProgressIndicator());
     }

@@ -1,21 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:collegebus/l10n/driver/app_localizations.dart';
 import 'package:flutter/foundation.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:go_router/go_router.dart';
 import 'package:velocity_x/velocity_x.dart';
-import 'package:collegebus/services/auth/auth_service.dart';
-import 'package:collegebus/services/core/data_service.dart';
-import 'package:collegebus/services/bus/location_service.dart';
+// import 'package:provider/provider.dart'; // Removed legacy provider
+import 'package:collegebus/services/core/persistence_service.dart';
+import 'package:collegebus/services/core/secure_storage_service.dart';
+import 'package:collegebus/providers/auth_provider.dart';
+import 'package:collegebus/providers/service_providers.dart';
+import 'package:collegebus/providers/bus_provider.dart';
+import 'package:collegebus/providers/route_provider.dart';
+import 'package:collegebus/providers/api_provider.dart';
+import 'package:collegebus/providers/socket_provider.dart';
 import 'package:collegebus/models/bus_model.dart';
 import 'package:collegebus/models/route_model.dart';
 import 'package:collegebus/utils/constants.dart';
 import 'package:collegebus/utils/map_style_helper.dart';
-import 'package:collegebus/services/core/theme_service.dart';
-import 'package:collegebus/services/api/socket_service.dart';
-import 'package:collegebus/services/core/persistence_service.dart';
-import 'package:collegebus/services/core/secure_storage_service.dart';
 import 'package:collegebus/utils/app_logger.dart';
 import 'widgets/location_display.dart';
 import 'widgets/bus_route_selectors.dart';
@@ -27,245 +29,82 @@ import 'package:collegebus/widgets/success_modal.dart';
 import 'package:collegebus/widgets/sos_button.dart';
 import 'package:geolocator/geolocator.dart';
 
-class DriverDashboard extends StatefulWidget {
+class DriverDashboard extends ConsumerStatefulWidget {
   const DriverDashboard({super.key});
 
   @override
-  State<DriverDashboard> createState() => _DriverDashboardState();
+  ConsumerState<DriverDashboard> createState() => _DriverDashboardState();
 }
 
-class _DriverDashboardState extends State<DriverDashboard>
+class _DriverDashboardState extends ConsumerState<DriverDashboard>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
   LatLng? _currentLocation;
   bool _isSharing = false;
-  BusModel? _myBus;
+
+  // Selection state
   RouteModel? _selectedRoute;
   String? _selectedBusNumber;
+
   Set<Marker> _markers = {};
   Set<Polyline> _polylines = {};
-  StreamSubscription<Position>? _positionSubscription;
   String? _mapStyle;
-
-  List<RouteModel> _routes = [];
-  List<String> _busNumbers = [];
-
-  StreamSubscription? _busListSubscription;
-  StreamSubscription? _busUpdateSubscription;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
     _getCurrentLocation();
-    _loadRoutes();
-    _loadBusNumbers();
-    _loadMyBus().then((_) => _loadSavedSelections());
+    _loadSavedSelections();
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final socketService = Provider.of<SocketService>(context, listen: false);
-      final dataService = Provider.of<DataService>(context, listen: false);
-      final themeService = Provider.of<ThemeService>(context, listen: false);
-      final authService = Provider.of<AuthService>(context, listen: false);
-
-      themeService.addListener(_handleThemeChange);
-      dataService.addListener(_loadMyBus);
-      authService.addListener(_handleAuthChange); // Listen for user load
-
-      // Auto-refresh when bus assignment attributes change
-      _busListSubscription = socketService.busListUpdateStream.listen((_) {
-        AppLogger.d('[DriverDashboard] Bus list updated, reloading my bus...');
-        if (mounted) _loadMyBus();
-      });
-
-      _busUpdateSubscription = socketService.busUpdateStream.listen((data) {
-        // Optionally filter by my bus ID if needed, but reloading is safe
-        AppLogger.d('[DriverDashboard] Bus updated, reloading my bus...');
-        if (mounted) _loadMyBus();
-      });
-
-      _handleThemeChange();
-      // Try loading immediately in case user is already there
-      if (authService.currentUserModel != null) {
-        // Fix: Make sure to join the college room to receive updates
-        socketService.joinCollege(authService.currentUserModel!.collegeId);
-        _loadMyBus();
+      final socketService = ref.read(socketServiceProvider);
+      final user = ref.read(currentUserProvider);
+      if (user != null) {
+        socketService.joinCollege(user.collegeId);
       }
-    });
-  }
 
-  void _handleAuthChange() {
-    if (!mounted) return;
-    final authService = Provider.of<AuthService>(context, listen: false);
-    final socketService = Provider.of<SocketService>(context, listen: false);
-
-    if (authService.currentUserModel != null) {
-      // User loaded (or changed), refresh bus assignment
-      // Fix: Join room when auth changes to logged in
-      socketService.joinCollege(authService.currentUserModel!.collegeId);
-      _loadMyBus();
-    }
-  }
-
-  void _handleThemeChange() {
-    if (!mounted) return;
-    final themeService = Provider.of<ThemeService>(context, listen: false);
-    MapStyleHelper.getStyle(themeService.isDarkMode).then((style) {
-      if (mounted) setState(() => _mapStyle = style);
+      // Initial theme setup
+      final isDarkMode = ref.read(themeServiceProvider).isDarkMode;
+      MapStyleHelper.getStyle(isDarkMode).then((style) {
+        if (mounted) setState(() => _mapStyle = style);
+      });
     });
   }
 
   @override
   void dispose() {
     _tabController.dispose();
-    _positionSubscription?.cancel();
-    _busListSubscription?.cancel();
-    _busUpdateSubscription?.cancel();
-
-    final themeService = Provider.of<ThemeService>(context, listen: false);
-    themeService.removeListener(_handleThemeChange);
-    final dataService = Provider.of<DataService>(context, listen: false);
-    dataService.removeListener(_loadMyBus);
-
-    final authService = Provider.of<AuthService>(context, listen: false);
-    authService.removeListener(_handleAuthChange);
-
     super.dispose();
   }
 
   Future<void> _loadSavedSelections() async {
-    // Use encrypted secure storage for sensitive driver data
-    final busId = await SecureStorageService.getDriverBusId();
-    final routeId = await SecureStorageService.getDriverRouteId();
     final busNumber = await SecureStorageService.getDriverBusNumber();
 
     if (mounted) {
       setState(() {
-        if (busId != null && _myBus == null) {
-          _myBus = BusModel(
-            id: busId,
-            busNumber: busNumber ?? '',
-            driverId: '',
-            routeId: routeId ?? '',
-            collegeId: '',
-            isActive: true,
-            createdAt: DateTime.now(),
-          );
-        }
         if (busNumber != null) _selectedBusNumber = busNumber;
-        if (routeId != null) {
-          final existingRoute = _routes.firstWhere(
-            (r) => r.id == routeId,
-            orElse: () => _routes.isNotEmpty
-                ? _routes.first
-                : RouteModel(
-                    id: routeId,
-                    routeName: '',
-                    routeType: '',
-                    startPoint: RoutePoint(name: '', lat: 0, lng: 0),
-                    endPoint: RoutePoint(name: '', lat: 0, lng: 0),
-                    stopPoints: [],
-                    collegeId: '',
-                    createdBy: '',
-                    isActive: true,
-                    createdAt: DateTime.now(),
-                  ),
-          );
-          _selectedRoute = existingRoute;
-        }
       });
-
-      // Removed auto-start of location sharing.
-      // User must explicitly tap "Start Trip" to begin sharing.
       _updateMarkers();
     }
   }
 
-  Future<void> _saveSelections() async {
-    // Use encrypted secure storage for sensitive driver data
-    if (_myBus != null) {
-      await SecureStorageService.setDriverBusId(_myBus!.id);
-      await SecureStorageService.setDriverBusNumber(_myBus!.busNumber);
+  Future<void> _saveSelections(BusModel? myBus) async {
+    if (myBus != null) {
+      await SecureStorageService.setDriverBusId(myBus.id);
+      await SecureStorageService.setDriverBusNumber(myBus.busNumber);
       if (_selectedRoute != null) {
         await SecureStorageService.setDriverRouteId(_selectedRoute!.id);
       }
     }
-    // Keep sharing state in regular preferences (non-sensitive)
     await PersistenceService.setIsSharingLocation(_isSharing);
   }
 
   Future<void> _getCurrentLocation() async {
-    final locationService = Provider.of<LocationService>(
-      context,
-      listen: false,
-    );
+    final locationService = ref.read(locationServiceProvider);
     final location = await locationService.getCurrentLocation();
     if (location != null && mounted) {
       setState(() => _currentLocation = location);
-      _updateMarkers();
-    }
-  }
-
-  Future<void> _loadBusNumbers() async {
-    final authService = Provider.of<AuthService>(context, listen: false);
-    final user = authService.currentUserModel;
-    if (user == null) return;
-    final dataService = Provider.of<DataService>(context, listen: false);
-    final buses = await dataService.getBusesByCollege(user.collegeId).first;
-    if (mounted)
-      setState(() => _busNumbers = buses.map((b) => b.busNumber).toList());
-  }
-
-  Future<void> _loadRoutes() async {
-    final authService = Provider.of<AuthService>(context, listen: false);
-    final user = authService.currentUserModel;
-    if (user == null) return;
-    final dataService = Provider.of<DataService>(context, listen: false);
-    final routes = await dataService.getRoutesByCollege(user.collegeId).first;
-    if (mounted) setState(() => _routes = routes);
-  }
-
-  Future<void> _loadMyBus() async {
-    final authService = Provider.of<AuthService>(context, listen: false);
-    final user = authService.currentUserModel;
-    if (user == null) {
-      AppLogger.w('[DriverDashboard] _loadMyBus: No user logged in');
-      return;
-    }
-
-    AppLogger.d(
-      '[DriverDashboard] _loadMyBus: Fetching for driverId: ${user.id}',
-    );
-    final dataService = Provider.of<DataService>(context, listen: false);
-    final bus = await dataService.getBusByDriver(user.id);
-
-    AppLogger.d(
-      '[DriverDashboard] _loadMyBus: Result bus: ${bus?.busNumber} (ID: ${bus?.id})',
-    );
-
-    if (mounted) {
-      setState(() {
-        if (bus != null) {
-          AppLogger.d(
-            '[DriverDashboard] _loadMyBus: Bus found, setting _myBus.',
-          );
-          _myBus = bus;
-          _selectedBusNumber = bus.busNumber;
-          if (bus.routeId != null && _routes.isNotEmpty) {
-            try {
-              _selectedRoute = _routes.firstWhere((r) => r.id == bus.routeId);
-            } catch (e) {}
-          }
-        } else {
-          AppLogger.d(
-            '[DriverDashboard] _loadMyBus: No bus found for driver, clearing _myBus.',
-          );
-          // If no bus assigned (or unassigned remotely), clear state
-          _myBus = null;
-          // Only clear selection if we were relying on the assigned bus
-          // _selectedBusNumber = null; // Optional: decide if we keep selection
-        }
-      });
       _updateMarkers();
     }
   }
@@ -358,9 +197,9 @@ class _DriverDashboardState extends State<DriverDashboard>
     );
   }
 
-  Future<void> _toggleLocationSharing() async {
+  Future<void> _toggleLocationSharing(BusModel? myBus) async {
     if (!_isSharing) {
-      if (_myBus == null) {
+      if (myBus == null) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
@@ -370,20 +209,17 @@ class _DriverDashboardState extends State<DriverDashboard>
         );
         return;
       }
-      _startLocationSharing();
+      _startLocationSharing(myBus);
     } else {
-      _stopLocationSharing();
+      _stopLocationSharing(myBus);
     }
   }
 
-  Future<void> _startLocationSharing() async {
-    final locationService = Provider.of<LocationService>(
-      context,
-      listen: false,
-    );
-    final socketService = Provider.of<SocketService>(context, listen: false);
-    final authService = Provider.of<AuthService>(context, listen: false);
-    final dataService = Provider.of<DataService>(context, listen: false);
+  Future<void> _startLocationSharing(BusModel myBus) async {
+    final locationService = ref.read(locationServiceProvider);
+    final socketService = ref.read(socketServiceProvider);
+    final user = ref.read(currentUserProvider);
+    final api = ref.read(apiServiceProvider);
 
     // SECURITY: Re-verify location permission before each trip start
     final hasPermission = await locationService.checkLocationPermission();
@@ -405,15 +241,15 @@ class _DriverDashboardState extends State<DriverDashboard>
     }
 
     // Update bus status to live
-    dataService.updateBusStatus(_myBus!.id, 'on-time').catchError((e) {
+    api.updateBusStatus(myBus.id, 'on-time').catchError((e) {
       AppLogger.e('Failed to update bus status: $e');
     });
 
     locationService.startLocationTracking(
       onLocationUpdate: (position) {
         socketService.updateLocation({
-          'busId': _myBus!.id,
-          'collegeId': authService.currentUserModel?.collegeId,
+          'busId': myBus.id,
+          'collegeId': user!.collegeId,
           'location': {'lat': position.latitude, 'lng': position.longitude},
           'speed': position.speed,
           'heading': position.heading,
@@ -425,12 +261,12 @@ class _DriverDashboardState extends State<DriverDashboard>
               position.longitude,
             ),
           );
-          _checkRouteDeviation(position);
+          _checkRouteDeviation(position, myBus);
         }
       },
     );
     setState(() => _isSharing = true);
-    _saveSelections();
+    _saveSelections(myBus);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(DriverLocalizations.of(context)!.locationSharingStarted),
@@ -443,7 +279,7 @@ class _DriverDashboardState extends State<DriverDashboard>
 
   String? _nextStopETA;
 
-  void _checkRouteDeviation(Position position) {
+  void _checkRouteDeviation(Position position, BusModel? myBus) {
     if (_selectedRoute == null) return;
 
     // Build ordered list of points: Start -> Stops -> End
@@ -489,10 +325,10 @@ class _DriverDashboardState extends State<DriverDashboard>
     }
 
     // ETA Calculation
-    _calculateETA(position);
+    _calculateETA(position, myBus);
   }
 
-  void _calculateETA(Position position) {
+  void _calculateETA(Position position, BusModel? myBus) {
     if (_selectedRoute == null) return;
 
     double minDistance = double.infinity;
@@ -520,7 +356,7 @@ class _DriverDashboardState extends State<DriverDashboard>
         setState(() {
           _nextStopETA = DriverLocalizations.of(
             context,
-          )!.etaToNextStop(timeMinutes, nextStop!.name);
+          )!.etaToNextStop(timeMinutes, nextStop?.name ?? '');
         });
       }
     }
@@ -561,18 +397,15 @@ class _DriverDashboardState extends State<DriverDashboard>
     return Geolocator.distanceBetween(x, y, xx, yy);
   }
 
-  void _stopLocationSharing() {
-    final locationService = Provider.of<LocationService>(
-      context,
-      listen: false,
-    );
-    final dataService = Provider.of<DataService>(context, listen: false);
+  void _stopLocationSharing(BusModel? myBus) {
+    final locationService = ref.read(locationServiceProvider);
+    final api = ref.read(apiServiceProvider);
 
     locationService.stopLocationTracking();
 
     // Revert bus status to offline
-    if (_myBus != null) {
-      dataService.updateBusStatus(_myBus!.id, 'not-running').catchError((e) {
+    if (myBus != null) {
+      api.updateBusStatus(myBus.id, 'not-running').catchError((e) {
         AppLogger.e('Failed to update bus status: $e');
       });
     }
@@ -583,7 +416,7 @@ class _DriverDashboardState extends State<DriverDashboard>
         _nextStopETA = null;
       });
     }
-    _saveSelections();
+    _saveSelections(myBus);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(DriverLocalizations.of(context)!.locationSharingStopped),
@@ -592,23 +425,22 @@ class _DriverDashboardState extends State<DriverDashboard>
   }
 
   Future<void> _handleAssignBus() async {
-    final authService = Provider.of<AuthService>(context, listen: false);
-    final dataService = Provider.of<DataService>(context, listen: false);
-    final currentUser = authService.currentUserModel;
-    if (currentUser == null) return;
+    final user = ref.read(currentUserProvider);
+    final api = ref.read(apiServiceProvider);
+    if (user == null || _selectedBusNumber == null || _selectedRoute == null)
+      return;
     final newBus = BusModel(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
       busNumber: _selectedBusNumber!,
-      driverId: currentUser.id,
+      driverId: user.id,
       routeId: _selectedRoute!.id,
-      collegeId: currentUser.collegeId,
+      collegeId: user.collegeId,
       createdAt: DateTime.now(),
     );
     try {
-      await dataService.createBus(newBus);
+      await api.createBus(newBus);
       if (!mounted) return;
-      setState(() => _myBus = newBus);
-      await _saveSelections();
+      await _saveSelections(newBus);
       _updateMarkers();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -629,16 +461,15 @@ class _DriverDashboardState extends State<DriverDashboard>
     }
   }
 
-  Future<void> _handleRemoveAssignment() async {
-    final dataService = Provider.of<DataService>(context, listen: false);
+  Future<void> _handleRemoveAssignment(BusModel myBus) async {
+    final api = ref.read(apiServiceProvider);
     try {
-      if (_myBus != null) await dataService.deleteBus(_myBus!.id);
+      await api.deleteBus(myBus.id);
       await PersistenceService.remove('driver_bus_id');
       await PersistenceService.remove('driver_bus_number');
       await PersistenceService.remove('driver_route_id');
       if (!mounted) return;
       setState(() {
-        _myBus = null;
         _selectedBusNumber = null;
         _selectedRoute = null;
       });
@@ -665,9 +496,9 @@ class _DriverDashboardState extends State<DriverDashboard>
   }
 
   Future<void> _handleAcceptAssignment(String busId) async {
-    final dataService = Provider.of<DataService>(context, listen: false);
+    final api = ref.read(apiServiceProvider);
     try {
-      await dataService.acceptBusAssignment(busId);
+      await api.acceptBusAssignment(busId);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -675,7 +506,6 @@ class _DriverDashboardState extends State<DriverDashboard>
             backgroundColor: AppColors.success,
           ),
         );
-        _loadMyBus();
       }
     } catch (e) {
       if (mounted) {
@@ -694,9 +524,9 @@ class _DriverDashboardState extends State<DriverDashboard>
   }
 
   Future<void> _handleRejectAssignment(String busId) async {
-    final dataService = Provider.of<DataService>(context, listen: false);
+    final api = ref.read(apiServiceProvider);
     try {
-      await dataService.rejectBusAssignment(busId);
+      await api.rejectBusAssignment(busId);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -705,10 +535,8 @@ class _DriverDashboardState extends State<DriverDashboard>
           ),
         );
         setState(() {
-          _myBus = null;
           _selectedBusNumber = null;
         });
-        _loadMyBus();
       }
     } catch (e) {
       if (mounted) {
@@ -728,55 +556,110 @@ class _DriverDashboardState extends State<DriverDashboard>
 
   @override
   Widget build(BuildContext context) {
-    final authService = Provider.of<AuthService>(context);
-    final user = authService.currentUserModel;
-    return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      appBar: AppBar(
-        title: DriverLocalizations.of(
-          context,
-        )!.welcomeDriver(user?.fullName ?? 'Driver').text.ellipsis.make(),
-        backgroundColor: Theme.of(context).primaryColor,
-        foregroundColor: Theme.of(context).colorScheme.onPrimary,
-        actions: [
-          IconButton(icon: const Icon(Icons.notifications), onPressed: () {}),
-          IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: () async {
-              await authService.signOut();
-              if (context.mounted) context.go('/login');
-            },
+    final userId = ref.watch(currentUserProvider.select((u) => u?.id));
+    final collegeId = ref.watch(
+      currentUserProvider.select((u) => u?.collegeId),
+    );
+    final fullName = ref.watch(
+      currentUserProvider.select((u) => u?.fullName ?? 'Driver'),
+    );
+
+    if (userId == null || collegeId == null) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+
+    final myBusAsync = ref.watch(driverBusProvider(userId));
+    final routesAsync = ref.watch(collegeRoutesProvider(collegeId));
+    final busNumbersAsync = ref.watch(busNumbersProvider(collegeId));
+
+    // Listen for theme changes
+    ref.listen(themeServiceProvider, (_, service) {
+      MapStyleHelper.getStyle(service.isDarkMode).then((style) {
+        if (mounted) setState(() => _mapStyle = style);
+      });
+    });
+
+    return myBusAsync.when(
+      data: (myBus) {
+        // Match selection from saved preferences on first load
+        if (_selectedRoute == null && myBus?.routeId != null) {
+          routesAsync.whenData((routes) {
+            try {
+              final route = routes.firstWhere((r) => r.id == myBus!.routeId);
+              if (mounted) {
+                setState(() {
+                  _selectedRoute = route;
+                  _selectedBusNumber = myBus?.busNumber;
+                });
+                _updateMarkers();
+              }
+            } catch (e) {}
+          });
+        }
+
+        return Scaffold(
+          backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+          appBar: AppBar(
+            title: DriverLocalizations.of(
+              context,
+            )!.welcomeDriver(fullName).text.ellipsis.make(),
+            backgroundColor: Theme.of(context).primaryColor,
+            foregroundColor: Theme.of(context).colorScheme.onPrimary,
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.notifications),
+                onPressed: () {},
+              ),
+              IconButton(
+                icon: const Icon(Icons.logout),
+                onPressed: () async {
+                  await ref.read(authProvider.notifier).signOut();
+                  if (context.mounted) context.go('/login');
+                },
+              ),
+            ],
+            bottom: TabBar(
+              controller: _tabController,
+              labelColor: Theme.of(context).colorScheme.onPrimary,
+              unselectedLabelColor: Theme.of(
+                context,
+              ).colorScheme.onPrimary.withValues(alpha: 0.7),
+              indicatorColor: Theme.of(context).colorScheme.onPrimary,
+              tabs: [
+                Tab(
+                  text: DriverLocalizations.of(context)!.busSetupTab,
+                  icon: const Icon(Icons.settings),
+                ),
+                Tab(
+                  text: DriverLocalizations.of(context)!.liveTrackingTab,
+                  icon: const Icon(Icons.map),
+                ),
+              ],
+            ),
           ),
-        ],
-        bottom: TabBar(
-          controller: _tabController,
-          labelColor: Theme.of(context).colorScheme.onPrimary,
-          unselectedLabelColor: Theme.of(
-            context,
-          ).colorScheme.onPrimary.withValues(alpha: 0.7),
-          indicatorColor: Theme.of(context).colorScheme.onPrimary,
-          tabs: [
-            Tab(
-              text: DriverLocalizations.of(context)!.busSetupTab,
-              icon: Icon(Icons.settings),
-            ),
-            Tab(
-              text: DriverLocalizations.of(context)!.liveTrackingTab,
-              icon: Icon(Icons.map),
-            ),
-          ],
-        ),
-      ),
-      body: TabBarView(
-        controller: _tabController,
-        children: [_buildBusSetupTab(), _buildLiveTrackingTab()],
-      ),
+          body: TabBarView(
+            controller: _tabController,
+            children: [
+              _buildBusSetupTab(myBus, routesAsync, busNumbersAsync),
+              _buildLiveTrackingTab(myBus),
+            ],
+          ),
+        );
+      },
+      loading: () =>
+          const Scaffold(body: Center(child: CircularProgressIndicator())),
+      error: (e, s) =>
+          Scaffold(body: Center(child: Text('Error loading dashboard: $e'))),
     );
   }
 
-  Widget _buildBusSetupTab() {
-    if (_myBus != null && _myBus!.assignmentStatus == 'pending') {
-      return _buildPendingAssignmentUI(_myBus!).p(AppSizes.paddingMedium);
+  Widget _buildBusSetupTab(
+    BusModel? myBus,
+    AsyncValue<List<RouteModel>> routesAsync,
+    AsyncValue<List<String>> busNumbersAsync,
+  ) {
+    if (myBus != null && myBus.assignmentStatus == 'pending') {
+      return _buildPendingAssignmentUI(myBus).p(AppSizes.paddingMedium);
     }
 
     return SingleChildScrollView(
@@ -788,25 +671,33 @@ class _DriverDashboardState extends State<DriverDashboard>
             context,
           )!.busRouteSelection.text.size(24).bold.make(),
           AppSizes.paddingLarge.heightBox,
-          if (_myBus == null)
-            BusRouteSelectors(
-              selectedBusNumber: _selectedBusNumber,
-              selectedRoute: _selectedRoute,
-              busNumbers: _busNumbers,
-              routes: _routes,
-              onBusNumberChanged: (busNumber) =>
-                  setState(() => _selectedBusNumber = busNumber),
-              onRouteChanged: (route) {
-                setState(() => _selectedRoute = route);
-                _updateMarkers();
-              },
-              onAssign: _handleAssignBus,
+          if (myBus == null)
+            busNumbersAsync.when(
+              data: (busNumbers) => routesAsync.when(
+                data: (routes) => BusRouteSelectors(
+                  selectedBusNumber: _selectedBusNumber,
+                  selectedRoute: _selectedRoute,
+                  busNumbers: busNumbers,
+                  routes: routes,
+                  onBusNumberChanged: (busNumber) =>
+                      setState(() => _selectedBusNumber = busNumber),
+                  onRouteChanged: (route) {
+                    setState(() => _selectedRoute = route);
+                    _updateMarkers();
+                  },
+                  onAssign: _handleAssignBus,
+                ),
+                loading: () => const Center(child: CircularProgressIndicator()),
+                error: (e, s) => Text('Error: $e'),
+              ),
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (e, s) => Text('Error: $e'),
             )
           else
             BusAssignmentCard(
-              bus: _myBus!,
+              bus: myBus,
               route: _selectedRoute,
-              onRemove: _handleRemoveAssignment,
+              onRemove: () => _handleRemoveAssignment(myBus),
             ),
         ]),
       ]),
@@ -818,14 +709,8 @@ class _DriverDashboardState extends State<DriverDashboard>
 
     // Glossy Gradient Colors
     final gradientColors = isDark
-        ? [
-            const Color(0xFF2E3192),
-            const Color(0xFF1BFFFF),
-          ] // Deep Blue -> Cyan
-        : [
-            const Color(0xFF667EEA),
-            const Color(0xFF764BA2),
-          ]; // Soft Blue -> Purple
+        ? [const Color(0xFF2E3192), const Color(0xFF1BFFFF)]
+        : [const Color(0xFF667EEA), const Color(0xFF764BA2)];
 
     return Container(
       decoration: BoxDecoration(
@@ -874,7 +759,7 @@ class _DriverDashboardState extends State<DriverDashboard>
               'New Trip Assignment'.text.white.xl.bold.make(),
             ]).pOnly(bottom: 24),
 
-            'Bus Number'.text.white.white.make().opacity(value: 0.8),
+            'Bus Number'.text.white.make().opacity(value: 0.8),
             bus.busNumber.text.xl6.white.bold.make().pOnly(bottom: 32),
 
             HStack([
@@ -921,8 +806,8 @@ class _DriverDashboardState extends State<DriverDashboard>
     );
   }
 
-  Future<void> _handleTripComplete() async {
-    if (_myBus == null) return;
+  Future<void> _handleTripComplete(BusModel? myBus) async {
+    if (myBus == null) return;
 
     final confirm = await showDialog<bool>(
       context: context,
@@ -949,10 +834,16 @@ class _DriverDashboardState extends State<DriverDashboard>
     );
 
     if (confirm == true) {
-      final dataService = Provider.of<DataService>(context, listen: false);
+      final api = ref.read(apiServiceProvider);
       try {
-        _stopLocationSharing(); // Stop tracking first
-        await dataService.unassignDriverFromBus(_myBus!.id);
+        _stopLocationSharing(myBus); // Stop tracking first
+        // unassignDriverFromBus logic: set driverId to null, etc.
+        await api.updateBus(myBus.id, {
+          'driverId': null,
+          'assignmentStatus': 'unassigned',
+          'status': 'not-running',
+          'routeId': null,
+        });
 
         await PersistenceService.remove('driver_bus_id');
         await PersistenceService.remove('driver_bus_number');
@@ -960,7 +851,6 @@ class _DriverDashboardState extends State<DriverDashboard>
 
         if (mounted) {
           setState(() {
-            _myBus = null;
             _selectedBusNumber = null;
             _selectedRoute = null;
           });
@@ -986,7 +876,7 @@ class _DriverDashboardState extends State<DriverDashboard>
     }
   }
 
-  Widget _buildLiveTrackingTab() {
+  Widget _buildLiveTrackingTab(BusModel? myBus) {
     return Stack(
       children: [
         Column(
@@ -1000,21 +890,21 @@ class _DriverDashboardState extends State<DriverDashboard>
               initialZoom: 16.0,
             ).expand(),
             LiveTrackingControlPanel(
-              bus: _myBus,
+              bus: myBus,
               route: _selectedRoute,
               isSharing: _isSharing,
               currentLocation: _currentLocation,
-              onToggleSharing: _toggleLocationSharing,
+              onToggleSharing: () => _toggleLocationSharing(myBus),
             ),
           ],
         ),
-        // Trip Complete Floating Button (Visible only when tracking is active or assignment is accepted)
-        if (_myBus != null && _myBus!.assignmentStatus == 'accepted')
+        // Trip Complete Floating Button
+        if (myBus != null && myBus.assignmentStatus == 'accepted')
           Positioned(
             top: 16,
             right: 16,
             child: FloatingActionButton.extended(
-              onPressed: _handleTripComplete,
+              onPressed: () => _handleTripComplete(myBus),
               backgroundColor: AppColors.success,
               icon: const Icon(Icons.check_circle_outline, color: Colors.white),
               label: const Text(
@@ -1028,7 +918,7 @@ class _DriverDashboardState extends State<DriverDashboard>
           left: 16,
           child: SOSButton(
             currentLocation: _currentLocation,
-            busId: _myBus?.id,
+            busId: myBus?.id,
             routeId: _selectedRoute?.id,
           ),
         ),

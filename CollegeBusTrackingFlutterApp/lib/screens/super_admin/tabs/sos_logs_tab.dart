@@ -1,18 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:collection/collection.dart';
 import 'package:intl/intl.dart';
 import 'package:collegebus/models/sos_model.dart';
 import 'package:collegebus/models/college_model.dart';
 import 'package:collegebus/utils/constants.dart';
 
-class SosLogsTab extends StatelessWidget {
+class SosLogsTab extends ConsumerWidget {
   final List<SosModel> sosLogs;
   final List<CollegeModel> colleges;
 
   const SosLogsTab({super.key, required this.sosLogs, required this.colleges});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Column(
       children: [
         Padding(

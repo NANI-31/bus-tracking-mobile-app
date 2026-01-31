@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:velocity_x/velocity_x.dart';
-import 'package:collegebus/services/core/data_service.dart';
-import 'package:collegebus/services/auth/auth_service.dart';
+import 'package:collegebus/providers/auth_provider.dart';
+import 'package:collegebus/providers/api_provider.dart';
 import 'package:collegebus/models/incident_model.dart';
 import 'package:collegebus/utils/constants.dart';
 import 'package:collegebus/widgets/api_error_modal.dart';
 import 'package:collegebus/widgets/success_modal.dart';
 
-class IncidentReportModal extends StatefulWidget {
+class IncidentReportModal extends ConsumerStatefulWidget {
   final String? busId;
   final String? driverId;
 
@@ -29,10 +29,11 @@ class IncidentReportModal extends StatefulWidget {
   }
 
   @override
-  State<IncidentReportModal> createState() => _IncidentReportModalState();
+  ConsumerState<IncidentReportModal> createState() =>
+      _IncidentReportModalState();
 }
 
-class _IncidentReportModalState extends State<IncidentReportModal> {
+class _IncidentReportModalState extends ConsumerState<IncidentReportModal> {
   final _formKey = GlobalKey<FormState>();
   String _selectedType = 'other';
   String _selectedSeverity = 'medium';
@@ -64,9 +65,8 @@ class _IncidentReportModalState extends State<IncidentReportModal> {
     if (!_formKey.currentState!.validate()) return;
 
     setState(() => _isLoading = true);
-    final authService = Provider.of<AuthService>(context, listen: false);
-    final dataService = Provider.of<DataService>(context, listen: false);
-    final user = authService.currentUserModel;
+    final user = ref.read(currentUserProvider);
+    final api = ref.read(apiServiceProvider);
 
     if (user == null) {
       if (mounted) {
@@ -87,7 +87,7 @@ class _IncidentReportModalState extends State<IncidentReportModal> {
         severity: _selectedSeverity,
       );
 
-      await dataService.createIncident(incident);
+      await api.createIncident(incident);
 
       if (mounted) {
         Navigator.pop(context); // Close modal

@@ -1,37 +1,28 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:velocity_x/velocity_x.dart';
-import 'package:collegebus/utils/constants.dart';
+import 'package:collegebus/providers/api_provider.dart';
+import 'package:collegebus/providers/user_provider.dart';
+import 'package:collegebus/providers/auth_provider.dart';
+import 'package:collegebus/providers/bus_provider.dart';
 import 'package:collegebus/models/bus_model.dart';
 import 'package:collegebus/models/user_model.dart';
-import 'package:collegebus/services/auth/auth_service.dart';
-import 'package:collegebus/services/core/data_service.dart';
+import 'package:collegebus/utils/constants.dart';
+import 'package:velocity_x/velocity_x.dart';
+import 'package:collegebus/l10n/coordinator/app_localizations.dart'
+    as coord_l10n;
 import 'bus_tab_components/bus_search_bar.dart';
 import 'bus_tab_components/bus_list_card.dart';
 import 'bus_tab_components/bus_empty_state.dart';
-import 'package:collegebus/l10n/coordinator/app_localizations.dart'
-    as coord_l10n;
 
-class BusNumbersTab extends StatefulWidget {
-  final List<String> busNumbers;
-  final List<BusModel> buses;
-  final Function() onRefresh;
-  final List<UserModel> allDrivers;
-
-  const BusNumbersTab({
-    super.key,
-    required this.busNumbers,
-    required this.buses,
-    required this.onRefresh,
-    required this.allDrivers,
-  });
+class BusNumbersTab extends ConsumerStatefulWidget {
+  const BusNumbersTab({super.key});
 
   @override
-  State<BusNumbersTab> createState() => _BusNumbersTabState();
+  ConsumerState<BusNumbersTab> createState() => _BusNumbersTabState();
 }
 
-class _BusNumbersTabState extends State<BusNumbersTab>
+class _BusNumbersTabState extends ConsumerState<BusNumbersTab>
     with WidgetsBindingObserver {
   final TextEditingController _searchController = TextEditingController();
   final FocusNode _focusNode = FocusNode();
@@ -90,21 +81,18 @@ class _BusNumbersTabState extends State<BusNumbersTab>
                 final busNumber = busNumberController.text.trim();
                 if (busNumber.isEmpty) return;
 
-                final authService = Provider.of<AuthService>(
-                  context,
-                  listen: false,
-                );
-                final firestoreService = Provider.of<DataService>(
-                  context,
-                  listen: false,
-                );
-                final collegeId = authService.currentUserModel?.collegeId;
+                if (busNumber.isEmpty) return;
+
+                final user = ref.read(currentUserProvider);
+                final collegeId = user?.collegeId;
 
                 if (collegeId != null) {
-                  await firestoreService.addBusNumber(collegeId, busNumber);
+                  await ref
+                      .read(apiServiceProvider)
+                      .addBusNumber(collegeId, busNumber);
                   if (!context.mounted) return;
                   Navigator.of(context).pop();
-                  widget.onRefresh();
+                  // Refresh is automatic
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text(l10n.busAddedSuccess(busNumber)),
@@ -149,18 +137,15 @@ class _BusNumbersTabState extends State<BusNumbersTab>
                 final newName = nameController.text.trim();
                 if (newName.isEmpty || newName == driver.fullName) return;
 
-                final firestoreService = Provider.of<DataService>(
-                  context,
-                  listen: false,
-                );
+                if (newName.isEmpty || newName == driver.fullName) return;
 
                 try {
-                  await firestoreService.updateUser(driver.id, {
+                  await ref.read(apiServiceProvider).updateUser(driver.id, {
                     'fullName': newName,
                   });
                   if (!context.mounted) return;
                   Navigator.of(context).pop();
-                  widget.onRefresh(); // Refresh list to show new name
+                  // Refresh is automatic
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(content: Text('Driver name updated to $newName')),
                   );
@@ -183,7 +168,25 @@ class _BusNumbersTabState extends State<BusNumbersTab>
 
   @override
   Widget build(BuildContext context) {
-    // 1. Get l10n
+    final user = ref.watch(currentUserProvider);
+    final collegeId = user?.collegeId;
+
+    if (collegeId == null) return const SizedBox.shrink();
+
+    final busNumbers = ref.watch(busNumbersProvider(collegeId)).value ?? [];
+    final buses = ref.watch(collegeBusesStreamProvider(collegeId)).value ?? [];
+
+    final allDrivers =
+        ref
+            .watch(
+              usersByRoleProvider((
+                role: UserRole.driver,
+                collegeId: collegeId,
+              )),
+            )
+            .value ??
+        [];
+
     final l10n = coord_l10n.CoordinatorLocalizations.of(context)!;
 
     return DefaultTabController(
@@ -260,9 +263,9 @@ class _BusNumbersTabState extends State<BusNumbersTab>
               Expanded(
                 child: TabBarView(
                   children: [
-                    _buildBusList('all'),
-                    _buildBusList('free'),
-                    _buildBusList('running'),
+                    _buildBusList('all', busNumbers, buses, allDrivers),
+                    _buildBusList('free', busNumbers, buses, allDrivers),
+                    _buildBusList('running', busNumbers, buses, allDrivers),
                   ],
                 ),
               ),
@@ -282,11 +285,16 @@ class _BusNumbersTabState extends State<BusNumbersTab>
     );
   }
 
-  Widget _buildBusList(String category) {
+  Widget _buildBusList(
+    String category,
+    List<String> busNumbers,
+    List<BusModel> buses,
+    List<UserModel> allDrivers,
+  ) {
     final l10n = coord_l10n.CoordinatorLocalizations.of(context)!;
     // 1. Get all base numbers
-    final Set<String> allNumbers = widget.busNumbers.toSet();
-    for (final bus in widget.buses) {
+    final Set<String> allNumbers = busNumbers.toSet();
+    for (final bus in buses) {
       allNumbers.add(bus.busNumber);
     }
     List<String> displayNumbers = allNumbers.toList()..sort();
@@ -294,7 +302,7 @@ class _BusNumbersTabState extends State<BusNumbersTab>
     // 2. Filter by category
     if (category == 'free') {
       displayNumbers = displayNumbers.where((busNumber) {
-        final assignedBus = widget.buses.firstWhere(
+        final assignedBus = buses.firstWhere(
           (bus) => bus.busNumber == busNumber,
           orElse: () => BusModel(
             id: '',
@@ -312,7 +320,7 @@ class _BusNumbersTabState extends State<BusNumbersTab>
       }).toList();
     } else if (category == 'running') {
       displayNumbers = displayNumbers.where((busNumber) {
-        final assignedBus = widget.buses.firstWhere(
+        final assignedBus = buses.firstWhere(
           (bus) => bus.busNumber == busNumber,
           orElse: () => BusModel(
             id: '',
@@ -358,8 +366,8 @@ class _BusNumbersTabState extends State<BusNumbersTab>
       itemCount: displayNumbers.length,
       itemBuilder: (context, index) {
         final busNumber = displayNumbers[index];
-        final isOfficial = widget.busNumbers.contains(busNumber);
-        final assignedBus = widget.buses.firstWhere(
+        final isOfficial = busNumbers.contains(busNumber);
+        final assignedBus = buses.firstWhere(
           (bus) => bus.busNumber == busNumber,
           orElse: () => BusModel(
             id: '',
@@ -376,7 +384,7 @@ class _BusNumbersTabState extends State<BusNumbersTab>
         UserModel? assignedDriver;
         if (hasDriver) {
           try {
-            assignedDriver = widget.allDrivers.firstWhere(
+            assignedDriver = allDrivers.firstWhere(
               (d) => d.id == assignedBus.driverId,
             );
           } catch (_) {
@@ -391,7 +399,6 @@ class _BusNumbersTabState extends State<BusNumbersTab>
           assignedDriver: assignedDriver,
           onTap: () async {
             await context.push('/coordinator/assign-driver/$busNumber');
-            widget.onRefresh();
           },
           onHistory: () {
             _focusNode.unfocus();
@@ -405,7 +412,6 @@ class _BusNumbersTabState extends State<BusNumbersTab>
               '/coordinator/edit-bus/$busNumber',
               extra: isAssigned ? assignedBus : null,
             );
-            widget.onRefresh();
           },
           onEditDriver: () {
             if (assignedDriver != null) {
@@ -451,24 +457,18 @@ class _BusNumbersTabState extends State<BusNumbersTab>
 
             if (confirmed == true) {
               if (!context.mounted) return;
-              final authService = Provider.of<AuthService>(
-                context,
-                listen: false,
-              );
-              final firestoreService = Provider.of<DataService>(
-                context,
-                listen: false,
-              );
-              final collegeId = authService.currentUserModel?.collegeId;
+              final user = ref.read(currentUserProvider);
+              final collegeId = user?.collegeId;
 
               if (collegeId != null) {
                 // If there is an associated Bus document (even if unassigned), delete it too
                 if (isAssigned) {
-                  await firestoreService.deleteBus(assignedBus.id);
+                  await ref.read(apiServiceProvider).deleteBus(assignedBus.id);
                 }
 
-                await firestoreService.removeBusNumber(collegeId, busNumber);
-                widget.onRefresh();
+                await ref
+                    .read(apiServiceProvider)
+                    .removeBusNumber(collegeId, busNumber);
                 if (!context.mounted) return;
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(

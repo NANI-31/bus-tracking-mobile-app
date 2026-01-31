@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:email_validator/email_validator.dart';
-import 'package:collegebus/services/auth/auth_service.dart';
+import 'package:collegebus/providers/auth_provider.dart';
 import 'package:collegebus/widgets/custom_input_field.dart';
 import 'package:collegebus/widgets/custom_button.dart';
 import 'package:collegebus/utils/constants.dart';
@@ -10,14 +10,15 @@ import 'package:collegebus/widgets/success_modal.dart';
 import 'package:collegebus/widgets/api_error_modal.dart';
 import 'package:velocity_x/velocity_x.dart';
 
-class ForgotPasswordScreen extends StatefulWidget {
+class ForgotPasswordScreen extends ConsumerStatefulWidget {
   const ForgotPasswordScreen({super.key});
 
   @override
-  State<ForgotPasswordScreen> createState() => _ForgotPasswordScreenState();
+  ConsumerState<ForgotPasswordScreen> createState() =>
+      _ForgotPasswordScreenState();
 }
 
-class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
+class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   bool _isLoading = false;
@@ -34,7 +35,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     setState(() => _isLoading = true);
 
     try {
-      final authService = Provider.of<AuthService>(context, listen: false);
+      final authService = ref.read(authProvider.notifier);
       final email = _emailController.text.trim();
 
       // Check if user exists first? sendOtp does that.

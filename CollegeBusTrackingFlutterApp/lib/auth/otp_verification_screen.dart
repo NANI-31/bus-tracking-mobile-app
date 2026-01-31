@@ -1,8 +1,8 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:collegebus/services/auth/auth_service.dart';
+import 'package:collegebus/providers/auth_provider.dart';
 import 'package:collegebus/widgets/custom_button.dart';
 import 'package:collegebus/utils/constants.dart';
 import 'package:pinput/pinput.dart';
@@ -10,7 +10,7 @@ import 'package:collegebus/widgets/api_error_modal.dart';
 import 'package:collegebus/widgets/success_modal.dart';
 import 'package:velocity_x/velocity_x.dart';
 
-class OtpVerificationScreen extends StatefulWidget {
+class OtpVerificationScreen extends ConsumerStatefulWidget {
   final String email;
   final bool isResetPassword;
 
@@ -21,10 +21,11 @@ class OtpVerificationScreen extends StatefulWidget {
   });
 
   @override
-  State<OtpVerificationScreen> createState() => _OtpVerificationScreenState();
+  ConsumerState<OtpVerificationScreen> createState() =>
+      _OtpVerificationScreenState();
 }
 
-class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
+class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
   final _otpController = TextEditingController();
   bool _isLoading = false;
   bool _canResend = false;
@@ -43,7 +44,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
     setState(() => _isLoading = true);
 
     try {
-      final authService = Provider.of<AuthService>(context, listen: false);
+      final authService = ref.read(authProvider.notifier);
       final result = await authService.verifyOtp(
         widget.email,
         _otpController.text,
@@ -74,7 +75,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
     setState(() => _canResend = false);
 
     try {
-      final authService = Provider.of<AuthService>(context, listen: false);
+      final authService = ref.read(authProvider.notifier);
       final result = await authService.sendOtp(widget.email);
 
       if (!mounted) return;

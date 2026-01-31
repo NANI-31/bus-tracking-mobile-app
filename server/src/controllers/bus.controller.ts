@@ -36,17 +36,19 @@ export const getAllBuses = async (req: Request, res: Response) => {
 /**
  * Update bus - delegates business logic to BusService
  */
+import { AuthenticatedRequest } from "../types/authenticatedRequest";
+
 export const updateBus = async (req: Request, res: Response) => {
   try {
     const io = req.app.get("io");
     const busService = getBusService(io);
 
-    const requestingUserName = (req as any).user?.fullName;
+    const requestingUserName = (req as AuthenticatedRequest).user?.fullName;
 
     const updatedBus = await busService.updateBus(
       req.params.id,
       req.body,
-      requestingUserName
+      requestingUserName,
     );
 
     res.status(200).json(updatedBus);

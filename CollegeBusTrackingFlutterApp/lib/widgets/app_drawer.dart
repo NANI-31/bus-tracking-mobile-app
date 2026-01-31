@@ -1,19 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:velocity_x/velocity_x.dart';
 import 'package:collegebus/models/user_model.dart';
-import 'package:collegebus/services/auth/auth_service.dart';
+import 'package:collegebus/providers/providers.dart';
 import 'package:collegebus/utils/constants.dart';
 import 'package:collegebus/widgets/success_modal.dart';
 
-class AppDrawer extends StatelessWidget {
+class AppDrawer extends ConsumerWidget {
   final UserModel? user;
-  final AuthService authService;
 
-  const AppDrawer({super.key, required this.user, required this.authService});
+  const AppDrawer({super.key, required this.user});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final currentRoute = GoRouterState.of(context).uri.toString();
     final theme = Theme.of(context);
 
@@ -168,7 +168,7 @@ class AppDrawer extends StatelessWidget {
                   autoCloseDurationSeconds: 2,
                 );
 
-                await authService.signOut();
+                await ref.read(authProvider.notifier).signOut();
 
                 if (context.mounted) {
                   context.go('/login');

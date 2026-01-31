@@ -1,21 +1,21 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
-import 'package:provider/provider.dart';
 import 'package:collegebus/models/bus_model.dart';
-import 'package:collegebus/services/admin/college_admin_service.dart';
+import 'package:collegebus/providers/admin_provider.dart';
 import 'package:collegebus/widgets/maps/live_bus_map.dart';
 
-class LiveFleetMap extends StatefulWidget {
+class LiveFleetMap extends ConsumerStatefulWidget {
   final List<BusModel> buses;
   final String collegeId;
 
   const LiveFleetMap({super.key, required this.buses, required this.collegeId});
 
   @override
-  State<LiveFleetMap> createState() => _LiveFleetMapState();
+  ConsumerState<LiveFleetMap> createState() => _LiveFleetMapState();
 }
 
-class _LiveFleetMapState extends State<LiveFleetMap> {
+class _LiveFleetMapState extends ConsumerState<LiveFleetMap> {
   BusModel? _selectedBus;
   GoogleMapController? _mapController;
   final GlobalKey<LiveBusMapState> _mapStateKey = GlobalKey<LiveBusMapState>();
@@ -130,7 +130,7 @@ class _LiveFleetMapState extends State<LiveFleetMap> {
   void _zoomToFitFleet() {
     if (_mapController == null || widget.buses.isEmpty) return;
 
-    final caService = Provider.of<CollegeAdminService>(context, listen: false);
+    final caService = ref.read(collegeAdminServiceProvider);
     final locations = caService.fleetLocations.values
         .where((l) => widget.buses.any((b) => b.id == l.busId))
         .toList();

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class SystemHealthCard extends StatelessWidget {
+class SystemHealthCard extends ConsumerWidget {
   final int activeSosCount;
   final VoidCallback onViewMonitor;
 
@@ -11,7 +12,7 @@ class SystemHealthCard extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Card(
       color: activeSosCount > 0 ? Colors.red.shade50 : Colors.green.shade50,
       child: ListTile(

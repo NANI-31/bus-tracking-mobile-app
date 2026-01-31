@@ -1,18 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:collegebus/models/user_model.dart';
-import 'package:collegebus/services/auth/auth_service.dart';
 
 class StudentDashboardAppBar extends StatelessWidget
     implements PreferredSizeWidget {
   final UserModel? user;
   final TabController tabController;
-  final AuthService authService;
 
   const StudentDashboardAppBar({
     super.key,
     required this.user,
     required this.tabController,
-    required this.authService,
   });
 
   @override

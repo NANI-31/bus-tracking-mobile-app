@@ -1,23 +1,23 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:velocity_x/velocity_x.dart';
 import 'package:collegebus/models/route_model.dart';
-import 'package:collegebus/services/auth/auth_service.dart';
-import 'package:collegebus/services/core/data_service.dart';
+import 'package:collegebus/providers/auth_provider.dart';
+import 'package:collegebus/providers/route_provider.dart';
 import 'package:collegebus/utils/constants.dart';
 import 'package:collegebus/l10n/coordinator/app_localizations.dart'
     as coord_l10n;
 
-class RouteEditScreen extends StatefulWidget {
+class RouteEditScreen extends ConsumerStatefulWidget {
   final RouteModel? route; // null for create, non-null for edit
 
   const RouteEditScreen({super.key, this.route});
 
   @override
-  State<RouteEditScreen> createState() => _RouteEditScreenState();
+  ConsumerState<RouteEditScreen> createState() => _RouteEditScreenState();
 }
 
-class _RouteEditScreenState extends State<RouteEditScreen> {
+class _RouteEditScreenState extends ConsumerState<RouteEditScreen> {
   final _formKey = GlobalKey<FormState>();
   late TextEditingController _nameController;
   late TextEditingController _startController;
@@ -91,9 +91,9 @@ class _RouteEditScreenState extends State<RouteEditScreen> {
     setState(() => _isLoading = true);
 
     try {
-      final firestoreService = Provider.of<DataService>(context, listen: false);
-      final authService = Provider.of<AuthService>(context, listen: false);
-      final collegeId = authService.currentUserModel?.collegeId;
+      final routeMutator = ref.read(routeMutatorProvider.notifier);
+      final user = ref.read(currentUserProvider);
+      final collegeId = user?.collegeId;
 
       if (collegeId == null) {
         throw Exception('College ID not found');
@@ -106,7 +106,7 @@ class _RouteEditScreenState extends State<RouteEditScreen> {
 
       if (isEditing) {
         // Update existing route
-        await firestoreService.updateRoute(widget.route!.id, {
+        await routeMutator.updateRoute(widget.route!.id, {
           'routeName': _nameController.text.trim().isNotEmpty
               ? _nameController.text.trim()
               : '${_startController.text.trim()} - ${_endController.text.trim()}',
@@ -164,12 +164,12 @@ class _RouteEditScreenState extends State<RouteEditScreen> {
               .map((s) => RoutePoint(name: s, lat: 0, lng: 0))
               .toList(),
           collegeId: collegeId,
-          createdBy: authService.currentUserModel?.id ?? '',
+          createdBy: user?.id ?? '',
           isActive: true,
           createdAt: DateTime.now(),
           updatedAt: null,
         );
-        await firestoreService.createRoute(newRoute);
+        await routeMutator.createRoute(newRoute);
       }
 
       if (!mounted) return;
@@ -301,7 +301,7 @@ class _RouteEditScreenState extends State<RouteEditScreen> {
                           ),
                           prefixIcon: CircleAvatar(
                             radius: 12,
-                            backgroundColor: AppColors.primary.withOpacity(0.2),
+                            backgroundColor: AppColors.primary.withValues(alpha: 0.2),
                             child: Text(
                               '${idx + 1}',
                               style: TextStyle(

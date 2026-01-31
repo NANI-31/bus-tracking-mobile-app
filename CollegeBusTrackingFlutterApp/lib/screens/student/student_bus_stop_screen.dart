@@ -1,35 +1,26 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:collegebus/providers/auth_provider.dart';
+import 'package:collegebus/providers/api_provider.dart';
+import 'package:collegebus/providers/route_provider.dart';
 import 'package:velocity_x/velocity_x.dart';
-import 'package:provider/provider.dart';
-import 'package:collegebus/services/auth/auth_service.dart';
-import 'package:collegebus/services/core/data_service.dart';
-import 'package:collegebus/services/api/api_service.dart';
-import 'package:collegebus/models/route_model.dart';
 
-class StudentBusStopScreen extends StatefulWidget {
+class StudentBusStopScreen extends ConsumerStatefulWidget {
   const StudentBusStopScreen({super.key});
 
   @override
-  State<StudentBusStopScreen> createState() => _StudentBusStopScreenState();
+  ConsumerState<StudentBusStopScreen> createState() =>
+      _StudentBusStopScreenState();
 }
 
-class _StudentBusStopScreenState extends State<StudentBusStopScreen> {
+class _StudentBusStopScreenState extends ConsumerState<StudentBusStopScreen> {
   String _searchQuery = "";
   String? _updatingStop;
-  late Stream<List<RouteModel>> _routesStream;
   bool _isDialogOpen = false;
 
   @override
   void initState() {
     super.initState();
-    final dataService = Provider.of<DataService>(context, listen: false);
-    final authService = Provider.of<AuthService>(context, listen: false);
-    final user = authService.currentUserModel;
-    if (user != null) {
-      _routesStream = dataService.getRoutesByCollege(user.collegeId);
-    } else {
-      _routesStream = Stream.value([]);
-    }
   }
 
   Future<void> _updatePreferredStop(
@@ -39,10 +30,10 @@ class _StudentBusStopScreenState extends State<StudentBusStopScreen> {
     double lat,
     double lng,
     String userId,
-    ApiService apiService,
-    AuthService authService,
     String routeName,
   ) async {
+    final apiService = ref.read(apiServiceProvider);
+    final authNotifier = ref.read(authProvider.notifier);
     // Unique ID for the updating state (stopName + routeId)
     final uniqueId = '$stopName-$routeId';
     setState(() => _updatingStop = uniqueId);
@@ -50,11 +41,10 @@ class _StudentBusStopScreenState extends State<StudentBusStopScreen> {
       final updatedUser = await apiService.updateUser(userId, {
         'preferredStop': stopName,
         'routeId': routeId,
-        'stopId': stopId ?? stopName, // Use name as ID if explicit ID missing
         'stopName': stopName,
         'stopLocation': {'lat': lat, 'lng': lng},
       });
-      authService.updateCurrentUser(updatedUser);
+      authNotifier.updateCurrentUser(updatedUser);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -65,7 +55,6 @@ class _StudentBusStopScreenState extends State<StudentBusStopScreen> {
                 SnackBarBehavior.floating, // Make it float to avoid overlapping
           ),
         );
-        // Navigator.pop(context); // Let user manually go back to see the selection
       }
     } catch (e) {
       if (mounted) {
@@ -85,9 +74,7 @@ class _StudentBusStopScreenState extends State<StudentBusStopScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final authService = Provider.of<AuthService>(context);
-    final apiService = Provider.of<ApiService>(context);
-    final user = authService.currentUserModel;
+    final user = ref.watch(currentUserProvider);
 
     if (user == null) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
@@ -141,113 +128,110 @@ class _StudentBusStopScreenState extends State<StudentBusStopScreen> {
             .make(),
 
         // Stops List
-        StreamBuilder<List<RouteModel>>(
-          stream: _routesStream,
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return const CircularProgressIndicator().centered().expand();
-            }
+        ref
+            .watch(collegeRoutesProvider(user.collegeId))
+            .when(
+              data: (routes) {
+                // Build a list of all stops with their route context
+                final stopOptions = <Map<String, dynamic>>[];
 
-            // Build a list of all stops with their route context
-            final stopOptions = <Map<String, dynamic>>[];
-
-            if (snapshot.hasData) {
-              for (final route in snapshot.data!) {
-                // Start Point
-                stopOptions.add({
-                  'name': route.startPoint.name,
-                  'lat': route.startPoint.lat,
-                  'lng': route.startPoint.lng,
-                  'type': 'Start Point',
-                  'routeId': route.id,
-                  'routeName': route.routeName,
-                });
-
-                // End Point
-                stopOptions.add({
-                  'name': route.endPoint.name,
-                  'lat': route.endPoint.lat,
-                  'lng': route.endPoint.lng,
-                  'type': 'End Point',
-                  'routeId': route.id,
-                  'routeName': route.routeName,
-                });
-
-                // Intermediate Points
-                for (final point in route.stopPoints) {
+                for (final route in routes) {
+                  // Start Point
                   stopOptions.add({
-                    'name': point.name,
-                    'lat': point.lat,
-                    'lng': point.lng,
-                    'type': 'Intermediate',
+                    'name': route.startPoint.name,
+                    'lat': route.startPoint.lat,
+                    'lng': route.startPoint.lng,
+                    'type': 'Start Point',
                     'routeId': route.id,
                     'routeName': route.routeName,
                   });
+
+                  // End Point
+                  stopOptions.add({
+                    'name': route.endPoint.name,
+                    'lat': route.endPoint.lat,
+                    'lng': route.endPoint.lng,
+                    'type': 'End Point',
+                    'routeId': route.id,
+                    'routeName': route.routeName,
+                  });
+
+                  // Intermediate Points
+                  for (final point in route.stopPoints) {
+                    stopOptions.add({
+                      'name': point.name,
+                      'lat': point.lat,
+                      'lng': point.lng,
+                      'type': 'Intermediate',
+                      'routeId': route.id,
+                      'routeName': route.routeName,
+                    });
+                  }
                 }
-              }
-            }
 
-            final filteredOptions = stopOptions.where((option) {
-              final search = _searchQuery.toLowerCase();
-              final name = (option['name'] as String).toLowerCase();
-              final route = (option['routeName'] as String).toLowerCase();
-              return name.contains(search) || route.contains(search);
-            }).toList();
+                final filteredOptions = stopOptions.where((option) {
+                  final search = _searchQuery.toLowerCase();
+                  final name = (option['name'] as String).toLowerCase();
+                  final route = (option['routeName'] as String).toLowerCase();
+                  return name.contains(search) || route.contains(search);
+                }).toList();
 
-            // Sort by name
-            filteredOptions.sort(
-              (a, b) => (a['name'] as String).compareTo(b['name'] as String),
-            );
-
-            if (filteredOptions.isEmpty) {
-              return [
-                const Icon(
-                  Icons.search_off_rounded,
-                  size: 64,
-                  color: Colors.grey,
-                ),
-                16.heightBox,
-                'No stops found'.text.gray500.make(),
-              ].vStack().centered().expand();
-            }
-
-            return ListView.builder(
-              padding: const EdgeInsets.all(16),
-              itemCount: filteredOptions.length,
-              itemBuilder: (context, index) {
-                final option = filteredOptions[index];
-                final name = option['name'] as String;
-                final routeId = option['routeId'] as String;
-                final routeName = option['routeName'] as String;
-
-                // Unique check: matches stop AND route
-                final isSelected =
-                    user.preferredStop == name && user.routeId == routeId;
-                final uniqueId = '$name-$routeId';
-                final isUpdating = _updatingStop == uniqueId;
-
-                return _buildStopItem(
-                  context: context,
-                  stopName: name,
-                  routeName: routeName,
-                  isSelected: isSelected,
-                  isUpdating: isUpdating,
-                  onTap: () => _showConfirmationDialog(
-                    context,
-                    name,
-                    routeId,
-                    option['lat'] as double,
-                    option['lng'] as double,
-                    user.id,
-                    apiService,
-                    authService,
-                    routeName,
-                  ),
+                // Sort by name
+                filteredOptions.sort(
+                  (a, b) =>
+                      (a['name'] as String).compareTo(b['name'] as String),
                 );
+
+                if (filteredOptions.isEmpty) {
+                  return [
+                    const Icon(
+                      Icons.search_off_rounded,
+                      size: 64,
+                      color: Colors.grey,
+                    ),
+                    16.heightBox,
+                    'No stops found'.text.gray500.make(),
+                  ].vStack().centered().expand();
+                }
+
+                return ListView.builder(
+                  padding: const EdgeInsets.all(16),
+                  itemCount: filteredOptions.length,
+                  itemBuilder: (context, index) {
+                    final option = filteredOptions[index];
+                    final name = option['name'] as String;
+                    final routeId = option['routeId'] as String;
+                    final routeName = option['routeName'] as String;
+
+                    // Unique check: matches stop AND route
+                    final isSelected =
+                        user.preferredStop == name && user.routeId == routeId;
+                    final uniqueId = '$name-$routeId';
+                    final isUpdating = _updatingStop == uniqueId;
+
+                    return _buildStopItem(
+                      context: context,
+                      stopName: name,
+                      routeName: routeName,
+                      isSelected: isSelected,
+                      isUpdating: isUpdating,
+                      onTap: () => _showConfirmationDialog(
+                        context,
+                        name,
+                        routeId,
+                        option['lat'] as double,
+                        option['lng'] as double,
+                        user.id,
+                        routeName,
+                      ),
+                    );
+                  },
+                ).expand();
               },
-            ).expand();
-          },
-        ),
+              loading: () =>
+                  const CircularProgressIndicator().centered().expand(),
+              error: (e, s) => Center(child: Text('Error: $e')).expand(),
+            ),
       ]),
     );
   }
@@ -259,8 +243,6 @@ class _StudentBusStopScreenState extends State<StudentBusStopScreen> {
     double lat,
     double lng,
     String userId,
-    ApiService apiService,
-    AuthService authService,
     String routeName,
   ) async {
     if (_isDialogOpen) return;
@@ -300,8 +282,6 @@ class _StudentBusStopScreenState extends State<StudentBusStopScreen> {
                 lat,
                 lng,
                 userId,
-                apiService,
-                authService,
                 routeName,
               );
             },

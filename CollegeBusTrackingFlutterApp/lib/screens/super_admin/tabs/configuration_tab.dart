@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class ConfigurationTab extends StatelessWidget {
+class ConfigurationTab extends ConsumerWidget {
   const ConfigurationTab({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [

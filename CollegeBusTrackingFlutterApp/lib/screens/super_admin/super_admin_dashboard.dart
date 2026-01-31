@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:collegebus/services/auth/auth_service.dart';
+import 'package:collegebus/providers/auth_provider.dart';
+import 'package:collegebus/providers/admin_provider.dart';
 import 'package:collegebus/services/admin/super_admin_service.dart';
 
 // New Tab Imports
@@ -14,14 +15,15 @@ import 'package:collegebus/screens/super_admin/tabs/sos_logs_tab.dart';
 import 'package:collegebus/screens/super_admin/tabs/safety_monitor_tab.dart';
 import 'package:collegebus/screens/super_admin/tabs/danger_zone_tab.dart';
 
-class SuperAdminDashboard extends StatefulWidget {
+class SuperAdminDashboard extends ConsumerStatefulWidget {
   const SuperAdminDashboard({super.key});
 
   @override
-  State<SuperAdminDashboard> createState() => _SuperAdminDashboardState();
+  ConsumerState<SuperAdminDashboard> createState() =>
+      _SuperAdminDashboardState();
 }
 
-class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
+class _SuperAdminDashboardState extends ConsumerState<SuperAdminDashboard> {
   int _selectedDrawerIndex = 0;
 
   @override
@@ -33,16 +35,16 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
   }
 
   Future<void> _loadSystemData() async {
-    final saService = Provider.of<SuperAdminService>(context, listen: false);
+    final saService = ref.read(superAdminServiceProvider);
     await saService.loadSystemDashboard();
   }
 
   @override
   Widget build(BuildContext context) {
-    final authService = Provider.of<AuthService>(context);
-    final user = authService.currentUserModel;
+    final authService = ref.watch(authProvider.notifier);
+    final user = ref.watch(currentUserProvider);
 
-    final saService = Provider.of<SuperAdminService>(context);
+    final saService = ref.watch(superAdminServiceProvider);
     final allColleges = saService.colleges;
     final allUsers = saService.globalUsers;
     final isLoading = saService.isLoading;
@@ -225,10 +227,7 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
           colleges: saService.colleges,
         );
       case 6:
-        return SafetyMonitorTab(
-          saService: saService,
-          colleges: saService.colleges,
-        );
+        return SafetyMonitorTab(colleges: saService.colleges);
       case 7:
         return const DangerZoneTab();
       default:

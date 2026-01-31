@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:collegebus/models/user_model.dart';
 import 'package:collegebus/models/bus_model.dart';
 import 'package:collegebus/models/assignment_log_model.dart';
@@ -13,10 +14,13 @@ import 'package:collegebus/utils/constants.dart';
 import 'package:collegebus/services/bus/bus_service.dart';
 import 'package:collegebus/services/user/user_service.dart';
 import 'package:collegebus/services/route/route_service.dart';
-import 'package:collegebus/services/college/college_service.dart';
 import 'package:collegebus/services/incident/incident_service.dart';
 import 'package:collegebus/services/notification/notification_data_service.dart';
 import 'package:collegebus/services/payment/payment_service.dart';
+import 'package:collegebus/providers/college_provider.dart';
+import 'package:collegebus/providers/bus_provider.dart';
+import 'package:collegebus/providers/user_provider.dart';
+import 'package:collegebus/providers/route_provider.dart';
 import 'package:flutter/material.dart';
 
 /// DataService - Facade that delegates to domain-specific services.
@@ -25,16 +29,12 @@ class DataService extends ChangeNotifier {
   BusService _busService;
   UserService _userService;
   RouteService _routeService;
-  CollegeService _collegeService;
+  final Ref _ref;
   IncidentService _incidentService;
   NotificationDataService _notificationService;
   PaymentService _paymentService;
 
   String? get lastError =>
-      _busService.lastError ??
-      _userService.lastError ??
-      _routeService.lastError ??
-      _collegeService.lastError ??
       _incidentService.lastError ??
       _notificationService.lastError ??
       _paymentService.lastError;
@@ -43,16 +43,12 @@ class DataService extends ChangeNotifier {
     this._busService,
     this._userService,
     this._routeService,
-    this._collegeService,
+    this._ref,
     this._incidentService,
     this._notificationService,
     this._paymentService,
   ) {
     // Listen to all services to bubble up notifications
-    _busService.addListener(notifyListeners);
-    _userService.addListener(notifyListeners);
-    _routeService.addListener(notifyListeners);
-    _collegeService.addListener(notifyListeners);
     _incidentService.addListener(notifyListeners);
     _notificationService.addListener(notifyListeners);
     _paymentService.addListener(notifyListeners);
@@ -62,31 +58,22 @@ class DataService extends ChangeNotifier {
     BusService bus,
     UserService user,
     RouteService route,
-    CollegeService college,
     IncidentService incident,
     NotificationDataService notif,
     PaymentService payment,
   ) {
     // Check if services changed and update references/listeners
+    // No longer adding/removing listeners for BusService
     if (_busService != bus) {
-      _busService.removeListener(notifyListeners);
       _busService = bus;
-      _busService.addListener(notifyListeners);
     }
+    // No longer adding/removing listeners for UserService
     if (_userService != user) {
-      _userService.removeListener(notifyListeners);
       _userService = user;
-      _userService.addListener(notifyListeners);
     }
+    // No longer adding/removing listeners for RouteService
     if (_routeService != route) {
-      _routeService.removeListener(notifyListeners);
       _routeService = route;
-      _routeService.addListener(notifyListeners);
-    }
-    if (_collegeService != college) {
-      _collegeService.removeListener(notifyListeners);
-      _collegeService = college;
-      _collegeService.addListener(notifyListeners);
     }
     if (_incidentService != incident) {
       _incidentService.removeListener(notifyListeners);
@@ -107,10 +94,6 @@ class DataService extends ChangeNotifier {
 
   @override
   void dispose() {
-    _busService.removeListener(notifyListeners);
-    _userService.removeListener(notifyListeners);
-    _routeService.removeListener(notifyListeners);
-    _collegeService.removeListener(notifyListeners);
     _incidentService.removeListener(notifyListeners);
     _notificationService.removeListener(notifyListeners);
     _paymentService.removeListener(notifyListeners);
@@ -118,10 +101,6 @@ class DataService extends ChangeNotifier {
   }
 
   void clearError() {
-    _busService.clearError();
-    _userService.clearError();
-    _routeService.clearError();
-    _collegeService.clearError();
     _incidentService.clearError();
     _notificationService.clearError();
     _paymentService.clearError();
@@ -132,7 +111,7 @@ class DataService extends ChangeNotifier {
   // Bus Operations
   Stream<List<BusLocationModel>> getCollegeBusLocationsStream(
     String collegeId,
-  ) => _busService.getCollegeBusLocationsStream(collegeId);
+  ) => _ref.watch(collegeBusLocationsProvider(collegeId).stream);
 
   Future<void> createBus(BusModel bus) => _busService.createBus(bus);
 
@@ -140,7 +119,7 @@ class DataService extends ChangeNotifier {
       _busService.updateBus(busId, data);
 
   Stream<List<BusModel>> getBusesByCollege(String collegeId) =>
-      _busService.getBusesByCollege(collegeId);
+      _ref.watch(collegeBusesStreamProvider(collegeId).stream);
 
   Future<BusModel?> getBusByDriver(String driverId) =>
       _busService.getBusByDriver(driverId);
@@ -152,24 +131,44 @@ class DataService extends ChangeNotifier {
     required String driverId,
     required String collegeId,
     String? routeId,
-  }) => _busService.assignDriverToBus(
-    busNumber: busNumber,
-    driverId: driverId,
-    collegeId: collegeId,
-    routeId: routeId,
-  );
+  }) async {
+    final buses = await _ref.read(busListProvider.future);
+    final existingBus = buses.firstWhere(
+      (b) => b.busNumber == busNumber && b.collegeId == collegeId,
+      orElse: () => throw 'Bus not found',
+    );
+
+    final Map<String, dynamic> updateData = {
+      'driverId': driverId,
+      'assignmentStatus': 'pending',
+    };
+    if (routeId != null) {
+      updateData['routeId'] = routeId;
+    }
+
+    await updateBus(existingBus.id, updateData);
+  }
 
   Future<void> acceptBusAssignment(String busId) =>
-      _busService.acceptBusAssignment(busId);
+      _busService.updateBus(busId, {'assignmentStatus': 'accepted'});
 
   Future<void> rejectBusAssignment(String busId) =>
-      _busService.rejectBusAssignment(busId);
+      _busService.updateBus(busId, {
+        'driverId': null,
+        'assignmentStatus': 'unassigned',
+        'status': 'not-running',
+      });
 
   Future<void> updateBusStatus(String busId, String status) =>
       _busService.updateBusStatus(busId, status);
 
   Future<void> unassignDriverFromBus(String busId) =>
-      _busService.unassignDriverFromBus(busId);
+      _busService.updateBus(busId, {
+        'driverId': null,
+        'assignmentStatus': 'unassigned',
+        'status': 'not-running',
+        'routeId': null,
+      });
 
   Future<List<AssignmentLogModel>> getAssignmentLogsByBus(String busId) =>
       _busService.getAssignmentLogsByBus(busId);
@@ -184,9 +183,7 @@ class DataService extends ChangeNotifier {
   ) => _busService.updateBusLocation(busId, collegeId, location);
 
   Stream<BusLocationModel?> getBusLocation(String busId) =>
-      _busService.getBusLocationSteam(
-        busId,
-      ); // Fixed typo in usage: Steam -> Stream check if BusService has typo
+      _ref.watch(busLocationProvider(busId).stream);
 
   // User Operations
   Future<UserModel?> getUser(String userId) => _userService.getUser(userId);
@@ -195,12 +192,15 @@ class DataService extends ChangeNotifier {
       _userService.updateUser(userId, data);
 
   Stream<List<UserModel>> getUsersByRole(UserRole role, String collegeId) =>
-      _userService.getUsersByRole(role, collegeId);
+      _ref.watch(
+        usersByRoleProvider((role: role, collegeId: collegeId)).stream,
+      );
 
-  Stream<List<UserModel>> getAllUsers() => _userService.getAllUsers();
+  Stream<List<UserModel>> getAllUsers() =>
+      _ref.watch(allUsersStreamProvider.stream);
 
   Stream<List<UserModel>> getPendingApprovals(String collegeId) =>
-      _userService.getPendingApprovals(collegeId);
+      _ref.watch(pendingApprovalsProvider(collegeId).stream);
 
   Future<void> approveUser(String userId, String approverId) =>
       _userService.approveUser(userId, approverId);
@@ -210,10 +210,15 @@ class DataService extends ChangeNotifier {
 
   // College Operations
   Future<CollegeModel?> getCollege(String collegeId) =>
-      _collegeService.getCollege(collegeId);
+      _ref.read(collegeServiceProvider.notifier).getCollege(collegeId);
 
-  Stream<List<CollegeModel>> getAllColleges({bool forceRefresh = false}) =>
-      _collegeService.getAllColleges(forceRefresh: forceRefresh);
+  Stream<List<CollegeModel>> getAllColleges({bool forceRefresh = false}) {
+    if (forceRefresh) {
+      _ref.read(collegeServiceProvider.notifier).refresh();
+    }
+    // Return a stream from the future to maintain compatibility
+    return Stream.fromFuture(_ref.read(collegeServiceProvider.future));
+  }
 
   // Route Operations
   Future<void> createRoute(RouteModel route) =>
@@ -225,7 +230,7 @@ class DataService extends ChangeNotifier {
   Stream<List<RouteModel>> getRoutesByCollege(
     String collegeId, {
     bool forceRefresh = false,
-  }) => _routeService.getRoutesByCollege(collegeId, forceRefresh: forceRefresh);
+  }) => _ref.watch(collegeRoutesProvider(collegeId).stream);
 
   Future<void> deleteRoute(String routeId) =>
       _routeService.deleteRoute(routeId);
@@ -238,7 +243,7 @@ class DataService extends ChangeNotifier {
       _routeService.updateSchedule(scheduleId, data);
 
   Stream<List<ScheduleModel>> getSchedulesByCollege(String collegeId) =>
-      _routeService.getSchedulesByCollege(collegeId);
+      _ref.watch(collegeSchedulesProvider(collegeId).stream);
 
   Future<void> deleteSchedule(String scheduleId) =>
       _routeService.deleteSchedule(scheduleId);
@@ -271,7 +276,7 @@ class DataService extends ChangeNotifier {
   Stream<List<String>> getBusNumbers(
     String collegeId, {
     bool forceRefresh = false,
-  }) => _busService.getBusNumbers(collegeId, forceRefresh: forceRefresh);
+  }) => _ref.watch(busNumbersProvider(collegeId).stream);
 
   // Notification Operations
   Future<void> sendNotification(NotificationModel notification) =>

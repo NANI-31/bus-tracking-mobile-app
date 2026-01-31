@@ -53,6 +53,8 @@ class ApiService {
   Future<void> approveUser(String userId, String approverId) =>
       _userRepo.approveUser(userId, approverId);
 
+  Future<void> deleteUser(String userId) => _userRepo.deleteUser(userId);
+
   Future<Map<String, dynamic>> getDriverHistory(
     String driverId, {
     String? eventType,
@@ -94,6 +96,51 @@ class ApiService {
 
   Future<List<AssignmentLogModel>> getAssignmentLogsByDriver(String driverId) =>
       _busRepo.getAssignmentLogsByDriver(driverId);
+
+  Future<BusModel?> getBusByDriver(String driverId) async {
+    final buses = await getAllBuses();
+    try {
+      return buses.firstWhere((b) => b.driverId == driverId && b.isActive);
+    } catch (e) {
+      return null;
+    }
+  }
+
+  Future<void> updateBusStatus(String busId, String status) =>
+      _busRepo.updateBus(busId, {'status': status});
+
+  Future<void> acceptBusAssignment(String busId) =>
+      updateBus(busId, {'assignmentStatus': 'accepted'});
+
+  Future<void> rejectBusAssignment(String busId) => updateBus(busId, {
+    'driverId': null,
+    'assignmentStatus': 'unassigned',
+    'status': 'not-running',
+  });
+
+  /// Assign a driver to a bus by bus number
+  Future<void> assignDriverToBus({
+    required String busNumber,
+    required String driverId,
+    required String collegeId,
+    String? routeId,
+  }) async {
+    final buses = await getAllBuses();
+    final existingBus = buses.firstWhere(
+      (b) => b.busNumber == busNumber && b.collegeId == collegeId,
+      orElse: () => throw Exception('Bus not found'),
+    );
+
+    final Map<String, dynamic> updateData = {
+      'driverId': driverId,
+      'assignmentStatus': 'pending',
+    };
+    if (routeId != null) {
+      updateData['routeId'] = routeId;
+    }
+
+    await updateBus(existingBus.id, updateData);
+  }
 
   // ============== Route Operations (delegates to RouteRepository) ==============
   Future<List<RouteModel>> getRoutesByCollege(String collegeId) =>

@@ -1,13 +1,22 @@
 import 'package:collegebus/utils/constants.dart';
+import 'package:json_annotation/json_annotation.dart';
 
+part 'user_model.g.dart';
+
+@JsonSerializable(explicitToJson: true)
 class UserModel {
+  @JsonKey(name: '_id')
   final String id;
   final String fullName;
   final String email;
+  @JsonKey(fromJson: fromUserRoleValue, toJson: toUserRoleValue)
   final UserRole role;
   final String collegeId;
+  @JsonKey(defaultValue: false)
   final bool approved;
+  @JsonKey(defaultValue: false)
   final bool emailVerified;
+  @JsonKey(defaultValue: false)
   final bool needsManualApproval;
   final String? approverId;
   final DateTime createdAt;
@@ -20,6 +29,7 @@ class UserModel {
   final String? stopName;
   final Map<String, double>? stopLocation;
   final String? fcmToken;
+  @JsonKey(defaultValue: 'en')
   final String language;
 
   UserModel({
@@ -45,68 +55,25 @@ class UserModel {
     this.language = 'en',
   });
 
+  factory UserModel.fromJson(Map<String, dynamic> json) =>
+      _$UserModelFromJson(json);
+
+  // Backward compatibility alias
   factory UserModel.fromMap(Map<String, dynamic> map, String id) {
-    DateTime parseDate(dynamic value) {
-      if (value is String) {
-        return DateTime.parse(value);
-      } else {
-        return DateTime.now();
-      }
+    if (!map.containsKey('_id')) {
+      map['_id'] = id;
     }
+    // Handle potential nulls for required fields to prevent cast errors
+    if (map['collegeId'] == null) map['collegeId'] = '';
+    if (map['fullName'] == null) map['fullName'] = 'Unknown User';
+    if (map['email'] == null) map['email'] = '';
 
-    return UserModel(
-      id: id,
-      fullName: map['fullName'] ?? '',
-      email: map['email'] ?? '',
-      role: fromUserRoleValue(map['role']),
-      collegeId: map['collegeId'] ?? '',
-      approved: map['approved'] ?? false,
-      emailVerified: map['emailVerified'] ?? false,
-      needsManualApproval: map['needsManualApproval'] ?? false,
-      createdAt: parseDate(map['createdAt']),
-      updatedAt: map['updatedAt'] != null ? parseDate(map['updatedAt']) : null,
-      phoneNumber: map['phoneNumber'],
-      rollNumber: map['rollNumber'],
-      preferredStop: map['preferredStop'],
-      routeId: map['routeId'],
-      stopId: map['stopId'],
-      stopName: map['stopName'],
-      stopLocation: map['stopLocation'] != null
-          ? Map<String, double>.from(
-              (map['stopLocation'] as Map).map(
-                (k, v) => MapEntry(k.toString(), (v as num).toDouble()),
-              ),
-            )
-          : null,
-      fcmToken: map['fcmToken'],
-      language: map['language'] ?? 'en',
-    );
+    return UserModel.fromJson(map);
   }
 
-  Map<String, dynamic> toMap() {
-    return {
-      '_id': id,
-      'fullName': fullName,
-      'email': email,
-      'role': role.value,
-      'collegeId': collegeId,
-      'approved': approved,
-      'emailVerified': emailVerified,
-      'needsManualApproval': needsManualApproval,
-      'approverId': approverId,
-      'createdAt': createdAt.toIso8601String(),
-      'updatedAt': updatedAt?.toIso8601String(),
-      'phoneNumber': phoneNumber,
-      'rollNumber': rollNumber,
-      'preferredStop': preferredStop,
-      'routeId': routeId,
-      'stopId': stopId,
-      'stopName': stopName,
-      'stopLocation': stopLocation,
-      'fcmToken': fcmToken,
-      'language': language,
-    };
-  }
+  Map<String, dynamic> toJson() => _$UserModelToJson(this);
+
+  Map<String, dynamic> toMap() => toJson();
 
   UserModel copyWith({
     String? id,
@@ -165,3 +132,5 @@ UserRole fromUserRoleValue(dynamic value) {
   }
   return UserRole.student;
 }
+
+String toUserRoleValue(UserRole role) => role.value;

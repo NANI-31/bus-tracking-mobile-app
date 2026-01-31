@@ -1,8 +1,10 @@
 import 'package:collegebus/screens/student/student_bus_stop_screen.dart';
 import 'package:collegebus/screens/student/student_home_screen.dart';
 import 'package:collegebus/screens/splash_screen.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart' as riverpod;
 import 'package:go_router/go_router.dart';
-import 'package:collegebus/services/auth/auth_service.dart';
+import 'package:collegebus/providers/auth_provider.dart';
 import 'package:collegebus/auth/login_screen.dart';
 import 'package:collegebus/auth/register_screen.dart';
 
@@ -11,7 +13,6 @@ import 'package:collegebus/auth/otp_verification_screen.dart';
 import 'package:collegebus/auth/reset_password_screen.dart';
 import 'package:collegebus/screens/student/student_dashboard.dart';
 import 'package:collegebus/screens/student/bus_schedule_screen.dart';
-// import 'package:collegebus/screens/teacher/teacher_dashboard.dart'; // Removed
 import 'package:collegebus/screens/driver/driver_dashboard.dart';
 import 'package:collegebus/screens/coordinator/coordinator_dashboard.dart';
 import 'package:collegebus/screens/coordinator/schedule_management_screen.dart';
@@ -29,36 +30,68 @@ import 'package:collegebus/screens/coordinator/assignment_history_screen.dart';
 import 'package:collegebus/screens/coordinator/modules/edit_bus_screen.dart';
 import 'package:collegebus/models/bus_model.dart';
 
-class AppRouter {
-  final AuthService authService;
+final routerProvider = riverpod.Provider<GoRouter>((ref) {
+  // Simple notifier to trigger router refresh on auth state changes
+  final notifier = SimpleNotifier();
 
-  AppRouter(this.authService);
+  // Dispose notifier when provider is disposed
+  ref.onDispose(notifier.dispose);
 
-  late final GoRouter router = GoRouter(
-    refreshListenable: authService,
+  // Listen to auth provider changes
+  ref.listen(authProvider, (_, __) {
+    notifier.notify();
+  });
+
+  return GoRouter(
+    refreshListenable: notifier,
     initialLocation: '/',
     redirect: (context, state) {
-      // If auth service is still initializing, don't redirect yet
-      if (!authService.isInitialized) {
+      // Read the current auth state directly
+      final authState = ref.read(authProvider);
+
+      debugPrint('ROUTER Redirect: Location=${state.matchedLocation}');
+      debugPrint(
+        'ROUTER Auth State: isLoading=${authState.isLoading}, hasError=${authState.hasError}, value=${authState.value}',
+      );
+
+      // 1. Loading State
+      if (authState.isLoading) {
+        debugPrint('ROUTER: Auth is loading, staying on Splash');
+        // Return null (stay on splash) or a loading route if strict
         return null;
       }
 
-      final isLoggedIn = authService.currentUserModel != null;
+      // 2. Error State (Treat as not logged in or handle gracefully)
+      if (authState.hasError) {
+        debugPrint('ROUTER: Auth has error, redirecting to /login');
+        return '/login';
+      }
+
+      final hasUser = authState.value?.currentUser != null;
+      // We also verify token persistence for edge cases
+      // but rely primarily on the state
+
       final isLoginRoute =
           state.matchedLocation == '/login' ||
           state.matchedLocation == '/register' ||
           state.matchedLocation == '/forgot-password' ||
           state.matchedLocation == '/otp-verify' ||
           state.matchedLocation.startsWith('/reset-password');
+
       final isRootRoute = state.matchedLocation == '/';
 
-      if (!isLoggedIn && !isLoginRoute) {
+      // 3. Not Logged In -> Redirect to Login
+      if (!hasUser && !isLoginRoute) {
+        debugPrint('ROUTER: User not logged in, redirecting to /login');
         return '/login';
       }
 
-      if (isLoggedIn && (isLoginRoute || isRootRoute)) {
-        // Redirect to appropriate dashboard based on user role
-        final userRole = authService.userRole;
+      // 4. Logged In -> Redirect to Dashboard (if on login/root)
+      if (hasUser && (isLoginRoute || isRootRoute)) {
+        final userRole = authState.value?.currentUser?.role;
+        debugPrint(
+          'ROUTER: User logged in ($userRole), redirecting to dashboard',
+        );
         switch (userRole) {
           case UserRole.student:
           case UserRole.parent:
@@ -75,15 +108,11 @@ class AppRouter {
           case UserRole.superAdmin:
             return '/super-admin';
           default:
-            return '/login';
+            return '/student'; // Fallback
         }
       }
 
-      if (isRootRoute && !isLoggedIn) {
-        return '/login';
-      }
-
-      return null;
+      return null; // No redirect needed
     },
     routes: [
       GoRoute(path: '/', builder: (context, state) => const SplashScreen()),
@@ -99,10 +128,10 @@ class AppRouter {
       GoRoute(
         path: '/otp-verify',
         builder: (context, state) {
-          final extras = state.extra as Map<String, dynamic>;
+          final extras = state.extra as Map<String, dynamic>? ?? {};
           return OtpVerificationScreen(
-            email: extras['email'] as String,
-            isResetPassword: extras['isResetPassword'] as bool,
+            email: extras['email'] as String? ?? '',
+            isResetPassword: extras['isResetPassword'] as bool? ?? false,
           );
         },
       ),
@@ -165,12 +194,7 @@ class AppRouter {
           ),
         ],
       ),
-      /*
-      GoRoute(
-        path: '/teacher',
-        builder: (context, state) => const TeacherDashboard(),
-      ),
-      */
+
       GoRoute(
         path: '/driver',
         builder: (context, state) => const DriverDashboard(),
@@ -225,4 +249,8 @@ class AppRouter {
       ),
     ],
   );
+});
+
+class SimpleNotifier extends ChangeNotifier {
+  void notify() => notifyListeners();
 }

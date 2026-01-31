@@ -1,20 +1,25 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:collegebus/models/user_model.dart';
-import 'package:collegebus/services/admin/college_admin_service.dart';
+import 'package:collegebus/providers/admin_provider.dart';
 import 'package:collegebus/utils/constants.dart';
 import 'package:collegebus/widgets/analytics/analytics_charts.dart';
 import 'package:collegebus/screens/college_admin/widgets/stat_card.dart';
 
-class OverviewTab extends StatelessWidget {
+class OverviewTab extends ConsumerWidget {
   final Function(int) onNavigate;
 
   const OverviewTab({super.key, required this.onNavigate});
 
   @override
-  Widget build(BuildContext context) {
-    final collegeAdminService = Provider.of<CollegeAdminService>(context);
+  Widget build(BuildContext context, WidgetRef ref) {
+    final collegeAdminService = ref.watch(collegeAdminServiceProvider);
     final collegeUsers = collegeAdminService.collegeUsers;
+
+    debugPrint('OVERVIEW TAB: collegeUsers length: ${collegeUsers.length}');
+    if (collegeUsers.isNotEmpty) {
+      debugPrint('OVERVIEW TAB: Sample user role: ${collegeUsers.first.role}');
+    }
 
     final totalStudents = collegeUsers
         .where((u) => u.role == UserRole.student)

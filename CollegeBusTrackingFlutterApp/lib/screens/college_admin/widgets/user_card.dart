@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:collegebus/models/user_model.dart';
-import 'package:collegebus/services/admin/college_admin_service.dart';
+import 'package:collegebus/providers/admin_provider.dart';
 import 'package:collegebus/utils/constants.dart';
 
-class UserCard extends StatelessWidget {
+class UserCard extends ConsumerWidget {
   final UserModel user;
-  final CollegeAdminService caService;
 
-  const UserCard({super.key, required this.user, required this.caService});
+  const UserCard({super.key, required this.user});
 
-  void _confirmDeleteUser(BuildContext context) {
+  void _confirmDeleteUser(BuildContext context, WidgetRef ref) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -26,6 +26,7 @@ class UserCard extends StatelessWidget {
             onPressed: () async {
               Navigator.pop(context);
               try {
+                final caService = ref.read(collegeAdminServiceProvider);
                 await caService.deleteUser(user.id);
                 if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
@@ -58,7 +59,7 @@ class UserCard extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final isApproved = user.approved;
     return Card(
       margin: const EdgeInsets.only(bottom: AppSizes.paddingSmall),
@@ -80,7 +81,7 @@ class UserCard extends StatelessWidget {
         ),
         trailing: IconButton(
           icon: const Icon(Icons.delete_outline, color: Colors.red),
-          onPressed: () => _confirmDeleteUser(context),
+          onPressed: () => _confirmDeleteUser(context, ref),
         ),
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,

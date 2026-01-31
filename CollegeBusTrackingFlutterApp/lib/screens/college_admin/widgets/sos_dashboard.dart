@@ -1,18 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
-import 'package:provider/provider.dart';
 import 'package:collegebus/models/sos_model.dart';
+import 'package:collegebus/providers/admin_provider.dart';
 import 'package:collegebus/services/admin/college_admin_service.dart';
 import 'package:intl/intl.dart';
 
-class SosDashboard extends StatefulWidget {
+class SosDashboard extends ConsumerStatefulWidget {
   const SosDashboard({super.key});
 
   @override
-  State<SosDashboard> createState() => _SosDashboardState();
+  ConsumerState<SosDashboard> createState() => _SosDashboardState();
 }
 
-class _SosDashboardState extends State<SosDashboard> {
+class _SosDashboardState extends ConsumerState<SosDashboard> {
   GoogleMapController? _mapController;
   Set<Marker> _markers = {};
   SosModel? _selectedSos;
@@ -26,7 +27,7 @@ class _SosDashboardState extends State<SosDashboard> {
 
   @override
   Widget build(BuildContext context) {
-    final caService = Provider.of<CollegeAdminService>(context);
+    final caService = ref.watch(collegeAdminServiceProvider);
 
     return DefaultTabController(
       length: 2,

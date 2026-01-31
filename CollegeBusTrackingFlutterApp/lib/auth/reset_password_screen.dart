@@ -1,23 +1,24 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:collegebus/services/auth/auth_service.dart';
+import 'package:collegebus/providers/auth_provider.dart';
 import 'package:collegebus/widgets/custom_input_field.dart';
 import 'package:collegebus/widgets/custom_button.dart';
 import 'package:collegebus/utils/constants.dart';
 import 'package:collegebus/widgets/api_error_modal.dart';
 import 'package:collegebus/widgets/success_modal.dart';
 
-class ResetPasswordScreen extends StatefulWidget {
+class ResetPasswordScreen extends ConsumerStatefulWidget {
   final String email;
 
   const ResetPasswordScreen({super.key, required this.email});
 
   @override
-  State<ResetPasswordScreen> createState() => _ResetPasswordScreenState();
+  ConsumerState<ResetPasswordScreen> createState() =>
+      _ResetPasswordScreenState();
 }
 
-class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
+class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
   final _formKey = GlobalKey<FormState>();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
@@ -36,7 +37,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
     setState(() => _isLoading = true);
 
     try {
-      final authService = Provider.of<AuthService>(context, listen: false);
+      final authService = ref.read(authProvider.notifier);
       final result = await authService.resetPassword(
         widget.email,
         _passwordController.text,

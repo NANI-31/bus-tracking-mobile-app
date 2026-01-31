@@ -1,17 +1,17 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import 'package:collegebus/services/admin/super_admin_service.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:collegebus/providers/admin_provider.dart';
 import 'package:collegebus/models/college_model.dart';
 import 'package:collegebus/utils/constants.dart';
 
-class CollegesTab extends StatefulWidget {
+class CollegesTab extends ConsumerStatefulWidget {
   const CollegesTab({super.key});
 
   @override
-  State<CollegesTab> createState() => _CollegesTabState();
+  ConsumerState<CollegesTab> createState() => _CollegesTabState();
 }
 
-class _CollegesTabState extends State<CollegesTab> {
+class _CollegesTabState extends ConsumerState<CollegesTab> {
   String _searchQuery = '';
   bool? _verifiedFilter;
 
@@ -43,7 +43,7 @@ class _CollegesTabState extends State<CollegesTab> {
 
   @override
   Widget build(BuildContext context) {
-    final saService = Provider.of<SuperAdminService>(context);
+    final saService = ref.watch(superAdminServiceProvider);
     final allColleges = saService.colleges;
 
     final filteredColleges = allColleges.where((college) {

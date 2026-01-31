@@ -1,33 +1,34 @@
 import 'package:flutter/material.dart';
 import 'package:velocity_x/velocity_x.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:collegebus/utils/constants.dart';
-import 'package:collegebus/models/route_model.dart';
-import 'package:collegebus/models/bus_model.dart';
-import 'package:collegebus/models/user_model.dart';
-import 'package:collegebus/l10n/coordinator/app_localizations.dart'
-    as coord_l10n;
+import 'package:collegebus/providers/auth_provider.dart';
+import 'package:collegebus/providers/bus_provider.dart';
+import 'package:collegebus/providers/route_provider.dart';
+import 'package:collegebus/providers/sos_provider.dart';
+import 'package:collegebus/providers/user_provider.dart';
 import 'package:collegebus/screens/coordinator/modules/overview_components/broadcast_modal.dart';
 
-class OverviewTab extends StatelessWidget {
-  final List<RouteModel> routes;
-  final List<BusModel> buses;
-  final List<UserModel> pendingDrivers;
-  final List<String> busNumbers;
-  final int activeSosCount;
+class OverviewTab extends ConsumerWidget {
   final VoidCallback? onSosTap;
 
-  const OverviewTab({
-    super.key,
-    required this.routes,
-    required this.buses,
-    required this.pendingDrivers,
-    required this.busNumbers,
-    required this.activeSosCount,
-    this.onSosTap,
-  });
+  const OverviewTab({super.key, this.onSosTap});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final user = ref.watch(currentUserProvider);
+    final collegeId = user?.collegeId;
+
+    if (collegeId == null) return const SizedBox.shrink();
+
+    final routes = ref.watch(collegeRoutesProvider(collegeId)).value ?? [];
+    final buses = ref.watch(collegeBusesStreamProvider(collegeId)).value ?? [];
+    final pendingDrivers =
+        ref.watch(pendingApprovalsProvider(collegeId)).value ?? [];
+    final busNumbers = ref.watch(busNumbersProvider(collegeId)).value ?? [];
+    final activeSosCount = ref.watch(
+      activeSosProvider(collegeId).select((v) => v.value?.length ?? 0),
+    );
     return SingleChildScrollView(
       child: VStack([
         'System Overview'.text

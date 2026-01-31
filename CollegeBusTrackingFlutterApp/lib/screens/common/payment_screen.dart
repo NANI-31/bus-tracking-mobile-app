@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:razorpay_flutter/razorpay_flutter.dart';
-import 'package:provider/provider.dart';
-import 'package:collegebus/services/core/data_service.dart';
-import 'package:collegebus/services/auth/auth_service.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:collegebus/providers/api_provider.dart';
+import 'package:collegebus/providers/auth_provider.dart';
 import 'package:collegebus/utils/app_logger.dart';
 
 // We'll use standard colors to avoid dependency issues if any
@@ -16,14 +16,13 @@ class AppColors {
   static const Color error = Color(0xFFDC2626); // red-600
 }
 
-class PaymentScreen extends StatefulWidget {
+class PaymentScreen extends ConsumerStatefulWidget {
   const PaymentScreen({super.key});
-
   @override
-  State<PaymentScreen> createState() => _PaymentScreenState();
+  ConsumerState<PaymentScreen> createState() => _PaymentScreenState();
 }
 
-class _PaymentScreenState extends State<PaymentScreen> {
+class _PaymentScreenState extends ConsumerState<PaymentScreen> {
   late Razorpay _razorpay;
   final TextEditingController _amountController = TextEditingController();
   bool _isLoading = false;
@@ -51,7 +50,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
     if (!mounted) return;
     setState(() => _isLoading = true);
     try {
-      final dataService = Provider.of<DataService>(context, listen: false);
+      final api = ref.read(apiServiceProvider);
       AppLogger.d(
         "Payment Success: ${response.paymentId}, Order: ${response.orderId}, Sig: ${response.signature}",
       );
@@ -59,7 +58,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
       if (response.paymentId != null &&
           response.orderId != null &&
           response.signature != null) {
-        await dataService.verifyPayment(
+        await api.verifyPayment(
           response.orderId!,
           response.paymentId!,
           response.signature!,
@@ -110,13 +109,12 @@ class _PaymentScreenState extends State<PaymentScreen> {
 
     setState(() => _isLoading = true);
     try {
-      final dataService = Provider.of<DataService>(context, listen: false);
-      final authService = Provider.of<AuthService>(context, listen: false);
-      final user = authService.currentUserModel;
+      final api = ref.read(apiServiceProvider);
+      final user = ref.read(currentUserProvider);
 
       if (user == null) throw "User not logged in";
 
-      final orderData = await dataService.createPaymentOrder(amount, "INR");
+      final orderData = await api.createPaymentOrder(amount, "INR");
       final orderId = orderData['id']?.toString() ?? "";
       final keyId =
           orderData['key_id']?.toString() ?? 'rzp_test_1DP5mmOlF5G5ag';
@@ -190,7 +188,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                         borderRadius: BorderRadius.circular(16),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.05),
+                            color: Colors.black.withValues(alpha: 0.05),
                             blurRadius: 10,
                             offset: const Offset(0, 4),
                           ),
@@ -266,7 +264,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                             }
                           },
                           backgroundColor: Colors.white,
-                          selectedColor: AppColors.primary.withOpacity(0.1),
+                          selectedColor: AppColors.primary.withValues(alpha: 0.1),
                           labelStyle: TextStyle(
                             color: _amountController.text == amount.toString()
                                 ? AppColors.primary
@@ -299,7 +297,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                   onPressed: _isLoading ? null : _initiatePayment,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primary,
-                    disabledBackgroundColor: AppColors.primary.withOpacity(0.6),
+                    disabledBackgroundColor: AppColors.primary.withValues(alpha: 0.6),
                     foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16),

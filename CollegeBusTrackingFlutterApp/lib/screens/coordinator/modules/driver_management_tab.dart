@@ -7,30 +7,42 @@ import 'package:collegebus/screens/coordinator/modules/driver_history_screen.dar
 import 'package:collegebus/l10n/coordinator/app_localizations.dart'
     as coord_l10n;
 
-class DriverManagementTab extends StatelessWidget {
-  final List<UserModel> pendingApprovals;
-  final List<UserModel> allDrivers;
-  final List<BusModel> buses;
-  final Set<String> onlineDriverIds;
-  final Function(UserModel) onApprove;
-  final Function(UserModel) onReject;
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:collegebus/providers/auth_provider.dart';
+import 'package:collegebus/providers/bus_provider.dart';
+import 'package:collegebus/providers/user_provider.dart';
+import 'package:collegebus/providers/sos_provider.dart';
+import 'package:collegebus/providers/api_provider.dart';
+
+class DriverManagementTab extends ConsumerWidget {
   final Function(UserModel)? onEditDriver;
   final Function(BusModel)? onTrack;
 
-  const DriverManagementTab({
-    super.key,
-    required this.pendingApprovals,
-    required this.allDrivers,
-    required this.buses,
-    required this.onlineDriverIds,
-    required this.onApprove,
-    required this.onReject,
-    this.onEditDriver,
-    this.onTrack,
-  });
+  const DriverManagementTab({super.key, this.onEditDriver, this.onTrack});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final user = ref.watch(currentUserProvider);
+    final collegeId = user?.collegeId;
+
+    if (collegeId == null) return const SizedBox.shrink();
+
+    final pendingApprovals =
+        ref.watch(pendingApprovalsProvider(collegeId)).value ?? [];
+    final allDrivers =
+        ref
+            .watch(
+              usersByRoleProvider((
+                role: UserRole.driver,
+                collegeId: collegeId,
+              )),
+            )
+            .value ??
+        [];
+    final buses = ref.watch(collegeBusesStreamProvider(collegeId)).value ?? [];
+    final onlineDriverIds =
+        ref.watch(onlineDriversProvider(collegeId)).value ?? {};
+
     final l10n = coord_l10n.CoordinatorLocalizations.of(context)!;
     return DefaultTabController(
       length: 4,
@@ -77,10 +89,31 @@ class DriverManagementTab extends StatelessWidget {
         Expanded(
           child: TabBarView(
             children: [
-              _buildDriversByStatus(context, 'all'),
-              _buildDriversByStatus(context, 'assigned'),
-              _buildDriversByStatus(context, 'accepted'),
-              _buildPendingApprovals(context),
+              _buildDriversByStatus(
+                context,
+                ref,
+                'all',
+                allDrivers,
+                buses,
+                onlineDriverIds,
+              ),
+              _buildDriversByStatus(
+                context,
+                ref,
+                'assigned',
+                allDrivers,
+                buses,
+                onlineDriverIds,
+              ),
+              _buildDriversByStatus(
+                context,
+                ref,
+                'accepted',
+                allDrivers,
+                buses,
+                onlineDriverIds,
+              ),
+              _buildPendingApprovals(context, ref, pendingApprovals),
             ],
           ),
         ),
@@ -88,7 +121,11 @@ class DriverManagementTab extends StatelessWidget {
     );
   }
 
-  Widget _buildPendingApprovals(BuildContext context) {
+  Widget _buildPendingApprovals(
+    BuildContext context,
+    WidgetRef ref,
+    List<UserModel> pendingApprovals,
+  ) {
     final l10n = coord_l10n.CoordinatorLocalizations.of(context)!;
     if (pendingApprovals.isEmpty) {
       return _buildEmptyState(
@@ -102,12 +139,19 @@ class DriverManagementTab extends StatelessWidget {
       itemCount: pendingApprovals.length,
       itemBuilder: (context, index) {
         final driver = pendingApprovals[index];
-        return _buildDriverCard(context, driver, isApproval: true);
+        return _buildDriverCard(context, ref, driver, isApproval: true);
       },
     );
   }
 
-  Widget _buildDriversByStatus(BuildContext context, String status) {
+  Widget _buildDriversByStatus(
+    BuildContext context,
+    WidgetRef ref,
+    String status,
+    List<UserModel> allDrivers,
+    List<BusModel> buses,
+    Set<String> onlineDriverIds,
+  ) {
     final l10n = coord_l10n.CoordinatorLocalizations.of(context)!;
     List<UserModel> filteredDrivers = [];
 
@@ -164,7 +208,13 @@ class DriverManagementTab extends StatelessWidget {
               ),
             );
           },
-          child: _buildDriverCard(context, driver, bus: bus),
+          child: _buildDriverCard(
+            context,
+            ref,
+            driver,
+            bus: bus,
+            onlineDriverIds: onlineDriverIds,
+          ),
         );
       },
     );
@@ -172,9 +222,11 @@ class DriverManagementTab extends StatelessWidget {
 
   Widget _buildDriverCard(
     BuildContext context,
+    WidgetRef ref,
     UserModel driver, {
     bool isApproval = false,
     BusModel? bus,
+    Set<String> onlineDriverIds = const {},
   }) {
     String status = 'unassigned';
     if (bus != null) {
@@ -191,11 +243,11 @@ class DriverManagementTab extends StatelessWidget {
         color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(24),
         border: Border.all(
-          color: Theme.of(context).dividerColor.withOpacity(0.1),
+          color: Theme.of(context).dividerColor.withValues(alpha: 0.1),
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 20,
             offset: const Offset(0, 10),
           ),
@@ -205,7 +257,7 @@ class DriverManagementTab extends StatelessWidget {
           end: Alignment.bottomRight,
           colors: [
             Theme.of(context).cardColor,
-            Theme.of(context).cardColor.withOpacity(0.8),
+            Theme.of(context).cardColor.withValues(alpha: 0.8),
           ],
         ),
       ),
@@ -224,11 +276,19 @@ class DriverManagementTab extends StatelessWidget {
               trailing: HStack([
                 IconButton(
                   icon: Icon(Icons.check, color: AppColors.success),
-                  onPressed: () => onApprove(driver),
+                  onPressed: () {
+                    final approverId = ref.read(currentUserProvider)?.id;
+                    if (approverId != null) {
+                      ref
+                          .read(apiServiceProvider)
+                          .approveUser(driver.id, approverId);
+                    }
+                  },
                 ),
                 IconButton(
                   icon: Icon(Icons.close, color: AppColors.error),
-                  onPressed: () => onReject(driver),
+                  onPressed: () =>
+                      ref.read(apiServiceProvider).deleteUser(driver.id),
                 ),
               ]),
             )
@@ -253,7 +313,7 @@ class DriverManagementTab extends StatelessWidget {
               subtitle: _buildDriverStatusBadge(context, status).pOnly(top: 8),
               children: [
                 Divider(
-                  color: Theme.of(context).dividerColor.withOpacity(0.05),
+                  color: Theme.of(context).dividerColor.withValues(alpha: 0.05),
                 ),
                 12.heightBox,
                 HStack([
@@ -277,7 +337,7 @@ class DriverManagementTab extends StatelessWidget {
                         side: BorderSide(
                           color: Theme.of(
                             context,
-                          ).dividerColor.withOpacity(0.1),
+                          ).dividerColor.withValues(alpha: 0.1),
                         ),
                       ),
                     ),
@@ -308,7 +368,7 @@ class DriverManagementTab extends StatelessWidget {
                         side: BorderSide(
                           color: Theme.of(
                             context,
-                          ).dividerColor.withOpacity(0.1),
+                          ).dividerColor.withValues(alpha: 0.1),
                         ),
                       ),
                     ),
@@ -338,7 +398,7 @@ class DriverManagementTab extends StatelessWidget {
                               bus.status != 'not-running')
                           ? [
                               BoxShadow(
-                                color: const Color(0xFF2E3192).withOpacity(0.3),
+                                color: const Color(0xFF2E3192).withValues(alpha: 0.3),
                                 blurRadius: 10,
                                 offset: const Offset(0, 4),
                               ),
@@ -412,13 +472,13 @@ class DriverManagementTab extends StatelessWidget {
             border: Border.all(
               color: isOnline
                   ? Colors.greenAccent
-                  : Colors.grey.withOpacity(0.2),
+                  : Colors.grey.withValues(alpha: 0.2),
               width: 2,
             ),
           ),
           child: CircleAvatar(
             radius: 24,
-            backgroundColor: Theme.of(context).primaryColor.withOpacity(0.1),
+            backgroundColor: Theme.of(context).primaryColor.withValues(alpha: 0.1),
             child: (driver.fullName.isNotEmpty ? driver.fullName[0] : '?').text
                 .size(20)
                 .color(Theme.of(context).primaryColor)
@@ -439,7 +499,7 @@ class DriverManagementTab extends StatelessWidget {
                 border: Border.all(color: Colors.white, width: 2),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.greenAccent.withOpacity(0.4),
+                    color: Colors.greenAccent.withValues(alpha: 0.4),
                     blurRadius: 4,
                   ),
                 ],
@@ -477,12 +537,12 @@ class DriverManagementTab extends StatelessWidget {
     return HStack([
           VxBox().size(6, 6).color(color).roundedFull.make(),
           8.widthBox,
-          label.text.size(12).semiBold.color(color.withOpacity(0.9)).make(),
+          label.text.size(12).semiBold.color(color.withValues(alpha: 0.9)).make(),
         ])
         .pSymmetric(h: 12, v: 6)
         .box
-        .color(color.withOpacity(0.08))
-        .border(color: color.withOpacity(0.2))
+        .color(color.withValues(alpha: 0.08))
+        .border(color: color.withValues(alpha: 0.2))
         .withRounded(value: 50)
         .make();
   }
@@ -493,13 +553,13 @@ class DriverManagementTab extends StatelessWidget {
         Container(
           padding: const EdgeInsets.all(24),
           decoration: BoxDecoration(
-            color: Theme.of(context).primaryColor.withOpacity(0.05),
+            color: Theme.of(context).primaryColor.withValues(alpha: 0.05),
             shape: BoxShape.circle,
           ),
           child: Icon(
             icon,
             size: 48,
-            color: Theme.of(context).primaryColor.withOpacity(0.5),
+            color: Theme.of(context).primaryColor.withValues(alpha: 0.5),
           ),
         ),
         24.heightBox,

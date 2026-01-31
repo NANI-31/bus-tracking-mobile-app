@@ -1,24 +1,21 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:collection/collection.dart';
-import 'package:collegebus/services/admin/super_admin_service.dart';
+import 'package:collegebus/providers/admin_provider.dart';
 import 'package:collegebus/models/college_model.dart';
 import 'package:collegebus/models/sos_model.dart';
 import 'package:collegebus/utils/constants.dart';
 import 'package:collegebus/screens/super_admin/widgets/super_admin_stat_card.dart';
 
-class SafetyMonitorTab extends StatelessWidget {
-  final SuperAdminService saService;
+class SafetyMonitorTab extends ConsumerWidget {
   final List<CollegeModel> colleges;
 
-  const SafetyMonitorTab({
-    super.key,
-    required this.saService,
-    required this.colleges,
-  });
+  const SafetyMonitorTab({super.key, required this.colleges});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final saService = ref.watch(superAdminServiceProvider);
     final activeSos = saService.globalActiveSos;
     final resolvedSos = saService.sosLogs;
 

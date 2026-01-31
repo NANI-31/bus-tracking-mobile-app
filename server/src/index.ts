@@ -7,6 +7,7 @@ import { initializeFirebase } from "./utils/firebase";
 import { registerRoutes } from "./routes";
 import { initializeSocket } from "./socket";
 import logger from "./utils/logger";
+import { errorHandler } from "./middlewares/errorMiddleware";
 
 dotenv.config();
 
@@ -27,6 +28,9 @@ app.set("io", io);
 
 // Register Middleware and Routes
 registerRoutes(app);
+
+// Global Error Handler
+app.use(errorHandler);
 
 // Initialize Socket.IO
 initializeSocket(io);

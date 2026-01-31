@@ -21,7 +21,7 @@ export const sendNotification = async (req: Request, res: Response) => {
         receiver.fcmToken,
         req.body.title || "New Notification",
         req.body.message,
-        { notificationId: savedNotification._id.toString() }
+        { notificationId: savedNotification._id.toString() },
       );
     }
 
@@ -53,7 +53,7 @@ export const markNotificationAsRead = async (req: Request, res: Response) => {
     const notification = await Notification.findByIdAndUpdate(
       req.params.id,
       { isRead: true },
-      { new: true }
+      { new: true },
     );
     res.json(notification);
   } catch (error) {
@@ -128,14 +128,14 @@ export const sendTemplatedNotificationHelper = async (
   userId: string,
   type: string,
   payload: Record<string, string | number>,
-  senderId?: string
+  senderId?: string,
 ) => {
   const notificationService = getNotificationService();
   return notificationService.sendTemplatedNotification(
     userId,
     type,
     payload,
-    senderId
+    senderId,
   );
 };
 
@@ -144,7 +144,7 @@ export const sendTemplatedNotificationHelper = async (
  */
 export const sendTemplatedNotification = async (
   req: Request,
-  res: Response
+  res: Response,
 ) => {
   try {
     const { userId, type, payload } = req.body;
@@ -159,7 +159,7 @@ export const sendTemplatedNotification = async (
     const result = await notificationService.sendTemplatedNotification(
       userId,
       type,
-      payload
+      payload,
     );
     res.status(200).json(result);
   } catch (error) {
@@ -187,7 +187,7 @@ export const sendCollegeNotification = async (req: Request, res: Response) => {
     const result = await notificationService.sendCollegeNotification(
       collegeId,
       title,
-      message
+      message,
     );
 
     res.status(200).json({
@@ -204,11 +204,13 @@ export const sendCollegeNotification = async (req: Request, res: Response) => {
 /**
  * Broadcast notification to Students, Teachers, and Parents
  */
+import { AuthenticatedRequest } from "../types/authenticatedRequest";
+
 export const broadcastNotification = async (req: Request, res: Response) => {
   try {
     const { message } = req.body;
-    const collegeId = (req as any).user?.collegeId;
-    const senderId = (req as any).user?.id;
+    const collegeId = (req as AuthenticatedRequest).user?.collegeId;
+    const senderId = (req as AuthenticatedRequest).user?.id;
 
     if (!collegeId || !senderId) {
       return res
@@ -224,7 +226,7 @@ export const broadcastNotification = async (req: Request, res: Response) => {
     const result = await notificationService.broadcastNotification(
       collegeId,
       senderId,
-      message
+      message,
     );
 
     res.status(200).json(result);

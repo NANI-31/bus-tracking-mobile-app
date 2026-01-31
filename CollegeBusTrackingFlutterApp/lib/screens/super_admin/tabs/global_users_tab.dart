@@ -1,23 +1,22 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import 'package:collegebus/services/admin/super_admin_service.dart';
-
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:collegebus/providers/admin_provider.dart';
 import 'package:collegebus/utils/constants.dart';
 
-class GlobalUsersTab extends StatefulWidget {
+class GlobalUsersTab extends ConsumerStatefulWidget {
   const GlobalUsersTab({super.key});
 
   @override
-  State<GlobalUsersTab> createState() => _GlobalUsersTabState();
+  ConsumerState<GlobalUsersTab> createState() => _GlobalUsersTabState();
 }
 
-class _GlobalUsersTabState extends State<GlobalUsersTab> {
+class _GlobalUsersTabState extends ConsumerState<GlobalUsersTab> {
   String _searchQuery = '';
   UserRole? _roleFilter;
 
   @override
   Widget build(BuildContext context) {
-    final saService = Provider.of<SuperAdminService>(context);
+    final saService = ref.watch(superAdminServiceProvider);
     final allUsers = saService.globalUsers;
 
     final filteredUsers = allUsers.where((user) {

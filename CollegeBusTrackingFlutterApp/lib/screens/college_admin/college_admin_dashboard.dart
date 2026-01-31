@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:collegebus/services/auth/auth_service.dart';
+import 'package:collegebus/providers/auth_provider.dart';
+import 'package:collegebus/providers/admin_provider.dart';
 import 'package:collegebus/services/admin/college_admin_service.dart';
 import 'package:collegebus/screens/college_admin/widgets/live_fleet_map.dart';
 import 'package:collegebus/screens/college_admin/widgets/sos_dashboard.dart';
@@ -13,14 +14,15 @@ import 'package:collegebus/screens/college_admin/tabs/overview_tab.dart';
 import 'package:collegebus/screens/college_admin/tabs/users_tab.dart';
 import 'package:collegebus/screens/college_admin/tabs/settings_tab.dart';
 
-class CollegeAdminDashboard extends StatefulWidget {
+class CollegeAdminDashboard extends ConsumerStatefulWidget {
   const CollegeAdminDashboard({super.key});
 
   @override
-  State<CollegeAdminDashboard> createState() => _CollegeAdminDashboardState();
+  ConsumerState<CollegeAdminDashboard> createState() =>
+      _CollegeAdminDashboardState();
 }
 
-class _CollegeAdminDashboardState extends State<CollegeAdminDashboard> {
+class _CollegeAdminDashboardState extends ConsumerState<CollegeAdminDashboard> {
   int _currentIndex = 0;
   StreamSubscription? _fcmTapSubscription;
 
@@ -57,15 +59,17 @@ class _CollegeAdminDashboardState extends State<CollegeAdminDashboard> {
   }
 
   Future<void> _loadCollegeData() async {
-    final authService = Provider.of<AuthService>(context, listen: false);
-    final collegeAdminService = Provider.of<CollegeAdminService>(
-      context,
-      listen: false,
+    final user = ref.read(currentUserProvider);
+    final collegeId = user?.collegeId ?? '';
+    debugPrint(
+      'DASHBOARD: Loading data for user=${user?.email}, collegeId=$collegeId',
     );
-    final collegeId = authService.currentUserModel?.collegeId ?? '';
 
     if (collegeId.isNotEmpty) {
+      final collegeAdminService = ref.read(collegeAdminServiceProvider);
       await collegeAdminService.loadCollegeDashboard(collegeId);
+    } else {
+      debugPrint('DASHBOARD: Skipping load because collegeId is empty');
     }
   }
 
@@ -77,10 +81,10 @@ class _CollegeAdminDashboardState extends State<CollegeAdminDashboard> {
 
   @override
   Widget build(BuildContext context) {
-    final collegeAdminService = Provider.of<CollegeAdminService>(context);
-    final authService = Provider.of<AuthService>(context);
+    final collegeAdminService = ref.watch(collegeAdminServiceProvider);
+    final authService = ref.watch(authProvider.notifier);
     final isLoading = collegeAdminService.isLoading;
-    final authUser = authService.currentUserModel;
+    final authUser = ref.watch(currentUserProvider);
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,

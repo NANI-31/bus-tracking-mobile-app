@@ -1,19 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:collegebus/providers/auth_provider.dart';
+import 'package:collegebus/providers/api_provider.dart';
 import 'package:velocity_x/velocity_x.dart';
-import 'package:provider/provider.dart';
-import 'package:collegebus/services/api/api_service.dart';
-import 'package:collegebus/services/auth/auth_service.dart';
 
-class StudentChangePasswordScreen extends StatefulWidget {
+class StudentChangePasswordScreen extends ConsumerStatefulWidget {
   const StudentChangePasswordScreen({super.key});
 
   @override
-  State<StudentChangePasswordScreen> createState() =>
+  ConsumerState<StudentChangePasswordScreen> createState() =>
       _StudentChangePasswordScreenState();
 }
 
 class _StudentChangePasswordScreenState
-    extends State<StudentChangePasswordScreen> {
+    extends ConsumerState<StudentChangePasswordScreen> {
   final _formKey = GlobalKey<FormState>();
   final _oldPasswordController = TextEditingController();
   final _newPasswordController = TextEditingController();
@@ -29,9 +29,9 @@ class _StudentChangePasswordScreenState
     setState(() => _isLoading = true);
 
     try {
-      final authService = Provider.of<AuthService>(context, listen: false);
-      final apiService = Provider.of<ApiService>(context, listen: false);
-      final userId = authService.currentUserModel?.id;
+      final user = ref.read(currentUserProvider);
+      final apiService = ref.read(apiServiceProvider);
+      final userId = user?.id;
 
       if (userId == null) throw Exception('User not found');
 

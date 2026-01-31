@@ -1,18 +1,17 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:velocity_x/velocity_x.dart';
-import 'package:collegebus/services/auth/auth_service.dart';
+import 'package:collegebus/providers/auth_provider.dart';
 import 'package:collegebus/widgets/app_drawer.dart';
 import 'package:collegebus/l10n/notification/app_localizations.dart'
     as notif_l10n;
 
-class NotificationsScreen extends StatelessWidget {
+class NotificationsScreen extends ConsumerWidget {
   const NotificationsScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final authService = Provider.of<AuthService>(context);
-    final user = authService.currentUserModel;
+  Widget build(BuildContext context, WidgetRef ref) {
+    final user = ref.watch(currentUserProvider);
     // Ensure delegate is provided in main.dart, accessed here
     final l10n = notif_l10n.NotificationLocalizations.of(context)!;
 
@@ -22,7 +21,7 @@ class NotificationsScreen extends StatelessWidget {
         backgroundColor: Theme.of(context).primaryColor,
         foregroundColor: Theme.of(context).colorScheme.onPrimary,
       ),
-      drawer: AppDrawer(user: user, authService: authService),
+      drawer: AppDrawer(user: user),
       body: VStack(
         [
           Icon(

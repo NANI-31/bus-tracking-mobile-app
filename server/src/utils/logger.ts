@@ -49,7 +49,7 @@ const format = winston.format.combine(
     const cleanLevel = info.level.replace(
       // eslint-disable-next-line
       /[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g,
-      ""
+      "",
     );
     const emoji = emojis[cleanLevel as keyof typeof emojis] || "";
     // Split timestamp into date & time
@@ -59,7 +59,7 @@ const format = winston.format.combine(
     const time = timeParts.join(" ");
 
     return `[📅 ${date} ⏰ ${time}] ${emoji} ${info.level}: ${info.message}`;
-  })
+  }),
 );
 
 const logger = winston.createLogger({
@@ -68,8 +68,9 @@ const logger = winston.createLogger({
   format,
   transports: [
     new winston.transports.Console(),
-    new winston.transports.File({ filename: "logs/error.log", level: "error" }),
-    new winston.transports.File({ filename: "logs/all.log" }),
+    // File logging removed for containerization (logs should be captured by stdout/stderr)
+    // new winston.transports.File({ filename: "logs/error.log", level: "error" }),
+    // new winston.transports.File({ filename: "logs/all.log" }),
   ],
 });
 

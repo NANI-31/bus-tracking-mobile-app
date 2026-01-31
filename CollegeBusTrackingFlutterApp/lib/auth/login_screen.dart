@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:collegebus/services/auth/auth_service.dart';
+import 'package:collegebus/providers/providers.dart';
 import 'package:collegebus/widgets/custom_input_field.dart';
 import 'package:velocity_x/velocity_x.dart';
 
@@ -14,14 +14,14 @@ import 'package:collegebus/models/user_model.dart';
 import 'package:collegebus/models/college_model.dart';
 import 'package:collegebus/services/api/api_service.dart';
 
-class LoginScreen extends StatefulWidget {
+class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
 
   @override
-  State<LoginScreen> createState() => _LoginScreenState();
+  ConsumerState<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen>
+class _LoginScreenState extends ConsumerState<LoginScreen>
     with SingleTickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
   late AnimationController _animationController;
@@ -55,7 +55,7 @@ class _LoginScreenState extends State<LoginScreen>
   Future<void> _fetchTestData() async {
     setState(() => _isFetchingTestUsers = true);
     try {
-      final apiService = ApiService();
+      final apiService = ref.read(apiServiceProvider);
       final users = await apiService.getAllUsers();
       final colleges = await apiService.getAllColleges();
       setState(() {
@@ -85,17 +85,26 @@ class _LoginScreenState extends State<LoginScreen>
     });
 
     try {
-      final authService = Provider.of<AuthService>(context, listen: false);
+      final authNotifier = ref.read(authProvider.notifier);
       final loginEmail = email ?? _emailController.text.trim();
       final loginPassword = password ?? _passwordController.text;
 
-      final result = await authService.loginUser(
+      final result = await authNotifier.loginUser(
         email: loginEmail,
         password: loginPassword,
       );
 
       if (result['success']) {
-        final userRole = authService.userRole;
+        // Log the success and check provider state
+        debugPrint('LOGIN SUCCESS: ${result['message']}');
+
+        final userRole = ref.read(userRoleProvider);
+        debugPrint('RESOLVED ROLE from provider: $userRole');
+
+        // Check actual auth state directly
+        final authState = ref.read(authProvider);
+        debugPrint('AUTH STATE value: ${authState.value?.currentUser?.role}');
+
         String route = '/login'; // default fallback
 
         switch (userRole) {
@@ -122,12 +131,17 @@ class _LoginScreenState extends State<LoginScreen>
             route = '/super-admin';
             break;
           case null:
+            debugPrint('WARNING: UserRole is NULL, staying on /login');
             route = '/login';
             break;
         }
+
+        debugPrint('NAVIGATING TO: $route');
+
         if (!mounted) return;
         context.go(route);
       } else {
+        debugPrint('LOGIN FAILED: ${result['message']}');
         if (!mounted) return;
 
         if (result['requiresVerification'] == true) {

@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:collegebus/utils/constants.dart';
 
-class SuperAdminStatCard extends StatelessWidget {
+class SuperAdminStatCard extends ConsumerWidget {
   final String title;
   final String value;
   final IconData icon;
@@ -16,7 +17,7 @@ class SuperAdminStatCard extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Card(
       elevation: 2,
       child: Padding(

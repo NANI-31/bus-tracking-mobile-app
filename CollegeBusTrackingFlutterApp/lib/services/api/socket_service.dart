@@ -287,6 +287,16 @@ class SocketService extends ChangeNotifier {
     _busListUpdateController.add(null);
   }
 
+  void sendRouteListUpdate() {
+    _socket?.emit('route_list_updated');
+    _routeListUpdateController.add(null);
+  }
+
+  void sendUserListUpdate() {
+    _socket?.emit('user_list_updated');
+    _userListUpdateController.add(null);
+  }
+
   @override
   void dispose() {
     _socket?.disconnect();

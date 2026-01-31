@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
-import 'package:collegebus/services/core/data_service.dart';
+import 'package:collegebus/providers/api_provider.dart';
 import 'package:collegebus/utils/constants.dart';
-import 'package:velocity_x/velocity_x.dart';
 
-class SOSButton extends StatefulWidget {
+class SOSButton extends ConsumerStatefulWidget {
   final LatLng? currentLocation;
   final String? busId;
   final String? routeId;
@@ -19,10 +18,10 @@ class SOSButton extends StatefulWidget {
   });
 
   @override
-  State<SOSButton> createState() => _SOSButtonState();
+  ConsumerState<SOSButton> createState() => _SOSButtonState();
 }
 
-class _SOSButtonState extends State<SOSButton>
+class _SOSButtonState extends ConsumerState<SOSButton>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   bool _isPressed = false;
@@ -61,8 +60,8 @@ class _SOSButtonState extends State<SOSButton>
     }
 
     try {
-      final dataService = Provider.of<DataService>(context, listen: false);
-      await dataService.sendSOS(
+      final api = ref.read(apiServiceProvider);
+      await api.sendSOS(
         busId: widget.busId,
         routeId: widget.routeId,
         lat: widget.currentLocation!.latitude,

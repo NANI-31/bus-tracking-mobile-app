@@ -1,22 +1,27 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:velocity_x/velocity_x.dart';
 import 'package:collegebus/utils/constants.dart';
-import 'package:collegebus/models/route_model.dart';
-import 'package:collegebus/services/core/data_service.dart';
+import 'package:collegebus/providers/auth_provider.dart';
+import 'package:collegebus/providers/route_provider.dart';
+import 'package:collegebus/providers/api_provider.dart';
 import 'package:collegebus/l10n/coordinator/app_localizations.dart'
     as coord_l10n;
-import 'package:collegebus/screens/coordinator/modules/route_edit_screen.dart';
+import 'route_edit_screen.dart';
 
-class RoutesTab extends StatelessWidget {
-  final List<RouteModel> routes;
-  final Function() onRefresh;
-
-  const RoutesTab({super.key, required this.routes, required this.onRefresh});
+class RoutesTab extends ConsumerWidget {
+  const RoutesTab({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final user = ref.watch(currentUserProvider);
+    final collegeId = user?.collegeId;
+
+    if (collegeId == null) return const SizedBox.shrink();
+
+    final routes = ref.watch(collegeRoutesProvider(collegeId)).value ?? [];
     final l10n = coord_l10n.CoordinatorLocalizations.of(context)!;
+
     return VStack([
       HStack(
         [
@@ -27,7 +32,9 @@ class RoutesTab extends StatelessWidget {
                 context,
                 MaterialPageRoute(builder: (_) => const RouteEditScreen()),
               );
-              if (result == true) onRefresh();
+              if (result == true) {
+                // Refresh is automatic via provider invalidation in the screen
+              }
             },
             icon: const Icon(Icons.add),
             label: Text(l10n.createRoute),
@@ -141,7 +148,9 @@ class RoutesTab extends StatelessWidget {
                                 builder: (_) => RouteEditScreen(route: route),
                               ),
                             );
-                            if (result == true) onRefresh();
+                            if (result == true) {
+                              // Automatic
+                            }
                           } else if (value == 'delete') {
                             final confirmed = await showDialog<bool>(
                               context: context,
@@ -171,12 +180,8 @@ class RoutesTab extends StatelessWidget {
                             );
                             if (confirmed == true) {
                               if (!context.mounted) return;
-                              final firestoreService = Provider.of<DataService>(
-                                context,
-                                listen: false,
-                              );
-                              await firestoreService.deleteRoute(route.id);
-                              onRefresh();
+                              final api = ref.read(apiServiceProvider);
+                              await api.deleteRoute(route.id);
                               if (!context.mounted) return;
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(

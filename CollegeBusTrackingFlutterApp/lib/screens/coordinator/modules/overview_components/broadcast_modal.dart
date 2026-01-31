@@ -1,19 +1,19 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import 'package:collegebus/services/core/data_service.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:collegebus/providers/api_provider.dart';
 import 'package:collegebus/utils/constants.dart';
 import 'package:collegebus/widgets/success_modal.dart';
 import 'package:collegebus/widgets/api_error_modal.dart';
 import 'package:velocity_x/velocity_x.dart';
 
-class BroadcastModal extends StatefulWidget {
+class BroadcastModal extends ConsumerStatefulWidget {
   const BroadcastModal({super.key});
 
   @override
-  State<BroadcastModal> createState() => _BroadcastModalState();
+  ConsumerState<BroadcastModal> createState() => _BroadcastModalState();
 }
 
-class _BroadcastModalState extends State<BroadcastModal> {
+class _BroadcastModalState extends ConsumerState<BroadcastModal> {
   final TextEditingController _messageController = TextEditingController();
   bool _isLoading = false;
 
@@ -30,8 +30,8 @@ class _BroadcastModalState extends State<BroadcastModal> {
     setState(() => _isLoading = true);
 
     try {
-      final dataService = context.read<DataService>();
-      await dataService.broadcastNotification(message);
+      final api = ref.read(apiServiceProvider);
+      await api.broadcastToCollege(message);
 
       if (mounted) {
         Navigator.pop(context);

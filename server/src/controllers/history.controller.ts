@@ -1,6 +1,8 @@
 import { Request, Response } from "express";
 import { History } from "../models/History";
 
+import { AuthenticatedRequest } from "../types/authenticatedRequest";
+
 export const getHistory = async (req: Request, res: Response) => {
   try {
     const {
@@ -13,7 +15,7 @@ export const getHistory = async (req: Request, res: Response) => {
       limit = 20,
     } = req.query;
 
-    const collegeId = (req as any).user.collegeId;
+    const collegeId = (req as AuthenticatedRequest).user?.collegeId;
     if (!collegeId) {
       return res.status(400).json({ message: "College ID missing" });
     }
@@ -63,7 +65,7 @@ export const logHistoryHelper = async (
   description: string,
   metadata: any = {},
   busId?: string,
-  driverId?: string
+  driverId?: string,
 ) => {
   try {
     await History.create({
