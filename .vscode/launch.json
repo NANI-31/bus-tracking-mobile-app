@@ -1,0 +1,16 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    // {
+    // 	"name": "Flutter: Attach to Device",
+    // 	"type": "dart",
+    // 	"request": "attach"
+    // },
+    {
+      "name": "Flutter Debug",
+      "request": "launch",
+      "type": "dart",
+      "preLaunchTask": "adb-reverse-5000"
+    }
+  ]
+}

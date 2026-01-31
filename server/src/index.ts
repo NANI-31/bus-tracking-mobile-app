@@ -11,32 +11,41 @@ import { errorHandler } from "./middlewares/errorMiddleware";
 
 dotenv.config();
 
-connectDB();
-initializeFirebase();
+const startServer = async () => {
+  try {
+    await connectDB();
+    initializeFirebase();
 
-const app = express();
-const httpServer = createServer(app);
-const io = new Server(httpServer, {
-  cors: {
-    origin: "*", // Allow all origins for mobile app
-    methods: ["GET", "POST"],
-  },
-});
+    const app = express();
+    const httpServer = createServer(app);
+    const io = new Server(httpServer, {
+      cors: {
+        origin: "*", // Allow all origins for mobile app
+        methods: ["GET", "POST"],
+      },
+    });
 
-// Make io accessible to our router/controllers
-app.set("io", io);
+    // Make io accessible to our router/controllers
+    app.set("io", io);
 
-// Register Middleware and Routes
-registerRoutes(app);
+    // Register Middleware and Routes
+    registerRoutes(app);
 
-// Global Error Handler
-app.use(errorHandler);
+    // Global Error Handler
+    app.use(errorHandler);
 
-// Initialize Socket.IO
-initializeSocket(io);
+    // Initialize Socket.IO
+    initializeSocket(io);
 
-const PORT = Number(process.env.PORT) || 5000;
+    const PORT = Number(process.env.PORT) || 5000;
 
-httpServer.listen(PORT, "0.0.0.0", () => {
-  logger.info(`Server running on port ${PORT}`);
-});
+    httpServer.listen(PORT, "0.0.0.0", () => {
+      logger.info(`Server running on port ${PORT}`);
+    });
+  } catch (error) {
+    logger.error("Failed to start server:", error);
+    process.exit(1);
+  }
+};
+
+startServer();

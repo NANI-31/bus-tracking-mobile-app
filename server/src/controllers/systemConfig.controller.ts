@@ -2,13 +2,16 @@ import { Request, Response } from "express";
 import { AuthRequest } from "../middleware/authMiddleware";
 import SystemConfig from "../models/SystemConfig";
 import AuditLog from "../models/AuditLog";
+import logger from "../utils/logger";
 
 /**
  * Get all system configurations
  */
 export const getSystemConfig = async (req: AuthRequest, res: Response) => {
+  logger.info("CONFIG: Entering getSystemConfig");
   try {
     const configs = await SystemConfig.find().sort({ category: 1, key: 1 });
+    logger.info(`CONFIG: Found ${configs.length} configs`);
     res.json(configs);
   } catch (error) {
     res.status(500).json({ message: (error as Error).message });

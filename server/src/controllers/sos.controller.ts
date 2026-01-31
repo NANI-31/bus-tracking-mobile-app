@@ -149,6 +149,9 @@ export const resolveSos = async (req: AuthRequest, res: Response) => {
  * Get SOS alerts (active or logs)
  */
 export const getActiveSos = async (req: AuthRequest, res: Response) => {
+  logger.info(
+    `SOS: Entering getActiveSos. CollegeId: ${req.params.collegeId}, Path: ${req.path}`,
+  );
   try {
     const { collegeId } = req.params;
     const { status } = req.query; // Optional filter
@@ -171,6 +174,7 @@ export const getActiveSos = async (req: AuthRequest, res: Response) => {
     }
 
     const alerts = await Sos.find(query).sort({ timestamp: -1 });
+    logger.info(`SOS: Found ${alerts.length} alerts`);
 
     res.json(alerts);
   } catch (error) {

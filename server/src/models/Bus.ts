@@ -61,7 +61,10 @@ const BusLocationSchema: Schema = new Schema({
   heading: { type: Number },
 });
 
+BusLocationSchema.index({ busId: 1, timestamp: -1 });
+BusLocationSchema.index({ timestamp: 1 });
+
 export const BusLocation = mongoose.model<IBusLocation>(
   "BusLocation",
-  BusLocationSchema
+  BusLocationSchema,
 );

@@ -88,6 +88,9 @@ dependencies:
   flutter_secure_storage: ^9.2.4
   json_annotation: ^4.10.0
   flutter_riverpod: ^2.6.1
+  collection: ^1.19.1
+  google_maps_flutter_android: ^2.18.12
+  google_maps_flutter_platform_interface: ^2.14.1
 
 dev_dependencies:
   flutter_test:

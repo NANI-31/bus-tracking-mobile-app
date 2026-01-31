@@ -25,10 +25,13 @@ export const getBus = async (req: Request, res: Response) => {
 };
 
 export const getAllBuses = async (req: Request, res: Response) => {
+  logger.info("BUS: Entering getAllBuses");
   try {
     const buses = await Bus.find();
+    logger.info(`BUS: Found ${buses.length} buses`);
     res.status(200).json(buses);
   } catch (error) {
+    logger.error(`BUS: Error in getAllBuses: ${(error as Error).message}`);
     res.status(500).json({ message: (error as Error).message });
   }
 };
@@ -111,15 +114,19 @@ export const getBusLocation = async (req: Request, res: Response) => {
 };
 
 export const getCollegeBusLocations = async (req: Request, res: Response) => {
+  const { collegeId } = req.params;
+  logger.info(`BUS: Entering getCollegeBusLocations for college: ${collegeId}`);
   try {
-    const { collegeId } = req.params;
     // 1. Get all active buses for this college
     const buses = await Bus.find({ collegeId, isActive: true });
+    logger.info(
+      `BUS: Found ${buses.length} active buses for college ${collegeId}`,
+    );
 
     // 2. Get latest location for each bus using aggregation
     const busIds = buses.map((bus) => bus._id);
     const locations = await BusLocation.aggregate([
-      { $match: { busId: { $in: busIds } } },
+      { $match: { busId: { $in: busIds.map((id) => id.toString()) } } },
       { $sort: { timestamp: -1 } },
       {
         $group: {
@@ -128,6 +135,7 @@ export const getCollegeBusLocations = async (req: Request, res: Response) => {
         },
       },
     ]);
+    logger.info(`BUS: Aggregated ${locations.length} locations`);
 
     // 3. Map back to include busId consistently
     const validLocations = locations.map((l) => ({
@@ -137,6 +145,9 @@ export const getCollegeBusLocations = async (req: Request, res: Response) => {
 
     res.status(200).json(validLocations);
   } catch (error) {
+    logger.error(
+      `BUS: Error in getCollegeBusLocations: ${(error as Error).message}`,
+    );
     res.status(500).json({ message: (error as Error).message });
   }
 };

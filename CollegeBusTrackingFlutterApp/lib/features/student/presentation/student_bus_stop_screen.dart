@@ -1,0 +1,385 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:collegebus/features/auth/application/auth_provider.dart';
+import 'package:collegebus/core/providers/api_provider.dart';
+import 'package:collegebus/features/route/application/route_provider.dart';
+import 'package:velocity_x/velocity_x.dart';
+
+class StudentBusStopScreen extends ConsumerStatefulWidget {
+  const StudentBusStopScreen({super.key});
+
+  @override
+  ConsumerState<StudentBusStopScreen> createState() =>
+      _StudentBusStopScreenState();
+}
+
+class _StudentBusStopScreenState extends ConsumerState<StudentBusStopScreen> {
+  String _searchQuery = "";
+  String? _updatingStop;
+  bool _isDialogOpen = false;
+
+  @override
+  void initState() {
+    super.initState();
+  }
+
+  Future<void> _updatePreferredStop(
+    String stopName,
+    String routeId,
+    String? stopId,
+    double lat,
+    double lng,
+    String userId,
+    String routeName,
+  ) async {
+    final apiService = ref.read(apiServiceProvider);
+    final authNotifier = ref.read(authProvider.notifier);
+    // Unique ID for the updating state (stopName + routeId)
+    final uniqueId = '$stopName-$routeId';
+    setState(() => _updatingStop = uniqueId);
+    try {
+      final updatedUser = await apiService.updateUser(userId, {
+        'preferredStop': stopName,
+        'routeId': routeId,
+        'stopName': stopName,
+        'stopLocation': {'lat': lat, 'lng': lng},
+      });
+      authNotifier.updateCurrentUser(updatedUser);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Stop updated to $stopName ($routeName)'),
+            backgroundColor: Colors.green,
+            duration: const Duration(seconds: 2),
+            behavior:
+                SnackBarBehavior.floating, // Make it float to avoid overlapping
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error updating stop: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _updatingStop = null);
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final user = ref.watch(currentUserProvider);
+
+    if (user == null) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+
+    return Scaffold(
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      appBar: AppBar(
+        title: 'Select Bus Stop'.text.bold.make(),
+        backgroundColor: Theme.of(context).primaryColor,
+        foregroundColor: Colors.white,
+        elevation: 0,
+      ),
+      body: VStack([
+        // Header Section
+        VxBox(
+              child: VStack([
+                'Where will you board?'.text.white.extraBold.size(24).make(),
+                8.heightBox,
+                'Select your stop and route to receive arrival alerts.'.text
+                    .color(Colors.white.withValues(alpha: 0.7))
+                    .make(),
+                24.heightBox,
+                TextField(
+                  onChanged: (val) =>
+                      setState(() => _searchQuery = val.toLowerCase()),
+                  style: const TextStyle(color: Colors.black87),
+                  decoration: InputDecoration(
+                    hintText: 'Search stop or route...',
+                    prefixIcon: const Icon(Icons.search, color: Colors.grey),
+                    filled: true,
+                    fillColor: Colors.white,
+                    contentPadding: const EdgeInsets.symmetric(vertical: 16),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      borderSide: BorderSide.none,
+                    ),
+                  ),
+                ),
+              ]),
+            )
+            .width(double.infinity)
+            .p24
+            .color(Theme.of(context).primaryColor)
+            .customRounded(
+              const BorderRadius.only(
+                bottomLeft: Radius.circular(32),
+                bottomRight: Radius.circular(32),
+              ),
+            )
+            .make(),
+
+        // Stops List
+        ref
+            .watch(collegeRoutesProvider(user.collegeId))
+            .when(
+              data: (routes) {
+                // Build a list of all stops with their route context
+                final stopOptions = <Map<String, dynamic>>[];
+
+                for (final route in routes) {
+                  // Start Point
+                  stopOptions.add({
+                    'name': route.startPoint.name,
+                    'lat': route.startPoint.lat,
+                    'lng': route.startPoint.lng,
+                    'type': 'Start Point',
+                    'routeId': route.id,
+                    'routeName': route.routeName,
+                  });
+
+                  // End Point
+                  stopOptions.add({
+                    'name': route.endPoint.name,
+                    'lat': route.endPoint.lat,
+                    'lng': route.endPoint.lng,
+                    'type': 'End Point',
+                    'routeId': route.id,
+                    'routeName': route.routeName,
+                  });
+
+                  // Intermediate Points
+                  for (final point in route.stopPoints) {
+                    stopOptions.add({
+                      'name': point.name,
+                      'lat': point.lat,
+                      'lng': point.lng,
+                      'type': 'Intermediate',
+                      'routeId': route.id,
+                      'routeName': route.routeName,
+                    });
+                  }
+                }
+
+                final filteredOptions = stopOptions.where((option) {
+                  final search = _searchQuery.toLowerCase();
+                  final name = (option['name'] as String).toLowerCase();
+                  final route = (option['routeName'] as String).toLowerCase();
+                  return name.contains(search) || route.contains(search);
+                }).toList();
+
+                // Sort by name
+                filteredOptions.sort(
+                  (a, b) =>
+                      (a['name'] as String).compareTo(b['name'] as String),
+                );
+
+                if (filteredOptions.isEmpty) {
+                  return [
+                    const Icon(
+                      Icons.search_off_rounded,
+                      size: 64,
+                      color: Colors.grey,
+                    ),
+                    16.heightBox,
+                    'No stops found'.text.gray500.make(),
+                  ].vStack().centered().expand();
+                }
+
+                return ListView.builder(
+                  padding: const EdgeInsets.all(16),
+                  itemCount: filteredOptions.length,
+                  itemBuilder: (context, index) {
+                    final option = filteredOptions[index];
+                    final name = option['name'] as String;
+                    final routeId = option['routeId'] as String;
+                    final routeName = option['routeName'] as String;
+
+                    // Unique check: matches stop AND route
+                    final isSelected =
+                        user.preferredStop == name && user.routeId == routeId;
+                    final uniqueId = '$name-$routeId';
+                    final isUpdating = _updatingStop == uniqueId;
+
+                    return _buildStopItem(
+                      context: context,
+                      stopName: name,
+                      routeName: routeName,
+                      isSelected: isSelected,
+                      isUpdating: isUpdating,
+                      onTap: () => _showConfirmationDialog(
+                        context,
+                        name,
+                        routeId,
+                        option['lat'] as double,
+                        option['lng'] as double,
+                        user.id,
+                        routeName,
+                      ),
+                    );
+                  },
+                ).expand();
+              },
+              loading: () =>
+                  const CircularProgressIndicator().centered().expand(),
+              error: (e, s) => Center(child: Text('Error: $e')).expand(),
+            ),
+      ]),
+    );
+  }
+
+  Future<void> _showConfirmationDialog(
+    BuildContext context,
+    String stopName,
+    String routeId,
+    double lat,
+    double lng,
+    String userId,
+    String routeName,
+  ) async {
+    if (_isDialogOpen) return;
+
+    _isDialogOpen = true;
+    await showDialog(
+      context: context,
+      barrierDismissible: false, // Force user to choose action
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text(
+          "Confirm Selection",
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+        content: Text(
+          "Do you want to set '$stopName' as your pickup point?",
+          style: const TextStyle(fontSize: 16),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text("Cancel", style: TextStyle(color: Colors.grey)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Theme.of(context).primaryColor,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            onPressed: () {
+              Navigator.pop(ctx); // Close dialog
+              _updatePreferredStop(
+                stopName,
+                routeId,
+                null,
+                lat,
+                lng,
+                userId,
+                routeName,
+              );
+            },
+            child: const Text("Select", style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+
+    // Reset flag after dialog is closed
+    if (mounted) {
+      _isDialogOpen = false;
+    }
+  }
+
+  Widget _buildStopItem({
+    required BuildContext context,
+    required String stopName,
+    required String routeName,
+    required bool isSelected,
+    required bool isUpdating,
+    required VoidCallback onTap,
+  }) {
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 300),
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: isSelected
+              ? Theme.of(context).primaryColor
+              : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.05),
+          width: 2,
+        ),
+        boxShadow: isSelected
+            ? [
+                BoxShadow(
+                  color: Theme.of(context).primaryColor.withValues(alpha: 0.1),
+                  blurRadius: 12,
+                  offset: const Offset(0, 4),
+                ),
+              ]
+            : [],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: isSelected || isUpdating ? null : onTap,
+          borderRadius: BorderRadius.circular(20),
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color:
+                        (isSelected
+                                ? Theme.of(context).primaryColor
+                                : Colors.grey)
+                            .withValues(alpha: 0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.location_on_rounded,
+                    color: isSelected
+                        ? Theme.of(context).primaryColor
+                        : Colors.grey,
+                    size: 24,
+                  ),
+                ),
+                16.widthBox,
+                VStack([
+                  stopName.text.bold
+                      .size(16)
+                      .color(isSelected ? Theme.of(context).primaryColor : null)
+                      .make(),
+                  4.heightBox,
+                  'Route: $routeName'.text.size(12).gray500.make(),
+                ]).expand(),
+                if (isUpdating)
+                  const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                else if (isSelected)
+                  Icon(
+                    Icons.check_circle_rounded,
+                    color: Theme.of(context).primaryColor,
+                    size: 28,
+                  ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}

@@ -1,11 +1,13 @@
 import { Request, Response } from "express";
 import { AuthRequest } from "../middleware/authMiddleware";
 import AuditLog from "../models/AuditLog";
+import logger from "../utils/logger";
 
 /**
  * Get audit logs with filtering and pagination
  */
 export const getAuditLogs = async (req: AuthRequest, res: Response) => {
+  logger.info("AUDIT: Entering getAuditLogs");
   try {
     const { collegeId, adminId, action, limit = 50, skip = 0 } = req.query;
 
@@ -20,6 +22,7 @@ export const getAuditLogs = async (req: AuthRequest, res: Response) => {
       .skip(Number(skip));
 
     const total = await AuditLog.countDocuments(query);
+    logger.info(`AUDIT: Found ${logs.length} logs, total ${total}`);
 
     res.json({
       logs,

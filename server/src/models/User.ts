@@ -75,6 +75,7 @@ const UserSchema: Schema = new Schema({
   collegeId: {
     type: Schema.Types.ObjectId,
     ref: "College",
+    index: true,
     required: function (this: any) {
       return this.role !== "superAdmin";
     },
