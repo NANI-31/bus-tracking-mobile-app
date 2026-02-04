@@ -87,14 +87,14 @@ class _CollegesTabState extends ConsumerState<CollegesTab> {
                       onSelected: (val) =>
                           setState(() => _verifiedFilter = null),
                     ),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: 8.0),
                     FilterChip(
                       label: const Text('Verified'),
                       selected: _verifiedFilter == true,
                       onSelected: (val) =>
                           setState(() => _verifiedFilter = val ? true : null),
                     ),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: 8.0),
                     FilterChip(
                       label: const Text('Pending'),
                       selected: _verifiedFilter == false,
@@ -182,3 +182,8 @@ class _CollegesTabState extends ConsumerState<CollegesTab> {
     );
   }
 }
+
+
+
+
+

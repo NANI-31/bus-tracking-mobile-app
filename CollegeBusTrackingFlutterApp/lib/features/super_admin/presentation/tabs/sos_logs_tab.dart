@@ -21,7 +21,7 @@ class SosLogsTab extends ConsumerWidget {
           child: Row(
             children: [
               const Icon(Icons.emergency, color: Colors.red),
-              const SizedBox(width: 8),
+              const SizedBox(width: 8.0),
               Text(
                 'System SOS Archives (${sosLogs.length})',
                 style: const TextStyle(
@@ -116,3 +116,8 @@ class SosLogsTab extends ConsumerWidget {
     );
   }
 }
+
+
+
+
+

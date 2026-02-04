@@ -1,3 +1,5 @@
+import 'package:collegebus/core/utils/type_converters.dart';
+
 /// Represents a system configuration setting.
 /// Used by Super Admin to manage global system settings.
 class SystemConfigModel {
@@ -34,8 +36,8 @@ class SystemConfigModel {
       value: map['value'],
       description: map['description'],
       dataType: ConfigDataType.fromString(map['dataType'] ?? 'string'),
-      isPublic: map['isPublic'] ?? false,
-      isEditable: map['isEditable'] ?? true,
+      isPublic: parseBool(map['isPublic'], false),
+      isEditable: parseBool(map['isEditable'], true),
       category: map['category'],
       updatedAt: parseDate(map['updatedAt']),
       updatedBy: map['updatedBy'],
@@ -156,3 +158,4 @@ class ConfigCategory {
   static const String features = 'Feature Flags';
   static const String system = 'System Settings';
 }
+

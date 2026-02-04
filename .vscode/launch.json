@@ -10,6 +10,7 @@
       "name": "Flutter Debug",
       "request": "launch",
       "type": "dart",
+      "program": "CollegeBusTrackingFlutterApp/lib/main.dart",
       "preLaunchTask": "adb-reverse-5000"
     }
   ]

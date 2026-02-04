@@ -2,6 +2,8 @@ import { Request, Response } from "express";
 import Razorpay from "razorpay";
 import crypto from "crypto";
 import dotenv from "dotenv";
+import User from "../models/User";
+import { AuthRequest } from "../middleware/authMiddleware";
 
 dotenv.config();
 
@@ -54,6 +56,14 @@ export const verifyPayment = async (req: Request, res: Response) => {
       .digest("hex");
 
     if (expectedSignature === razorpay_signature) {
+      // --- NEW: Update User to Premium ---
+      const authReq = req as AuthRequest;
+      if (authReq.user) {
+        await User.findByIdAndUpdate(authReq.user.id, { isPremium: true });
+        console.log(`User ${authReq.user.id} updated to Premium.`);
+      }
+      // -----------------------------------
+
       res
         .status(200)
         .json({ message: "Payment verified successfully", success: true });

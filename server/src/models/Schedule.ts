@@ -10,6 +10,7 @@ export interface ISchedule extends Document {
   routeId: string;
   busId: string;
   shift: string;
+  tripType: "pickup" | "drop";
   stopSchedules: IStopSchedule[];
   collegeId: string;
   createdBy: string;
@@ -32,13 +33,14 @@ const StopScheduleSchema: Schema = new Schema(
       match: /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/,
     },
   },
-  { _id: false }
+  { _id: false },
 );
 
 const ScheduleSchema: Schema = new Schema({
   routeId: { type: Schema.Types.ObjectId, required: true, ref: "Route" },
   busId: { type: Schema.Types.ObjectId, required: true, ref: "Bus" },
-  shift: { type: String, enum: ["1st", "2nd"], default: "1st" },
+  shift: { type: String, required: true },
+  tripType: { type: String, enum: ["pickup", "drop"], default: "pickup" },
   stopSchedules: [StopScheduleSchema],
   collegeId: { type: Schema.Types.ObjectId, required: true, ref: "College" },
   createdBy: { type: String, required: true, ref: "User" },

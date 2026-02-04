@@ -36,3 +36,8 @@ class ForgotPasswordLocalizationsTe extends ForgotPasswordLocalizations {
   String get enterValidEmail =>
       'దయచేసి చెల్లుబాటు అయ్యే ఇమెయిల్ చిరునామాను నమోదు చేయండి';
 }
+
+
+
+
+

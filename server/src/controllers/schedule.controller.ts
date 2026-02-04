@@ -3,12 +3,13 @@ import Schedule from "../models/Schedule";
 
 export const createSchedule = async (req: Request, res: Response) => {
   try {
-    const { busId, shift, collegeId } = req.body;
+    const { busId, shift, collegeId, tripType } = req.body;
 
     const existingSchedule = await Schedule.findOne({
       busId,
       shift,
       collegeId,
+      tripType,
     });
 
     if (existingSchedule) {

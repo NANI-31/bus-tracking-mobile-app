@@ -44,3 +44,8 @@ class OtpVerificationLocalizationsHi extends OtpVerificationLocalizations {
   @override
   String get seconds => 'सेकंड';
 }
+
+
+
+
+

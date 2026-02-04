@@ -12,18 +12,20 @@ class LiveBusMap extends ConsumerStatefulWidget {
   final List<BusModel> buses;
   final BusModel? selectedBus;
   final Function(BusModel)? onBusTap;
-  final String? mapStyle;
+
   final bool showUserLocation;
   final Function(GoogleMapController)? onMapCreated;
+  final double bottomPadding;
 
   const LiveBusMap({
     super.key,
     required this.buses,
     this.selectedBus,
     this.onBusTap,
-    this.mapStyle,
+
     this.showUserLocation = true,
     this.onMapCreated,
+    this.bottomPadding = 0.0,
   });
 
   @override
@@ -145,7 +147,7 @@ class LiveBusMapState extends ConsumerState<LiveBusMap> {
       final loc = _liveLocations[bus.id]!;
       _isProgrammaticMove = true;
       _mapController!
-          .animateCamera(CameraUpdate.newLatLngZoom(loc.currentLocation, 16.0))
+          .animateCamera(CameraUpdate.newLatLngZoom(loc.currentLocation, 17.0))
           .then((_) {
             // Reset flag after animation completes/starts
             Future.delayed(const Duration(milliseconds: 1500), () {
@@ -201,14 +203,15 @@ class LiveBusMapState extends ConsumerState<LiveBusMap> {
               }
             }
           },
-          initialZoom: 14.0,
-          mapStyle: widget.mapStyle,
+          initialZoom: 17.0,
+
           myLocationEnabled: widget.showUserLocation,
           myLocationButtonEnabled: widget.showUserLocation,
+          bottomPadding: widget.bottomPadding,
         ),
         if (!_isFollowing && widget.selectedBus != null)
           Positioned(
-            bottom: 20,
+            bottom: 20 + widget.bottomPadding,
             left: 0,
             right: 0,
             child: Center(
@@ -225,3 +228,8 @@ class LiveBusMapState extends ConsumerState<LiveBusMap> {
     );
   }
 }
+
+
+
+
+

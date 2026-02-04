@@ -1,8 +1,11 @@
+import 'package:collegebus/core/utils/type_converters.dart';
+
 class ScheduleModel {
   final String id;
   final String routeId;
   final String busId;
   final String shift; // '1st' or '2nd'
+  final String tripType; // 'pickup' or 'drop'
   final List<StopSchedule> stopSchedules;
   final String collegeId;
   final String createdBy;
@@ -15,6 +18,7 @@ class ScheduleModel {
     required this.routeId,
     required this.busId,
     required this.shift,
+    required this.tripType,
     required this.stopSchedules,
     required this.collegeId,
     required this.createdBy,
@@ -29,14 +33,19 @@ class ScheduleModel {
       routeId: map['routeId'] ?? '',
       busId: map['busId'] ?? '',
       shift: map['shift'] ?? '1st',
-      stopSchedules: (map['stopSchedules'] as List<dynamic>?)
-          ?.map((item) => StopSchedule.fromMap(item))
-          .toList() ?? [],
+      tripType: map['tripType'] ?? 'pickup',
+      stopSchedules:
+          (map['stopSchedules'] as List<dynamic>?)
+              ?.map((item) => StopSchedule.fromMap(item))
+              .toList() ??
+          [],
       collegeId: map['collegeId'] ?? '',
       createdBy: map['createdBy'] ?? '',
       createdAt: DateTime.parse(map['createdAt']),
-      updatedAt: map['updatedAt'] != null ? DateTime.parse(map['updatedAt']) : null,
-      isActive: map['isActive'] ?? true,
+      updatedAt: map['updatedAt'] != null
+          ? DateTime.parse(map['updatedAt'])
+          : null,
+      isActive: parseBool(map['isActive'], true),
     );
   }
 
@@ -45,7 +54,10 @@ class ScheduleModel {
       'routeId': routeId,
       'busId': busId,
       'shift': shift,
-      'stopSchedules': stopSchedules.map((schedule) => schedule.toMap()).toList(),
+      'tripType': tripType,
+      'stopSchedules': stopSchedules
+          .map((schedule) => schedule.toMap())
+          .toList(),
       'collegeId': collegeId,
       'createdBy': createdBy,
       'createdAt': createdAt.toIso8601String(),
@@ -59,6 +71,7 @@ class ScheduleModel {
     String? routeId,
     String? busId,
     String? shift,
+    String? tripType,
     List<StopSchedule>? stopSchedules,
     String? collegeId,
     String? createdBy,
@@ -71,6 +84,7 @@ class ScheduleModel {
       routeId: routeId ?? this.routeId,
       busId: busId ?? this.busId,
       shift: shift ?? this.shift,
+      tripType: tripType ?? this.tripType,
       stopSchedules: stopSchedules ?? this.stopSchedules,
       collegeId: collegeId ?? this.collegeId,
       createdBy: createdBy ?? this.createdBy,
@@ -120,3 +134,4 @@ class StopSchedule {
     );
   }
 }
+

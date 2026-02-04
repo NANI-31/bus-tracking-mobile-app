@@ -34,7 +34,7 @@ class BusAssignmentCard extends StatelessWidget {
                 .color(
                   Theme.of(
                     context,
-                  ).colorScheme.onSurface.withValues(alpha: 0.6),
+                  ).colorScheme.onSurface.withOpacity(0.6),
                 )
                 .make(),
             DriverLocalizations.of(context)!
@@ -48,7 +48,7 @@ class BusAssignmentCard extends StatelessWidget {
                 .color(
                   Theme.of(
                     context,
-                  ).colorScheme.onSurface.withValues(alpha: 0.6),
+                  ).colorScheme.onSurface.withOpacity(0.6),
                 )
                 .maxLines(2)
                 .ellipsis
@@ -73,3 +73,8 @@ class BusAssignmentCard extends StatelessWidget {
     );
   }
 }
+
+
+
+
+

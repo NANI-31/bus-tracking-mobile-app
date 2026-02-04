@@ -50,3 +50,8 @@ class TermsConditionsScreen extends StatelessWidget {
     );
   }
 }
+
+
+
+
+

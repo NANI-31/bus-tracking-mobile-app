@@ -66,8 +66,8 @@ class CollegeSelectionField extends StatelessWidget {
                       borderSide: BorderSide(
                         color: Theme.of(
                           context,
-                        ).colorScheme.onSurface.withValues(alpha: 0.1),
-                        width: 1,
+                        ).colorScheme.onSurface.withOpacity(0.1),
+                        width: 1.0,
                       ),
                     ),
                     enabledBorder: OutlineInputBorder(
@@ -75,8 +75,8 @@ class CollegeSelectionField extends StatelessWidget {
                       borderSide: BorderSide(
                         color: Theme.of(
                           context,
-                        ).colorScheme.onSurface.withValues(alpha: 0.1),
-                        width: 1,
+                        ).colorScheme.onSurface.withOpacity(0.1),
+                        width: 1.0,
                       ),
                     ),
                     focusedBorder: OutlineInputBorder(
@@ -99,3 +99,8 @@ class CollegeSelectionField extends StatelessWidget {
     ]);
   }
 }
+
+
+
+
+

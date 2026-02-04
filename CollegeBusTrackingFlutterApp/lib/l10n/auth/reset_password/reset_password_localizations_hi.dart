@@ -41,3 +41,8 @@ class ResetPasswordLocalizationsHi extends ResetPasswordLocalizations {
   @override
   String get reenterPassword => 'अपना पासवर्ड पुनः दर्ज करें';
 }
+
+
+
+
+

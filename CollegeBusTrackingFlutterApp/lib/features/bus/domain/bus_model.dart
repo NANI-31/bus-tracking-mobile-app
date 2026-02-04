@@ -1,4 +1,5 @@
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:collegebus/core/utils/type_converters.dart';
 
 class BusModel {
   final String id;
@@ -11,6 +12,7 @@ class BusModel {
   final String status;
   final String assignmentStatus;
   final int delay;
+  final String? shiftId;
   final DateTime createdAt;
   final DateTime? updatedAt;
 
@@ -25,6 +27,7 @@ class BusModel {
     this.status = 'on-time',
     this.assignmentStatus = 'unassigned',
     this.delay = 0,
+    this.shiftId,
     required this.createdAt,
     this.updatedAt,
   });
@@ -37,10 +40,11 @@ class BusModel {
       routeId: map['routeId'],
       defaultRouteId: map['defaultRouteId'],
       collegeId: map['collegeId'] ?? '',
-      isActive: map['isActive'] ?? true,
+      isActive: parseBool(map['isActive'], true),
       status: map['status'] ?? 'on-time',
       assignmentStatus: map['assignmentStatus'] ?? 'unassigned',
       delay: map['delay'] ?? 0,
+      shiftId: map['shiftId'],
       createdAt: DateTime.parse(map['createdAt']),
       updatedAt: map['updatedAt'] != null
           ? DateTime.parse(map['updatedAt'])
@@ -59,6 +63,7 @@ class BusModel {
       'status': status,
       'assignmentStatus': assignmentStatus,
       'delay': delay,
+      'shiftId': shiftId,
       'createdAt': createdAt.toIso8601String(),
       'updatedAt': updatedAt?.toIso8601String(),
     };
@@ -75,6 +80,7 @@ class BusModel {
     String? status,
     String? assignmentStatus,
     int? delay,
+    String? shiftId,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -89,6 +95,7 @@ class BusModel {
       status: status ?? this.status,
       assignmentStatus: assignmentStatus ?? this.assignmentStatus,
       delay: delay ?? this.delay,
+      shiftId: shiftId ?? this.shiftId,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );
@@ -142,3 +149,4 @@ class BusLocationModel {
     };
   }
 }
+

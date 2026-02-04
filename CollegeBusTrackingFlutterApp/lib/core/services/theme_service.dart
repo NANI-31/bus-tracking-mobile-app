@@ -1,17 +1,18 @@
 class ThemeState {
   final bool isDarkMode;
-  final bool useBottomNavigation;
 
-  const ThemeState({this.isDarkMode = false, this.useBottomNavigation = false});
+  const ThemeState({this.isDarkMode = false});
 
-  ThemeState copyWith({bool? isDarkMode, bool? useBottomNavigation}) {
-    return ThemeState(
-      isDarkMode: isDarkMode ?? this.isDarkMode,
-      useBottomNavigation: useBottomNavigation ?? this.useBottomNavigation,
-    );
+  ThemeState copyWith({bool? isDarkMode}) {
+    return ThemeState(isDarkMode: isDarkMode ?? this.isDarkMode);
   }
 }
 
 class ThemeService {
   // No longer used as ChangeNotifier methods
 }
+
+
+
+
+

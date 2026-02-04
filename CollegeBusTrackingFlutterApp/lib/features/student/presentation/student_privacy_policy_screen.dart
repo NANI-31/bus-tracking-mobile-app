@@ -54,3 +54,8 @@ class StudentPrivacyPolicyScreen extends StatelessWidget {
     );
   }
 }
+
+
+
+
+

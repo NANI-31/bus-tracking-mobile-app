@@ -9,7 +9,8 @@ import 'package:collegebus/features/bus/application/bus_provider.dart';
 import 'package:collegebus/features/route/application/route_provider.dart';
 import 'package:collegebus/core/providers/api_provider.dart';
 import 'package:collegebus/core/constants/constants.dart';
-import 'package:collegebus/shared/widgets/app_drawer.dart';
+import 'package:collegebus/features/college/application/college_provider.dart';
+import 'package:collegebus/features/college/domain/college_model.dart';
 
 class ScheduleManagementScreen extends ConsumerStatefulWidget {
   const ScheduleManagementScreen({super.key});
@@ -20,19 +21,14 @@ class ScheduleManagementScreen extends ConsumerStatefulWidget {
 }
 
 class _ScheduleManagementScreenState
-    extends ConsumerState<ScheduleManagementScreen>
-    with SingleTickerProviderStateMixin {
-  late final TabController _tabController;
-
+    extends ConsumerState<ScheduleManagementScreen> {
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
   }
 
   @override
   void dispose() {
-    _tabController.dispose();
     super.dispose();
   }
 
@@ -43,6 +39,7 @@ class _ScheduleManagementScreenState
   }) {
     RouteModel? selectedRoute;
     BusModel? selectedBus;
+    String selectedTripType = 'pickup';
 
     showDialog(
       context: context,
@@ -78,7 +75,7 @@ class _ScheduleManagementScreenState
                 ),
                 16.heightBox,
                 DropdownButtonFormField<BusModel>(
-                  initialValue: selectedBus,
+                  value: selectedBus,
                   decoration: const InputDecoration(
                     labelText: 'Select Bus',
                     border: OutlineInputBorder(),
@@ -92,6 +89,21 @@ class _ScheduleManagementScreenState
                       )
                       .toList(),
                   onChanged: (bus) => setState(() => selectedBus = bus),
+                ),
+                16.heightBox,
+                DropdownButtonFormField<String>(
+                  value: selectedTripType,
+                  decoration: const InputDecoration(
+                    labelText: 'Trip Type',
+                    border: OutlineInputBorder(),
+                  ),
+                  items: const [
+                    DropdownMenuItem(value: 'pickup', child: Text('Pickup')),
+                    DropdownMenuItem(value: 'drop', child: Text('Drop')),
+                  ],
+                  onChanged: (val) {
+                    if (val != null) setState(() => selectedTripType = val);
+                  },
                 ),
                 16.heightBox,
                 if (selectedRoute != null)
@@ -120,7 +132,7 @@ class _ScheduleManagementScreenState
                         ]).box
                         .padding(const EdgeInsets.all(12))
                         .color(
-                          Theme.of(context).primaryColor.withValues(alpha: 0.1),
+                          Theme.of(context).primaryColor.withOpacity(0.1),
                         )
                         .rounded
                         .make(),
@@ -137,7 +149,7 @@ class _ScheduleManagementScreenState
                         .color(
                           Theme.of(
                             context,
-                          ).colorScheme.secondary.withValues(alpha: 0.1),
+                          ).colorScheme.secondary.withOpacity(0.1),
                         )
                         .rounded
                         .make(),
@@ -178,6 +190,7 @@ class _ScheduleManagementScreenState
                             routeId: selectedRoute!.id,
                             busId: selectedBus!.id,
                             shift: shift,
+                            tripType: selectedTripType,
                             stopSchedules: stopSchedules,
                             collegeId: user!.collegeId,
                             createdBy: user.id,
@@ -228,86 +241,110 @@ class _ScheduleManagementScreenState
     final collegeId = user?.collegeId;
 
     if (collegeId == null) {
-      return Scaffold(
-        appBar: AppBar(title: const Text('Loading...')),
-        body: const Center(child: CircularProgressIndicator()),
-      );
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
+
+    final collegesAsync = ref.watch(collegeServiceProvider);
+    final college = collegesAsync.value?.firstWhere(
+      (c) => c.id == collegeId,
+      orElse: () => CollegeModel(
+        id: '',
+        name: '',
+        allowedDomains: [],
+        createdBy: '',
+        createdAt: DateTime.now(),
+      ),
+    );
+
+    if (college == null || college.id.isEmpty) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+
+    final hasMultipleShifts =
+        college.shiftCount > 1 && college.shifts.isNotEmpty;
+    // Always use at least 1 tab to prevent errors.
+    final int tabLength = college.shifts.isNotEmpty ? college.shifts.length : 1;
+
+    final tabs = hasMultipleShifts
+        ? college.shifts
+              .map((s) => Tab(text: s.name, icon: const Icon(Icons.schedule)))
+              .toList()
+        : [];
 
     final routesAsync = ref.watch(collegeRoutesProvider(collegeId));
     final busesAsync = ref.watch(collegeBusesStreamProvider(collegeId));
     final schedulesAsync = ref.watch(collegeSchedulesProvider(collegeId));
 
-    return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      drawer: AppDrawer(user: user),
-      appBar: AppBar(
-        backgroundColor: Theme.of(context).primaryColor,
-        foregroundColor: Theme.of(context).colorScheme.onPrimary,
-        bottom: TabBar(
-          controller: _tabController,
-          labelColor: Theme.of(context).colorScheme.onPrimary,
-          unselectedLabelColor: Theme.of(
-            context,
-          ).colorScheme.onPrimary.withValues(alpha: 0.7),
-          indicatorColor: Theme.of(context).colorScheme.onPrimary,
-          tabs: const [
-            Tab(text: '1st Shift', icon: Icon(Icons.wb_sunny)),
-            Tab(text: '2nd Shift', icon: Icon(Icons.nights_stay)),
-          ],
+    return DefaultTabController(
+      key: ValueKey('mgmt_shift_tabs_$tabLength'),
+      length: tabLength,
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('Manage Schedules'),
+          backgroundColor: Theme.of(context).primaryColor,
+          foregroundColor: Theme.of(context).colorScheme.onPrimary,
+          bottom: hasMultipleShifts
+              ? TabBar(
+                  labelColor: Theme.of(context).colorScheme.onPrimary,
+                  unselectedLabelColor: Theme.of(
+                    context,
+                  ).colorScheme.onPrimary.withOpacity(0.7),
+                  indicatorColor: Theme.of(context).colorScheme.onPrimary,
+                  tabs: tabs as List<Widget>,
+                )
+              : null,
         ),
-      ),
-      body: schedulesAsync.when(
-        data: (schedules) => routesAsync.when(
-          data: (routes) => busesAsync.when(
-            data: (buses) => TabBarView(
-              controller: _tabController,
-              children: [
-                _buildScheduleTab(
-                  '1st',
-                  schedules.where((s) => s.shift == '1st').toList(),
-                  routes,
-                  buses,
-                ),
-                _buildScheduleTab(
-                  '2nd',
-                  schedules.where((s) => s.shift == '2nd').toList(),
-                  routes,
-                  buses,
-                ),
-              ],
-            ),
-            loading: () => const Center(child: CircularProgressIndicator()),
-            error: (e, s) => Center(child: Text('Error: $e')),
-          ),
+        body: schedulesAsync.when(
           loading: () => const Center(child: CircularProgressIndicator()),
-          error: (e, s) => Center(child: Text('Error: $e')),
+          error: (err, stack) => Center(child: Text('Error: $err')),
+          data: (schedules) {
+            final routes = routesAsync.value ?? [];
+            final buses = busesAsync.value ?? [];
+
+            if (hasMultipleShifts) {
+              return TabBarView(
+                children: college.shifts.map((shift) {
+                  final shiftSchedules = schedules
+                      .where((s) => s.shift == shift.shiftId)
+                      .toList();
+                  return _buildScheduleTab(
+                    shift.name,
+                    shiftSchedules,
+                    routes,
+                    buses,
+                  );
+                }).toList(),
+              );
+            } else {
+              return _buildScheduleTab('Morning', schedules, routes, buses);
+            }
+          },
         ),
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, s) => Center(child: Text('Error: $e')),
-      ),
-      floatingActionButton: schedulesAsync.maybeWhen(
-        data: (schedules) => routesAsync.maybeWhen(
-          data: (routes) => busesAsync.maybeWhen(
-            data: (buses) => FloatingActionButton.extended(
+        floatingActionButton: Builder(
+          builder: (context) {
+            return FloatingActionButton.extended(
               onPressed: () {
-                final currentShift = _tabController.index == 0 ? '1st' : '2nd';
+                // If single shift, just take the first one; multiple shifts use the tab index
+                final currentShift = hasMultipleShifts
+                    ? college
+                          .shifts[DefaultTabController.of(context).index]
+                          .shiftId
+                    : (college.shifts.isNotEmpty
+                          ? college.shifts.first.shiftId
+                          : '1st');
                 _showCreateScheduleDialog(
                   shift: currentShift,
-                  routes: routes,
-                  buses: buses,
+                  routes: routesAsync.value ?? [],
+                  buses: busesAsync.value ?? [],
                 );
               },
               backgroundColor: Theme.of(context).primaryColor,
               foregroundColor: Theme.of(context).colorScheme.onPrimary,
+              label: const Text('Add Timetable'),
               icon: const Icon(Icons.add),
-              label: const Text('Create Timetable'),
-            ),
-            orElse: () => null,
-          ),
-          orElse: () => null,
+            );
+          },
         ),
-        orElse: () => null,
       ),
     );
   }
@@ -319,36 +356,45 @@ class _ScheduleManagementScreenState
     List<BusModel> buses,
   ) {
     if (schedules.isEmpty) {
-      return VStack(
-        [
-          Icon(
-            shift == '1st' ? Icons.wb_sunny : Icons.nights_stay,
-            size: 64,
-            color: Theme.of(
-              context,
-            ).colorScheme.onSurface.withValues(alpha: 0.6),
-          ),
-          AppSizes.paddingMedium.heightBox,
-          'No $shift shift timetables created yet'.text
-              .size(18)
-              .color(
-                Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
-              )
-              .make(),
-          AppSizes.paddingSmall.heightBox,
-          'Tap the + button to create a timetable'.text
-              .size(14)
-              .color(
-                Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
-              )
-              .make(),
-        ],
-        alignment: MainAxisAlignment.center,
-        crossAlignment: CrossAxisAlignment.center,
-      ).centered();
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Icon(
+              shift == '1st' ? Icons.wb_sunny : Icons.nights_stay,
+              size: 64,
+              color: Theme.of(
+                context,
+              ).colorScheme.onSurface.withOpacity(0.6),
+            ),
+            AppSizes.paddingMedium.heightBox,
+            'No $shift shift timetables created yet'.text
+                .size(18)
+                .center
+                .color(
+                  Theme.of(
+                    context,
+                  ).colorScheme.onSurface.withOpacity(0.6),
+                )
+                .make(),
+            AppSizes.paddingSmall.heightBox,
+            'Tap the + button to create a timetable'.text
+                .size(14)
+                .center
+                .color(
+                  Theme.of(
+                    context,
+                  ).colorScheme.onSurface.withOpacity(0.6),
+                )
+                .make(),
+          ],
+        ),
+      );
     }
 
     return ListView.builder(
+      key: PageStorageKey('mgmt_schedule_list_$shift'),
       padding: const EdgeInsets.all(AppSizes.paddingMedium),
       itemCount: schedules.length,
       itemBuilder: (context, index) {
@@ -390,23 +436,28 @@ class _ScheduleManagementScreenState
               ),
             ),
             title: 'Bus ${bus.busNumber}'.text.semiBold.make(),
-            subtitle: VStack([
-              'Route: ${route.routeName}'.text.make(),
-              'Type: ${route.routeType.toUpperCase()}'.text.make(),
-              '${route.startPoint.name} → ${route.endPoint.name}'.text.make(),
-            ]),
+            subtitle: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                'Route: ${route.routeName}'.text.make(),
+                'Type: ${route.routeType.toUpperCase()}'.text.make(),
+                '${route.startPoint.name} → ${route.endPoint.name}'.text.make(),
+              ],
+            ),
             trailing: PopupMenuButton(
               itemBuilder: (context) => [
                 PopupMenuItem(
                   value: 'delete',
-                  child: HStack([
-                    Icon(
-                      Icons.delete,
-                      color: Theme.of(context).colorScheme.error,
-                    ),
-                    8.widthBox,
-                    'Delete'.text.make(),
-                  ]),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.delete,
+                        color: Theme.of(context).colorScheme.error,
+                      ),
+                      8.widthBox,
+                      'Delete'.text.make(),
+                    ],
+                  ),
                 ),
               ],
               onSelected: (value) async {
@@ -453,47 +504,29 @@ class _ScheduleManagementScreenState
               },
             ),
             children: [
-              VStack([
-                'Bus Stops on this Route:'.text.size(16).semiBold.make(),
-                AppSizes.paddingSmall.heightBox,
+              Padding(
+                padding: const EdgeInsets.all(AppSizes.paddingMedium),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    'Bus Stops on this Route:'.text.size(16).semiBold.make(),
+                    AppSizes.paddingSmall.heightBox,
+                    Column(
+                      children: schedule.stopSchedules.asMap().entries.map((
+                        entry,
+                      ) {
+                        final index = entry.key;
+                        final stopSchedule = entry.value;
+                        final isStart = index == 0;
+                        final isEnd =
+                            index == schedule.stopSchedules.length - 1;
 
-                // Show route stops in order
-                Column(
-                  children: schedule.stopSchedules.asMap().entries.map((entry) {
-                    final index = entry.key;
-                    final stopSchedule = entry.value;
-                    final isStart = index == 0;
-                    final isEnd = index == schedule.stopSchedules.length - 1;
-
-                    return HBox(
-                          child: HStack([
-                            Icon(
-                              isStart
-                                  ? Icons.play_arrow
-                                  : isEnd
-                                  ? Icons.stop
-                                  : Icons.location_on,
-                              color: isStart
-                                  ? Theme.of(context).colorScheme.secondary
-                                  : isEnd
-                                  ? Theme.of(context).colorScheme.error
-                                  : Theme.of(context).colorScheme.tertiary,
-                            ),
-                            12.widthBox,
-                            VStack([
-                              stopSchedule.stopName.text
-                                  .size(16)
-                                  .semiBold
-                                  .make(),
-                              (isStart
-                                      ? 'Starting Point'
-                                      : isEnd
-                                      ? 'End Point'
-                                      : 'Bus Stop')
-                                  .text
-                                  .size(12)
-                                  .color(
-                                    isStart
+                        return Container(
+                          margin: const EdgeInsets.only(bottom: 8),
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color:
+                                (isStart
                                         ? Theme.of(
                                             context,
                                           ).colorScheme.secondary
@@ -501,39 +534,73 @@ class _ScheduleManagementScreenState
                                         ? Theme.of(context).colorScheme.error
                                         : Theme.of(
                                             context,
-                                          ).colorScheme.tertiary,
-                                  )
-                                  .make(),
-                            ]).expand(),
-                          ]),
-                        ).box
-                        .padding(const EdgeInsets.all(12))
-                        .color(
-                          isStart
-                              ? Theme.of(
-                                  context,
-                                ).colorScheme.secondary.withValues(alpha: 0.1)
-                              : isEnd
-                              ? Theme.of(
-                                  context,
-                                ).colorScheme.error.withValues(alpha: 0.1)
-                              : Theme.of(
-                                  context,
-                                ).colorScheme.tertiary.withValues(alpha: 0.1),
-                        )
-                        .rounded
-                        .border(
-                          color: isStart
-                              ? Theme.of(context).colorScheme.secondary
-                              : isEnd
-                              ? Theme.of(context).colorScheme.error
-                              : Theme.of(context).colorScheme.tertiary,
-                        )
-                        .make()
-                        .pOnly(bottom: 8);
-                  }).toList(),
+                                          ).colorScheme.tertiary)
+                                    .withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: isStart
+                                  ? Theme.of(context).colorScheme.secondary
+                                  : isEnd
+                                  ? Theme.of(context).colorScheme.error
+                                  : Theme.of(context).colorScheme.tertiary,
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(
+                                isStart
+                                    ? Icons.play_arrow
+                                    : isEnd
+                                    ? Icons.stop
+                                    : Icons.location_on,
+                                color: isStart
+                                    ? Theme.of(context).colorScheme.secondary
+                                    : isEnd
+                                    ? Theme.of(context).colorScheme.error
+                                    : Theme.of(context).colorScheme.tertiary,
+                              ),
+                              12.widthBox,
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    stopSchedule.stopName.text
+                                        .size(16)
+                                        .semiBold
+                                        .make(),
+                                    (isStart
+                                            ? 'Starting Point'
+                                            : isEnd
+                                            ? 'End Point'
+                                            : 'Bus Stop')
+                                        .text
+                                        .size(12)
+                                        .color(
+                                          isStart
+                                              ? Theme.of(
+                                                  context,
+                                                ).colorScheme.secondary
+                                              : isEnd
+                                              ? Theme.of(
+                                                  context,
+                                                ).colorScheme.error
+                                              : Theme.of(
+                                                  context,
+                                                ).colorScheme.tertiary,
+                                        )
+                                        .make(),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                  ],
                 ),
-              ]).p(AppSizes.paddingMedium),
+              ),
             ],
           ),
         );
@@ -542,10 +609,7 @@ class _ScheduleManagementScreenState
   }
 }
 
-// Helper widget for HStack inside the loop to make it cleaner
-class HBox extends StatelessWidget {
-  final Widget child;
-  const HBox({super.key, required this.child});
-  @override
-  Widget build(BuildContext context) => child;
-}
+
+
+
+

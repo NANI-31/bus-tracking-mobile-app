@@ -212,7 +212,7 @@ class _RouteEditScreenState extends ConsumerState<RouteEditScreen> {
                 height: 24,
                 child: CircularProgressIndicator(
                   color: Colors.white,
-                  strokeWidth: 2,
+                  strokeWidth: 2.0,
                 ),
               ),
             )
@@ -301,9 +301,7 @@ class _RouteEditScreenState extends ConsumerState<RouteEditScreen> {
                           ),
                           prefixIcon: CircleAvatar(
                             radius: 12,
-                            backgroundColor: AppColors.primary.withValues(
-                              alpha: 0.2,
-                            ),
+                            backgroundColor: AppColors.primary.withOpacity(0.2,),
                             child: Text(
                               '${idx + 1}',
                               style: TextStyle(
@@ -364,7 +362,7 @@ class _RouteEditScreenState extends ConsumerState<RouteEditScreen> {
                         width: 20,
                         height: 20,
                         child: CircularProgressIndicator(
-                          strokeWidth: 2,
+                          strokeWidth: 2.0,
                           color: Colors.white,
                         ),
                       )
@@ -389,7 +387,7 @@ class _RouteEditScreenState extends ConsumerState<RouteEditScreen> {
     return Row(
       children: [
         Container(
-          width: 4,
+          width: 4.0,
           height: 20,
           decoration: BoxDecoration(
             color: AppColors.primary,
@@ -405,3 +403,8 @@ class _RouteEditScreenState extends ConsumerState<RouteEditScreen> {
     );
   }
 }
+
+
+
+
+

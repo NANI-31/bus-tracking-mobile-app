@@ -34,3 +34,8 @@ class ForgotPasswordLocalizationsEn extends ForgotPasswordLocalizations {
   @override
   String get enterValidEmail => 'Please enter a valid email address';
 }
+
+
+
+
+

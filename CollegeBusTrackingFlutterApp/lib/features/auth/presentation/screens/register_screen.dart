@@ -240,7 +240,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                 .color(
                   Theme.of(
                     context,
-                  ).colorScheme.onSurface.withValues(alpha: 0.6),
+                  ).colorScheme.onSurface.withOpacity(0.6),
                 )
                 .heightLoose
                 .center
@@ -362,7 +362,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                 if (_selectedRole != UserRole.parent &&
                     _emailDomainHint != null)
                   _emailDomainHint!.text
-                      .color(AppColors.primary.withValues(alpha: 0.8))
+                      .color(AppColors.primary.withOpacity(0.8))
                       .size(12)
                       .medium
                       .make()
@@ -455,3 +455,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     );
   }
 }
+
+
+
+
+

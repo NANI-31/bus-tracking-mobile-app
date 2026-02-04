@@ -54,3 +54,8 @@ class StudentTermsConditionsScreen extends StatelessWidget {
     );
   }
 }
+
+
+
+
+

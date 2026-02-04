@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:collegebus/features/bus/application/bus_provider.dart';
 import 'package:collegebus/core/constants/constants.dart';
-import 'package:velocity_x/velocity_x.dart';
 import 'package:collegebus/features/bus/domain/bus_model.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:intl/intl.dart';
@@ -76,105 +75,169 @@ class BusStatusCard extends ConsumerWidget {
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
+            color: Colors.black.withOpacity(0.03),
             blurRadius: 20,
             offset: const Offset(0, 10),
           ),
         ],
       ),
-      child: VStack([
-        // Header Section
-        HStack([
-          VStack([
-            "BUS NUMBER".text
-                .size(12)
-                .bold
-                .letterSpacing(1.2)
-                .color(colorScheme.onSurface.withValues(alpha: 0.4))
-                .make(),
-            8.heightBox,
-            HStack([
-              Icon(
-                Icons.directions_bus_filled_rounded,
-                color: AppColors.primary,
-                size: 28,
+      child: Column(
+        children: [
+          // Header Section
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      "BUS NUMBER",
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 1.2,
+                        color: colorScheme.onSurface.withOpacity(0.4),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.directions_bus_filled_rounded,
+                          color: AppColors.primary,
+                          size: 28,
+                        ),
+                        const SizedBox(width: 8.0),
+                        Text(
+                          busNumber,
+                          style: TextStyle(
+                            fontSize: 32,
+                            fontWeight: FontWeight.bold,
+                            color: colorScheme.onSurface,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
-              8.widthBox,
-              busNumber.text.size(32).bold.color(colorScheme.onSurface).make(),
-            ]),
-          ]).expand(),
 
-          // Status Badge
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-            decoration: BoxDecoration(
-              color: (isRunning ? Colors.green : colorScheme.onSurface)
-                  .withValues(alpha: 0.05),
-              borderRadius: BorderRadius.circular(24),
-            ),
-            child: HStack([
-              Icon(
-                Icons.circle,
-                size: 10,
-                color: isRunning
-                    ? Colors.greenAccent
-                    : colorScheme.onSurface.withValues(alpha: 0.4),
+              // Status Badge
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 10,
+                ),
+                decoration: BoxDecoration(
+                  color: (isRunning ? Colors.green : colorScheme.onSurface)
+                      .withOpacity(0.05),
+                  borderRadius: BorderRadius.circular(24),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.circle,
+                      size: 10,
+                      color: isRunning
+                          ? Colors.greenAccent
+                          : colorScheme.onSurface.withOpacity(0.4),
+                    ),
+                    const SizedBox(width: 8.0),
+                    Text(
+                      status.isNotEmpty
+                          ? status
+                                .split(' ')
+                                .map((s) => s[0].toUpperCase() + s.substring(1))
+                                .join(' ')
+                          : '',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color:
+                            (isRunning ? Colors.green : colorScheme.onSurface)
+                                .withOpacity(0.7),
+                      ),
+                    ),
+                  ],
+                ),
               ),
-              8.widthBox,
-              status
-                  .allWordsCapitilize()
-                  .text
-                  .bold
-                  .color(
-                    (isRunning ? Colors.green : colorScheme.onSurface)
-                        .withValues(alpha: 0.7),
-                  )
-                  .make(),
-            ]),
+            ],
           ),
-        ]),
 
-        8.heightBox,
-        Divider(color: colorScheme.onSurface.withValues(alpha: 0.2)),
-        8.heightBox,
+          const SizedBox(height: 8),
+          Divider(color: colorScheme.onSurface.withOpacity(0.2)),
+          const SizedBox(height: 8),
 
-        HStack([
-          VStack([
-            "ESTIMATED ARRIVAL".text
-                .size(8)
-                .bold
-                .letterSpacing(1.2)
-                .color(colorScheme.onSurface.withValues(alpha: 0.5))
-                .make(),
-            8.heightBox,
-            HStack([
-              Icon(
-                Icons.access_time_filled_rounded,
-                color: AppColors.primary,
-                size: 24,
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      "ESTIMATED ARRIVAL",
+                      style: TextStyle(
+                        fontSize: 8,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 1.2,
+                        color: colorScheme.onSurface.withOpacity(0.5),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.access_time_filled_rounded,
+                          color: AppColors.primary,
+                          size: 24,
+                        ),
+                        const SizedBox(width: 8.0),
+                        Text(
+                          arrivalText,
+                          style: const TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.w900,
+                            color: AppColors.primary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
-              8.widthBox,
-              arrivalText.text
-                  .size(22)
-                  .extraBold
-                  .color(AppColors.primary)
-                  .make(),
-            ]),
-          ]).expand(),
 
-          if (isRunning && etaText != "---")
-            VStack([
-              "REMAINING".text
-                  .size(8)
-                  .bold
-                  .letterSpacing(1.2)
-                  .color(colorScheme.onSurface.withValues(alpha: 0.5))
-                  .make(),
-              8.heightBox,
-              etaText.text.size(16).bold.color(colorScheme.onSurface).make(),
-            ], crossAlignment: CrossAxisAlignment.end),
-        ]),
-      ]),
+              if (isRunning && etaText != "---")
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      "REMAINING",
+                      style: TextStyle(
+                        fontSize: 8,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 1.2,
+                        color: colorScheme.onSurface.withOpacity(0.5),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      etaText,
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: colorScheme.onSurface,
+                      ),
+                    ),
+                  ],
+                ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 }
+
+
+
+
+

@@ -187,7 +187,7 @@ class ApiErrorModal extends StatelessWidget {
                       onPressed: onSecondaryAction,
                       style: OutlinedButton.styleFrom(
                         foregroundColor: baseColor,
-                        side: BorderSide(color: baseColor, width: 2),
+                        side: BorderSide(color: baseColor, width: 2.0),
                         padding: const EdgeInsets.symmetric(
                           horizontal: 24,
                           vertical: 14,
@@ -260,19 +260,19 @@ class ApiErrorModal extends StatelessWidget {
         size: 10,
         top: 10,
         left: 10,
-        color: baseColor.withValues(alpha: 0.5),
+        color: baseColor.withOpacity(0.5),
       ),
       _bubble(
         size: 8,
         top: 70,
         right: 10,
-        color: baseColor.withValues(alpha: 0.6),
+        color: baseColor.withOpacity(0.6),
       ),
       _bubble(
         size: 14,
         bottom: 0,
         left: 30,
-        color: baseColor.withValues(alpha: 0.4),
+        color: baseColor.withOpacity(0.4),
       ),
 
       // Main Circle
@@ -281,17 +281,17 @@ class ApiErrorModal extends StatelessWidget {
           .box
           .height(40)
           .width(40)
-          .color(baseColor.withValues(alpha: 0.2)) // Inner Circle
+          .color(baseColor.withOpacity(0.2)) // Inner Circle
           .roundedFull
-          .border(color: Colors.black87, width: 2)
+          .border(color: Colors.black87, width: 2.0)
           .make()
           .centered()
           .box
           .height(80)
           .width(80)
-          .color(baseColor.withValues(alpha: 0.3)) // Lighter BG
+          .color(baseColor.withOpacity(0.3)) // Lighter BG
           .roundedFull
-          .border(color: Colors.white, width: 4)
+          .border(color: Colors.white, width: 4.0)
           .make(),
     ], alignment: Alignment.center).box.height(100).width(100).make();
   }
@@ -331,3 +331,8 @@ class _ErrorContent {
     required this.onPrimaryAction,
   });
 }
+
+
+
+
+

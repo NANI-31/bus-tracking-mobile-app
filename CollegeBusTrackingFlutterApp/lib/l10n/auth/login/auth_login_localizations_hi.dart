@@ -56,3 +56,8 @@ class LoginLocalizationsHi extends LoginLocalizations {
   @override
   String get genericError => 'एक त्रुट हुई। कृपया फिर से प्रयास करें।';
 }
+
+
+
+
+

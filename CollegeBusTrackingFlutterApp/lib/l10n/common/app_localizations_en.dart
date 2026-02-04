@@ -155,3 +155,8 @@ class CommonLocalizationsEn extends CommonLocalizations {
   @override
   String get governingLawDesc => 'These terms and conditions are governed by and construed in accordance with the local laws and you irrevocably submit to the exclusive jurisdiction of the courts in that State or location.';
 }
+
+
+
+
+

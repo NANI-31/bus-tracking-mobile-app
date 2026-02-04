@@ -199,6 +199,20 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
     }
   }
 
+  Future<void> refreshUser() async {
+    final currentUser = state.value?.currentUser;
+    if (currentUser != null) {
+      try {
+        final updatedUser = await _userRepo.getUser(currentUser.id);
+        if (updatedUser != null) {
+          updateCurrentUser(updatedUser);
+        }
+      } catch (e) {
+        debugPrint('\x1B[31mError refreshing user: $e\x1B[0m');
+      }
+    }
+  }
+
   Future<void> _registerFCMToken(String userId) async {
     try {
       final token = await FCMService().getStoredToken();

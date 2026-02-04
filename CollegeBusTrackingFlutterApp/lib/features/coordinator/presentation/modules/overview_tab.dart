@@ -97,7 +97,7 @@ class OverviewTab extends ConsumerWidget {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: AppColors.primary.withValues(alpha: 0.1),
+                  color: AppColors.primary.withOpacity(0.1),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
@@ -122,10 +122,10 @@ class OverviewTab extends ConsumerWidget {
         if (activeSosCount > 0) ...[
           AppSizes.paddingMedium.heightBox,
           Card(
-            color: AppColors.error.withValues(alpha: 0.1),
+            color: AppColors.error.withOpacity(0.1),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16),
-              side: BorderSide(color: AppColors.error, width: 2),
+              side: BorderSide(color: AppColors.error, width: 2.0),
             ),
             child: HStack([
               Icon(
@@ -166,7 +166,7 @@ class OverviewTab extends ConsumerWidget {
         title.text
             .size(14)
             .color(
-              Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+              Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
             )
             .center
             .make(),
@@ -174,3 +174,8 @@ class OverviewTab extends ConsumerWidget {
     );
   }
 }
+
+
+
+
+

@@ -17,7 +17,7 @@ import 'package:collegebus/core/providers/socket_provider.dart';
 import 'package:collegebus/features/bus/domain/bus_model.dart';
 import 'package:collegebus/features/route/domain/route_model.dart';
 import 'package:collegebus/core/constants/constants.dart';
-import 'package:collegebus/core/utils/map_style_helper.dart';
+
 import 'package:collegebus/core/utils/app_logger.dart';
 import 'widgets/location_display.dart';
 import 'widgets/bus_route_selectors.dart';
@@ -28,6 +28,7 @@ import 'dart:async';
 import 'package:collegebus/shared/widgets/success_modal.dart';
 import 'package:collegebus/shared/widgets/sos_button.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:collegebus/features/user/presentation/screens/profile_screen.dart';
 
 class DriverDashboard extends ConsumerStatefulWidget {
   const DriverDashboard({super.key});
@@ -38,7 +39,7 @@ class DriverDashboard extends ConsumerStatefulWidget {
 
 class _DriverDashboardState extends ConsumerState<DriverDashboard>
     with SingleTickerProviderStateMixin {
-  late TabController _tabController;
+  int _bottomNavIndex = 0;
   LatLng? _currentLocation;
   bool _isSharing = false;
 
@@ -48,12 +49,10 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
 
   Set<Marker> _markers = {};
   Set<Polyline> _polylines = {};
-  String? _mapStyle;
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
     _getCurrentLocation();
     _loadSavedSelections();
 
@@ -63,18 +62,11 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
       if (user != null) {
         socketService.joinCollege(user.collegeId);
       }
-
-      // Initial theme setup
-      final isDarkMode = ref.read(themeServiceProvider).isDarkMode;
-      MapStyleHelper.getStyle(isDarkMode).then((style) {
-        if (mounted) setState(() => _mapStyle = style);
-      });
     });
   }
 
   @override
   void dispose() {
-    _tabController.dispose();
     super.dispose();
   }
 
@@ -577,13 +569,6 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
     final routesAsync = ref.watch(collegeRoutesProvider(collegeId));
     final busNumbersAsync = ref.watch(busNumbersProvider(collegeId));
 
-    // Listen for theme changes
-    ref.listen(themeServiceProvider, (_, service) {
-      MapStyleHelper.getStyle(service.isDarkMode).then((style) {
-        if (mounted) setState(() => _mapStyle = style);
-      });
-    });
-
     return myBusAsync.when(
       data: (myBus) {
         // Match selection from saved preferences on first load
@@ -625,30 +610,36 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
                 },
               ),
             ],
-            bottom: TabBar(
-              controller: _tabController,
-              labelColor: Theme.of(context).colorScheme.onPrimary,
-              unselectedLabelColor: Theme.of(
-                context,
-              ).colorScheme.onPrimary.withValues(alpha: 0.7),
-              indicatorColor: Theme.of(context).colorScheme.onPrimary,
-              tabs: [
-                Tab(
-                  text: DriverLocalizations.of(context)!.busSetupTab,
-                  icon: const Icon(Icons.settings),
-                ),
-                Tab(
-                  text: DriverLocalizations.of(context)!.liveTrackingTab,
-                  icon: const Icon(Icons.map),
-                ),
-              ],
-            ),
           ),
-          body: TabBarView(
-            controller: _tabController,
+          body: IndexedStack(
+            index: _bottomNavIndex,
             children: [
               _buildBusSetupTab(myBus, routesAsync, busNumbersAsync),
               _buildLiveTrackingTab(myBus),
+              const ProfileScreen(),
+            ],
+          ),
+          bottomNavigationBar: NavigationBar(
+            selectedIndex: _bottomNavIndex,
+            onDestinationSelected: (index) {
+              setState(() => _bottomNavIndex = index);
+            },
+            destinations: [
+              NavigationDestination(
+                icon: const Icon(Icons.settings_outlined),
+                selectedIcon: const Icon(Icons.settings),
+                label: DriverLocalizations.of(context)!.busSetupTab,
+              ),
+              NavigationDestination(
+                icon: const Icon(Icons.map_outlined),
+                selectedIcon: const Icon(Icons.map),
+                label: DriverLocalizations.of(context)!.liveTrackingTab,
+              ),
+              const NavigationDestination(
+                icon: Icon(Icons.person_outline),
+                selectedIcon: Icon(Icons.person),
+                label: 'Profile',
+              ),
             ],
           ),
         );
@@ -729,7 +720,7 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
         ),
         boxShadow: [
           BoxShadow(
-            color: gradientColors.last.withValues(alpha: 0.5),
+            color: gradientColors.last.withOpacity(0.5),
             blurRadius: 20,
             offset: const Offset(0, 10),
           ),
@@ -743,7 +734,7 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
             right: -20,
             child: CircleAvatar(
               radius: 60,
-              backgroundColor: Colors.white.withValues(alpha: 0.1),
+              backgroundColor: Colors.white.withOpacity(0.1),
             ),
           ),
           Positioned(
@@ -751,7 +742,7 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
             left: -30,
             child: CircleAvatar(
               radius: 80,
-              backgroundColor: Colors.white.withValues(alpha: 0.1),
+              backgroundColor: Colors.white.withOpacity(0.1),
             ),
           ),
 
@@ -890,11 +881,10 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
           children: [
             CommonMapView(
               currentLocation: _currentLocation,
-              mapStyle: _mapStyle,
               markers: _markers,
               polylines: _polylines,
               onMapCreated: (controller) {},
-              initialZoom: 16.0,
+              initialZoom: 17.0,
             ).expand(),
             LiveTrackingControlPanel(
               bus: myBus,

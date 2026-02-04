@@ -194,82 +194,85 @@ class _BusNumbersTabState extends ConsumerState<BusNumbersTab>
       child: GestureDetector(
         onTap: () => FocusScope.of(context).unfocus(),
         child: Stack(
+          fit: StackFit.expand,
           children: [
-            VStack([
-              // Search Bar Component
-              BusSearchBar(
-                controller: _searchController,
-                focusNode: _focusNode,
-                hintText: l10n.search,
-                onChanged: (val) {
-                  setState(() {
-                    _searchQuery = val;
-                  });
-                },
-                onClear: () {
-                  _searchController.clear();
-                  setState(() {
-                    _searchQuery = '';
-                  });
-                },
-                searchQuery: _searchQuery,
-              ),
+            Column(
+              children: [
+                // Search Bar Component
+                BusSearchBar(
+                  controller: _searchController,
+                  focusNode: _focusNode,
+                  hintText: l10n.search,
+                  onChanged: (val) {
+                    setState(() {
+                      _searchQuery = val;
+                    });
+                  },
+                  onClear: () {
+                    _searchController.clear();
+                    setState(() {
+                      _searchQuery = '';
+                    });
+                  },
+                  searchQuery: _searchQuery,
+                ),
 
-              // Tab Bar
-              Container(
-                margin: const EdgeInsets.symmetric(
-                  horizontal: AppSizes.paddingMedium,
-                  vertical: 8,
-                ),
-                decoration: BoxDecoration(
-                  color: const Color(
-                    0xFF2C3E50,
-                  ), // Dark background for the capsule
-                  borderRadius: BorderRadius.circular(50),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.1),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: TabBar(
-                  isScrollable: false,
-                  labelColor: Colors.white,
-                  unselectedLabelColor: Colors.grey.shade400,
-                  indicatorSize: TabBarIndicatorSize.tab,
-                  indicator: BoxDecoration(
-                    color: AppColors.primary,
+                // Tab Bar
+                Container(
+                  margin: const EdgeInsets.symmetric(
+                    horizontal: AppSizes.paddingMedium,
+                    vertical: 8,
+                  ),
+                  decoration: BoxDecoration(
+                    color: const Color(
+                      0xFF2C3E50,
+                    ), // Dark background for the capsule
                     borderRadius: BorderRadius.circular(50),
                     boxShadow: [
                       BoxShadow(
-                        color: AppColors.primary.withValues(alpha: 0.4),
-                        blurRadius: 8,
-                        offset: const Offset(0, 2),
+                        color: Colors.black.withOpacity(0.1),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
                       ),
                     ],
                   ),
-                  dividerColor: Colors.transparent,
-                  labelPadding: EdgeInsets.zero,
-                  tabs: [
-                    Tab(text: l10n.all),
-                    Tab(text: l10n.free),
-                    Tab(text: l10n.running),
-                  ],
-                ).p4(),
-              ),
-
-              Expanded(
-                child: TabBarView(
-                  children: [
-                    _buildBusList('all', busNumbers, buses, allDrivers),
-                    _buildBusList('free', busNumbers, buses, allDrivers),
-                    _buildBusList('running', busNumbers, buses, allDrivers),
-                  ],
+                  child: TabBar(
+                    isScrollable: false,
+                    labelColor: Colors.white,
+                    unselectedLabelColor: Colors.grey.shade400,
+                    indicatorSize: TabBarIndicatorSize.tab,
+                    indicator: BoxDecoration(
+                      color: AppColors.primary,
+                      borderRadius: BorderRadius.circular(50),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppColors.primary.withOpacity(0.4),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    dividerColor: Colors.transparent,
+                    labelPadding: EdgeInsets.zero,
+                    tabs: [
+                      Tab(text: l10n.all),
+                      Tab(text: l10n.free),
+                      Tab(text: l10n.running),
+                    ],
+                  ).p4(),
                 ),
-              ),
-            ]),
+
+                Expanded(
+                  child: TabBarView(
+                    children: [
+                      _buildBusList('all', busNumbers, buses, allDrivers),
+                      _buildBusList('free', busNumbers, buses, allDrivers),
+                      _buildBusList('running', busNumbers, buses, allDrivers),
+                    ],
+                  ),
+                ),
+              ],
+            ),
             Positioned(
               bottom: AppSizes.paddingMedium,
               right: AppSizes.paddingMedium,
@@ -484,3 +487,8 @@ class _BusNumbersTabState extends ConsumerState<BusNumbersTab>
     );
   }
 }
+
+
+
+
+

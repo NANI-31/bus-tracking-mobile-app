@@ -28,7 +28,7 @@ class SplashScreen extends ConsumerWidget {
               child: LinearProgressIndicator(
                 backgroundColor: Theme.of(
                   context,
-                ).colorScheme.onSurface.withValues(alpha: 0.1),
+                ).colorScheme.onSurface.withOpacity(0.1),
                 color: Theme.of(context).primaryColor,
                 minHeight: 6,
               ),
@@ -39,3 +39,8 @@ class SplashScreen extends ConsumerWidget {
     );
   }
 }
+
+
+
+
+

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:collegebus/core/constants/constants.dart';
-import 'package:velocity_x/velocity_x.dart';
 
 class TimelineItem extends StatelessWidget {
   final String title;
@@ -21,45 +20,78 @@ class TimelineItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    return HStack([
-      VStack([
-        Icon(
-          isActive ? Icons.radio_button_checked : Icons.circle,
-          size: 24,
-          color: isActive
-              ? AppColors.primary
-              : colorScheme.onSurface.withValues(alpha: 0.2),
-        ),
-        if (!isLast)
-          Container(
-            width: 2,
-            height: 40,
-            color: colorScheme.onSurface.withValues(alpha: 0.1),
-          ).pOnly(left: 11),
-      ], crossAlignment: CrossAxisAlignment.center),
-
-      20.widthBox,
-
-      VStack([
-        title.text
-            .size(12)
-            .bold
-            .letterSpacing(1)
-            .color(
-              isActive
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Icon(
+              isActive ? Icons.radio_button_checked : Icons.circle,
+              size: 24,
+              color: isActive
                   ? AppColors.primary
-                  : colorScheme.onSurface.withValues(alpha: 0.4),
-            )
-            .make(),
-        4.heightBox,
-        location.text.size(17).bold.color(colorScheme.onSurface).make(),
-        if (subtext != null)
-          subtext!.text
-              .size(13)
-              .color(colorScheme.onSurface.withValues(alpha: 0.6))
-              .make()
-              .pOnly(top: 2),
-      ]).pOnly(bottom: isLast ? 0 : 20),
-    ], crossAlignment: CrossAxisAlignment.start);
+                  : colorScheme.onSurface.withOpacity(0.2),
+            ),
+            if (!isLast)
+              Padding(
+                padding: const EdgeInsets.only(left: 0), // Centered under icon
+                child: Container(
+                  width: 2.0,
+                  height: 40,
+                  color: colorScheme.onSurface.withOpacity(0.1),
+                ),
+              ),
+          ],
+        ),
+        const SizedBox(width: 20),
+        Expanded(
+          child: Padding(
+            padding: EdgeInsets.only(bottom: isLast ? 0 : 20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 1,
+                    color: isActive
+                        ? AppColors.primary
+                        : colorScheme.onSurface.withOpacity(0.4),
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  location,
+                  style: TextStyle(
+                    fontSize: 17,
+                    fontWeight: FontWeight.bold,
+                    color: colorScheme.onSurface,
+                  ),
+                ),
+                if (subtext != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 2),
+                    child: Text(
+                      subtext!,
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: colorScheme.onSurface.withOpacity(0.6),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
   }
 }
+
+
+
+
+

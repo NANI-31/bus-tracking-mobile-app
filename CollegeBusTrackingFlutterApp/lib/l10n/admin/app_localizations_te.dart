@@ -35,3 +35,8 @@ class AdminLocalizationsTe extends AdminLocalizations {
   @override
   String get systemLogs => 'సిస్టమ్ లాగ్స్';
 }
+
+
+
+
+

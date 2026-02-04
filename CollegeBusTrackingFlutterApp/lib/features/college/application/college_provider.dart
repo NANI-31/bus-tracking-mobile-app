@@ -30,3 +30,8 @@ final collegeServiceProvider =
     AsyncNotifierProvider<CollegeNotifier, List<CollegeModel>>(
       CollegeNotifier.new,
     );
+
+
+
+
+

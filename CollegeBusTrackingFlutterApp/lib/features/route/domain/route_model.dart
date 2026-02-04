@@ -1,3 +1,5 @@
+import 'package:collegebus/core/utils/type_converters.dart';
+
 class RoutePoint {
   final String name;
   final double lat;
@@ -65,7 +67,7 @@ class RouteModel {
           .toList(),
       collegeId: map['collegeId'] ?? '',
       createdBy: map['createdBy'] ?? '',
-      isActive: map['isActive'] ?? true,
+      isActive: parseBool(map['isActive'], true),
       createdAt: DateTime.parse(map['createdAt']),
       updatedAt: map['updatedAt'] != null
           ? DateTime.parse(map['updatedAt'])
@@ -118,3 +120,4 @@ class RouteModel {
 
   String get displayName => '$routeName (${routeType.toUpperCase()})';
 }
+

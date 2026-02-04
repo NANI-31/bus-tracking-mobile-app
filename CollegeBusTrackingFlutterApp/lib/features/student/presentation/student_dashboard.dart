@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -11,16 +12,12 @@ import 'package:collegebus/core/providers/service_providers.dart';
 import 'package:collegebus/features/bus/domain/bus_model.dart';
 import 'package:collegebus/features/route/domain/route_model.dart';
 import 'package:collegebus/core/services/persistence_service.dart';
+import 'package:collegebus/features/notification/application/proximity_provider.dart';
+import 'package:go_router/go_router.dart';
 
 // Import the new modules
 import 'tabs/student_map_tab.dart';
 import 'tabs/student_bus_list_tab.dart';
-import 'tabs/student_info_tab.dart';
-
-// Re-adding widget imports
-import 'widgets/student_dashboard_app_bar.dart';
-import 'widgets/dashboard/student_bottom_nav_app_bar.dart';
-import 'package:collegebus/shared/widgets/app_drawer.dart';
 import 'package:collegebus/features/user/presentation/screens/profile_screen.dart';
 import 'student_home_screen.dart';
 import 'bus_schedule_screen.dart';
@@ -35,9 +32,7 @@ class StudentDashboard extends ConsumerStatefulWidget {
 
 class _StudentDashboardState extends ConsumerState<StudentDashboard>
     with SingleTickerProviderStateMixin {
-  late TabController _tabController;
   GoogleMapController? _mapController;
-  String? _mapStyle;
 
   BusModel? _selectedBus;
   LatLng? _currentLocation;
@@ -50,24 +45,14 @@ class _StudentDashboardState extends ConsumerState<StudentDashboard>
   void initState() {
     super.initState();
     _bottomNavIndex = PersistenceService.getBottomNavIndex();
-    _tabController = TabController(
-      length: 3,
-      vsync: this,
-      initialIndex: _bottomNavIndex < 3 ? _bottomNavIndex : 0,
-    );
-    _tabController.addListener(() {
-      if (!_tabController.indexIsChanging && mounted) {
-        setState(() {});
-      }
-    });
-
     _getCurrentLocation();
 
     // Join socket room
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final user = ref.read(currentUserProvider);
-      if (user?.collegeId != null) {
-        ref.read(socketServiceProvider).joinCollege(user!.collegeId);
+      final collegeId = user?.collegeId;
+      if (collegeId != null) {
+        ref.read(socketServiceProvider).joinCollege(collegeId);
       }
     });
   }
@@ -101,7 +86,6 @@ class _StudentDashboardState extends ConsumerState<StudentDashboard>
     });
 
     _onBottomNavChanged(1);
-    _tabController.animateTo(0);
   }
 
   void _onBusNumberSelected(String? busNumber) {
@@ -135,7 +119,9 @@ class _StudentDashboardState extends ConsumerState<StudentDashboard>
   Widget build(BuildContext context) {
     final user = ref.watch(currentUserProvider);
     final collegeId = user?.collegeId;
-    final themeService = ref.watch(themeServiceProvider);
+
+    // Initialize proximity alerts listener
+    ref.listen(proximityAlertProvider, (previous, next) {});
 
     // Watch providers
     final busesAsync = collegeId != null
@@ -149,8 +135,9 @@ class _StudentDashboardState extends ConsumerState<StudentDashboard>
     final routes = routesAsync.value ?? [];
 
     // Set default stop from preference if not set
-    if (_selectedStop == null && user?.preferredStop != null) {
-      _selectedStop = user!.preferredStop;
+    final preferredStop = user?.preferredStop;
+    if (_selectedStop == null && preferredStop != null) {
+      _selectedStop = preferredStop;
     }
 
     // Compute filter options
@@ -175,10 +162,6 @@ class _StudentDashboardState extends ConsumerState<StudentDashboard>
       stopsSet.add(route.endPoint.name);
       stopsSet.addAll(route.stopPoints.map((s) => s.name));
     }
-    final allStops = stopsSet.toList()..sort();
-    final allBusNumbers = allBusesRaw.map((b) => b.busNumber).toSet().toList()
-      ..sort();
-
     // Apply filters
     var filteredBuses = allBusesRaw.where((bus) {
       return bus.status != 'not-running' && bus.assignmentStatus == 'accepted';
@@ -234,116 +217,244 @@ class _StudentDashboardState extends ConsumerState<StudentDashboard>
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      drawer: themeService.useBottomNavigation ? null : AppDrawer(user: user),
-      appBar: themeService.useBottomNavigation
-          ? ([3, 4].contains(_bottomNavIndex)
-                ? null
-                : StudentBottomNavAppBar(bottomNavIndex: _bottomNavIndex))
-          : StudentDashboardAppBar(user: user, tabController: _tabController),
-      body: themeService.useBottomNavigation
-          ? IndexedStack(
-              index: _bottomNavIndex,
-              children: [
-                StudentHomeScreen(
-                  isTab: true,
-                  onTrackLive: () => _onBottomNavChanged(1),
-                ),
-                StudentMapTab(
-                  currentLocation: _currentLocation,
-                  buses: _selectedBus != null ? [_selectedBus!] : [],
-                  selectedBus: _selectedBus,
-                  selectedRouteType: _selectedRouteType,
-                  selectedBusNumber: _selectedBusNumber,
-                  allBusNumbers: allBusNumbers,
-                  filteredBusesCount: filteredBuses.length,
-                  mapStyle: _mapStyle,
-                  onMapCreated: (controller) => _mapController = controller,
-                  onRouteTypeSelected: _onRouteTypeSelected,
-                  onBusNumberSelected: _onBusNumberSelected,
-                  onClearFilters: _clearFilters,
-                  onBusSelected: (bus) {
-                    if (mounted) setState(() => _selectedBus = bus);
-                  },
-                ),
-                StudentBusListTab(
-                  filteredBuses: filteredBuses,
-                  routes: routes,
-                  selectedBus: _selectedBus,
-                  onBusSelected: (bus) => _selectBus(bus),
-                  selectedStop: _selectedStop,
-                  onClearFilters: _clearFilters,
-                ),
-                const BusScheduleScreen(isTab: true),
-                const ProfileScreen(),
-              ],
-            )
-          : TabBarView(
-              controller: _tabController,
-              physics: const NeverScrollableScrollPhysics(),
-              children: [
-                StudentMapTab(
-                  currentLocation: _currentLocation,
-                  buses: _selectedBus != null ? [_selectedBus!] : [],
-                  selectedBus: _selectedBus,
-                  selectedRouteType: _selectedRouteType,
-                  selectedBusNumber: _selectedBusNumber,
-                  allBusNumbers: allBusNumbers,
-                  filteredBusesCount: filteredBuses.length,
-                  mapStyle: _mapStyle,
-                  onMapCreated: (controller) => _mapController = controller,
-                  onRouteTypeSelected: _onRouteTypeSelected,
-                  onBusNumberSelected: _onBusNumberSelected,
-                  onClearFilters: _clearFilters,
-                  onBusSelected: (bus) {
-                    if (mounted) setState(() => _selectedBus = bus);
-                  },
-                ),
-                StudentBusListTab(
-                  filteredBuses: filteredBuses,
-                  routes: routes,
-                  selectedBus: _selectedBus,
-                  onBusSelected: (bus) => _selectBus(bus),
-                  selectedStop: _selectedStop,
-                  onClearFilters: _clearFilters,
-                ),
-                StudentInfoTab(
-                  allBusNumbers: allBusNumbers,
-                  allStops: allStops,
-                ),
-              ],
+      drawer: null,
+      body: Stack(
+        children: [
+          IndexedStack(
+            index: _bottomNavIndex,
+            children: [
+              StudentHomeScreen(
+                isTab: true,
+                onTrackLive: () => _onBottomNavChanged(1),
+              ),
+              StudentMapTab(
+                currentLocation: _currentLocation,
+                buses: _selectedBus != null ? [_selectedBus!] : [],
+                selectedBus: _selectedBus,
+                selectedRouteType: _selectedRouteType,
+                allBuses: allBusesRaw,
+                filteredBusesCount: filteredBuses.length,
+                onMapCreated: (controller) => _mapController = controller,
+                onRouteTypeSelected: _onRouteTypeSelected,
+                onBusNumberSelected: _onBusNumberSelected,
+                onClearFilters: _clearFilters,
+                onBusSelected: (bus) {
+                  if (mounted) setState(() => _selectedBus = bus);
+                },
+              ),
+              StudentBusListTab(
+                filteredBuses: filteredBuses,
+                routes: routes,
+                selectedBus: _selectedBus,
+                onBusSelected: (bus) => _selectBus(bus),
+                selectedStop: _selectedStop,
+                onClearFilters: _clearFilters,
+              ),
+              BusScheduleScreen(
+                isTab: true,
+                onBusSelected: (bus) => _selectBus(bus),
+              ),
+              const ProfileScreen(),
+            ],
+          ),
+          // Global Connectivity Banner
+          _buildConnectivityBanner(),
+        ],
+      ),
+      floatingActionButton: _bottomNavIndex == 1
+          ? null
+          : FloatingActionButton(
+              onPressed: () => context.push('/notifications'),
+              backgroundColor: Theme.of(context).primaryColor,
+              child: Icon(
+                Icons.notifications_rounded,
+                color: Theme.of(context).colorScheme.onPrimary,
+              ),
             ),
-      bottomNavigationBar: themeService.useBottomNavigation
-          ? CurvedBottomNavBar(
-              currentIndex: _bottomNavIndex,
-              onTap: _onBottomNavChanged,
-              items: [
-                CurvedBottomNavIcon(
-                  icon: _bottomNavIndex == 0 ? Icons.home : Icons.home_outlined,
-                  label: 'Home',
+      bottomNavigationBar: CurvedBottomNavBar(
+        activeColor: Theme.of(context).primaryColor,
+        inactiveColor: Theme.of(context).colorScheme.secondary,
+        backgroundColor: Theme.of(context).cardColor,
+        currentIndex: _bottomNavIndex,
+        onTap: _onBottomNavChanged,
+        items: [
+          CurvedBottomNavIcon(
+            icon: _bottomNavIndex == 0 ? Icons.home : Icons.home_outlined,
+            label: 'Home',
+          ),
+          CurvedBottomNavIcon(
+            icon: _bottomNavIndex == 1 ? Icons.map : Icons.map_outlined,
+            label: 'Live Map',
+          ),
+          CurvedBottomNavIcon(icon: Icons.show_chart_rounded, label: 'Route'),
+          CurvedBottomNavIcon(
+            icon: _bottomNavIndex == 3
+                ? Icons.calendar_month
+                : Icons.calendar_month_outlined,
+            label: 'Schedule',
+          ),
+          CurvedBottomNavIcon(
+            icon: _bottomNavIndex == 4 ? Icons.person : Icons.person_outline,
+            label: 'Profile',
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildConnectivityBanner() {
+    return Consumer(
+      builder: (context, ref, child) {
+        final socketService = ref.watch(socketServiceProvider);
+        final isConnected = socketService.isConnected;
+        final isConnecting = socketService.isConnecting;
+
+        if (isConnected && !isConnecting) return const SizedBox.shrink();
+
+        final color = isConnecting ? Colors.amber : Colors.redAccent;
+
+        return Positioned(
+          top: MediaQuery.of(context).padding.top + 12,
+          left: 20,
+          right: 20,
+          child: TweenAnimationBuilder<double>(
+            tween: Tween(begin: 0.0, end: 1.0),
+            duration: const Duration(milliseconds: 500),
+            curve: Curves.easeOutBack,
+            builder: (context, value, child) {
+              return Opacity(
+                opacity: value,
+                child: Transform.translate(
+                  offset: Offset(0, (1 - value) * -20),
+                  child: child,
                 ),
-                CurvedBottomNavIcon(
-                  icon: _bottomNavIndex == 1 ? Icons.map : Icons.map_outlined,
-                  label: 'Live Map',
+              );
+            },
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(30),
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 12.0, sigmaY: 12.0),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 10,
+                  ),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [color.withOpacity(0.7), color.withOpacity(0.4)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(30),
+                    border: Border.all(
+                      color: color.withOpacity(0.3),
+                      width: 1.5,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: color.withOpacity(0.2),
+                        blurRadius: 15,
+                        offset: const Offset(0, 8),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const PulsatingDot(),
+                      const SizedBox(width: 12),
+                      Text(
+                        isConnecting ? "Connecting..." : "Server Disconnected",
+                        style: TextStyle(
+                          color: isConnecting ? Colors.black87 : Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.only(left: 10),
+                        child: const SizedBox(
+                          width: 12,
+                          height: 12,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 1.5,
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              Colors.black54,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-                CurvedBottomNavIcon(
-                  icon: Icons.show_chart_rounded,
-                  label: 'Route',
-                ),
-                CurvedBottomNavIcon(
-                  icon: _bottomNavIndex == 3
-                      ? Icons.calendar_month
-                      : Icons.calendar_month_outlined,
-                  label: 'Schedule',
-                ),
-                CurvedBottomNavIcon(
-                  icon: _bottomNavIndex == 4
-                      ? Icons.person
-                      : Icons.person_outline,
-                  label: 'Profile',
-                ),
-              ],
-            )
-          : null,
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 }
+
+class PulsatingDot extends StatefulWidget {
+  const PulsatingDot({super.key});
+
+  @override
+  State<PulsatingDot> createState() => _PulsatingDotState();
+}
+
+class _PulsatingDotState extends State<PulsatingDot>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _animation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1000),
+    )..repeat(reverse: true);
+    _animation = Tween<double>(
+      begin: 0.6,
+      end: 1.0,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _animation,
+      builder: (context, child) {
+        return Transform.scale(scale: _animation.value, child: child);
+      },
+      child: Container(
+        width: 10,
+        height: 10,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          shape: BoxShape.circle,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.white.withOpacity(0.5),
+              blurRadius: 4,
+              spreadRadius: 2,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+
+
+
+

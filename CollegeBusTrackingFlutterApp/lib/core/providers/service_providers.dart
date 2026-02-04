@@ -12,6 +12,7 @@ import 'package:collegebus/core/services/theme_service.dart';
 import 'package:collegebus/features/bus/services/location_service.dart';
 import 'api_provider.dart';
 import 'socket_provider.dart';
+import 'package:collegebus/core/utils/map_style_helper.dart';
 
 /// BusService provider
 final busServiceProvider = Provider<BusService>((ref) {
@@ -81,26 +82,15 @@ class ThemeNotifier extends Notifier<ThemeState> {
   }
 
   static const String _themeKey = 'is_dark_mode';
-  static const String _navKey = 'use_bottom_nav';
-
   Future<void> _loadTheme() async {
     final prefs = await SharedPreferences.getInstance();
-    state = state.copyWith(
-      isDarkMode: prefs.getBool(_themeKey) ?? false,
-      useBottomNavigation: prefs.getBool(_navKey) ?? false,
-    );
+    state = state.copyWith(isDarkMode: prefs.getBool(_themeKey) ?? false);
   }
 
   Future<void> toggleTheme(bool isDark) async {
     state = state.copyWith(isDarkMode: isDark);
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_themeKey, isDark);
-  }
-
-  Future<void> toggleNavigationMode(bool useBottom) async {
-    state = state.copyWith(useBottomNavigation: useBottom);
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool(_navKey, useBottom);
   }
 }
 
@@ -140,3 +130,14 @@ class LocaleNotifier extends Notifier<Locale> {
 final localeServiceProvider = NotifierProvider<LocaleNotifier, Locale>(
   LocaleNotifier.new,
 );
+
+/// MapStyle provider (async)
+final mapStyleProvider = FutureProvider<String?>((ref) async {
+  final isDarkMode = ref.watch(themeServiceProvider).isDarkMode;
+  return await MapStyleHelper.getStyle(isDarkMode);
+});
+
+
+
+
+

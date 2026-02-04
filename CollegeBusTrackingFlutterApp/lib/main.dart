@@ -20,6 +20,8 @@ import 'package:collegebus/l10n/admin/app_localizations.dart';
 import 'package:collegebus/l10n/notification/app_localizations.dart';
 import 'package:collegebus/l10n/common/app_localizations.dart';
 
+import 'package:flutter/services.dart';
+
 void main() {
   runApp(const riverpod.ProviderScope(child: AppInitializer()));
 }
@@ -43,6 +45,16 @@ class _AppInitializerState extends State<AppInitializer> {
   Future<void> _initializeApp() async {
     debugPrint('APP INIT: Starting initialization...');
     WidgetsFlutterBinding.ensureInitialized();
+
+    // Override the default error widget to prevent red screen during network transitions
+    // ErrorWidget.builder = (FlutterErrorDetails details) {
+    //   debugPrint('ErrorWidget caught: ${details.exceptionAsString()}');
+    //   return Container(
+    //     color: Colors.transparent,
+    //     alignment: Alignment.center,
+    //     child: const Text(''),
+    //   );
+    // };
 
     // Initialize Logger with File Support
     await AppLogger.init();
@@ -122,30 +134,41 @@ class MyApp extends riverpod.ConsumerWidget {
     final localeService = ref.watch(localeServiceProvider);
     final router = ref.watch(routerProvider);
 
-    return MaterialApp.router(
-      title: 'Upasthit',
-      theme: AppTheme.lightTheme,
-      darkTheme: AppTheme.darkTheme,
-      themeMode: themeService.isDarkMode ? ThemeMode.dark : ThemeMode.light,
-      locale: localeService,
-      localizationsDelegates: const [
-        LoginLocalizations.delegate,
-        SignupLocalizations.delegate,
-        // New modular localizations
-        CommonLocalizations.delegate,
-        StudentLocalizations.delegate,
-        DriverLocalizations.delegate,
-        CoordinatorLocalizations.delegate,
-        AdminLocalizations.delegate,
-        NotificationLocalizations.delegate,
-        GlobalMaterialLocalizations.delegate,
-        GlobalWidgetsLocalizations.delegate,
-        GlobalCupertinoLocalizations.delegate,
-      ],
-      supportedLocales: const [Locale('en'), Locale('te'), Locale('hi')],
-      routerConfig: router,
-      themeAnimationDuration: Duration.zero,
-      debugShowCheckedModeBanner: false,
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: themeService.isDarkMode
+            ? Brightness.light
+            : Brightness.dark,
+        statusBarBrightness: themeService.isDarkMode
+            ? Brightness.dark
+            : Brightness.light,
+      ),
+      child: MaterialApp.router(
+        title: 'Upasthit',
+        theme: AppTheme.lightTheme,
+        darkTheme: AppTheme.darkTheme,
+        themeMode: themeService.isDarkMode ? ThemeMode.dark : ThemeMode.light,
+        locale: localeService,
+        localizationsDelegates: const [
+          LoginLocalizations.delegate,
+          SignupLocalizations.delegate,
+          // New modular localizations
+          CommonLocalizations.delegate,
+          StudentLocalizations.delegate,
+          DriverLocalizations.delegate,
+          CoordinatorLocalizations.delegate,
+          AdminLocalizations.delegate,
+          NotificationLocalizations.delegate,
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        supportedLocales: const [Locale('en'), Locale('te'), Locale('hi')],
+        routerConfig: router,
+        themeAnimationDuration: Duration.zero,
+        debugShowCheckedModeBanner: false,
+      ),
     );
   }
 }

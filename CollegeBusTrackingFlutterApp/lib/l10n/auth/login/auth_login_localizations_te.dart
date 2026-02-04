@@ -56,3 +56,8 @@ class LoginLocalizationsTe extends LoginLocalizations {
   @override
   String get genericError => 'ఒక లోపం సంభవించింది. దయచేసి మళ్ళీ ప్రయత్నించండి.';
 }
+
+
+
+
+

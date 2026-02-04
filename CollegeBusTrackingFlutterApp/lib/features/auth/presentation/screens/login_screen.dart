@@ -208,7 +208,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                             Colors.transparent,
                             Theme.of(
                               context,
-                            ).scaffoldBackgroundColor.withValues(alpha: 0.2),
+                            ).scaffoldBackgroundColor.withOpacity(0.2),
                             Theme.of(context).scaffoldBackgroundColor,
                           ],
                           stops: const [0.6, 0.9, 1.0],
@@ -294,10 +294,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: Colors.grey.withValues(alpha: 0.1),
+                        color: Colors.grey.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
-                          color: Colors.grey.withValues(alpha: 0.2),
+                          color: Colors.grey.withOpacity(0.2),
                         ),
                       ),
                       child: Column(
@@ -524,7 +524,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                       child: _isLoading
                           ? const CircularProgressIndicator(
                               color: Colors.white,
-                              strokeWidth: 2,
+                              strokeWidth: 2.0,
                             ).box.size(24, 24).make()
                           : HStack([
                               l10n.login.text.size(16).bold.make(),
@@ -557,3 +557,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
     );
   }
 }
+
+
+
+
+

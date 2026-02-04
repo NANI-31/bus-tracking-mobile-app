@@ -41,3 +41,8 @@ class ResetPasswordLocalizationsTe extends ResetPasswordLocalizations {
   @override
   String get reenterPassword => 'మీ పాస్‌వర్డ్ మళ్లీ నమోదు చేయండి';
 }
+
+
+
+
+

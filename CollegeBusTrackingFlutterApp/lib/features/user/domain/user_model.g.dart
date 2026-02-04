@@ -55,3 +55,8 @@ Map<String, dynamic> _$UserModelToJson(UserModel instance) => <String, dynamic>{
   'fcmToken': instance.fcmToken,
   'language': instance.language,
 };
+
+
+
+
+

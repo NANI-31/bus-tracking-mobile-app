@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:velocity_x/velocity_x.dart';
 
 class WelcomeSection extends StatelessWidget {
   final String userName;
@@ -9,17 +8,31 @@ class WelcomeSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    return VStack([
-      "Good Morning, $userName".text
-          .size(32)
-          .extraBlack
-          .color(colorScheme.onSurface)
-          .make(),
-      2.heightBox,
-      "Your bus status for today".text
-          .size(16)
-          .color(colorScheme.onSurface.withValues(alpha: 0.7))
-          .make(),
-    ]);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          "Good Morning, $userName",
+          style: TextStyle(
+            fontSize: 32,
+            fontWeight: FontWeight.w900,
+            color: colorScheme.onSurface,
+          ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          "Your bus status for today",
+          style: TextStyle(
+            fontSize: 16,
+            color: colorScheme.onSurface.withOpacity(0.7),
+          ),
+        ),
+      ],
+    );
   }
 }
+
+
+
+
+

@@ -1,58 +1,32 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
-import 'package:flutter_tailwind_css_colors/flutter_tailwind_css_colors.dart';
-
 // ... (AppColors, AppTheme, AppSizes, AppStrings classes remain unchanged)
 
 class AppColors {
-  static const Color primary1 = Color(0xFF197FE6);
-  static const Color secondary1 = Color(
-    0xFF03DAC6,
-  ); // Keeping secondary as is for now if not specified
-  static const Color error1 = Color(0xFFB00020);
-  static const Color success1 = Color(0xFF4CAF50);
-  static const Color warning1 = Color(0xFFFF9800);
-
-  static final Color primary = TwColors.blue.i500;
-  static final Color secondary = TwColors.teal.i500;
-  static final Color error = TwColors.red.i500;
-  static final Color success = TwColors.green.i500;
-  static final Color warning = TwColors.orange.i500;
+  // New Color Schema
+  static const Color primary = Color(0xFF00C6E6); // #00c6e6
+  static const Color secondary = Color(0xFFBFC0D1); // #bfc0d1
+  static const Color success = Color(0xFF4CAF50);
+  static const Color error = Color(0xFFB00020);
+  static const Color warning = Color(0xFFFF9800);
 
   // Light Theme Colors
-  static const Color background1 = Color(0xFFF6F7F8); // background-light
-  static const Color surface1 = Color(0xFFFFFFFF); // surface-light
-  static const Color onPrimary1 = Color(0xFFFFFFFF);
-  static const Color onSecondary1 = Color(0xFF000000);
-  static const Color onBackground1 = Color(
-    0xFF111418,
-  ); // text-main-light (using main text as onBackground)
-  static const Color onSurface1 = Color(0xFF111418); // text-main-light
-  static const Color textPrimary1 = Color(0xFF111418); // text-main-light
-  static const Color textSecondary1 = Color(0xFF637588); // text-sub-light
-  // Light Theme Colors
-  static Color background = TwColors.slate.i100;
-  static Color surface = Colors.white;
-  static Color onPrimary = Colors.white;
-  static Color onSecondary = Colors.black;
-  static Color onBackground = TwColors.slate.i900;
-  static Color onSurface = TwColors.slate.i900;
-  static Color textPrimary = TwColors.slate.i900;
-  static Color textSecondary = TwColors.slate.i500;
+  static const Color background = Color(0xFFF6F7F8);
+  static const Color surface = Colors.white;
+  static const Color onPrimary = Colors.white;
+  static const Color onSecondary = Color(0xFF191E2B);
+  static const Color onBackground = Color(0xFF111418);
+  static const Color onSurface = Color(0xFF111418);
+  static const Color textPrimary = Color(0xFF111418);
+  static const Color textSecondary = Color(0xFF637588);
 
   // Dark Mode Colors
-  static const Color darkBackground1 = Color(0xFF111921); // background-dark
-  static const Color darkSurface1 = Color(0xFF1A2632); // surface-dark
-  static const Color darkOnSurface1 = Color(0xFFFFFFFF); // text-main-dark
-  static const Color darkTextPrimary1 = Color(0xFFFFFFFF); // text-main-dark
-  static const Color darkTextSecondary1 = Color(0xFF93ADC8); // text-sub-dark
-  // Dark Mode Colors
-  static Color darkBackground = TwColors.slate.i950;
-  static const Color darkSurface = Color.fromRGBO(18, 27, 45, 1);
-  static Color darkOnSurface = Colors.white;
-  static Color darkTextPrimary = Colors.white;
-  static Color darkTextSecondary = TwColors.slate.i400;
+  static const Color darkBackground = Color(0xFF191E2B); // #191e2b
+  static const Color darkSurface = Color(0xFF253041); // #25304 (assumed 1)
+  static const Color darkOnSurface = Colors.white;
+  static const Color darkTextPrimary = Colors.white;
+  static const Color darkTextSecondary = Color(0xFFBFC0D1); // #bfc0d1
 }
 
 class AppTheme {
@@ -213,3 +187,8 @@ class AppConstants {
   static const String baseUrl = kReleaseMode ? _prodUrl : _devUrl;
   static const String apiBaseUrl = '$baseUrl/api/v1';
 }
+
+
+
+
+

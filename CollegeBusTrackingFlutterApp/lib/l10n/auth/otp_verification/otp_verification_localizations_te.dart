@@ -43,3 +43,8 @@ class OtpVerificationLocalizationsTe extends OtpVerificationLocalizations {
   @override
   String get seconds => 'సెకన్లు';
 }
+
+
+
+
+

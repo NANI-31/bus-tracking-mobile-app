@@ -34,3 +34,8 @@ class ForgotPasswordLocalizationsHi extends ForgotPasswordLocalizations {
   @override
   String get enterValidEmail => 'कृपया एक वैध ईमेल पता दर्ज करें';
 }
+
+
+
+
+

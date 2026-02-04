@@ -1,0 +1,12 @@
+{
+	"restartable": "r",
+	"watch": [
+		"src"
+	],
+	"ignore": [
+		"node_modules",
+		"dist"
+	],
+	"exec": "ts-node src/index.ts",
+	"ext": "ts,json"
+}

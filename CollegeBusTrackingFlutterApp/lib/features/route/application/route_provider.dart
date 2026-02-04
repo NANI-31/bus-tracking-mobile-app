@@ -67,7 +67,7 @@ final collegeRoutesProvider = StreamProvider.family<List<RouteModel>, String>((
 final collegeSchedulesProvider =
     StreamProvider.family<List<ScheduleModel>, String>((ref, collegeId) {
       final api = ref.watch(apiServiceProvider);
-      final socket = ref.watch(socketServiceProvider);
+      final socket = ref.read(socketServiceProvider);
 
       return Stream.multi((controller) async {
         Future<void> fetch() async {
@@ -87,3 +87,8 @@ final collegeSchedulesProvider =
         controller.onCancel = () => subscription.cancel();
       });
     });
+
+
+
+
+

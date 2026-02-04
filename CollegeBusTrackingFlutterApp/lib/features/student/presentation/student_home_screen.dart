@@ -5,8 +5,6 @@ import 'package:collegebus/features/bus/application/bus_provider.dart';
 import 'package:collegebus/features/route/application/route_provider.dart';
 import 'package:collegebus/features/bus/domain/bus_model.dart';
 import 'package:collegebus/features/route/domain/route_model.dart';
-import 'package:collegebus/shared/widgets/app_drawer.dart';
-import 'package:velocity_x/velocity_x.dart';
 import 'package:go_router/go_router.dart';
 
 // New standalone widgets
@@ -24,8 +22,6 @@ class StudentHomeScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final user = ref.watch(currentUserProvider);
-    final userName = user?.fullName.split(' ').first ?? 'Student';
-
     if (user == null || user.collegeId.isEmpty) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
@@ -35,7 +31,7 @@ class StudentHomeScreen extends ConsumerWidget {
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      drawer: isTab ? null : AppDrawer(user: user),
+      drawer: null,
       appBar: isTab
           ? null
           : AppBar(
@@ -52,76 +48,105 @@ class StudentHomeScreen extends ConsumerWidget {
             ),
       body: busesAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (err, stack) => Center(child: Text('Error loading buses: $err')),
+        error: (err, stack) {
+          // Use last known data or empty list during error
+          final lastBuses = busesAsync.valueOrNull ?? [];
+          final lastRoutes = routesAsync.valueOrNull ?? [];
+          return _buildMainHomeUI(context, ref, user, lastBuses, lastRoutes);
+        },
         data: (buses) => routesAsync.when(
           loading: () => const Center(child: CircularProgressIndicator()),
-          error: (err, stack) =>
-              Center(child: Text('Error loading routes: $err')),
-          data: (routes) {
-            RouteModel? assignedRoute;
-            BusModel? assignedBus;
-
-            if (user.routeId != null) {
-              final matchingRoutes = routes.where((r) => r.id == user.routeId);
-              assignedRoute = matchingRoutes.isNotEmpty
-                  ? matchingRoutes.first
-                  : null;
-
-              final matchingBuses = buses.where(
-                (b) => b.routeId == user.routeId,
-              );
-              assignedBus = matchingBuses.isNotEmpty
-                  ? matchingBuses.first
-                  : null;
-            }
-
-            return RefreshIndicator(
-              onRefresh: () async {
-                // Socket handles updates
-              },
-              child: VStack([
-                16.heightBox,
-                WelcomeSection(userName: userName),
-                16.heightBox,
-                BusStatusCard(
-                  bus: assignedBus,
-                  userStop: user.preferredStop ?? user.stopName,
-                  stopLocation: user.stopLocation,
-                ),
-                20.heightBox,
-                RouteCard(
-                  route: assignedRoute,
-                  userStop: user.preferredStop ?? user.stopName,
-                ),
-                16.heightBox,
-                TrackBusButton(
-                  onTap: () {
-                    if (onTrackLive != null) {
-                      onTrackLive!();
-                    } else {
-                      context.go('/student');
-                    }
-                  },
-                ),
-                16.heightBox,
-                HStack([
-                  const Icon(Icons.circle, size: 8, color: Colors.greenAccent),
-                  8.widthBox,
-                  "Live location updates every 30 seconds".text
-                      .size(13)
-                      .color(
-                        Theme.of(
-                          context,
-                        ).colorScheme.onSurface.withValues(alpha: 0.6),
-                      )
-                      .make(),
-                ], alignment: MainAxisAlignment.center).centered(),
-                20.heightBox,
-              ]).pSymmetric(h: 20).scrollVertical(),
-            );
+          error: (err, stack) {
+            // Use last known routes or empty list during error
+            final lastRoutes = routesAsync.valueOrNull ?? [];
+            return _buildMainHomeUI(context, ref, user, buses, lastRoutes);
           },
+          data: (routes) => _buildMainHomeUI(context, ref, user, buses, routes),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMainHomeUI(
+    BuildContext context,
+    WidgetRef ref,
+    dynamic user,
+    List<BusModel> buses,
+    List<RouteModel> routes,
+  ) {
+    final userName = user?.fullName.split(' ').first ?? 'Student';
+    RouteModel? assignedRoute;
+    BusModel? assignedBus;
+
+    if (user.routeId != null) {
+      final matchingRoutes = routes.where((r) => r.id == user.routeId);
+      assignedRoute = matchingRoutes.isNotEmpty ? matchingRoutes.first : null;
+
+      final matchingBuses = buses.where((b) => b.routeId == user.routeId);
+      assignedBus = matchingBuses.isNotEmpty ? matchingBuses.first : null;
+    }
+
+    return SafeArea(
+      child: RefreshIndicator(
+        onRefresh: () async {
+          ref.invalidate(collegeBusesStreamProvider(user.collegeId));
+          ref.invalidate(collegeRoutesProvider(user.collegeId));
+        },
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          physics: const AlwaysScrollableScrollPhysics(),
+          child: Column(
+            children: [
+              const SizedBox(height: 16),
+              WelcomeSection(userName: userName),
+              const SizedBox(height: 16),
+              BusStatusCard(
+                bus: assignedBus,
+                userStop: user.preferredStop ?? user.stopName,
+                stopLocation: user.stopLocation,
+              ),
+              const SizedBox(height: 20),
+              RouteCard(
+                route: assignedRoute,
+                userStop: user.preferredStop ?? user.stopName,
+              ),
+              const SizedBox(height: 16),
+              TrackBusButton(
+                onTap: () {
+                  if (onTrackLive != null) {
+                    onTrackLive!();
+                  } else {
+                    context.go('/student');
+                  }
+                },
+              ),
+              const SizedBox(height: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.circle, size: 8, color: Colors.greenAccent),
+                  const SizedBox(width: 8.0),
+                  Text(
+                    "Live location updates every 30 seconds",
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.onSurface.withOpacity(0.6),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+            ],
+          ),
         ),
       ),
     );
   }
 }
+
+
+
+
+

@@ -84,3 +84,8 @@ class AdminCollegesTab extends ConsumerWidget {
     ).centered();
   }
 }
+
+
+
+
+

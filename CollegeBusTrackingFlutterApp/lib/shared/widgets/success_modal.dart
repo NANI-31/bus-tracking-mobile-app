@@ -97,7 +97,7 @@ class SuccessModal extends StatelessWidget {
                       child: primaryActionText!.text.size(16).semiBold.make(),
                     ).box.shadow
                     .withRounded(value: 30)
-                    .color(baseColor.withValues(alpha: 0.4))
+                    .color(baseColor.withOpacity(0.4))
                     .make()
                     .centered(),
               ] else ...[
@@ -126,19 +126,19 @@ class SuccessModal extends StatelessWidget {
         size: 10,
         top: 10,
         left: 10,
-        color: baseColor.withValues(alpha: 0.5),
+        color: baseColor.withOpacity(0.5),
       ),
       _bubble(
         size: 8,
         top: 70,
         right: 10,
-        color: baseColor.withValues(alpha: 0.6),
+        color: baseColor.withOpacity(0.6),
       ),
       _bubble(
         size: 14,
         bottom: 0,
         left: 30,
-        color: baseColor.withValues(alpha: 0.4),
+        color: baseColor.withOpacity(0.4),
       ),
 
       // Main Circle
@@ -147,17 +147,17 @@ class SuccessModal extends StatelessWidget {
           .box
           .height(40)
           .width(40)
-          .color(baseColor.withValues(alpha: 0.8)) // Solid icon bg
+          .color(baseColor.withOpacity(0.8)) // Solid icon bg
           .roundedFull
-          .border(color: Colors.white, width: 2)
+          .border(color: Colors.white, width: 2.0)
           .make()
           .centered()
           .box
           .height(80)
           .width(80)
-          .color(baseColor.withValues(alpha: 0.3))
+          .color(baseColor.withOpacity(0.3))
           .roundedFull
-          .border(color: Colors.white, width: 4)
+          .border(color: Colors.white, width: 4.0)
           .make(),
     ], alignment: Alignment.center).box.height(100).width(100).make();
   }
@@ -179,3 +179,8 @@ class SuccessModal extends StatelessWidget {
         .positioned(top: top, bottom: bottom, left: left, right: right);
   }
 }
+
+
+
+
+

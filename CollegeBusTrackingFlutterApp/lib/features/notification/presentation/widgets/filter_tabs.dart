@@ -22,7 +22,7 @@ class FilterTabs extends StatelessWidget {
       margin: const EdgeInsets.symmetric(horizontal: 24),
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
-        color: colorScheme.onSurface.withValues(alpha: 0.05),
+        color: colorScheme.onSurface.withOpacity(0.05),
         borderRadius: BorderRadius.circular(32),
       ),
       child: LayoutBuilder(
@@ -45,7 +45,7 @@ class FilterTabs extends StatelessWidget {
                     borderRadius: BorderRadius.circular(28),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.05),
+                        color: Colors.black.withOpacity(0.05),
                         blurRadius: 10,
                         offset: const Offset(0, 4),
                       ),
@@ -67,9 +67,7 @@ class FilterTabs extends StatelessWidget {
                             .color(
                               isSelected
                                   ? AppColors.primary
-                                  : colorScheme.onSurface.withValues(
-                                      alpha: 0.5,
-                                    ),
+                                  : colorScheme.onSurface.withOpacity(0.5,),
                             )
                             .make(),
                       ),
@@ -84,3 +82,8 @@ class FilterTabs extends StatelessWidget {
     );
   }
 }
+
+
+
+
+

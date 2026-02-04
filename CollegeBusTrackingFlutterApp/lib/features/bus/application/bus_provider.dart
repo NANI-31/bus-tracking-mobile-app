@@ -47,7 +47,7 @@ final busListProvider = AsyncNotifierProvider<BusNotifier, List<BusModel>>(
 final collegeBusesStreamProvider =
     StreamProvider.family<List<BusModel>, String>((ref, collegeId) {
       final api = ref.watch(apiServiceProvider);
-      final socket = ref.watch(socketServiceProvider);
+      final socket = ref.read(socketServiceProvider);
 
       return Stream.multi((controller) async {
         Future<void> fetch() async {
@@ -96,7 +96,7 @@ final busNumbersProvider = StreamProvider.family<List<String>, String>((
 final collegeBusLocationsProvider =
     StreamProvider.family<List<BusLocationModel>, String>((ref, collegeId) {
       final api = ref.watch(apiServiceProvider);
-      final socket = ref.watch(socketServiceProvider);
+      final socket = ref.read(socketServiceProvider);
 
       return Stream.multi((controller) async {
         List<BusLocationModel> currentLocations = [];
@@ -186,3 +186,8 @@ final driverBusProvider = StreamProvider.family<BusModel?, String>((
     };
   });
 });
+
+
+
+
+

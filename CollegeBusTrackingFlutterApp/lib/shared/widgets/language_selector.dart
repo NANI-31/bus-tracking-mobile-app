@@ -13,21 +13,21 @@ class LanguageSelector extends ConsumerWidget {
     return ClipRRect(
       borderRadius: BorderRadius.circular(24),
       child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+        filter: ImageFilter.blur(sigmaX: 10.0, sigmaY: 10.0),
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 12),
           decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.1),
+            color: Colors.white.withOpacity(0.1),
             borderRadius: BorderRadius.circular(24),
             border: Border.all(
-              color: Colors.white.withValues(alpha: 0.2),
-              width: 1,
+              color: Colors.white.withOpacity(0.2),
+              width: 1.0,
             ),
           ),
           child: DropdownButtonHideUnderline(
             child: DropdownButton<String>(
               value: localeService.languageCode,
-              dropdownColor: Colors.black.withValues(alpha: 0.85),
+              dropdownColor: Colors.black.withOpacity(0.85),
               icon: const Icon(
                 Icons.keyboard_arrow_down_rounded,
                 color: Colors.white,
@@ -85,3 +85,8 @@ class LanguageSelector extends ConsumerWidget {
     );
   }
 }
+
+
+
+
+

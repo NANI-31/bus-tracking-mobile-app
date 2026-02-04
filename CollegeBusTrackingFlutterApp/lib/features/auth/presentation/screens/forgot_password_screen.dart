@@ -100,7 +100,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
               .text
               .size(16)
               .color(
-                Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+                Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
               )
               .center
               .makeCentered(),
@@ -165,7 +165,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
               ])
               .p(AppSizes.paddingMedium)
               .box
-              .color(AppColors.primary.withValues(alpha: 0.1))
+              .color(AppColors.primary.withOpacity(0.1))
               .rounded
               .make(),
         ]).p(AppSizes.paddingLarge).scrollVertical().safeArea(),
@@ -182,3 +182,8 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
     );
   }
 }
+
+
+
+
+

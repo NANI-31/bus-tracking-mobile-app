@@ -32,7 +32,7 @@ class TestNotificationButton extends StatelessWidget {
                 height: 20,
                 width: 20,
                 child: CircularProgressIndicator(
-                  strokeWidth: 2,
+                  strokeWidth: 2.0,
                   valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                 ),
               )
@@ -41,3 +41,8 @@ class TestNotificationButton extends StatelessWidget {
     );
   }
 }
+
+
+
+
+

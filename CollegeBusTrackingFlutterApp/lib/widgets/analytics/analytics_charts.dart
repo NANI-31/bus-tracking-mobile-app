@@ -91,7 +91,7 @@ class AppPieChart extends StatelessWidget {
               height: 12,
               decoration: BoxDecoration(color: color, shape: BoxShape.circle),
             ),
-            const SizedBox(width: 4),
+            const SizedBox(width: 4.0),
             Text(entry.key, style: const TextStyle(fontSize: 12)),
           ],
         );
@@ -145,12 +145,12 @@ class AppLineChart extends StatelessWidget {
                   spots: spots,
                   isCurved: true,
                   color: lineColor,
-                  barWidth: 3,
+                  barWidth: 3.0,
                   isStrokeCapRound: true,
                   dotData: const FlDotData(show: false),
                   belowBarData: BarAreaData(
                     show: true,
-                    color: lineColor.withValues(alpha: 0.1),
+                    color: lineColor.withOpacity(0.1),
                   ),
                 ),
               ],

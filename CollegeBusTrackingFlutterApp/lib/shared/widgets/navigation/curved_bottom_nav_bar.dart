@@ -21,8 +21,12 @@ class CurvedBottomNavBar extends StatefulWidget {
     required this.currentIndex,
     required this.onTap,
     this.backgroundColor = Colors.white,
-    this.activeColor = const Color(0xFF6366F1), // Indigo-like color from image
-    this.inactiveColor = Colors.grey,
+    this.activeColor = const Color(
+      0xFF00C6E6,
+    ), // Updated to match primary color
+    this.inactiveColor = const Color(
+      0xFFBFC0D1,
+    ), // Updated to match secondary color
   });
 
   @override
@@ -82,7 +86,7 @@ class _CurvedBottomNavBarState extends State<CurvedBottomNavBar>
         color: Colors.transparent,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.1),
+            color: Colors.black.withOpacity(0.1),
             blurRadius: 20,
             offset: const Offset(0, -5),
           ),
@@ -114,7 +118,7 @@ class _CurvedBottomNavBarState extends State<CurvedBottomNavBar>
                   (itemWidth * _animation.value) + (itemWidth / 2);
               return Positioned(
                 left: centerX - 30, // 30 is half of circle width
-                top: -15, // Lift above the bar
+                top: -5, // Lift above the bar
                 child: Container(
                   width: 60,
                   height: 60,
@@ -123,7 +127,7 @@ class _CurvedBottomNavBarState extends State<CurvedBottomNavBar>
                     shape: BoxShape.circle,
                     boxShadow: [
                       BoxShadow(
-                        color: widget.activeColor.withValues(alpha: 0.4),
+                        color: widget.activeColor.withOpacity(0.2),
                         blurRadius: 15,
                         offset: const Offset(0, 8),
                       ),
@@ -217,8 +221,8 @@ class _BottomBarPainter extends CustomPainter {
   Path _getPath(Size size) {
     final double itemWidth = size.width / count;
     final double curveCenter = (itemWidth * index) + (itemWidth / 2);
-    final double curveWidth = 120; // Re-tuned width for smoothness
-    final double curveHeight = 35;
+    final double curveWidth = 80; // Re-tuned width for smoothness
+    final double curveHeight = 25;
 
     final Path path = Path();
     path.moveTo(0, 0);
@@ -257,3 +261,8 @@ class _BottomBarPainter extends CustomPainter {
     return oldDelegate.index != index;
   }
 }
+
+
+
+
+

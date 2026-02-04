@@ -105,7 +105,7 @@ class _RouteSelectionModalState extends State<RouteSelectionModal> {
                 decoration: BoxDecoration(
                   border: Border(
                     bottom: BorderSide(
-                      color: Colors.grey.withValues(alpha: 0.2),
+                      color: Colors.grey.withOpacity(0.2),
                     ),
                   ),
                 ),
@@ -142,7 +142,7 @@ class _RouteSelectionModalState extends State<RouteSelectionModal> {
                     fillColor: Theme.of(context)
                         .colorScheme
                         .surfaceContainerHighest
-                        .withValues(alpha: 0.2),
+                        .withOpacity(0.2),
                   ),
                 ),
               ),
@@ -200,9 +200,7 @@ class _RouteSelectionModalState extends State<RouteSelectionModal> {
                                           vertical: 2,
                                         ),
                                         decoration: BoxDecoration(
-                                          color: AppColors.success.withValues(
-                                            alpha: 0.1,
-                                          ),
+                                          color: AppColors.success.withOpacity(0.1,),
                                           borderRadius: BorderRadius.circular(
                                             12,
                                           ),
@@ -237,7 +235,7 @@ class _RouteSelectionModalState extends State<RouteSelectionModal> {
                                       )
                                     : null,
                                 tileColor: isSelected
-                                    ? AppColors.primary.withValues(alpha: 0.1)
+                                    ? AppColors.primary.withOpacity(0.1)
                                     : null,
                                 onTap: () => _handleRouteSelection(route),
                                 shape: RoundedRectangleBorder(
@@ -260,7 +258,7 @@ class _RouteSelectionModalState extends State<RouteSelectionModal> {
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.1),
+                      color: Colors.black.withOpacity(0.1),
                       blurRadius: 10,
                       offset: const Offset(0, -2),
                     ),
@@ -327,3 +325,8 @@ class _RouteSelectionModalState extends State<RouteSelectionModal> {
     );
   }
 }
+
+
+
+
+

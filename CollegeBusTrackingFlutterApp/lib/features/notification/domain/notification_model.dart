@@ -1,3 +1,5 @@
+import 'package:collegebus/core/utils/type_converters.dart';
+
 class NotificationModel {
   final String id;
   final String senderId;
@@ -27,7 +29,7 @@ class NotificationModel {
       message: map['message'] ?? '',
       type: map['type'] ?? '',
       timestamp: DateTime.parse(map['timestamp']),
-      isRead: map['isRead'] ?? false,
+      isRead: parseBool(map['isRead'], false),
       data: map['data'],
     );
   }
@@ -44,3 +46,4 @@ class NotificationModel {
     };
   }
 }
+

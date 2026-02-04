@@ -46,78 +46,80 @@ class DriverManagementTab extends ConsumerWidget {
     final l10n = coord_l10n.CoordinatorLocalizations.of(context)!;
     return DefaultTabController(
       length: 4,
-      child: VStack([
-        Container(
-          margin: const EdgeInsets.all(AppSizes.paddingMedium),
-          decoration: BoxDecoration(
-            color: const Color(0xFF2C3E50), // Dark background for the capsule
-            borderRadius: BorderRadius.circular(50),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.1),
-                blurRadius: 10,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          child: TabBar(
-            isScrollable: false, // Fit all in one view
-            labelColor: Colors.white,
-            unselectedLabelColor: Colors.grey.shade400,
-            indicatorSize: TabBarIndicatorSize.tab,
-            indicator: BoxDecoration(
-              color: AppColors.primary, // Active pill color
+      child: Column(
+        children: [
+          Container(
+            margin: const EdgeInsets.all(AppSizes.paddingMedium),
+            decoration: BoxDecoration(
+              color: const Color(0xFF2C3E50), // Dark background for the capsule
               borderRadius: BorderRadius.circular(50),
               boxShadow: [
                 BoxShadow(
-                  color: AppColors.primary.withValues(alpha: 0.4),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
+                  color: Colors.black.withOpacity(0.1),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
                 ),
               ],
             ),
-            dividerColor: Colors.transparent,
-            labelPadding: EdgeInsets.zero,
-            tabs: [
-              Tab(text: l10n.all),
-              Tab(text: l10n.assigned),
-              Tab(text: l10n.accepted),
-              Tab(text: l10n.approvals),
-            ],
-          ).p4(), // Padding inside the capsule
-        ),
-        Expanded(
-          child: TabBarView(
-            children: [
-              _buildDriversByStatus(
-                context,
-                ref,
-                'all',
-                allDrivers,
-                buses,
-                onlineDriverIds,
+            child: TabBar(
+              isScrollable: false, // Fit all in one view
+              labelColor: Colors.white,
+              unselectedLabelColor: Colors.grey.shade400,
+              indicatorSize: TabBarIndicatorSize.tab,
+              indicator: BoxDecoration(
+                color: AppColors.primary, // Active pill color
+                borderRadius: BorderRadius.circular(50),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.primary.withOpacity(0.4),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
               ),
-              _buildDriversByStatus(
-                context,
-                ref,
-                'assigned',
-                allDrivers,
-                buses,
-                onlineDriverIds,
-              ),
-              _buildDriversByStatus(
-                context,
-                ref,
-                'accepted',
-                allDrivers,
-                buses,
-                onlineDriverIds,
-              ),
-              _buildPendingApprovals(context, ref, pendingApprovals),
-            ],
+              dividerColor: Colors.transparent,
+              labelPadding: EdgeInsets.zero,
+              tabs: [
+                Tab(text: l10n.all),
+                Tab(text: l10n.assigned),
+                Tab(text: l10n.accepted),
+                Tab(text: l10n.approvals),
+              ],
+            ).p4(), // Padding inside the capsule
           ),
-        ),
-      ]),
+          Expanded(
+            child: TabBarView(
+              children: [
+                _buildDriversByStatus(
+                  context,
+                  ref,
+                  'all',
+                  allDrivers,
+                  buses,
+                  onlineDriverIds,
+                ),
+                _buildDriversByStatus(
+                  context,
+                  ref,
+                  'assigned',
+                  allDrivers,
+                  buses,
+                  onlineDriverIds,
+                ),
+                _buildDriversByStatus(
+                  context,
+                  ref,
+                  'accepted',
+                  allDrivers,
+                  buses,
+                  onlineDriverIds,
+                ),
+                _buildPendingApprovals(context, ref, pendingApprovals),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -241,11 +243,11 @@ class DriverManagementTab extends ConsumerWidget {
         color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(24),
         border: Border.all(
-          color: Theme.of(context).dividerColor.withValues(alpha: 0.1),
+          color: Theme.of(context).dividerColor.withOpacity(0.1),
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
+            color: Colors.black.withOpacity(0.05),
             blurRadius: 20,
             offset: const Offset(0, 10),
           ),
@@ -255,7 +257,7 @@ class DriverManagementTab extends ConsumerWidget {
           end: Alignment.bottomRight,
           colors: [
             Theme.of(context).cardColor,
-            Theme.of(context).cardColor.withValues(alpha: 0.8),
+            Theme.of(context).cardColor.withOpacity(0.8),
           ],
         ),
       ),
@@ -311,7 +313,7 @@ class DriverManagementTab extends ConsumerWidget {
               subtitle: _buildDriverStatusBadge(context, status).pOnly(top: 8),
               children: [
                 Divider(
-                  color: Theme.of(context).dividerColor.withValues(alpha: 0.05),
+                  color: Theme.of(context).dividerColor.withOpacity(0.05),
                 ),
                 12.heightBox,
                 HStack([
@@ -335,7 +337,7 @@ class DriverManagementTab extends ConsumerWidget {
                         side: BorderSide(
                           color: Theme.of(
                             context,
-                          ).dividerColor.withValues(alpha: 0.1),
+                          ).dividerColor.withOpacity(0.1),
                         ),
                       ),
                     ),
@@ -366,7 +368,7 @@ class DriverManagementTab extends ConsumerWidget {
                         side: BorderSide(
                           color: Theme.of(
                             context,
-                          ).dividerColor.withValues(alpha: 0.1),
+                          ).dividerColor.withOpacity(0.1),
                         ),
                       ),
                     ),
@@ -398,7 +400,7 @@ class DriverManagementTab extends ConsumerWidget {
                               BoxShadow(
                                 color: const Color(
                                   0xFF2E3192,
-                                ).withValues(alpha: 0.3),
+                                ).withOpacity(0.3),
                                 blurRadius: 10,
                                 offset: const Offset(0, 4),
                               ),
@@ -472,15 +474,15 @@ class DriverManagementTab extends ConsumerWidget {
             border: Border.all(
               color: isOnline
                   ? Colors.greenAccent
-                  : Colors.grey.withValues(alpha: 0.2),
-              width: 2,
+                  : Colors.grey.withOpacity(0.2),
+              width: 2.0,
             ),
           ),
           child: CircleAvatar(
             radius: 24,
             backgroundColor: Theme.of(
               context,
-            ).primaryColor.withValues(alpha: 0.1),
+            ).primaryColor.withOpacity(0.1),
             child: (driver.fullName.isNotEmpty ? driver.fullName[0] : '?').text
                 .size(20)
                 .color(Theme.of(context).primaryColor)
@@ -498,10 +500,10 @@ class DriverManagementTab extends ConsumerWidget {
               decoration: BoxDecoration(
                 color: Colors.greenAccent,
                 shape: BoxShape.circle,
-                border: Border.all(color: Colors.white, width: 2),
+                border: Border.all(color: Colors.white, width: 2.0),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.greenAccent.withValues(alpha: 0.4),
+                    color: Colors.greenAccent.withOpacity(0.4),
                     blurRadius: 4,
                   ),
                 ],
@@ -542,13 +544,13 @@ class DriverManagementTab extends ConsumerWidget {
           label.text
               .size(12)
               .semiBold
-              .color(color.withValues(alpha: 0.9))
+              .color(color.withOpacity(0.9))
               .make(),
         ])
         .pSymmetric(h: 12, v: 6)
         .box
-        .color(color.withValues(alpha: 0.08))
-        .border(color: color.withValues(alpha: 0.2))
+        .color(color.withOpacity(0.08))
+        .border(color: color.withOpacity(0.2))
         .withRounded(value: 50)
         .make();
   }
@@ -559,13 +561,13 @@ class DriverManagementTab extends ConsumerWidget {
         Container(
           padding: const EdgeInsets.all(24),
           decoration: BoxDecoration(
-            color: Theme.of(context).primaryColor.withValues(alpha: 0.05),
+            color: Theme.of(context).primaryColor.withOpacity(0.05),
             shape: BoxShape.circle,
           ),
           child: Icon(
             icon,
             size: 48,
-            color: Theme.of(context).primaryColor.withValues(alpha: 0.5),
+            color: Theme.of(context).primaryColor.withOpacity(0.5),
           ),
         ),
         24.heightBox,
@@ -576,3 +578,8 @@ class DriverManagementTab extends ConsumerWidget {
     ).centered();
   }
 }
+
+
+
+
+

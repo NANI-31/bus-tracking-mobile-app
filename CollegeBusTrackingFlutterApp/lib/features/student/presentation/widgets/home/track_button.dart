@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:collegebus/core/constants/constants.dart';
-import 'package:velocity_x/velocity_x.dart';
 
 class TrackBusButton extends StatelessWidget {
   final VoidCallback onTap;
@@ -9,27 +8,45 @@ class TrackBusButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      height: 64,
-      decoration: BoxDecoration(
-        color: AppColors.primary,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.primary.withValues(alpha: 0.3),
-            blurRadius: 15,
-            offset: const Offset(0, 8),
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: double.infinity,
+        height: 64,
+        decoration: BoxDecoration(
+          color: AppColors.primary,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.primary.withOpacity(0.3),
+              blurRadius: 15,
+              offset: const Offset(0, 8),
+            ),
+          ],
+        ),
+        child: const Center(
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.near_me_rounded, color: Colors.white, size: 24),
+              SizedBox(width: 12),
+              Text(
+                "Track Bus Live",
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
-      child: Center(
-        child: HStack([
-          const Icon(Icons.near_me_rounded, color: Colors.white, size: 24),
-          12.widthBox,
-          "Track Bus Live".text.white.xl.bold.make(),
-        ]),
-      ),
-    ).onTap(onTap);
+    );
   }
 }
+
+
+
+
+

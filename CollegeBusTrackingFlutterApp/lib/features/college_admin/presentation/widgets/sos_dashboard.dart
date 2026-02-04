@@ -78,7 +78,7 @@ class _SosDashboardState extends ConsumerState<SosDashboard> {
           child: Row(
             children: [
               const Icon(Icons.warning_amber_rounded, color: Colors.red),
-              const SizedBox(width: 8),
+              const SizedBox(width: 8.0),
               Text(
                 'Active Alerts (${activeSos.length})',
                 style: const TextStyle(
@@ -129,7 +129,7 @@ class _SosDashboardState extends ConsumerState<SosDashboard> {
           child: Row(
             children: [
               const Icon(Icons.assignment, color: Colors.blue),
-              const SizedBox(width: 8),
+              const SizedBox(width: 8.0),
               Text(
                 'Incident Archives (${logs.length})',
                 style: const TextStyle(
@@ -203,7 +203,7 @@ class _SosDashboardState extends ConsumerState<SosDashboard> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(icon, size: 64, color: color.withValues(alpha: 0.5)),
+          Icon(icon, size: 64, color: color.withOpacity(0.5)),
           const SizedBox(height: 16),
           Text(
             title,
@@ -228,7 +228,7 @@ class _SosDashboardState extends ConsumerState<SosDashboard> {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
         side: isSelected
-            ? BorderSide(color: Colors.red.shade300, width: 2)
+            ? BorderSide(color: Colors.red.shade300, width: 2.0)
             : BorderSide.none,
       ),
       child: Column(
@@ -417,3 +417,8 @@ class _SosDashboardState extends ConsumerState<SosDashboard> {
     );
   }
 }
+
+
+
+
+

@@ -1,3 +1,5 @@
+import 'package:collegebus/core/utils/type_converters.dart';
+
 class CollegeModel {
   final String id;
   final String name;
@@ -12,6 +14,8 @@ class CollegeModel {
   final Map<String, dynamic>? settings; // College-specific settings
   final DateTime? suspendedAt;
   final String? suspensionReason;
+  final int shiftCount;
+  final List<ShiftConfig> shifts;
 
   CollegeModel({
     required this.id,
@@ -26,6 +30,8 @@ class CollegeModel {
     this.settings,
     this.suspendedAt,
     this.suspensionReason,
+    this.shiftCount = 1,
+    this.shifts = const [],
   });
 
   factory CollegeModel.fromMap(Map<String, dynamic> map, String id) {
@@ -38,12 +44,12 @@ class CollegeModel {
       id: id,
       name: map['name'] ?? '',
       allowedDomains: List<String>.from(map['allowedDomains'] ?? []),
-      verified: map['verified'] ?? false,
+      verified: parseBool(map['verified'], false),
       createdBy: map['createdBy'] ?? '',
       createdAt: parseDate(map['createdAt']),
       updatedAt: map['updatedAt'] != null ? parseDate(map['updatedAt']) : null,
       adminId: map['adminId'],
-      suspended: map['suspended'] ?? false,
+      suspended: parseBool(map['suspended'], false),
       settings: map['settings'] != null
           ? Map<String, dynamic>.from(map['settings'])
           : null,
@@ -51,6 +57,12 @@ class CollegeModel {
           ? parseDate(map['suspendedAt'])
           : null,
       suspensionReason: map['suspensionReason'],
+      shiftCount: map['shiftCount'] ?? 1,
+      shifts:
+          (map['shifts'] as List<dynamic>?)
+              ?.map((s) => ShiftConfig.fromMap(s))
+              .toList() ??
+          [],
     );
   }
 
@@ -67,6 +79,8 @@ class CollegeModel {
       'settings': settings,
       'suspendedAt': suspendedAt?.toIso8601String(),
       'suspensionReason': suspensionReason,
+      'shiftCount': shiftCount,
+      'shifts': shifts.map((s) => s.toMap()).toList(),
     };
   }
 
@@ -83,6 +97,8 @@ class CollegeModel {
     Map<String, dynamic>? settings,
     DateTime? suspendedAt,
     String? suspensionReason,
+    int? shiftCount,
+    List<ShiftConfig>? shifts,
   }) {
     return CollegeModel(
       id: id ?? this.id,
@@ -97,6 +113,8 @@ class CollegeModel {
       settings: settings ?? this.settings,
       suspendedAt: suspendedAt ?? this.suspendedAt,
       suspensionReason: suspensionReason ?? this.suspensionReason,
+      shiftCount: shiftCount ?? this.shiftCount,
+      shifts: shifts ?? this.shifts,
     );
   }
 
@@ -111,3 +129,36 @@ class CollegeModel {
     return null;
   }
 }
+
+class ShiftConfig {
+  final String shiftId;
+  final String name;
+  final String? pickupTime;
+  final String? dropTime;
+
+  ShiftConfig({
+    required this.shiftId,
+    required this.name,
+    this.pickupTime,
+    this.dropTime,
+  });
+
+  factory ShiftConfig.fromMap(Map<String, dynamic> map) {
+    return ShiftConfig(
+      shiftId: map['shiftId'] ?? '',
+      name: map['name'] ?? '',
+      pickupTime: map['pickupTime'],
+      dropTime: map['dropTime'],
+    );
+  }
+
+  Map<String, dynamic> toMap() {
+    return {
+      'shiftId': shiftId,
+      'name': name,
+      'pickupTime': pickupTime,
+      'dropTime': dropTime,
+    };
+  }
+}
+

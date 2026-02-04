@@ -103,8 +103,8 @@ class SocketService extends ChangeNotifier {
     final options = io.OptionBuilder()
         .setTransports(['websocket', 'polling'])
         .enableAutoConnect()
-        .setReconnectionAttempts(10)
-        .setReconnectionDelay(5000);
+        .setReconnectionAttempts(20)
+        .setReconnectionDelay(10000); // 10s wait between retries
 
     if (_token != null) {
       options.setAuth({'token': _token});
@@ -137,14 +137,18 @@ class SocketService extends ChangeNotifier {
     });
 
     _socket!.onConnectError((err) {
-      _isConnecting = false;
-      notifyListeners();
+      if (_isConnecting) {
+        _isConnecting = false;
+        notifyListeners();
+      }
       AppLogger.e('[SocketService] Connection Error: $err');
     });
 
     _socket!.onError((err) {
-      _isConnecting = false;
-      notifyListeners();
+      if (_isConnecting) {
+        _isConnecting = false;
+        notifyListeners();
+      }
       AppLogger.e('[SocketService] Error: $err');
     });
 
@@ -311,3 +315,8 @@ class SocketService extends ChangeNotifier {
     super.dispose();
   }
 }
+
+
+
+
+

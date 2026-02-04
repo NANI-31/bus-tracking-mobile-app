@@ -1,4 +1,5 @@
 import 'package:collegebus/core/constants/constants.dart';
+import 'package:collegebus/core/utils/type_converters.dart';
 import 'package:json_annotation/json_annotation.dart';
 
 part 'user_model.g.dart';
@@ -31,6 +32,8 @@ class UserModel {
   final String? fcmToken;
   @JsonKey(defaultValue: 'en')
   final String language;
+  @JsonKey(defaultValue: false)
+  final bool isPremium;
 
   UserModel({
     required this.id,
@@ -53,6 +56,7 @@ class UserModel {
     this.stopLocation,
     this.fcmToken,
     this.language = 'en',
+    this.isPremium = false,
   });
 
   factory UserModel.fromJson(Map<String, dynamic> json) =>
@@ -67,6 +71,12 @@ class UserModel {
     if (map['collegeId'] == null) map['collegeId'] = '';
     if (map['fullName'] == null) map['fullName'] = 'Unknown User';
     if (map['email'] == null) map['email'] = '';
+
+    // Sanitize boolean fields before passing to fromJson
+    map['approved'] = parseBool(map['approved'], false);
+    map['emailVerified'] = parseBool(map['emailVerified'], false);
+    map['needsManualApproval'] = parseBool(map['needsManualApproval'], false);
+    map['isPremium'] = parseBool(map['isPremium'], false);
 
     return UserModel.fromJson(map);
   }
@@ -96,6 +106,7 @@ class UserModel {
     Map<String, double>? stopLocation,
     String? fcmToken,
     String? language,
+    bool? isPremium,
   }) {
     return UserModel(
       id: id ?? this.id,
@@ -118,6 +129,7 @@ class UserModel {
       stopLocation: stopLocation ?? this.stopLocation,
       fcmToken: fcmToken ?? this.fcmToken,
       language: language ?? this.language,
+      isPremium: isPremium ?? this.isPremium,
     );
   }
 }

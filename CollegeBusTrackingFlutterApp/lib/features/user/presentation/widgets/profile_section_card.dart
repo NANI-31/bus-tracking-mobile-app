@@ -17,7 +17,7 @@ class ProfileSectionCard extends StatelessWidget {
             .uppercase
             .letterSpacing(1.2)
             .color(
-              Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
+              Theme.of(context).colorScheme.onSurface.withOpacity(0.5),
             )
             .make()
             .pOnly(bottom: 12, left: 4),
@@ -29,12 +29,24 @@ class ProfileSectionCard extends StatelessWidget {
           border: Border.all(
             color: Theme.of(
               context,
-            ).colorScheme.onSurface.withValues(alpha: 0.05),
-            width: 1,
+            ).colorScheme.onSurface.withOpacity(0.05),
+            width: 1.0,
           ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.2),
+              blurRadius: 16,
+              offset: const Offset(0, 8),
+            ),
+          ],
         ),
         child: VStack(children),
       ),
     ]);
   }
 }
+
+
+
+
+

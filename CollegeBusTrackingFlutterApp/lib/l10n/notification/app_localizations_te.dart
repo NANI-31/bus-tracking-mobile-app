@@ -29,3 +29,8 @@ class NotificationLocalizationsTe extends NotificationLocalizations {
   @override
   String get busOnRoute => 'బస్సు మార్గంలో ఉంది';
 }
+
+
+
+
+

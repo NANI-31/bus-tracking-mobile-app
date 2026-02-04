@@ -19,6 +19,7 @@ flutter run -d 192.168.29.22:5555 --dart-define=API_HOST=192.168.29.22 --dart-de
 flutter connection one device 
 
 adb reverse tcp:5000 tcp:5000
+adb -s 10BDAB187B0004J reverse tcp:5000 tcp:5000
 
 wifi:
     adb tcpip 5555 
@@ -33,10 +34,10 @@ wifi:(run individullay or combine of 1 and 2 cmds)
     adb -s GYTG8L7TFMIVSS6P tcpip 5555
     make sure wifi debugging enable and run individullay then disconnect cables.
     adb connect 192.168.29.181:5555
-    adb connect 192.168.29.22:5555
+    adb connect 192.168.29.33:5555
 
     flutter run -d 192.168.29.181:5555 --dart-define=API_HOST=192.168.29.181 --dart-define=API_PORT=5000
-flutter run -d 192.168.29.22:5555 --dart-define=API_HOST=192.168.29.22 --dart-define=API_PORT=5000
+flutter run -d 192.168.29.33:5555 --dart-define=API_HOST=192.168.29.33 --dart-define=API_PORT=5000
 
 const apiHost =
     String.fromEnvironment('API_HOST', defaultValue: 'localhost');

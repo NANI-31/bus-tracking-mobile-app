@@ -108,11 +108,11 @@ class _DriverHistoryScreenState extends ConsumerState<DriverHistoryScreen> {
         color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(24),
         border: Border.all(
-          color: Theme.of(context).dividerColor.withValues(alpha: 0.1),
+          color: Theme.of(context).dividerColor.withOpacity(0.1),
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
+            color: Colors.black.withOpacity(0.05),
             blurRadius: 20,
             offset: const Offset(0, 10),
           ),
@@ -122,7 +122,7 @@ class _DriverHistoryScreenState extends ConsumerState<DriverHistoryScreen> {
           end: Alignment.bottomRight,
           colors: [
             Theme.of(context).cardColor,
-            Theme.of(context).cardColor.withValues(alpha: 0.8),
+            Theme.of(context).cardColor.withOpacity(0.8),
           ],
         ),
       ),
@@ -133,13 +133,13 @@ class _DriverHistoryScreenState extends ConsumerState<DriverHistoryScreen> {
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               border: Border.all(
-                color: Theme.of(context).primaryColor.withValues(alpha: 0.3),
-                width: 2,
+                color: Theme.of(context).primaryColor.withOpacity(0.3),
+                width: 2.0,
               ),
             ),
             child: CircleAvatar(
               radius: 28,
-              backgroundColor: Theme.of(context).primaryColor.withValues(alpha: 0.1),
+              backgroundColor: Theme.of(context).primaryColor.withOpacity(0.1),
               child: Text(
                 widget.driver.fullName.isNotEmpty
                     ? widget.driver.fullName[0]
@@ -169,7 +169,7 @@ class _DriverHistoryScreenState extends ConsumerState<DriverHistoryScreen> {
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                     color: Theme.of(
                       context,
-                    ).textTheme.bodySmall?.color?.withValues(alpha: 0.7),
+                    ).textTheme.bodySmall?.color?.withOpacity(0.7),
                   ),
                 ),
               ],
@@ -187,7 +187,7 @@ class _DriverHistoryScreenState extends ConsumerState<DriverHistoryScreen> {
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         itemCount: _filterOptions.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 8),
+        separatorBuilder: (_, __) => const SizedBox(width: 8.0),
         itemBuilder: (context, index) {
           final filter = _filterOptions[index];
           final isSelected = _selectedFilter == filter;
@@ -213,7 +213,7 @@ class _DriverHistoryScreenState extends ConsumerState<DriverHistoryScreen> {
               side: BorderSide(
                 color: isSelected
                     ? Theme.of(context).primaryColor
-                    : Theme.of(context).dividerColor.withValues(alpha: 0.2),
+                    : Theme.of(context).dividerColor.withOpacity(0.2),
               ),
             ),
             elevation: isSelected ? 2 : 0,
@@ -278,14 +278,14 @@ class _DriverHistoryScreenState extends ConsumerState<DriverHistoryScreen> {
               if (!isLast)
                 Expanded(
                   child: Container(
-                    width: 2,
+                    width: 2.0,
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
                         begin: Alignment.topCenter,
                         end: Alignment.bottomCenter,
                         colors: [
-                          Theme.of(context).dividerColor.withValues(alpha: 0.3),
-                          Theme.of(context).dividerColor.withValues(alpha: 0.1),
+                          Theme.of(context).dividerColor.withOpacity(0.3),
+                          Theme.of(context).dividerColor.withOpacity(0.1),
                         ],
                       ),
                     ),
@@ -303,11 +303,11 @@ class _DriverHistoryScreenState extends ConsumerState<DriverHistoryScreen> {
                 color: Theme.of(context).cardColor,
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(
-                  color: Theme.of(context).dividerColor.withValues(alpha: 0.1),
+                  color: Theme.of(context).dividerColor.withOpacity(0.1),
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.03),
+                    color: Colors.black.withOpacity(0.03),
                     blurRadius: 10,
                     offset: const Offset(0, 4),
                   ),
@@ -321,7 +321,7 @@ class _DriverHistoryScreenState extends ConsumerState<DriverHistoryScreen> {
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
                       color: Theme.of(
                         context,
-                      ).textTheme.bodySmall?.color?.withValues(alpha: 0.6),
+                      ).textTheme.bodySmall?.color?.withOpacity(0.6),
                     ),
                   ),
                   6.heightBox,
@@ -337,7 +337,7 @@ class _DriverHistoryScreenState extends ConsumerState<DriverHistoryScreen> {
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                       color: Theme.of(
                         context,
-                      ).textTheme.bodyMedium?.color?.withValues(alpha: 0.8),
+                      ).textTheme.bodyMedium?.color?.withOpacity(0.8),
                     ),
                   ),
                   if (log.bus != null) ...[
@@ -348,7 +348,7 @@ class _DriverHistoryScreenState extends ConsumerState<DriverHistoryScreen> {
                         vertical: 4,
                       ),
                       decoration: BoxDecoration(
-                        color: Theme.of(context).primaryColor.withValues(alpha: 0.1),
+                        color: Theme.of(context).primaryColor.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Text(
@@ -395,12 +395,12 @@ class _DriverHistoryScreenState extends ConsumerState<DriverHistoryScreen> {
     return Container(
       padding: const EdgeInsets.all(8),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
+        color: color.withOpacity(0.1),
         shape: BoxShape.circle,
-        border: Border.all(color: color.withValues(alpha: 0.3), width: 2),
+        border: Border.all(color: color.withOpacity(0.3), width: 2.0),
         boxShadow: [
           BoxShadow(
-            color: color.withValues(alpha: 0.2),
+            color: color.withOpacity(0.2),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -418,13 +418,13 @@ class _DriverHistoryScreenState extends ConsumerState<DriverHistoryScreen> {
           Container(
             padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
-              color: Theme.of(context).primaryColor.withValues(alpha: 0.05),
+              color: Theme.of(context).primaryColor.withOpacity(0.05),
               shape: BoxShape.circle,
             ),
             child: Icon(
               Icons.history,
               size: 48,
-              color: Theme.of(context).primaryColor.withValues(alpha: 0.5),
+              color: Theme.of(context).primaryColor.withOpacity(0.5),
             ),
           ),
           24.heightBox,
@@ -433,7 +433,7 @@ class _DriverHistoryScreenState extends ConsumerState<DriverHistoryScreen> {
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
               color: Theme.of(
                 context,
-              ).textTheme.bodyMedium?.color?.withValues(alpha: 0.6),
+              ).textTheme.bodyMedium?.color?.withOpacity(0.6),
             ),
           ),
           8.heightBox,
@@ -442,7 +442,7 @@ class _DriverHistoryScreenState extends ConsumerState<DriverHistoryScreen> {
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
               color: Theme.of(
                 context,
-              ).textTheme.bodySmall?.color?.withValues(alpha: 0.5),
+              ).textTheme.bodySmall?.color?.withOpacity(0.5),
             ),
           ),
         ],
@@ -465,3 +465,8 @@ class _DriverHistoryScreenState extends ConsumerState<DriverHistoryScreen> {
     }
   }
 }
+
+
+
+
+

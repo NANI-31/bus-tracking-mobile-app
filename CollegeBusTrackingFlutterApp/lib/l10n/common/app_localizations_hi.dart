@@ -155,3 +155,8 @@ class CommonLocalizationsHi extends CommonLocalizations {
   @override
   String get governingLawDesc => 'इन नियमों और शर्तों को स्थानीय कानूनों के अनुसार शासित और समझा जाता है और आप उस राज्य या स्थान में अदालतों के अनन्य क्षेत्राधिकार के लिए अपरिवर्तनीय रूप से प्रस्तुत करते हैं।';
 }
+
+
+
+
+

@@ -120,7 +120,7 @@ class _SOSButtonState extends ConsumerState<SOSButton>
             height: _isPressed ? 90 : 80,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: AppColors.error.withValues(alpha: 0.3),
+              color: AppColors.error.withOpacity(0.3),
             ),
           ),
           // Actual Button
@@ -132,7 +132,7 @@ class _SOSButtonState extends ConsumerState<SOSButton>
               color: AppColors.error,
               boxShadow: [
                 BoxShadow(
-                  color: AppColors.error.withValues(alpha: 0.4),
+                  color: AppColors.error.withOpacity(0.4),
                   blurRadius: 10,
                   spreadRadius: 2,
                 ),
@@ -163,7 +163,7 @@ class _SOSButtonState extends ConsumerState<SOSButton>
                 builder: (context, child) {
                   return CircularProgressIndicator(
                     value: _controller.value,
-                    strokeWidth: 6,
+                    strokeWidth: 6.0,
                     color: Colors.white,
                     backgroundColor: Colors.transparent,
                   );
@@ -175,3 +175,8 @@ class _SOSButtonState extends ConsumerState<SOSButton>
     );
   }
 }
+
+
+
+
+

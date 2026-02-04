@@ -70,7 +70,7 @@ class _BroadcastModalState extends ConsumerState<BroadcastModal> {
               Row(
                 children: [
                   Icon(Icons.broadcast_on_home, color: AppColors.primary),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: 8.0),
                   'Broadcast Message'.text.bold.xl2.make(),
                 ],
               ),
@@ -119,7 +119,7 @@ class _BroadcastModalState extends ConsumerState<BroadcastModal> {
                             height: 20,
                             width: 20,
                             child: CircularProgressIndicator(
-                              strokeWidth: 2,
+                              strokeWidth: 2.0,
                               color: Colors.white,
                             ),
                           )
@@ -134,3 +134,8 @@ class _BroadcastModalState extends ConsumerState<BroadcastModal> {
     );
   }
 }
+
+
+
+
+

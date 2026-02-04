@@ -41,3 +41,8 @@ class ResetPasswordLocalizationsEn extends ResetPasswordLocalizations {
   @override
   String get reenterPassword => 'Re-enter your password';
 }
+
+
+
+
+

@@ -39,7 +39,7 @@ class CustomButton extends StatelessWidget {
               style: OutlinedButton.styleFrom(
                 side: BorderSide(
                   color: backgroundColor ?? AppColors.primary,
-                  width: 2,
+                  width: 2.0,
                 ),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(
@@ -72,7 +72,7 @@ class CustomButton extends StatelessWidget {
         width: 20,
         height: 20,
         child: CircularProgressIndicator(
-          strokeWidth: 2,
+          strokeWidth: 2.0,
           valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
         ),
       );
@@ -93,3 +93,8 @@ class CustomButton extends StatelessWidget {
     return text.text.size(16).semiBold.color(contentColor).make();
   }
 }
+
+
+
+
+

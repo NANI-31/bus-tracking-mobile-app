@@ -3,8 +3,10 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:velocity_x/velocity_x.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:collegebus/core/providers/service_providers.dart';
 
-class CommonMapView extends StatelessWidget {
+class CommonMapView extends ConsumerStatefulWidget {
   final LatLng? currentLocation;
   final Set<Marker> markers;
   final Set<Polyline> polylines;
@@ -14,6 +16,7 @@ class CommonMapView extends StatelessWidget {
   final bool myLocationEnabled;
   final bool myLocationButtonEnabled;
   final VoidCallback? onCameraMoveStarted;
+  final double bottomPadding;
 
   const CommonMapView({
     super.key,
@@ -22,38 +25,91 @@ class CommonMapView extends StatelessWidget {
     required this.polylines,
     this.mapStyle,
     this.onMapCreated,
-    this.initialZoom = 14.0,
+    this.initialZoom = 25.0,
     this.myLocationEnabled = true,
     this.myLocationButtonEnabled = true,
     this.onCameraMoveStarted,
+    this.bottomPadding = 0.0,
   });
 
   @override
+  ConsumerState<CommonMapView> createState() => _CommonMapViewState();
+}
+
+class _CommonMapViewState extends ConsumerState<CommonMapView> {
+  GoogleMapController? _controller;
+
+  @override
   Widget build(BuildContext context) {
-    if (currentLocation == null) {
+    if (widget.currentLocation == null) {
       return const CircularProgressIndicator().centered();
     }
 
-    return GoogleMap(
-      onMapCreated: onMapCreated,
-      initialCameraPosition: CameraPosition(
-        target: currentLocation!,
-        zoom: initialZoom,
-      ),
-      markers: markers,
-      polylines: polylines,
-      myLocationEnabled: myLocationEnabled,
-      myLocationButtonEnabled: myLocationButtonEnabled,
-      onCameraMoveStarted: onCameraMoveStarted,
-      mapType: MapType.normal,
-      style: mapStyle,
-      zoomGesturesEnabled: true,
-      scrollGesturesEnabled: true,
-      tiltGesturesEnabled: true,
-      rotateGesturesEnabled: true,
-      gestureRecognizers: <Factory<OneSequenceGestureRecognizer>>{
-        Factory<OneSequenceGestureRecognizer>(() => EagerGestureRecognizer()),
-      },
+    final autoMapStyle = ref.watch(mapStyleProvider).value;
+
+    return Stack(
+      children: [
+        GoogleMap(
+          onMapCreated: (controller) {
+            _controller = controller;
+            if (widget.onMapCreated != null) {
+              widget.onMapCreated!(controller);
+            }
+          },
+          initialCameraPosition: CameraPosition(
+            target: widget.currentLocation!,
+            zoom: widget.initialZoom,
+          ),
+          markers: widget.markers,
+          polylines: widget.polylines,
+          myLocationEnabled: widget.myLocationEnabled,
+          myLocationButtonEnabled: false, // Disabling built-in button
+          zoomControlsEnabled: false, // Disabling built-in zoom controls
+          onCameraMoveStarted: widget.onCameraMoveStarted,
+          mapType: MapType.normal,
+          padding: EdgeInsets.only(bottom: widget.bottomPadding),
+          style: widget.mapStyle ?? autoMapStyle,
+          zoomGesturesEnabled: true,
+          scrollGesturesEnabled: true,
+          tiltGesturesEnabled: true,
+          rotateGesturesEnabled: true,
+          gestureRecognizers: <Factory<OneSequenceGestureRecognizer>>{
+            Factory<OneSequenceGestureRecognizer>(
+              () => EagerGestureRecognizer(),
+            ),
+          },
+        ),
+
+        // Custom My Location Button at Bottom Right
+        if (widget.myLocationButtonEnabled)
+          Positioned(
+            bottom: 24 + widget.bottomPadding,
+            right: 16,
+            child: FloatingActionButton.small(
+              heroTag: 'my_location_btn',
+              onPressed: () {
+                if (_controller != null && widget.currentLocation != null) {
+                  _controller!.animateCamera(
+                    CameraUpdate.newLatLngZoom(
+                      widget.currentLocation!,
+                      widget.initialZoom,
+                    ),
+                  );
+                }
+              },
+              backgroundColor: Theme.of(context).colorScheme.surface,
+              child: Icon(
+                Icons.my_location_rounded,
+                color: Theme.of(context).primaryColor,
+              ),
+            ),
+          ),
+      ],
     );
   }
 }
+
+
+
+
+

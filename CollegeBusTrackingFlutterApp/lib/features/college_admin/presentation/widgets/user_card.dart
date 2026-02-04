@@ -103,7 +103,7 @@ class UserCard extends ConsumerWidget {
                   decoration: BoxDecoration(
                     color: Theme.of(
                       context,
-                    ).primaryColor.withValues(alpha: 0.1),
+                    ).primaryColor.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(4),
                   ),
                   child: Text(
@@ -114,7 +114,7 @@ class UserCard extends ConsumerWidget {
                     ),
                   ),
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: 8.0),
                 Container(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 8,
@@ -143,3 +143,8 @@ class UserCard extends ConsumerWidget {
     );
   }
 }
+
+
+
+
+

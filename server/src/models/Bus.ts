@@ -8,6 +8,7 @@ export interface IBus extends Document {
   collegeId: string;
   isActive: boolean;
   status: "on-time" | "delayed" | "not-running";
+  shiftId?: string; // Associated shift ID from College
   assignmentStatus: "unassigned" | "pending" | "accepted";
   delay?: number;
   createdAt: Date;
@@ -26,6 +27,7 @@ const BusSchema: Schema = new Schema({
     enum: ["on-time", "delayed", "not-running"],
     default: "on-time",
   },
+  shiftId: { type: String },
   assignmentStatus: {
     type: String,
     enum: ["unassigned", "pending", "accepted"],

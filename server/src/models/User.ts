@@ -48,6 +48,7 @@ export interface IUser extends Document {
     type: string;
     coordinates: number[]; // [lng, lat]
   };
+  isPremium: boolean;
 }
 
 const UserSchema: Schema = new Schema({
@@ -107,6 +108,7 @@ const UserSchema: Schema = new Schema({
     type: { type: String, enum: ["Point"] }, // Remove default to prevent partial objects
     coordinates: { type: [Number] }, // [lng, lat]
   },
+  isPremium: { type: Boolean, default: false },
 });
 
 // Index for geospatial queries

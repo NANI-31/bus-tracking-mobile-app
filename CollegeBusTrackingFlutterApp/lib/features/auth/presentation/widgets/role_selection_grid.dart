@@ -102,7 +102,7 @@ class RoleSelectionGrid extends StatelessWidget {
                     .color(
                       Theme.of(
                         context,
-                      ).colorScheme.onSurface.withValues(alpha: 0.6),
+                      ).colorScheme.onSurface.withOpacity(0.6),
                     )
                     .make(),
             ]).expand(),
@@ -144,14 +144,14 @@ class RoleSelectionGrid extends StatelessWidget {
                 ? Theme.of(context).primaryColor
                 : Theme.of(
                     context,
-                  ).colorScheme.onSurface.withValues(alpha: 0.1),
+                  ).colorScheme.onSurface.withOpacity(0.1),
             width: isSelected ? 2 : 1,
           )
           .rounded
           .withShadow([
             if (!isSelected)
               BoxShadow(
-                color: Colors.grey.withValues(alpha: 0.05),
+                color: Colors.grey.withOpacity(0.05),
                 blurRadius: 10,
                 offset: const Offset(0, 4),
               ),
@@ -162,3 +162,8 @@ class RoleSelectionGrid extends StatelessWidget {
     );
   }
 }
+
+
+
+
+

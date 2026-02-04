@@ -34,7 +34,7 @@ class ProfileListItem extends StatelessWidget {
           leading: Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: iconColor.withValues(alpha: 0.1),
+              color: iconColor.withOpacity(0.1),
               shape: BoxShape.circle,
             ),
             child: Icon(leadingIcon, color: iconColor, size: 24),
@@ -46,7 +46,7 @@ class ProfileListItem extends StatelessWidget {
           subtitle: subtitle.text
               .size(13)
               .color(
-                Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
+                Theme.of(context).colorScheme.onSurface.withOpacity(0.5),
               )
               .make()
               .pOnly(top: 2),
@@ -56,7 +56,7 @@ class ProfileListItem extends StatelessWidget {
           Divider(
             color: Theme.of(
               context,
-            ).colorScheme.onSurface.withValues(alpha: 0.05),
+            ).colorScheme.onSurface.withOpacity(0.05),
             indent: 72,
             endIndent: 20,
             height: 1,
@@ -65,3 +65,8 @@ class ProfileListItem extends StatelessWidget {
     );
   }
 }
+
+
+
+
+

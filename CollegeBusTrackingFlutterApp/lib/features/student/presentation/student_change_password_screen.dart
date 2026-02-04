@@ -169,7 +169,7 @@ class _StudentChangePasswordScreenState
                           width: 20,
                           child: CircularProgressIndicator(
                             color: Colors.white,
-                            strokeWidth: 2,
+                            strokeWidth: 2.0,
                           ),
                         )
                       : 'Update Password'.text.bold.make(),
@@ -182,3 +182,8 @@ class _StudentChangePasswordScreenState
     );
   }
 }
+
+
+
+
+

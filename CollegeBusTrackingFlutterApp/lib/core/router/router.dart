@@ -96,7 +96,7 @@ final routerProvider = riverpod.Provider<GoRouter>((ref) {
           case UserRole.student:
           case UserRole.parent:
           case UserRole.teacher:
-            return '/student/home';
+            return '/student';
           case UserRole.driver:
             return '/driver';
           case UserRole.busCoordinator:
@@ -254,3 +254,8 @@ final routerProvider = riverpod.Provider<GoRouter>((ref) {
 class SimpleNotifier extends ChangeNotifier {
   void notify() => notifyListeners();
 }
+
+
+
+
+

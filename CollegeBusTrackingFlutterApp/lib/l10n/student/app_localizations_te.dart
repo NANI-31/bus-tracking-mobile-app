@@ -122,3 +122,8 @@ class StudentLocalizationsTe extends StudentLocalizations {
   @override
   String get hindi => 'हिंदी';
 }
+
+
+
+
+
