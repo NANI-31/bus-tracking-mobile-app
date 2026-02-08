@@ -25,7 +25,7 @@ class _BusScheduleScreenState extends ConsumerState<BusScheduleScreen> {
   String? _selectedRoute;
   String? _selectedStop;
   String? _activeFilterType; // 'bus', 'route', 'stop', or 'trip'
-  String _selectedTripType = 'pickup'; // 'pickup' or 'drop'
+
   final LayerLink _layerLink = LayerLink();
 
   @override
@@ -144,15 +144,18 @@ class _BusScheduleScreenState extends ConsumerState<BusScheduleScreen> {
                       : null,
                 ),
               ),
-        body: _buildMainScheduleUI(
-          context,
-          ref,
-          collegeId,
-          college,
-          busesAsync,
-          routesAsync,
-          schedulesAsync,
-          hasMultipleShifts,
+        body: SafeArea(
+          bottom: false,
+          child: _buildMainScheduleUI(
+            context,
+            ref,
+            collegeId,
+            college,
+            busesAsync,
+            routesAsync,
+            schedulesAsync,
+            hasMultipleShifts,
+          ),
         ),
       ),
     );
@@ -195,10 +198,6 @@ class _BusScheduleScreenState extends ConsumerState<BusScheduleScreen> {
       return schedules.where((schedule) {
         // Shift filter
         if (shiftId != null && schedule.shift != shiftId) return false;
-
-        // Trip Type filter
-        if (schedule.tripType.toLowerCase() != _selectedTripType.toLowerCase())
-          return false;
 
         if (_selectedBusNumber != null) {
           final bus = buses.firstWhere(
@@ -335,34 +334,6 @@ class _BusScheduleScreenState extends ConsumerState<BusScheduleScreen> {
                         onTap: () => _toggleFilter('stop'),
                       ),
                       const SizedBox(height: 12),
-                      Row(
-                        children: [
-                          const Text(
-                            "Trip Type:",
-                            style: TextStyle(fontWeight: FontWeight.bold),
-                          ),
-                          const SizedBox(width: 16),
-                          ChoiceChip(
-                            label: const Text("Pickup"),
-                            selected: _selectedTripType == 'pickup',
-                            onSelected: (val) {
-                              if (val) {
-                                setState(() => _selectedTripType = 'pickup');
-                              }
-                            },
-                          ),
-                          const SizedBox(width: 8.0),
-                          ChoiceChip(
-                            label: const Text("Drop"),
-                            selected: _selectedTripType == 'drop',
-                            onSelected: (val) {
-                              if (val) {
-                                setState(() => _selectedTripType = 'drop');
-                              }
-                            },
-                          ),
-                        ],
-                      ),
                     ],
                   ),
                 ),
@@ -492,245 +463,254 @@ class _BusScheduleScreenState extends ConsumerState<BusScheduleScreen> {
         );
 
         return Card(
+          elevation: 2,
+          shadowColor: Colors.black.withOpacity(0.05),
           margin: const EdgeInsets.only(bottom: AppSizes.paddingMedium),
-          child: ExpansionTile(
-            key: PageStorageKey('schedule_tile_${schedule.id}_v2'),
-            initiallyExpanded: false,
-            maintainState: false,
-            dense: false,
-            showTrailingIcon: true,
-            enabled: true,
-            leading: CircleAvatar(
-              backgroundColor: Theme.of(context).primaryColor,
-              child: Text(
-                bus.busNumber.replaceAll('Bus ', ''),
-                style: TextStyle(
-                  color: Theme.of(context).colorScheme.onPrimary,
-                  fontWeight: FontWeight.bold,
-                ),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: BorderSide(
+              color: Theme.of(context).primaryColor.withOpacity(0.05),
+            ),
+          ),
+          child: Theme(
+            data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+            child: ExpansionTile(
+              key: PageStorageKey('schedule_tile_${schedule.id}_v2'),
+              initiallyExpanded: false,
+              maintainState: false,
+              tilePadding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 8,
               ),
-            ),
-            title: Row(
-              children: [
-                Icon(
-                  Icons.departure_board_rounded,
-                  size: 20,
-                  color: Theme.of(context).primaryColor,
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    'Bus ${bus.busNumber}',
-                    style: const TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                ),
-                _buildTripTypeBadge(context, schedule.tripType),
-              ],
-            ),
-            subtitle: Padding(
-              padding: const EdgeInsets.only(top: 8, left: 32),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Route: ${route.routeName}',
-                    style: const TextStyle(fontSize: 14),
-                  ),
-                  const SizedBox(height: 4),
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.location_on_outlined,
-                        size: 14,
-                        color: Theme.of(context).primaryColor,
-                      ),
-                      const SizedBox(width: 4.0),
-                      Expanded(
-                        child: Text(
-                          '${route.startPoint.name} → ${route.endPoint.name}',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Theme.of(
-                              context,
-                            ).colorScheme.onSurface.withOpacity(0.6),
-                          ),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
+              childrenPadding: const EdgeInsets.only(
+                left: 16,
+                right: 16,
+                bottom: 16,
               ),
-            ),
-            children: [
-              Padding(
-                padding: const EdgeInsets.all(AppSizes.paddingMedium),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Bus Stops & Timing:',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
+              leading: Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF00BCD4), // Cyan color from image
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF00BCD4).withOpacity(0.3),
+                      blurRadius: 8,
+                      offset: const Offset(0, 4),
                     ),
-                    const SizedBox(height: 8),
-                    Table(
-                      columnWidths: const {
-                        0: FlexColumnWidth(2),
-                        1: FlexColumnWidth(1),
-                        2: FlexColumnWidth(1),
-                      },
-                      children: [
-                        const TableRow(
+                  ],
+                ),
+                alignment: Alignment.center,
+                child: Text(
+                  bus.busNumber.replaceAll('Bus ', ''),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
+                ),
+              ),
+              title: Text(
+                'Bus ${bus.busNumber}',
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 18,
+                  letterSpacing: -0.5,
+                ),
+              ),
+              subtitle: Padding(
+                padding: const EdgeInsets.only(top: 4),
+                child: Text(
+                  '${route.startPoint.name}-${route.endPoint.name}'
+                      .toUpperCase(),
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.onSurface.withOpacity(0.5),
+                    fontWeight: FontWeight.w600,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              trailing: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (widget.onBusSelected != null)
+                    InkWell(
+                      onTap: () => widget.onBusSelected!(bus),
+                      borderRadius: BorderRadius.circular(8),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF00BCD4).withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Row(
                           children: [
-                            Padding(
-                              padding: EdgeInsets.all(8),
-                              child: Text(
-                                'Stop',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 15,
-                                ),
-                              ),
+                            Icon(
+                              Icons.location_on_rounded,
+                              size: 14,
+                              color: Color(0xFF00BCD4),
                             ),
-                            Padding(
-                              padding: EdgeInsets.all(8),
-                              child: Text(
-                                'Arrival',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 15,
-                                ),
-                              ),
-                            ),
-                            Padding(
-                              padding: EdgeInsets.all(8),
-                              child: Text(
-                                'Departure',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 15,
-                                ),
+                            SizedBox(width: 4),
+                            Text(
+                              "Track",
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF00BCD4),
                               ),
                             ),
                           ],
                         ),
-                        ...schedule.stopSchedules.map((stopSchedule) {
-                          return TableRow(
-                            children: [
-                              Padding(
-                                padding: const EdgeInsets.all(8),
-                                child: Text(stopSchedule.stopName),
-                              ),
-                              Padding(
-                                padding: const EdgeInsets.all(8),
-                                child: Text(
-                                  stopSchedule.arrivalTime,
-                                  style: TextStyle(
-                                    color: Theme.of(context).primaryColor,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                              ),
-                              Padding(
-                                padding: const EdgeInsets.all(8),
-                                child: Text(
-                                  stopSchedule.departureTime,
-                                  style: TextStyle(
-                                    color: Theme.of(
-                                      context,
-                                    ).colorScheme.secondary,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          );
-                        }),
-                      ],
+                      ),
                     ),
-                    if (widget.onBusSelected != null) ...[
-                      const SizedBox(height: 12),
-                      Align(
-                        alignment: Alignment.centerRight,
-                        child: ElevatedButton.icon(
-                          onPressed: () => widget.onBusSelected!(bus),
-                          icon: const Icon(Icons.location_on, size: 14),
-                          label: const Text(
-                            'Track Bus',
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Theme.of(
+                  const SizedBox(width: 8),
+                  Icon(
+                    Icons.keyboard_arrow_down_rounded,
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.onSurface.withOpacity(0.4),
+                  ),
+                ],
+              ),
+              children: [
+                const Divider(height: 1),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Icon(
+                      Icons.access_time_filled_rounded,
+                      size: 16,
+                      color: Theme.of(context).primaryColor,
+                    ),
+                    const SizedBox(width: 8),
+                    const Text(
+                      'Schedule Details',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Table(
+                  columnWidths: const {
+                    0: FlexColumnWidth(2),
+                    1: FlexColumnWidth(1),
+                    2: FlexColumnWidth(1),
+                  },
+                  children: [
+                    TableRow(
+                      decoration: BoxDecoration(
+                        border: Border(
+                          bottom: BorderSide(
+                            color: Theme.of(
                               context,
-                            ).primaryColor.withOpacity(0.1),
-                            foregroundColor: Theme.of(context).primaryColor,
-                            elevation: 0,
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 0,
-                            ),
-                            minimumSize: const Size(0, 32),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
-                            ),
+                            ).dividerColor.withOpacity(0.5),
                           ),
                         ),
                       ),
-                    ],
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 8),
+                          child: Text(
+                            'Stop',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 13,
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.onSurface.withOpacity(0.6),
+                            ),
+                          ),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 8),
+                          child: Text(
+                            'Arrival',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 13,
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.onSurface.withOpacity(0.6),
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 8),
+                          child: Text(
+                            'Depart',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 13,
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.onSurface.withOpacity(0.6),
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                      ],
+                    ),
+                    ...schedule.stopSchedules.map((stopSchedule) {
+                      return TableRow(
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            child: Text(
+                              stopSchedule.stopName,
+                              style: const TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            child: Text(
+                              stopSchedule.arrivalTime,
+                              style: const TextStyle(
+                                color: Color(0xFF00BCD4),
+                                fontWeight: FontWeight.bold,
+                                fontSize: 13,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            child: Text(
+                              stopSchedule.departureTime,
+                              style: TextStyle(
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onSurface.withOpacity(0.7),
+                                fontWeight: FontWeight.w500,
+                                fontSize: 13,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
+                        ],
+                      );
+                    }),
                   ],
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         );
       },
-    );
-  }
-
-  Widget _buildTripTypeBadge(BuildContext context, String tripType) {
-    Color backgroundColor;
-    Color textColor;
-    IconData icon;
-
-    if (tripType == 'pickup') {
-      backgroundColor = Colors.green.withOpacity(0.1);
-      textColor = Colors.green;
-      icon = Icons.arrow_upward_rounded;
-    } else {
-      backgroundColor = Colors.red.withOpacity(0.1);
-      textColor = Colors.red;
-      icon = Icons.arrow_downward_rounded;
-    }
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: backgroundColor,
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 14, color: textColor),
-          const SizedBox(width: 4.0),
-          Text(
-            tripType.isNotEmpty
-                ? '${tripType[0].toUpperCase()}${tripType.substring(1)}'
-                : '',
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.bold,
-              color: textColor,
-            ),
-          ),
-        ],
-      ),
     );
   }
 

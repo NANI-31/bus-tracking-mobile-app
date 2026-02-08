@@ -2,6 +2,7 @@ export * from "./register";
 export * from "./login";
 export * from "./otp";
 export * from "./password";
+export * from "./logout";
 
 // import * as register from "./register";
 // import * as login from "./login";

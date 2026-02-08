@@ -180,15 +180,25 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
     final currentUser = state.value?.currentUser;
     try {
       if (currentUser != null) {
+        // 1. Remove FCM Token
         await _notificationRepo.removeFcmToken(currentUser.id);
+
+        // 2. Call Server Logout to clear isLoggedIn flag
+        await _authRepo.logout();
+        debugPrint('AUTH NOTIFIER: Server logout successful');
       }
     } catch (e) {
-      debugPrint('\x1B[31mError removing FCM token during logout: $e\x1B[0m');
+      debugPrint('\x1B[31mError during logout: $e\x1B[0m');
     }
 
+    // 3. Clear Local Storage
     await SecureStorageService.clearAll();
     await PersistenceService.removeAuthToken();
     await PersistenceService.removeUserId();
+
+    // Clear Dashboard Preferences
+    await PersistenceService.setBottomNavIndex(0);
+    await PersistenceService.removeSelectedBusId();
 
     state = AsyncValue.data(const AuthState());
   }
@@ -215,6 +225,9 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
 
   Future<void> _registerFCMToken(String userId) async {
     try {
+      // Request permission now (Post-Login)
+      await FCMService().requestPermission();
+
       final token = await FCMService().getStoredToken();
       if (token != null) {
         await _userRepo.updateUser(userId, {'fcmToken': token});

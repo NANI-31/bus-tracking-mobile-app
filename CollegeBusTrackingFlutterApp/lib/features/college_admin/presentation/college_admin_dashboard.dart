@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:collegebus/features/auth/application/auth_provider.dart';
@@ -13,6 +14,7 @@ import 'dart:async';
 import 'package:collegebus/features/college_admin/presentation/tabs/overview_tab.dart';
 import 'package:collegebus/features/college_admin/presentation/tabs/users_tab.dart';
 import 'package:collegebus/features/college_admin/presentation/tabs/settings_tab.dart';
+import 'package:collegebus/shared/widgets/logout_confirmation_dialog.dart';
 
 class CollegeAdminDashboard extends ConsumerStatefulWidget {
   const CollegeAdminDashboard({super.key});
@@ -29,6 +31,12 @@ class _CollegeAdminDashboardState extends ConsumerState<CollegeAdminDashboard> {
   @override
   void initState() {
     super.initState();
+    // Restore/Enable Status Bar
+    SystemChrome.setEnabledSystemUIMode(
+      SystemUiMode.manual,
+      overlays: SystemUiOverlay.values,
+    );
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadCollegeData();
     });
@@ -100,9 +108,12 @@ class _CollegeAdminDashboardState extends ConsumerState<CollegeAdminDashboard> {
           IconButton(
             icon: const Icon(Icons.logout),
             onPressed: () async {
-              await authService.signOut();
-              if (context.mounted) {
-                context.go('/login');
+              final confirmed = await LogoutConfirmationDialog.show(context);
+              if (confirmed) {
+                await authService.signOut();
+                if (context.mounted) {
+                  context.go('/login');
+                }
               }
             },
           ),
@@ -172,8 +183,3 @@ class _CollegeAdminDashboardState extends ConsumerState<CollegeAdminDashboard> {
     }
   }
 }
-
-
-
-
-

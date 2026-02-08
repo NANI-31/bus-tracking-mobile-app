@@ -49,6 +49,7 @@ export interface IUser extends Document {
     coordinates: number[]; // [lng, lat]
   };
   isPremium: boolean;
+  isLoggedIn: boolean;
 }
 
 const UserSchema: Schema = new Schema({
@@ -109,6 +110,7 @@ const UserSchema: Schema = new Schema({
     coordinates: { type: [Number] }, // [lng, lat]
   },
   isPremium: { type: Boolean, default: false },
+  isLoggedIn: { type: Boolean, default: false },
 });
 
 // Index for geospatial queries

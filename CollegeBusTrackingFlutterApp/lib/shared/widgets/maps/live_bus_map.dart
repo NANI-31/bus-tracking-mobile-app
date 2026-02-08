@@ -7,6 +7,7 @@ import 'package:collegebus/features/bus/domain/bus_model.dart';
 import 'package:collegebus/features/auth/application/auth_provider.dart';
 import 'package:collegebus/features/bus/application/bus_provider.dart';
 import 'package:collegebus/widgets/common/common_map_view.dart';
+import 'package:collegebus/core/utils/map_marker_helper.dart';
 
 class LiveBusMap extends ConsumerStatefulWidget {
   final List<BusModel> buses;
@@ -53,10 +54,27 @@ class LiveBusMapState extends ConsumerState<LiveBusMap> {
     }
   }
 
+  BitmapDescriptor? _busIcon;
+
   @override
   void initState() {
     super.initState();
     _initLocation();
+    _loadCustomMarker();
+  }
+
+  Future<void> _loadCustomMarker() async {
+    try {
+      final icon = await MapMarkerHelper.createBusMarker();
+      if (mounted) {
+        setState(() {
+          _busIcon = icon;
+        });
+        _updateAllMarkers();
+      }
+    } catch (e) {
+      debugPrint('Error creating custom marker: $e');
+    }
   }
 
   @override
@@ -132,8 +150,11 @@ class LiveBusMapState extends ConsumerState<LiveBusMap> {
     return Marker(
       markerId: MarkerId(bus.id),
       position: loc.currentLocation,
-      rotation: 0.0,
-      icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueAzure),
+      rotation: loc.heading ?? 0.0,
+      icon:
+          _busIcon ??
+          BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueAzure),
+      anchor: const Offset(0.5, 0.5),
       infoWindow: InfoWindow(
         title: 'Bus ${bus.busNumber}',
         snippet: bus.status,
@@ -228,8 +249,3 @@ class LiveBusMapState extends ConsumerState<LiveBusMap> {
     );
   }
 }
-
-
-
-
-

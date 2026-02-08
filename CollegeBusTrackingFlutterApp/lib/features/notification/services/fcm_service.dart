@@ -53,8 +53,7 @@ class FCMService {
   }
 
   Future<void> _init() async {
-    // Request permission
-    await _requestPermission();
+    // Permission request moved to post-login (requestPermission called manually)
 
     // Initialize local notifications for foreground
     await _initLocalNotifications();
@@ -83,7 +82,7 @@ class FCMService {
     }
   }
 
-  Future<void> _requestPermission() async {
+  Future<void> requestPermission() async {
     final settings = await _messaging.requestPermission(
       alert: true,
       badge: true,
@@ -217,8 +216,3 @@ class FCMService {
     _tapController.close();
   }
 }
-
-
-
-
-

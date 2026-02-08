@@ -45,6 +45,19 @@ export const login = async (req: Request, res: Response) => {
       });
     }
 
+    // Check if already logged in
+    if (user.isLoggedIn) {
+      logger.warn(`User ${email} attempted login while already logged in.`);
+      return res.status(403).json({
+        message:
+          "You are already logged in on another device. Please logout from that device first.",
+      });
+    }
+
+    // Set isLoggedIn to true
+    user.isLoggedIn = true;
+    await user.save();
+
     // Create token
     console.log("LOGIN: Creating token...");
     const token = jwt.sign(

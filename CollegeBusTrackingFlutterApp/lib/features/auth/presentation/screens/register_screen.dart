@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:email_validator/email_validator.dart';
@@ -51,6 +52,11 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   @override
   void initState() {
     super.initState();
+    // Hide Status Bar
+    SystemChrome.setEnabledSystemUIMode(
+      SystemUiMode.manual,
+      overlays: [SystemUiOverlay.bottom],
+    );
     _fetchColleges();
   }
 
@@ -237,11 +243,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
 
             l10n.joinToTrack.text
                 .size(15)
-                .color(
-                  Theme.of(
-                    context,
-                  ).colorScheme.onSurface.withOpacity(0.6),
-                )
+                .color(Theme.of(context).colorScheme.onSurface.withOpacity(0.6))
                 .heightLoose
                 .center
                 .makeCentered(),
@@ -455,8 +457,3 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     );
   }
 }
-
-
-
-
-

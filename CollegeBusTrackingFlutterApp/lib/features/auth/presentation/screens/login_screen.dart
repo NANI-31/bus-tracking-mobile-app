@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:collegebus/core/providers/providers.dart';
@@ -46,6 +47,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
 
     _bounceAnimation = Tween<double>(begin: -5, end: 5).animate(
       CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
+    );
+
+    // Hide Status Bar
+    SystemChrome.setEnabledSystemUIMode(
+      SystemUiMode.manual,
+      overlays: [SystemUiOverlay.bottom],
     );
 
     _fetchTestData();
@@ -242,14 +249,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                         .centered()
                         .pOnly(bottom: 0)
                         .positioned(
-                          bottom: -35 + _bounceAnimation.value,
+                          bottom: 0 + _bounceAnimation.value,
                           left: 0,
                           right: 0,
                         );
                   },
                 ),
               ],
-              alignment: Alignment.bottomCenter,
+              alignment: Alignment.topCenter,
               fit: StackFit.loose,
             ).h(280 + 35), // Enable overflow space or explicitly size
 
@@ -296,9 +303,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                       decoration: BoxDecoration(
                         color: Colors.grey.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: Colors.grey.withOpacity(0.2),
-                        ),
+                        border: Border.all(color: Colors.grey.withOpacity(0.2)),
                       ),
                       child: Column(
                         children: [
@@ -557,8 +562,3 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
     );
   }
 }
-
-
-
-
-

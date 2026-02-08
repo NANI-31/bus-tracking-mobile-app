@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:collegebus/features/auth/application/auth_provider.dart';
@@ -14,6 +15,7 @@ import 'package:collegebus/features/super_admin/presentation/tabs/audit_tab.dart
 import 'package:collegebus/features/super_admin/presentation/tabs/sos_logs_tab.dart';
 import 'package:collegebus/features/super_admin/presentation/tabs/safety_monitor_tab.dart';
 import 'package:collegebus/features/super_admin/presentation/tabs/danger_zone_tab.dart';
+import 'package:collegebus/shared/widgets/logout_confirmation_dialog.dart';
 
 class SuperAdminDashboard extends ConsumerStatefulWidget {
   const SuperAdminDashboard({super.key});
@@ -29,6 +31,12 @@ class _SuperAdminDashboardState extends ConsumerState<SuperAdminDashboard> {
   @override
   void initState() {
     super.initState();
+    // Restore/Enable Status Bar
+    SystemChrome.setEnabledSystemUIMode(
+      SystemUiMode.manual,
+      overlays: SystemUiOverlay.values,
+    );
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadSystemData();
     });
@@ -77,9 +85,12 @@ class _SuperAdminDashboardState extends ConsumerState<SuperAdminDashboard> {
           IconButton(
             icon: const Icon(Icons.logout),
             onPressed: () async {
-              await authService.signOut();
-              if (context.mounted) {
-                context.go('/login');
+              final confirmed = await LogoutConfirmationDialog.show(context);
+              if (confirmed) {
+                await authService.signOut();
+                if (context.mounted) {
+                  context.go('/login');
+                }
               }
             },
           ),
@@ -235,8 +246,3 @@ class _SuperAdminDashboardState extends ConsumerState<SuperAdminDashboard> {
     }
   }
 }
-
-
-
-
-

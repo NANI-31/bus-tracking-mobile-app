@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:intl/intl.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:collegebus/features/auth/application/auth_provider.dart';
@@ -18,6 +19,7 @@ import 'package:collegebus/features/coordinator/presentation/modules/overview_ta
 import 'package:collegebus/features/coordinator/presentation/modules/driver_management_tab.dart';
 import 'package:collegebus/features/coordinator/presentation/modules/routes_tab.dart';
 import 'package:collegebus/features/coordinator/presentation/modules/bus_numbers_tab.dart';
+
 import 'package:collegebus/features/coordinator/presentation/modules/live_map_tab.dart';
 import 'package:collegebus/l10n/coordinator/app_localizations.dart'
     as coord_l10n;
@@ -39,6 +41,12 @@ class _CoordinatorDashboardState extends ConsumerState<CoordinatorDashboard>
   @override
   void initState() {
     super.initState();
+    // Restore/Enable Status Bar
+    SystemChrome.setEnabledSystemUIMode(
+      SystemUiMode.manual,
+      overlays: SystemUiOverlay.values,
+    );
+
     _tabController = TabController(length: 5, vsync: this);
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -444,8 +452,3 @@ class _CoordinatorDashboardState extends ConsumerState<CoordinatorDashboard>
     );
   }
 }
-
-
-
-
-

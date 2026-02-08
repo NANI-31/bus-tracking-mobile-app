@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:collegebus/features/auth/application/auth_provider.dart';
@@ -24,6 +25,11 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard>
   @override
   void initState() {
     super.initState();
+    // Restore/Enable Status Bar
+    SystemChrome.setEnabledSystemUIMode(
+      SystemUiMode.manual,
+      overlays: SystemUiOverlay.values,
+    );
     _tabController = TabController(length: 3, vsync: this);
   }
 
@@ -81,8 +87,3 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard>
     );
   }
 }
-
-
-
-
-

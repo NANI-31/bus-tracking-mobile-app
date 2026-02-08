@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:collegebus/shared/widgets/logout_confirmation_dialog.dart';
 import 'package:collegebus/l10n/driver/app_localizations.dart';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -605,8 +607,13 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
               IconButton(
                 icon: const Icon(Icons.logout),
                 onPressed: () async {
-                  await ref.read(authProvider.notifier).signOut();
-                  if (context.mounted) context.go('/login');
+                  final confirmed = await LogoutConfirmationDialog.show(
+                    context,
+                  );
+                  if (confirmed) {
+                    await ref.read(authProvider.notifier).signOut();
+                    if (context.mounted) context.go('/login');
+                  }
                 },
               ),
             ],

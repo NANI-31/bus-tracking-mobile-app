@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:email_validator/email_validator.dart';
@@ -22,6 +23,16 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Hide Status Bar
+    SystemChrome.setEnabledSystemUIMode(
+      SystemUiMode.manual,
+      overlays: [SystemUiOverlay.bottom],
+    );
+  }
 
   @override
   void dispose() {
@@ -99,9 +110,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
           'Enter your email address and we\'ll send you a OTP to reset your password.'
               .text
               .size(16)
-              .color(
-                Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
-              )
+              .color(Theme.of(context).colorScheme.onSurface.withOpacity(0.7))
               .center
               .makeCentered(),
 
@@ -182,8 +191,3 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
     );
   }
 }
-
-
-
-
-

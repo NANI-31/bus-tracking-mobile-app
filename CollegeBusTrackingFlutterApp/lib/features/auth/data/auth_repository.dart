@@ -63,9 +63,13 @@ class AuthRepository extends BaseRepository {
       throw handleError(e);
     }
   }
+
+  /// Logout user
+  Future<void> logout() async {
+    try {
+      await dio.post('/auth/logout');
+    } catch (e) {
+      throw handleError(e);
+    }
+  }
 }
-
-
-
-
-

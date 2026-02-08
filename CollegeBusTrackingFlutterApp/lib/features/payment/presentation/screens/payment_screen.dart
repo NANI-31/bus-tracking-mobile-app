@@ -4,7 +4,6 @@ import 'package:razorpay_flutter/razorpay_flutter.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:collegebus/core/providers/api_provider.dart';
 import 'package:collegebus/features/auth/application/auth_provider.dart';
-import 'package:collegebus/core/providers/service_providers.dart';
 import 'package:collegebus/core/utils/app_logger.dart';
 
 // We'll use standard colors to avoid dependency issues if any
@@ -225,8 +224,8 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final themeService = ref.watch(themeServiceProvider);
-    final isDark = themeService.isDarkMode;
+    // Use Theme.of(context) for reliable brightness check aligned with UI
+    final isDark = theme.brightness == Brightness.dark;
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle(

@@ -1,6 +1,7 @@
 import 'dart:ui';
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:collegebus/features/auth/application/auth_provider.dart';
@@ -44,6 +45,12 @@ class _StudentDashboardState extends ConsumerState<StudentDashboard>
   @override
   void initState() {
     super.initState();
+    // Restore/Enable Status Bar
+    SystemChrome.setEnabledSystemUIMode(
+      SystemUiMode.manual,
+      overlays: SystemUiOverlay.values,
+    );
+
     _bottomNavIndex = PersistenceService.getBottomNavIndex();
     _getCurrentLocation();
 
@@ -453,8 +460,3 @@ class _PulsatingDotState extends State<PulsatingDot>
     );
   }
 }
-
-
-
-
-

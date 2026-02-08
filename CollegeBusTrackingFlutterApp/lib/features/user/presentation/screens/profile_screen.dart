@@ -15,6 +15,7 @@ import 'package:collegebus/l10n/common/app_localizations.dart' as common_l10n;
 // New standalone widgets
 import '../widgets/profile_section_card.dart';
 import '../widgets/profile_list_item.dart';
+import 'package:collegebus/shared/widgets/logout_confirmation_dialog.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
@@ -243,9 +244,14 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               width: double.infinity,
               child: ElevatedButton.icon(
                 onPressed: () async {
-                  await ref.read(authProvider.notifier).signOut();
-                  if (context.mounted) {
-                    context.go('/login');
+                  final confirmed = await LogoutConfirmationDialog.show(
+                    context,
+                  );
+                  if (confirmed) {
+                    await ref.read(authProvider.notifier).signOut();
+                    if (context.mounted) {
+                      context.go('/login');
+                    }
                   }
                 },
                 icon: const Icon(Icons.logout),
