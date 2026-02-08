@@ -14,6 +14,7 @@ import 'package:collegebus/features/bus/domain/bus_model.dart';
 import 'package:collegebus/features/route/domain/route_model.dart';
 import 'package:collegebus/core/services/persistence_service.dart';
 import 'package:collegebus/features/notification/application/proximity_provider.dart';
+import 'package:collegebus/features/notification/services/fcm_service.dart';
 import 'package:go_router/go_router.dart';
 
 // Import the new modules
@@ -61,6 +62,7 @@ class _StudentDashboardState extends ConsumerState<StudentDashboard>
       if (collegeId != null) {
         ref.read(socketServiceProvider).joinCollege(collegeId);
       }
+      _checkPermissions(); // Request permissions after dashboard load
     });
   }
 
@@ -70,6 +72,23 @@ class _StudentDashboardState extends ConsumerState<StudentDashboard>
         _bottomNavIndex = index;
       });
       PersistenceService.setBottomNavIndex(index);
+    }
+  }
+
+  Future<void> _checkPermissions() async {
+    // 1. Request Notification Permission
+    await FCMService().requestPermission();
+
+    // 2. Request Location Permission
+    final locationService = ref.read(locationServiceProvider);
+    await locationService.requestLocationPermission();
+
+    // 3. Refresh FCM Token (in case it was waiting for permission)
+    final user = ref.read(currentUserProvider);
+    if (user != null) {
+      debugPrint('Refreshing FCM token after permissions...');
+      // We can trigger a token refresh by calling register again or logic in AuthProvider
+      // For now, let's just log it. The FCMService listener handles refresh.
     }
   }
 

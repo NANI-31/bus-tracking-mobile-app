@@ -3,6 +3,7 @@ import dotenv from "dotenv";
 import { createServer } from "http";
 import { Server } from "socket.io";
 import connectDB from "./config/db";
+import { connectRedis } from "./config/redis";
 import { initializeFirebase } from "./utils/firebase";
 import { registerRoutes } from "./routes";
 import { initializeSocket } from "./socket";
@@ -14,6 +15,7 @@ dotenv.config();
 const startServer = async () => {
   try {
     await connectDB();
+    await connectRedis();
     initializeFirebase();
 
     const app = express();

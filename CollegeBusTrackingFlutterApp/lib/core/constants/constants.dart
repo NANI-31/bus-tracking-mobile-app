@@ -187,8 +187,3 @@ class AppConstants {
   static const String baseUrl = kReleaseMode ? _prodUrl : _devUrl;
   static const String apiBaseUrl = '$baseUrl/api/v1';
 }
-
-
-
-
-

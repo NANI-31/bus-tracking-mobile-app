@@ -225,9 +225,8 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
 
   Future<void> _registerFCMToken(String userId) async {
     try {
-      // Request permission now (Post-Login)
-      await FCMService().requestPermission();
-
+      // Permissions are now requested in Dashboard
+      // Just check if we already have a token
       final token = await FCMService().getStoredToken();
       if (token != null) {
         await _userRepo.updateUser(userId, {'fcmToken': token});
