@@ -83,7 +83,10 @@ class _StudentDashboardState extends ConsumerState<StudentDashboard>
     final locationService = ref.read(locationServiceProvider);
     await locationService.requestLocationPermission();
 
-    // 3. Refresh FCM Token (in case it was waiting for permission)
+    // 3. Refresh location now that permission might be granted
+    await _getCurrentLocation();
+
+    // 4. Refresh FCM Token (in case it was waiting for permission)
     final user = ref.read(currentUserProvider);
     if (user != null) {
       debugPrint('Refreshing FCM token after permissions...');

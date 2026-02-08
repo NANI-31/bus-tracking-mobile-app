@@ -9,11 +9,14 @@ import 'package:collegebus/features/auth/application/auth_provider.dart';
 import 'package:collegebus/core/providers/socket_provider.dart';
 import 'package:collegebus/features/sos/application/sos_provider.dart';
 import 'package:collegebus/core/providers/api_provider.dart';
+import 'package:collegebus/core/providers/service_providers.dart'; // Added for locationServiceProvider
 import 'package:collegebus/features/bus/domain/bus_model.dart';
 import 'package:collegebus/features/sos/domain/sos_model.dart';
 import 'package:collegebus/core/constants/constants.dart';
 import 'package:collegebus/features/notification/presentation/screens/notifications_screen.dart';
 import 'package:collegebus/features/notification/services/notification_service.dart';
+import 'package:collegebus/features/notification/services/fcm_service.dart'; // Added
+
 import 'package:collegebus/features/coordinator/presentation/schedule_management_screen.dart';
 import 'package:collegebus/features/user/presentation/screens/profile_screen.dart';
 import 'package:collegebus/features/coordinator/presentation/modules/overview_tab.dart';
@@ -67,7 +70,23 @@ class _CoordinatorDashboardState extends ConsumerState<CoordinatorDashboard>
       if (user?.collegeId != null) {
         ref.read(socketServiceProvider).joinCollege(user!.collegeId);
       }
+      _checkPermissions();
     });
+  }
+
+  Future<void> _checkPermissions() async {
+    // 1. Request Notification Permission
+    await FCMService().requestPermission();
+
+    // 2. Request Location Permission
+    final locationService = ref.read(locationServiceProvider);
+    await locationService.requestLocationPermission();
+
+    // 3. Refresh FCM Token
+    final user = ref.read(currentUserProvider);
+    if (user != null) {
+      debugPrint('Refreshing FCM token after permissions...');
+    }
   }
 
   void _handleTrackBus(BusModel bus) {

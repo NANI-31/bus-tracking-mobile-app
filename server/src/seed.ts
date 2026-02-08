@@ -1,12 +1,13 @@
+require("dotenv").config();
 console.log("Starting master seed script...");
 import mongoose from "mongoose";
 import dotenv from "dotenv";
+import { pubClient } from "./config/redis";
 import { kkrKsrTransportData } from "./seedData/routesData";
 import { seedColleges } from "./seeds/collegeSeed";
 import { seedUsers } from "./seeds/userSeed";
 import { seedTransport } from "./seeds/transportSeed";
 import { UserRole } from "./models/User";
-require("dotenv").config();
 
 import Route from "./models/Route";
 import { Bus } from "./models/Bus";
@@ -27,6 +28,13 @@ const runSeed = async () => {
   try {
     console.log("Connecting to MongoDB...");
     await mongoose.connect(mongoUri);
+
+    console.log("Connecting to Redis and clearing cache...");
+    if (!pubClient.isOpen) {
+      await pubClient.connect();
+    }
+    await pubClient.flushAll();
+    console.log("Redis cache cleared.");
 
     console.log("Clearing all existing data...");
     await College.deleteMany({});
@@ -93,9 +101,15 @@ const runSeed = async () => {
     console.log("Global Super Admin created: super@admin.com / password123");
 
     console.log("\nMASTER SEED COMPLETE");
+    if (pubClient.isOpen) {
+      await pubClient.disconnect();
+    }
     process.exit(0);
   } catch (error) {
     console.error("Error in master seed:", error);
+    if (pubClient.isOpen) {
+      await pubClient.disconnect();
+    }
     process.exit(1);
   }
 };

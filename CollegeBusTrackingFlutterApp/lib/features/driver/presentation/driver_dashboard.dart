@@ -22,7 +22,7 @@ import 'package:collegebus/core/constants/constants.dart';
 
 import 'package:collegebus/core/utils/app_logger.dart';
 import 'widgets/location_display.dart';
-import 'widgets/bus_route_selectors.dart';
+
 import 'widgets/bus_assignment_card.dart';
 import 'widgets/live_tracking_control_panel.dart';
 import 'package:collegebus/widgets/common/common_map_view.dart';
@@ -47,7 +47,6 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
 
   // Selection state
   RouteModel? _selectedRoute;
-  String? _selectedBusNumber;
 
   Set<Marker> _markers = {};
   Set<Polyline> _polylines = {};
@@ -405,46 +404,6 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
     );
   }
 
-  Future<void> _handleAssignBus() async {
-    final user = ref.read(currentUserProvider);
-    final api = ref.read(apiServiceProvider);
-    if (user == null || _selectedBusNumber == null || _selectedRoute == null) {
-      return;
-    }
-    final newBus = BusModel(
-      id: DateTime.now().millisecondsSinceEpoch.toString(),
-      busNumber: _selectedBusNumber!,
-      driverId: user.id,
-      routeId: _selectedRoute!.id,
-      collegeId: user.collegeId,
-      createdAt: DateTime.now(),
-    );
-    try {
-      await api.createBus(newBus);
-      if (!mounted) return;
-      await _saveSelections(newBus);
-      _updateMarkers();
-
-      // Auto-start location sharing and switch to tracking tab
-      if (mounted) {
-        await _startLocationSharing(newBus);
-        setState(() {
-          _bottomNavIndex = 1;
-        });
-      }
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            DriverLocalizations.of(context)!.assignBusError(e.toString()),
-          ),
-          backgroundColor: AppColors.error,
-        ),
-      );
-    }
-  }
-
   Future<void> _handleRemoveAssignment(BusModel myBus) async {
     final api = ref.read(apiServiceProvider);
     try {
@@ -454,7 +413,6 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
       await PersistenceService.remove('driver_route_id');
       if (!mounted) return;
       setState(() {
-        _selectedBusNumber = null;
         _selectedRoute = null;
       });
       _updateMarkers();
@@ -479,10 +437,10 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
     }
   }
 
-  Future<void> _handleAcceptAssignment(String busId) async {
+  Future<void> _handleAcceptAssignment(BusModel bus) async {
     final api = ref.read(apiServiceProvider);
     try {
-      await api.acceptBusAssignment(busId);
+      await api.acceptBusAssignment(bus.id);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -490,6 +448,12 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
             backgroundColor: AppColors.success,
           ),
         );
+        // Auto-start location sharing
+        await _startLocationSharing(bus);
+        // Switch to Live Tracking tab
+        setState(() {
+          _bottomNavIndex = 1;
+        });
       }
     } catch (e) {
       if (mounted) {
@@ -518,9 +482,6 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
             backgroundColor: Theme.of(context).colorScheme.secondary,
           ),
         );
-        setState(() {
-          _selectedBusNumber = null;
-        });
       }
     } catch (e) {
       if (mounted) {
@@ -566,7 +527,6 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
               if (mounted) {
                 setState(() {
                   _selectedRoute = route;
-                  _selectedBusNumber = myBus?.busNumber;
                 });
                 _updateMarkers();
               }
@@ -657,32 +617,37 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
       child: VStack([
         LocationDisplay(currentLocation: _currentLocation),
         VStack([
-          DriverLocalizations.of(
-            context,
-          )!.busRouteSelection.text.size(24).bold.make(),
-          AppSizes.paddingLarge.heightBox,
           if (myBus == null)
-            busNumbersAsync.when(
-              data: (busNumbers) => routesAsync.when(
-                data: (routes) => BusRouteSelectors(
-                  selectedBusNumber: _selectedBusNumber,
-                  selectedRoute: _selectedRoute,
-                  busNumbers: busNumbers,
-                  routes: routes,
-                  onBusNumberChanged: (busNumber) =>
-                      setState(() => _selectedBusNumber = busNumber),
-                  onRouteChanged: (route) {
-                    setState(() => _selectedRoute = route);
-                    _updateMarkers();
-                  },
-                  onAssign: _handleAssignBus,
-                ),
-                loading: () => const Center(child: CircularProgressIndicator()),
-                error: (e, s) => Text('Error: $e'),
+            Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.assignment_late_outlined,
+                    size: 64,
+                    color: Theme.of(context).disabledColor,
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'There are no assignments.',
+                    style: TextStyle(
+                      fontSize: 18,
+                      color: Theme.of(context).disabledColor,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Please contact the coordinator.',
+                    style: TextStyle(
+                      color: Theme.of(
+                        context,
+                      ).disabledColor.withValues(alpha: 0.7),
+                    ),
+                  ),
+                ],
               ),
-              loading: () => const Center(child: CircularProgressIndicator()),
-              error: (e, s) => Text('Error: $e'),
-            )
+            ).pOnly(top: 40)
           else
             BusAssignmentCard(
               bus: myBus,
@@ -774,7 +739,7 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
 
               // Accept Button (Solid White)
               ElevatedButton(
-                onPressed: () => _handleAcceptAssignment(bus.id),
+                onPressed: () => _handleAcceptAssignment(bus),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.white,
                   foregroundColor: gradientColors.first,
@@ -841,7 +806,6 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
 
         if (mounted) {
           setState(() {
-            _selectedBusNumber = null;
             _selectedRoute = null;
           });
           _updateMarkers();
