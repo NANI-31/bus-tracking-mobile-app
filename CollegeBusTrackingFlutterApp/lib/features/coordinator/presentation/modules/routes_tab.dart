@@ -56,7 +56,7 @@ class RoutesTab extends ConsumerWidget {
                     size: 64,
                     color: Theme.of(
                       context,
-                    ).colorScheme.onSurface.withOpacity(0.6),
+                    ).colorScheme.onSurface.withValues(alpha: 0.6),
                   ),
                   AppSizes.paddingMedium.heightBox,
                   l10n.noRoutesCreated.text
@@ -202,8 +202,3 @@ class RoutesTab extends ConsumerWidget {
     ]);
   }
 }
-
-
-
-
-

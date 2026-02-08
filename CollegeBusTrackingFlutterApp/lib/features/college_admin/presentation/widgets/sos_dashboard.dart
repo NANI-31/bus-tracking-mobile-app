@@ -203,7 +203,7 @@ class _SosDashboardState extends ConsumerState<SosDashboard> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(icon, size: 64, color: color.withOpacity(0.5)),
+          Icon(icon, size: 64, color: color.withValues(alpha: 0.5)),
           const SizedBox(height: 16),
           Text(
             title,
@@ -417,8 +417,3 @@ class _SosDashboardState extends ConsumerState<SosDashboard> {
     );
   }
 }
-
-
-
-
-

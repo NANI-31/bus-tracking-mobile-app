@@ -7,6 +7,6 @@
 		"node_modules",
 		"dist"
 	],
-	"exec": "ts-node src/index.ts",
+	"exec": "node -r ts-node/register src/index.ts",
 	"ext": "ts,json"
 }

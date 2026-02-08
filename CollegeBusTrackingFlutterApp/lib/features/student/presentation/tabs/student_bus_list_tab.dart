@@ -133,9 +133,11 @@ class _StudentBusListTabState extends ConsumerState<StudentBusListTab> {
               ])
               .pSymmetric(h: 12, v: 8)
               .box
-              .color(Theme.of(context).primaryColor.withOpacity(0.1))
+              .color(Theme.of(context).primaryColor.withValues(alpha: 0.1))
               .rounded
-              .border(color: Theme.of(context).primaryColor.withOpacity(0.2))
+              .border(
+                color: Theme.of(context).primaryColor.withValues(alpha: 0.2),
+              )
               .make()
               .pOnly(
                 left: AppSizes.paddingMedium,
@@ -174,7 +176,7 @@ class _StudentBusListTabState extends ConsumerState<StudentBusListTab> {
                     size: 64,
                     color: Theme.of(
                       context,
-                    ).colorScheme.onSurface.withOpacity(0.4),
+                    ).colorScheme.onSurface.withValues(alpha: 0.4),
                   ),
                   AppSizes.paddingMedium.heightBox,
                   (_searchQuery.isEmpty && _selectedStatus == 'all'
@@ -185,7 +187,7 @@ class _StudentBusListTabState extends ConsumerState<StudentBusListTab> {
                       .color(
                         Theme.of(
                           context,
-                        ).colorScheme.onSurface.withOpacity(0.4),
+                        ).colorScheme.onSurface.withValues(alpha: 0.4),
                       )
                       .make(),
                 ],
@@ -235,10 +237,10 @@ class _StudentBusListTabState extends ConsumerState<StudentBusListTab> {
                                 isSelected
                                     ? Theme.of(
                                         context,
-                                      ).primaryColor.withOpacity(0.2)
+                                      ).primaryColor.withValues(alpha: 0.2)
                                     : Theme.of(
                                         context,
-                                      ).primaryColor.withOpacity(0.08),
+                                      ).primaryColor.withValues(alpha: 0.08),
                               )
                               .rounded
                               .size(56, 56)
@@ -272,7 +274,7 @@ class _StudentBusListTabState extends ConsumerState<StudentBusListTab> {
                               8.widthBox,
                               Icon(
                                 Icons.chevron_right_rounded,
-                                color: Colors.grey.withOpacity(0.6),
+                                color: Colors.grey.withValues(alpha: 0.6),
                                 size: 24,
                               ),
                             ]),
@@ -293,7 +295,7 @@ class _StudentBusListTabState extends ConsumerState<StudentBusListTab> {
                       )
                       .withShadow([
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.05),
+                          color: Colors.black.withValues(alpha: 0.05),
                           blurRadius: 10,
                           offset: const Offset(0, 4),
                         ),
@@ -335,13 +337,13 @@ class _StudentBusListTabState extends ConsumerState<StudentBusListTab> {
               .color(
                 isSelected
                     ? Theme.of(context).primaryColor
-                    : Theme.of(context).primaryColor.withOpacity(0.1),
+                    : Theme.of(context).primaryColor.withValues(alpha: 0.1),
               )
               .customRounded(BorderRadius.circular(24))
               .border(
                 color: isSelected
                     ? Theme.of(context).primaryColor
-                    : Theme.of(context).primaryColor.withOpacity(0.2),
+                    : Theme.of(context).primaryColor.withValues(alpha: 0.2),
               )
               .make(),
     );
@@ -370,9 +372,14 @@ class _StudentBusListTabState extends ConsumerState<StudentBusListTab> {
     }
 
     return HStack([
-      VxBox().size(8, 8).color(color).roundedFull.make(),
-      8.widthBox,
-      label.text.size(13).bold.color(color.withOpacity(0.9)).make(),
-    ]).pSymmetric(h: 12, v: 6).box.color(color.withOpacity(0.1)).rounded.make();
+          VxBox().size(8, 8).color(color).roundedFull.make(),
+          8.widthBox,
+          label.text.size(13).bold.color(color.withValues(alpha: 0.9)).make(),
+        ])
+        .pSymmetric(h: 12, v: 6)
+        .box
+        .color(color.withValues(alpha: 0.1))
+        .rounded
+        .make();
   }
 }

@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import College from "../models/College";
+import { getCollegeService } from "../services/collegeService";
 
 export const createCollege = async (req: Request, res: Response) => {
   try {
@@ -43,70 +44,58 @@ export const getBusNumbers = async (req: Request, res: Response) => {
 export const addBusNumber = async (req: Request, res: Response) => {
   try {
     const { collegeId, busNumber } = req.body;
-    const college = await College.findById(collegeId);
-    if (!college) return res.status(404).json({ message: "College not found" });
-
-    if (!college.busNumbers.includes(busNumber)) {
-      college.busNumbers.push(busNumber);
-      await college.save();
-    }
-
-    // Broadcast update
     const io = req.app.get("io");
-    io.to(collegeId.toString()).emit("bus_list_updated");
+    const collegeService = getCollegeService(io);
 
-    res.status(200).json(college.busNumbers);
+    const busNumbers = await collegeService.addBusNumber(collegeId, busNumber);
+    res.status(200).json(busNumbers);
   } catch (error) {
-    res.status(500).json({ message: (error as Error).message });
+    const message = (error as Error).message;
+    if (message === "College not found") {
+      return res.status(404).json({ message });
+    }
+    res.status(500).json({ message });
   }
 };
 
 export const removeBusNumber = async (req: Request, res: Response) => {
   try {
     const { collegeId, busNumber } = req.params;
-    const college = await College.findById(collegeId);
-    if (!college) return res.status(404).json({ message: "College not found" });
-
-    college.busNumbers = college.busNumbers.filter((n) => n !== busNumber);
-    await college.save();
-
-    // Broadcast update
     const io = req.app.get("io");
-    io.to(collegeId.toString()).emit("bus_list_updated");
+    const collegeService = getCollegeService(io);
 
-    res.status(200).json(college.busNumbers);
+    const busNumbers = await collegeService.removeBusNumber(
+      collegeId,
+      busNumber,
+    );
+    res.status(200).json(busNumbers);
   } catch (error) {
-    res.status(500).json({ message: (error as Error).message });
+    const message = (error as Error).message;
+    if (message === "College not found") {
+      return res.status(404).json({ message });
+    }
+    res.status(500).json({ message });
   }
 };
 
 export const renameBusNumber = async (req: Request, res: Response) => {
   try {
     const { collegeId, oldBusNumber, newBusNumber } = req.body;
-    const college = await College.findById(collegeId);
-    if (!college) return res.status(404).json({ message: "College not found" });
-
-    // 1. Update allowlist in College
-    const index = college.busNumbers.indexOf(oldBusNumber);
-    if (index !== -1) {
-      college.busNumbers[index] = newBusNumber;
-      await college.save();
-    }
-
-    // 2. Update actual Bus documents
-    const { Bus } = require("../models/Bus"); // Lazy import to avoid circular dep if any
-    await Bus.updateMany(
-      { collegeId, busNumber: oldBusNumber },
-      { busNumber: newBusNumber }
-    );
-
-    // Broadcast update
     const io = req.app.get("io");
-    io.to(collegeId.toString()).emit("bus_list_updated");
+    const collegeService = getCollegeService(io);
 
-    res.status(200).json(college.busNumbers);
+    const busNumbers = await collegeService.renameBusNumber(
+      collegeId,
+      oldBusNumber,
+      newBusNumber,
+    );
+    res.status(200).json(busNumbers);
   } catch (error) {
-    res.status(500).json({ message: (error as Error).message });
+    const message = (error as Error).message;
+    if (message === "College not found") {
+      return res.status(404).json({ message });
+    }
+    res.status(500).json({ message });
   }
 };
 export const updateBusDetails = async (req: Request, res: Response) => {
@@ -143,7 +132,7 @@ export const updateBusDetails = async (req: Request, res: Response) => {
 
       await Bus.updateMany(
         { collegeId, busNumber: oldBusNumber },
-        { $set: updateObj }
+        { $set: updateObj },
       );
     } else if (details && Object.keys(details).length > 0) {
       // If no bus doc exists but we have details (like defaultRouteId), create one

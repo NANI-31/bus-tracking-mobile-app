@@ -108,14 +108,9 @@ class LiveTrackingControlPanel extends StatelessWidget {
         ])
         .p(AppSizes.paddingMedium)
         .box
-        .color(AppColors.success.withOpacity(0.1))
+        .color(AppColors.success.withValues(alpha: 0.1))
         .withRounded(value: AppSizes.radiusMedium)
         .make()
         .pOnly(top: AppSizes.paddingMedium);
   }
 }
-
-
-
-
-

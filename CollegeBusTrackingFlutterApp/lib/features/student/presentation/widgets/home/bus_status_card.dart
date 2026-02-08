@@ -75,7 +75,7 @@ class BusStatusCard extends ConsumerWidget {
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.03),
+            color: Colors.black.withValues(alpha: 0.03),
             blurRadius: 20,
             offset: const Offset(0, 10),
           ),
@@ -96,7 +96,7 @@ class BusStatusCard extends ConsumerWidget {
                         fontSize: 12,
                         fontWeight: FontWeight.bold,
                         letterSpacing: 1.2,
-                        color: colorScheme.onSurface.withOpacity(0.4),
+                        color: colorScheme.onSurface.withValues(alpha: 0.4),
                       ),
                     ),
                     const SizedBox(height: 8),
@@ -130,7 +130,7 @@ class BusStatusCard extends ConsumerWidget {
                 ),
                 decoration: BoxDecoration(
                   color: (isRunning ? Colors.green : colorScheme.onSurface)
-                      .withOpacity(0.05),
+                      .withValues(alpha: 0.05),
                   borderRadius: BorderRadius.circular(24),
                 ),
                 child: Row(
@@ -140,7 +140,7 @@ class BusStatusCard extends ConsumerWidget {
                       size: 10,
                       color: isRunning
                           ? Colors.greenAccent
-                          : colorScheme.onSurface.withOpacity(0.4),
+                          : colorScheme.onSurface.withValues(alpha: 0.4),
                     ),
                     const SizedBox(width: 8.0),
                     Text(
@@ -154,7 +154,7 @@ class BusStatusCard extends ConsumerWidget {
                         fontWeight: FontWeight.bold,
                         color:
                             (isRunning ? Colors.green : colorScheme.onSurface)
-                                .withOpacity(0.7),
+                                .withValues(alpha: 0.7),
                       ),
                     ),
                   ],
@@ -164,7 +164,7 @@ class BusStatusCard extends ConsumerWidget {
           ),
 
           const SizedBox(height: 8),
-          Divider(color: colorScheme.onSurface.withOpacity(0.2)),
+          Divider(color: colorScheme.onSurface.withValues(alpha: 0.2)),
           const SizedBox(height: 8),
 
           Row(
@@ -179,7 +179,7 @@ class BusStatusCard extends ConsumerWidget {
                         fontSize: 8,
                         fontWeight: FontWeight.bold,
                         letterSpacing: 1.2,
-                        color: colorScheme.onSurface.withOpacity(0.5),
+                        color: colorScheme.onSurface.withValues(alpha: 0.5),
                       ),
                     ),
                     const SizedBox(height: 8),
@@ -215,7 +215,7 @@ class BusStatusCard extends ConsumerWidget {
                         fontSize: 8,
                         fontWeight: FontWeight.bold,
                         letterSpacing: 1.2,
-                        color: colorScheme.onSurface.withOpacity(0.5),
+                        color: colorScheme.onSurface.withValues(alpha: 0.5),
                       ),
                     ),
                     const SizedBox(height: 8),
@@ -236,8 +236,3 @@ class BusStatusCard extends ConsumerWidget {
     );
   }
 }
-
-
-
-
-

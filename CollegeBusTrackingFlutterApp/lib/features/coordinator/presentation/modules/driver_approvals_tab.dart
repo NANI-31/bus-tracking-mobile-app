@@ -25,7 +25,7 @@ class DriverApprovalsTab extends StatelessWidget {
                 size: 64,
                 color: Theme.of(
                   context,
-                ).colorScheme.onSurface.withOpacity(0.5),
+                ).colorScheme.onSurface.withValues(alpha: 0.5),
               ),
               AppSizes.paddingMedium.heightBox,
               'No pending driver approvals'.text
@@ -33,7 +33,7 @@ class DriverApprovalsTab extends StatelessWidget {
                   .color(
                     Theme.of(
                       context,
-                    ).colorScheme.onSurface.withOpacity(0.5),
+                    ).colorScheme.onSurface.withValues(alpha: 0.5),
                   )
                   .make(),
             ],
@@ -67,7 +67,7 @@ class DriverApprovalsTab extends StatelessWidget {
                         .color(
                           Theme.of(
                             context,
-                          ).colorScheme.onSurface.withOpacity(0.6),
+                          ).colorScheme.onSurface.withValues(alpha: 0.6),
                         )
                         .make(),
                   ]),
@@ -94,8 +94,3 @@ class DriverApprovalsTab extends StatelessWidget {
           );
   }
 }
-
-
-
-
-

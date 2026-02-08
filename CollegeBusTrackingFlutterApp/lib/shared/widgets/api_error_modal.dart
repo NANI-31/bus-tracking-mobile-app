@@ -260,19 +260,19 @@ class ApiErrorModal extends StatelessWidget {
         size: 10,
         top: 10,
         left: 10,
-        color: baseColor.withOpacity(0.5),
+        color: baseColor.withValues(alpha: 0.5),
       ),
       _bubble(
         size: 8,
         top: 70,
         right: 10,
-        color: baseColor.withOpacity(0.6),
+        color: baseColor.withValues(alpha: 0.6),
       ),
       _bubble(
         size: 14,
         bottom: 0,
         left: 30,
-        color: baseColor.withOpacity(0.4),
+        color: baseColor.withValues(alpha: 0.4),
       ),
 
       // Main Circle
@@ -281,7 +281,7 @@ class ApiErrorModal extends StatelessWidget {
           .box
           .height(40)
           .width(40)
-          .color(baseColor.withOpacity(0.2)) // Inner Circle
+          .color(baseColor.withValues(alpha: 0.2)) // Inner Circle
           .roundedFull
           .border(color: Colors.black87, width: 2.0)
           .make()
@@ -289,7 +289,7 @@ class ApiErrorModal extends StatelessWidget {
           .box
           .height(80)
           .width(80)
-          .color(baseColor.withOpacity(0.3)) // Lighter BG
+          .color(baseColor.withValues(alpha: 0.3)) // Lighter BG
           .roundedFull
           .border(color: Colors.white, width: 4.0)
           .make(),
@@ -331,8 +331,3 @@ class _ErrorContent {
     required this.onPrimaryAction,
   });
 }
-
-
-
-
-

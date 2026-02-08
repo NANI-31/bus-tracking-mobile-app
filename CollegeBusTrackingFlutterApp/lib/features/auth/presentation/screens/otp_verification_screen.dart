@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:collegebus/features/auth/application/auth_provider.dart';
@@ -124,7 +124,7 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final borderColor = theme.colorScheme.onSurface.withOpacity(0.2);
+    final borderColor = theme.colorScheme.onSurface.withValues(alpha: 0.2);
     final focusedBorderColor = theme.primaryColor;
     final fillColor = theme.colorScheme.surface;
 
@@ -160,7 +160,7 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
                   color: AppColors.primary,
                   size: 48,
                 ).box.roundedFull
-                .color(AppColors.primary.withOpacity(0.1))
+                .color(AppColors.primary.withValues(alpha: 0.1))
                 .size(100, 100)
                 .make(),
 
@@ -181,7 +181,7 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
               text: TextSpan(
                 style: TextStyle(
                   fontSize: 16,
-                  color: theme.colorScheme.onSurface.withOpacity(0.7),
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
                   height: 1.5,
                 ),
                 children: [
@@ -261,7 +261,7 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
               onTap: () => context.pop(),
               child: 'Change Number/Email'.text.medium
                   .size(14)
-                  .color(theme.colorScheme.onSurface.withOpacity(0.5))
+                  .color(theme.colorScheme.onSurface.withValues(alpha: 0.5))
                   .make(),
             ),
           ], crossAlignment: CrossAxisAlignment.center),
@@ -327,7 +327,7 @@ class _CountdownWidgetState extends State<CountdownWidget> {
     return HStack([
       'Resend code in '.text
           .size(15)
-          .color(Theme.of(context).colorScheme.onSurface.withOpacity(0.6))
+          .color(Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6))
           .make(),
       _timerText.text.size(15).bold.color(AppColors.primary).make(),
     ], alignment: MainAxisAlignment.center);

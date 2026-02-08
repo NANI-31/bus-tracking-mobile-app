@@ -16,51 +16,51 @@ import 'package:collegebus/core/utils/map_style_helper.dart';
 
 /// BusService provider
 final busServiceProvider = Provider<BusService>((ref) {
-  final api = ref.watch(apiServiceProvider);
-  final socket = ref.watch(socketServiceProvider);
+  final api = ref.read(apiServiceProvider);
+  final socket = ref.read(socketServiceProvider);
   return BusService(api, socket);
 });
 
 /// UserService provider
 final userServiceProvider = Provider<UserService>((ref) {
-  final api = ref.watch(apiServiceProvider);
+  final api = ref.read(apiServiceProvider);
   return UserService(api);
 });
 
 /// RouteService provider
 final routeServiceProvider = Provider<RouteService>((ref) {
-  final api = ref.watch(apiServiceProvider);
-  final socket = ref.watch(socketServiceProvider);
+  final api = ref.read(apiServiceProvider);
+  final socket = ref.read(socketServiceProvider);
   return RouteService(api, socket);
 });
 
 /// IncidentService provider
 final incidentServiceProvider = ChangeNotifierProvider<IncidentService>((ref) {
-  final api = ref.watch(apiServiceProvider);
+  final api = ref.read(apiServiceProvider);
   return IncidentService(api);
 });
 
 /// NotificationDataService provider
 final notificationDataServiceProvider =
     ChangeNotifierProvider<NotificationDataService>((ref) {
-      final api = ref.watch(apiServiceProvider);
+      final api = ref.read(apiServiceProvider);
       return NotificationDataService(api);
     });
 
 /// PaymentService provider
 final paymentServiceProvider = ChangeNotifierProvider<PaymentService>((ref) {
-  final api = ref.watch(apiServiceProvider);
+  final api = ref.read(apiServiceProvider);
   return PaymentService(api);
 });
 
 /// DataService (Facade) provider
 final dataServiceProvider = ChangeNotifierProvider<DataService>((ref) {
-  final bus = ref.watch(busServiceProvider);
-  final user = ref.watch(userServiceProvider);
-  final route = ref.watch(routeServiceProvider);
-  final incident = ref.watch(incidentServiceProvider);
-  final notification = ref.watch(notificationDataServiceProvider);
-  final payment = ref.watch(paymentServiceProvider);
+  final bus = ref.read(busServiceProvider);
+  final user = ref.read(userServiceProvider);
+  final route = ref.read(routeServiceProvider);
+  final incident = ref.read(incidentServiceProvider);
+  final notification = ref.read(notificationDataServiceProvider);
+  final payment = ref.read(paymentServiceProvider);
 
   return DataService(
     bus,
@@ -136,8 +136,3 @@ final mapStyleProvider = FutureProvider<String?>((ref) async {
   final isDarkMode = ref.watch(themeServiceProvider).isDarkMode;
   return await MapStyleHelper.getStyle(isDarkMode);
 });
-
-
-
-
-

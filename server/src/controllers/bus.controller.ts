@@ -2,12 +2,20 @@ import { Request, Response } from "express";
 import { Bus, BusLocation, IBus } from "../models/Bus";
 import { getBusService } from "../services/busService";
 import logger from "../utils/logger";
+import { getCache, setCache, delCache, delCachePattern } from "../utils/cache";
+
+const CACHE_TTL = 3600; // 1 hour
 
 // Bus Operations
 export const createBus = async (req: Request, res: Response) => {
   try {
     const newBus = new Bus(req.body);
     const savedBus = await newBus.save();
+
+    // Invalidate caches
+    await delCache("all_buses");
+    await delCache(`buses:${savedBus.collegeId}`);
+
     res.status(201).json(savedBus);
   } catch (error) {
     res.status(500).json({ message: (error as Error).message });
@@ -26,9 +34,23 @@ export const getBus = async (req: Request, res: Response) => {
 
 export const getAllBuses = async (req: Request, res: Response) => {
   logger.info("BUS: Entering getAllBuses");
+  const cacheKey = "all_buses";
+
   try {
+    // 1. Check cache
+    const cachedBuses = await getCache<any[]>(cacheKey);
+    if (cachedBuses) {
+      logger.info("CACHE: Hit for all_buses");
+      return res.status(200).json(cachedBuses);
+    }
+
+    // 2. Fetch from DB
     const buses = await Bus.find();
     logger.info(`BUS: Found ${buses.length} buses`);
+
+    // 3. Set cache
+    await setCache(cacheKey, buses, CACHE_TTL);
+
     res.status(200).json(buses);
   } catch (error) {
     logger.error(`BUS: Error in getAllBuses: ${(error as Error).message}`);
@@ -54,6 +76,12 @@ export const updateBus = async (req: Request, res: Response) => {
       requestingUserName,
     );
 
+    // Invalidate caches
+    await delCache("all_buses");
+    if (updatedBus) {
+      await delCache(`buses:${updatedBus.collegeId}`);
+    }
+
     res.status(200).json(updatedBus);
   } catch (error) {
     const message = (error as Error).message;
@@ -68,6 +96,10 @@ export const deleteBus = async (req: Request, res: Response) => {
   try {
     const bus = await Bus.findByIdAndDelete(req.params.id);
     if (!bus) return res.status(404).json({ message: "Bus not found" });
+
+    // Invalidate caches
+    await delCache("all_buses");
+    await delCache(`buses:${bus.collegeId}`);
 
     // Broadcast update to college room
     const io = req.app.get("io");

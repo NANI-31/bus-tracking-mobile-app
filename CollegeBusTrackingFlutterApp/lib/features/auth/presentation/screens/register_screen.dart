@@ -243,7 +243,11 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
 
             l10n.joinToTrack.text
                 .size(15)
-                .color(Theme.of(context).colorScheme.onSurface.withOpacity(0.6))
+                .color(
+                  Theme.of(
+                    context,
+                  ).colorScheme.onSurface.withValues(alpha: 0.6),
+                )
                 .heightLoose
                 .center
                 .makeCentered(),
@@ -364,7 +368,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                 if (_selectedRole != UserRole.parent &&
                     _emailDomainHint != null)
                   _emailDomainHint!.text
-                      .color(AppColors.primary.withOpacity(0.8))
+                      .color(AppColors.primary.withValues(alpha: 0.8))
                       .size(12)
                       .medium
                       .make()

@@ -55,7 +55,7 @@ class DriverManagementTab extends ConsumerWidget {
               borderRadius: BorderRadius.circular(50),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
+                  color: Colors.black.withValues(alpha: 0.1),
                   blurRadius: 10,
                   offset: const Offset(0, 4),
                 ),
@@ -71,7 +71,7 @@ class DriverManagementTab extends ConsumerWidget {
                 borderRadius: BorderRadius.circular(50),
                 boxShadow: [
                   BoxShadow(
-                    color: AppColors.primary.withOpacity(0.4),
+                    color: AppColors.primary.withValues(alpha: 0.4),
                     blurRadius: 8,
                     offset: const Offset(0, 2),
                   ),
@@ -243,11 +243,11 @@ class DriverManagementTab extends ConsumerWidget {
         color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(24),
         border: Border.all(
-          color: Theme.of(context).dividerColor.withOpacity(0.1),
+          color: Theme.of(context).dividerColor.withValues(alpha: 0.1),
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 20,
             offset: const Offset(0, 10),
           ),
@@ -257,7 +257,7 @@ class DriverManagementTab extends ConsumerWidget {
           end: Alignment.bottomRight,
           colors: [
             Theme.of(context).cardColor,
-            Theme.of(context).cardColor.withOpacity(0.8),
+            Theme.of(context).cardColor.withValues(alpha: 0.8),
           ],
         ),
       ),
@@ -313,7 +313,7 @@ class DriverManagementTab extends ConsumerWidget {
               subtitle: _buildDriverStatusBadge(context, status).pOnly(top: 8),
               children: [
                 Divider(
-                  color: Theme.of(context).dividerColor.withOpacity(0.05),
+                  color: Theme.of(context).dividerColor.withValues(alpha: 0.05),
                 ),
                 12.heightBox,
                 HStack([
@@ -337,7 +337,7 @@ class DriverManagementTab extends ConsumerWidget {
                         side: BorderSide(
                           color: Theme.of(
                             context,
-                          ).dividerColor.withOpacity(0.1),
+                          ).dividerColor.withValues(alpha: 0.1),
                         ),
                       ),
                     ),
@@ -368,7 +368,7 @@ class DriverManagementTab extends ConsumerWidget {
                         side: BorderSide(
                           color: Theme.of(
                             context,
-                          ).dividerColor.withOpacity(0.1),
+                          ).dividerColor.withValues(alpha: 0.1),
                         ),
                       ),
                     ),
@@ -400,7 +400,7 @@ class DriverManagementTab extends ConsumerWidget {
                               BoxShadow(
                                 color: const Color(
                                   0xFF2E3192,
-                                ).withOpacity(0.3),
+                                ).withValues(alpha: 0.3),
                                 blurRadius: 10,
                                 offset: const Offset(0, 4),
                               ),
@@ -474,7 +474,7 @@ class DriverManagementTab extends ConsumerWidget {
             border: Border.all(
               color: isOnline
                   ? Colors.greenAccent
-                  : Colors.grey.withOpacity(0.2),
+                  : Colors.grey.withValues(alpha: 0.2),
               width: 2.0,
             ),
           ),
@@ -482,7 +482,7 @@ class DriverManagementTab extends ConsumerWidget {
             radius: 24,
             backgroundColor: Theme.of(
               context,
-            ).primaryColor.withOpacity(0.1),
+            ).primaryColor.withValues(alpha: 0.1),
             child: (driver.fullName.isNotEmpty ? driver.fullName[0] : '?').text
                 .size(20)
                 .color(Theme.of(context).primaryColor)
@@ -503,7 +503,7 @@ class DriverManagementTab extends ConsumerWidget {
                 border: Border.all(color: Colors.white, width: 2.0),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.greenAccent.withOpacity(0.4),
+                    color: Colors.greenAccent.withValues(alpha: 0.4),
                     blurRadius: 4,
                   ),
                 ],
@@ -544,13 +544,13 @@ class DriverManagementTab extends ConsumerWidget {
           label.text
               .size(12)
               .semiBold
-              .color(color.withOpacity(0.9))
+              .color(color.withValues(alpha: 0.9))
               .make(),
         ])
         .pSymmetric(h: 12, v: 6)
         .box
-        .color(color.withOpacity(0.08))
-        .border(color: color.withOpacity(0.2))
+        .color(color.withValues(alpha: 0.08))
+        .border(color: color.withValues(alpha: 0.2))
         .withRounded(value: 50)
         .make();
   }
@@ -561,13 +561,13 @@ class DriverManagementTab extends ConsumerWidget {
         Container(
           padding: const EdgeInsets.all(24),
           decoration: BoxDecoration(
-            color: Theme.of(context).primaryColor.withOpacity(0.05),
+            color: Theme.of(context).primaryColor.withValues(alpha: 0.05),
             shape: BoxShape.circle,
           ),
           child: Icon(
             icon,
             size: 48,
-            color: Theme.of(context).primaryColor.withOpacity(0.5),
+            color: Theme.of(context).primaryColor.withValues(alpha: 0.5),
           ),
         ),
         24.heightBox,
@@ -578,8 +578,3 @@ class DriverManagementTab extends ConsumerWidget {
     ).centered();
   }
 }
-
-
-
-
-

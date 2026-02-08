@@ -110,7 +110,9 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
           'Enter your email address and we\'ll send you a OTP to reset your password.'
               .text
               .size(16)
-              .color(Theme.of(context).colorScheme.onSurface.withOpacity(0.7))
+              .color(
+                Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+              )
               .center
               .makeCentered(),
 
@@ -174,7 +176,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
               ])
               .p(AppSizes.paddingMedium)
               .box
-              .color(AppColors.primary.withOpacity(0.1))
+              .color(AppColors.primary.withValues(alpha: 0.1))
               .rounded
               .make(),
         ]).p(AppSizes.paddingLarge).scrollVertical().safeArea(),

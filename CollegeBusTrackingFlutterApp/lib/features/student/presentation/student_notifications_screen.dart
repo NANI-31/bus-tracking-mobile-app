@@ -68,7 +68,7 @@ class _StudentNotificationsScreenState
               time: "10 min ago",
               icon: Icons.directions_bus_rounded,
               iconColor: AppColors.primary,
-              iconBgColor: AppColors.primary.withOpacity(0.1),
+              iconBgColor: AppColors.primary.withValues(alpha: 0.1),
               isUnread: true,
             ),
             _buildNotificationCard(
@@ -106,7 +106,7 @@ class _StudentNotificationsScreenState
       margin: const EdgeInsets.symmetric(horizontal: 24),
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
-        color: colorScheme.onSurface.withOpacity(0.05),
+        color: colorScheme.onSurface.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(32),
       ),
       child: LayoutBuilder(
@@ -129,7 +129,7 @@ class _StudentNotificationsScreenState
                     borderRadius: BorderRadius.circular(28),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.05),
+                        color: Colors.black.withValues(alpha: 0.05),
                         blurRadius: 10,
                         offset: const Offset(0, 4),
                       ),
@@ -155,7 +155,9 @@ class _StudentNotificationsScreenState
                             .color(
                               isSelected
                                   ? AppColors.primary
-                                  : colorScheme.onSurface.withOpacity(0.5,),
+                                  : colorScheme.onSurface.withValues(
+                                      alpha: 0.5,
+                                    ),
                             )
                             .make(),
                       ),
@@ -190,13 +192,13 @@ class _StudentNotificationsScreenState
         borderRadius: BorderRadius.circular(24),
         border: Border.all(
           color: isUnread
-              ? AppColors.primary.withOpacity(0.1)
+              ? AppColors.primary.withValues(alpha: 0.1)
               : Colors.transparent,
           width: 1.0,
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.02),
+            color: Colors.black.withValues(alpha: 0.02),
             blurRadius: 15,
             offset: const Offset(0, 8),
           ),
@@ -239,7 +241,7 @@ class _StudentNotificationsScreenState
           6.heightBox,
 
           description.text
-              .color(colorScheme.onSurface.withOpacity(0.6))
+              .color(colorScheme.onSurface.withValues(alpha: 0.6))
               .lineHeight(1.4)
               .make(),
         ]).expand(),
@@ -249,11 +251,6 @@ class _StudentNotificationsScreenState
 
   Color isSelectedColor(BuildContext context, bool isUnread) {
     if (isUnread) return AppColors.primary;
-    return Theme.of(context).colorScheme.onSurface.withOpacity(0.4);
+    return Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4);
   }
 }
-
-
-
-
-

@@ -34,7 +34,7 @@ class StudentInfoTab extends ConsumerWidget {
                   label: Text(busNumber),
                   backgroundColor: Theme.of(
                     context,
-                  ).primaryColor.withOpacity(0.1),
+                  ).primaryColor.withValues(alpha: 0.1),
                 ),
               )
               .toList(),
@@ -67,7 +67,7 @@ class StudentInfoTab extends ConsumerWidget {
                 .rounded
                 .withShadow([
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
+                    color: Colors.black.withValues(alpha: 0.05),
                     blurRadius: 4,
                     offset: const Offset(0, 2),
                   ),
@@ -79,8 +79,3 @@ class StudentInfoTab extends ConsumerWidget {
     ]).p(AppSizes.paddingMedium).scrollVertical();
   }
 }
-
-
-
-
-

@@ -91,6 +91,7 @@ dependencies:
   collection: ^1.19.1
   google_maps_flutter_android: ^2.18.12
   google_maps_flutter_platform_interface: ^2.14.1
+  audioplayers: ^6.5.1
 
 dev_dependencies:
   flutter_test:
@@ -128,6 +129,7 @@ flutter:
   assets:
     - assets/images/
     - assets/map_styles/
+    - assets/sounds/
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

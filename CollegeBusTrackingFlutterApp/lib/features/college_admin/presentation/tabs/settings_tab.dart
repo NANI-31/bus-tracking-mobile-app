@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:collegebus/core/constants/constants.dart';
+import 'package:collegebus/features/settings/presentation/sos_sound_settings.dart';
 
 class SettingsTab extends ConsumerWidget {
   const SettingsTab({super.key});
@@ -56,13 +57,17 @@ class SettingsTab extends ConsumerWidget {
               ],
             ),
           ),
+          const SizedBox(height: AppSizes.paddingMedium),
+
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: const SosSoundSettings(),
+            ),
+          ),
+          const SizedBox(height: AppSizes.paddingMedium),
         ],
       ),
     );
   }
 }
-
-
-
-
-

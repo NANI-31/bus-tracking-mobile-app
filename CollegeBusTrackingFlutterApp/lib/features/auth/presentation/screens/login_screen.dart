@@ -215,7 +215,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                             Colors.transparent,
                             Theme.of(
                               context,
-                            ).scaffoldBackgroundColor.withOpacity(0.2),
+                            ).scaffoldBackgroundColor.withValues(alpha: 0.2),
                             Theme.of(context).scaffoldBackgroundColor,
                           ],
                           stops: const [0.6, 0.9, 1.0],
@@ -301,9 +301,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: Colors.grey.withOpacity(0.1),
+                        color: Colors.grey.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.grey.withOpacity(0.2)),
+                        border: Border.all(
+                          color: Colors.grey.withValues(alpha: 0.2),
+                        ),
                       ),
                       child: Column(
                         children: [

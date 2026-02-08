@@ -117,7 +117,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
               time: "10 min ago",
               icon: Icons.directions_bus_rounded,
               iconColor: AppColors.primary,
-              iconBgColor: AppColors.primary.withOpacity(0.1),
+              iconBgColor: AppColors.primary.withValues(alpha: 0.1),
               isUnread: true,
             ),
             NotificationCard(
@@ -210,8 +210,3 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     );
   }
 }
-
-
-
-
-

@@ -1,4 +1,6 @@
 import { Server } from "socket.io";
+import { createAdapter } from "@socket.io/redis-adapter";
+import { pubClient, subClient } from "./config/redis";
 import { LRUCache } from "lru-cache";
 import { RateLimiterMemory } from "rate-limiter-flexible";
 import { authenticateSocket, AuthenticatedSocket } from "./utils/socketAuth";
@@ -19,6 +21,7 @@ const busCache = new LRUCache<
 const rateLimiter = new RateLimiterMemory({
   points: 10,
   duration: 5,
+  blockDuration: 60, // Block for 1 minute if exceeded
 });
 
 // ============================================================
@@ -69,6 +72,9 @@ async function flushLocationBuffer() {
 setInterval(flushLocationBuffer, DB_FLUSH_INTERVAL_MS);
 
 export const initializeSocket = (io: Server) => {
+  // Use Redis Adapter
+  io.adapter(createAdapter(pubClient, subClient));
+
   // Socket.IO Connection Handling
   io.use(authenticateSocket); // Secure all connections
 
@@ -100,7 +106,7 @@ export const initializeSocket = (io: Server) => {
           break;
       }
       logger.info(
-        `${user.fullName} (${user.role}) connected - Socket ${socket.id}`
+        `${user.fullName} (${user.role}) connected - Socket ${socket.id}`,
       );
 
       // If it's a driver, notify the college room
@@ -124,29 +130,31 @@ export const initializeSocket = (io: Server) => {
       logger.info(
         `[Socket Debug] join_college called. CollegeId: ${collegeId}. User: ${
           user ? user.fullName : "Unknown"
-        }, Role: ${user ? user.role : "N/A"}`
+        }, Role: ${user ? user.role : "N/A"}`,
       );
 
-      // If user is a busCoordinator (or legacy 'coordinator'), join the coordinators room for SOS
+      // If user is a busCoordinator, coordinator, or admin, join the coordinators room for SOS
       if (
         user &&
-        (user.role === "busCoordinator" || user.role === "coordinator")
+        (user.role === "busCoordinator" ||
+          user.role === "coordinator" ||
+          user.role === "admin")
       ) {
         const coordRoom = `${collegeId}_coordinators`;
         socket.join(coordRoom);
         logger.info(
-          `[Socket] Coordinator ${user.fullName} joined SOS room: ${coordRoom}`
+          `[Socket] User ${user.fullName} (${user.role}) joined SOS room: ${coordRoom}`,
         );
       } else {
         logger.info(
           `[Socket Debug] User ${
             user ? user.fullName : "Unknown"
-          } DID NOT join coordinator room. Role mismatch or user missing.`
+          } DID NOT join coordinator room. Role mismatch or user missing.`,
         );
       }
 
       logger.info(
-        `[Socket] ${user?.fullName || "User"} joined room: ${collegeId}`
+        `[Socket] ${user?.fullName || "User"} joined room: ${collegeId}`,
       );
 
       // IMMEDIATE LOCATION PUSH:
@@ -178,7 +186,7 @@ export const initializeSocket = (io: Server) => {
             }
           });
           logger.info(
-            `[Socket] Found ${liveLocations.length} buffered locations.`
+            `[Socket] Found ${liveLocations.length} buffered locations.`,
           );
 
           // 2. Get DB Locations (Disk) - Only recent ones to ensure "live" feel
@@ -201,7 +209,7 @@ export const initializeSocket = (io: Server) => {
             },
           ]);
           logger.info(
-            `[Socket] Found ${dbLocations.length} recent DB locations.`
+            `[Socket] Found ${dbLocations.length} recent DB locations.`,
           );
 
           // 3. Merge: Add DB location only if we don't have a buffered one (or DB is somehow newer)
@@ -229,7 +237,7 @@ export const initializeSocket = (io: Server) => {
 
           if (liveLocations.length > 0) {
             logger.info(
-              `[Socket] Sending ${liveLocations.length} live locations to ${socket.id}`
+              `[Socket] Sending ${liveLocations.length} live locations to ${socket.id}`,
             );
             liveLocations.forEach((payload) => {
               socket.emit("location_updated", payload);
@@ -244,12 +252,12 @@ export const initializeSocket = (io: Server) => {
     socket.on("bus_list_updated", () => {
       if (user && user.collegeId) {
         logger.info(
-          `[Socket] Received bus_list_updated from ${user.fullName}. Broadcasting to room ${user.collegeId}`
+          `[Socket] Received bus_list_updated from ${user.fullName}. Broadcasting to room ${user.collegeId}`,
         );
         socket.to(user.collegeId.toString()).emit("bus_list_updated");
       } else {
         logger.info(
-          `[Socket] bus_list_updated received but user or collegeId missing. User: ${user?.id}`
+          `[Socket] bus_list_updated received but user or collegeId missing. User: ${user?.id}`,
         );
       }
     });
@@ -257,12 +265,12 @@ export const initializeSocket = (io: Server) => {
     socket.on("user_list_updated", () => {
       if (user && user.collegeId) {
         logger.info(
-          `[Socket] Received user_list_updated from ${user.fullName}. Broadcasting to room ${user.collegeId}`
+          `[Socket] Received user_list_updated from ${user.fullName}. Broadcasting to room ${user.collegeId}`,
         );
         socket.to(user.collegeId.toString()).emit("user_list_updated");
       } else {
         logger.info(
-          `[Socket] user_list_updated received but user or collegeId missing. User: ${user?.id}`
+          `[Socket] user_list_updated received but user or collegeId missing. User: ${user?.id}`,
         );
       }
     });
@@ -271,7 +279,7 @@ export const initializeSocket = (io: Server) => {
       if (user && user.collegeId) {
         const coordRoom = `${user.collegeId.toString()}_coordinators`;
         logger.info(
-          `[Socket] SOS triggered by ${user.fullName}. Broadcasting to SOS room ${coordRoom}`
+          `[Socket] SOS triggered by ${user.fullName}. Broadcasting to SOS room ${coordRoom}`,
         );
         socket.to(coordRoom).emit("sos_alert", data);
       }
@@ -281,7 +289,7 @@ export const initializeSocket = (io: Server) => {
       if (user && user.collegeId) {
         const coordRoom = `${user.collegeId.toString()}_coordinators`;
         logger.info(
-          `[Socket] SOS resolved. Broadcasting to SOS room ${coordRoom}`
+          `[Socket] SOS resolved. Broadcasting to SOS room ${coordRoom}`,
         );
         socket.to(coordRoom).emit("sos_resolved", data);
       }
@@ -324,8 +332,8 @@ export const initializeSocket = (io: Server) => {
 
       logger.info(
         `Bus ${busName} coordinate - ${data.location.lat.toFixed(
-          5
-        )}, ${data.location.lng.toFixed(5)}`
+          5,
+        )}, ${data.location.lng.toFixed(5)}`,
       );
 
       // Check for nearby stops and notify users
@@ -340,7 +348,7 @@ export const initializeSocket = (io: Server) => {
               busDetails.busNumber,
               data.location.lat,
               data.location.lng,
-              busDetails.routeId
+              busDetails.routeId,
             );
           }
         } else {
@@ -361,7 +369,7 @@ export const initializeSocket = (io: Server) => {
                 busDetails.busNumber,
                 data.location.lat,
                 data.location.lng,
-                busDetails.routeId
+                busDetails.routeId,
               );
             }
           }

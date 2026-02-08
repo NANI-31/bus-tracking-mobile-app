@@ -113,7 +113,7 @@ class _BusScheduleScreenState extends ConsumerState<BusScheduleScreen> {
                           labelColor: Theme.of(context).colorScheme.onPrimary,
                           unselectedLabelColor: Theme.of(
                             context,
-                          ).colorScheme.onPrimary.withOpacity(0.7),
+                          ).colorScheme.onPrimary.withValues(alpha: 0.7),
                           indicatorColor: Theme.of(
                             context,
                           ).colorScheme.onPrimary,
@@ -135,7 +135,7 @@ class _BusScheduleScreenState extends ConsumerState<BusScheduleScreen> {
                           labelColor: Theme.of(context).colorScheme.onPrimary,
                           unselectedLabelColor: Theme.of(
                             context,
-                          ).colorScheme.onPrimary.withOpacity(0.7),
+                          ).colorScheme.onPrimary.withValues(alpha: 0.7),
                           indicatorColor: Theme.of(
                             context,
                           ).colorScheme.onPrimary,
@@ -250,14 +250,18 @@ class _BusScheduleScreenState extends ConsumerState<BusScheduleScreen> {
                   margin: const EdgeInsets.all(16),
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
-                    color: Theme.of(context).primaryColor.withOpacity(0.05),
+                    color: Theme.of(
+                      context,
+                    ).primaryColor.withValues(alpha: 0.05),
                     borderRadius: BorderRadius.circular(24),
                     border: Border.all(
-                      color: Theme.of(context).primaryColor.withOpacity(0.1),
+                      color: Theme.of(
+                        context,
+                      ).primaryColor.withValues(alpha: 0.1),
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.03),
+                        color: Colors.black.withValues(alpha: 0.03),
                         blurRadius: 10,
                         offset: const Offset(0, 4),
                       ),
@@ -410,7 +414,9 @@ class _BusScheduleScreenState extends ConsumerState<BusScheduleScreen> {
             Icon(
               shift == '1st' ? Icons.wb_sunny : Icons.nights_stay,
               size: 64,
-              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+              color: Theme.of(
+                context,
+              ).colorScheme.onSurface.withValues(alpha: 0.6),
             ),
             const SizedBox(height: 16),
             Text(
@@ -422,7 +428,9 @@ class _BusScheduleScreenState extends ConsumerState<BusScheduleScreen> {
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 18,
-                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                color: Theme.of(
+                  context,
+                ).colorScheme.onSurface.withValues(alpha: 0.6),
               ),
             ),
           ],
@@ -464,12 +472,12 @@ class _BusScheduleScreenState extends ConsumerState<BusScheduleScreen> {
 
         return Card(
           elevation: 2,
-          shadowColor: Colors.black.withOpacity(0.05),
+          shadowColor: Colors.black.withValues(alpha: 0.05),
           margin: const EdgeInsets.only(bottom: AppSizes.paddingMedium),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
             side: BorderSide(
-              color: Theme.of(context).primaryColor.withOpacity(0.05),
+              color: Theme.of(context).primaryColor.withValues(alpha: 0.05),
             ),
           ),
           child: Theme(
@@ -495,7 +503,7 @@ class _BusScheduleScreenState extends ConsumerState<BusScheduleScreen> {
                   shape: BoxShape.circle,
                   boxShadow: [
                     BoxShadow(
-                      color: const Color(0xFF00BCD4).withOpacity(0.3),
+                      color: const Color(0xFF00BCD4).withValues(alpha: 0.3),
                       blurRadius: 8,
                       offset: const Offset(0, 4),
                     ),
@@ -528,7 +536,7 @@ class _BusScheduleScreenState extends ConsumerState<BusScheduleScreen> {
                     fontSize: 12,
                     color: Theme.of(
                       context,
-                    ).colorScheme.onSurface.withOpacity(0.5),
+                    ).colorScheme.onSurface.withValues(alpha: 0.5),
                     fontWeight: FontWeight.w600,
                   ),
                   maxLines: 1,
@@ -548,7 +556,7 @@ class _BusScheduleScreenState extends ConsumerState<BusScheduleScreen> {
                           vertical: 6,
                         ),
                         decoration: BoxDecoration(
-                          color: const Color(0xFF00BCD4).withOpacity(0.1),
+                          color: const Color(0xFF00BCD4).withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: const Row(
@@ -576,7 +584,7 @@ class _BusScheduleScreenState extends ConsumerState<BusScheduleScreen> {
                     Icons.keyboard_arrow_down_rounded,
                     color: Theme.of(
                       context,
-                    ).colorScheme.onSurface.withOpacity(0.4),
+                    ).colorScheme.onSurface.withValues(alpha: 0.4),
                   ),
                 ],
               ),
@@ -614,7 +622,7 @@ class _BusScheduleScreenState extends ConsumerState<BusScheduleScreen> {
                           bottom: BorderSide(
                             color: Theme.of(
                               context,
-                            ).dividerColor.withOpacity(0.5),
+                            ).dividerColor.withValues(alpha: 0.5),
                           ),
                         ),
                       ),
@@ -628,7 +636,7 @@ class _BusScheduleScreenState extends ConsumerState<BusScheduleScreen> {
                               fontSize: 13,
                               color: Theme.of(
                                 context,
-                              ).colorScheme.onSurface.withOpacity(0.6),
+                              ).colorScheme.onSurface.withValues(alpha: 0.6),
                             ),
                           ),
                         ),
@@ -641,7 +649,7 @@ class _BusScheduleScreenState extends ConsumerState<BusScheduleScreen> {
                               fontSize: 13,
                               color: Theme.of(
                                 context,
-                              ).colorScheme.onSurface.withOpacity(0.6),
+                              ).colorScheme.onSurface.withValues(alpha: 0.6),
                             ),
                             textAlign: TextAlign.center,
                           ),
@@ -655,7 +663,7 @@ class _BusScheduleScreenState extends ConsumerState<BusScheduleScreen> {
                               fontSize: 13,
                               color: Theme.of(
                                 context,
-                              ).colorScheme.onSurface.withOpacity(0.6),
+                              ).colorScheme.onSurface.withValues(alpha: 0.6),
                             ),
                             textAlign: TextAlign.center,
                           ),
@@ -694,7 +702,7 @@ class _BusScheduleScreenState extends ConsumerState<BusScheduleScreen> {
                               style: TextStyle(
                                 color: Theme.of(
                                   context,
-                                ).colorScheme.onSurface.withOpacity(0.7),
+                                ).colorScheme.onSurface.withValues(alpha: 0.7),
                                 fontWeight: FontWeight.w500,
                                 fontSize: 13,
                               ),
@@ -732,13 +740,15 @@ class _BusScheduleScreenState extends ConsumerState<BusScheduleScreen> {
           border: Border.all(
             color: isActive
                 ? Theme.of(context).primaryColor
-                : Theme.of(context).primaryColor.withOpacity(0.1),
+                : Theme.of(context).primaryColor.withValues(alpha: 0.1),
             width: isActive ? 1.5 : 1.0,
           ),
           boxShadow: isActive
               ? [
                   BoxShadow(
-                    color: Theme.of(context).primaryColor.withOpacity(0.1),
+                    color: Theme.of(
+                      context,
+                    ).primaryColor.withValues(alpha: 0.1),
                     blurRadius: 8,
                     offset: const Offset(0, 2),
                   ),
@@ -752,7 +762,7 @@ class _BusScheduleScreenState extends ConsumerState<BusScheduleScreen> {
               size: 20,
               color: isActive
                   ? Theme.of(context).primaryColor
-                  : Theme.of(context).primaryColor.withOpacity(0.7),
+                  : Theme.of(context).primaryColor.withValues(alpha: 0.7),
             ),
             const SizedBox(width: 10),
             Expanded(
@@ -766,7 +776,7 @@ class _BusScheduleScreenState extends ConsumerState<BusScheduleScreen> {
                       fontWeight: FontWeight.bold,
                       color: Theme.of(
                         context,
-                      ).primaryColor.withOpacity(isActive ? 1.0 : 0.6),
+                      ).primaryColor.withValues(alpha: isActive ? 1.0 : 0.6),
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -846,11 +856,11 @@ class _BusScheduleScreenState extends ConsumerState<BusScheduleScreen> {
             color: Theme.of(context).colorScheme.surface,
             borderRadius: BorderRadius.circular(20),
             border: Border.all(
-              color: Theme.of(context).primaryColor.withOpacity(0.2),
+              color: Theme.of(context).primaryColor.withValues(alpha: 0.2),
             ),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.1),
+                color: Colors.black.withValues(alpha: 0.1),
                 blurRadius: 20,
                 offset: const Offset(0, 10),
               ),
@@ -918,7 +928,7 @@ class _BusScheduleScreenState extends ConsumerState<BusScheduleScreen> {
         margin: const EdgeInsets.only(bottom: 4),
         decoration: BoxDecoration(
           color: isSelected
-              ? Theme.of(context).primaryColor.withOpacity(0.1)
+              ? Theme.of(context).primaryColor.withValues(alpha: 0.1)
               : Colors.transparent,
           borderRadius: BorderRadius.circular(12),
         ),

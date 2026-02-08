@@ -265,8 +265,8 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
                       Text(
                         "Get full access to live tracking, detailed reports, and priority support.",
                         style: theme.textTheme.bodyMedium?.copyWith(
-                          color: theme.textTheme.bodyMedium?.color?.withOpacity(
-                            0.7,
+                          color: theme.textTheme.bodyMedium?.color?.withValues(
+                            alpha: 0.7,
                           ),
                         ),
                       ),
@@ -286,7 +286,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
                                 style: theme.textTheme.bodyMedium?.copyWith(
                                   fontWeight: FontWeight.bold,
                                   color: theme.textTheme.bodyMedium?.color
-                                      ?.withOpacity(0.6),
+                                      ?.withValues(alpha: 0.6),
                                   fontSize: 12,
                                 ),
                               ),
@@ -349,7 +349,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
                   color: theme.scaffoldBackgroundColor,
                   border: Border(
                     top: BorderSide(
-                      color: theme.dividerColor.withOpacity(0.1),
+                      color: theme.dividerColor.withValues(alpha: 0.1),
                       width: 1,
                     ),
                   ),
@@ -385,8 +385,8 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
                     Text(
                       "One-time payment. Secure & Encrypted.",
                       style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.textTheme.bodySmall?.color?.withOpacity(
-                          0.5,
+                        color: theme.textTheme.bodySmall?.color?.withValues(
+                          alpha: 0.5,
                         ),
                         fontSize: 12,
                       ),
@@ -429,8 +429,8 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
               child: Icon(
                 standard ? Icons.check_rounded : Icons.close_rounded,
                 color: standard
-                    ? theme.textTheme.bodyLarge?.color?.withOpacity(0.7)
-                    : theme.disabledColor.withOpacity(0.3),
+                    ? theme.textTheme.bodyLarge?.color?.withValues(alpha: 0.7)
+                    : theme.disabledColor.withValues(alpha: 0.3),
                 size: 20,
               ),
             ),

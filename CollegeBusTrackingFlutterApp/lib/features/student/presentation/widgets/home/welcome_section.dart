@@ -24,15 +24,10 @@ class WelcomeSection extends StatelessWidget {
           "Your bus status for today",
           style: TextStyle(
             fontSize: 16,
-            color: colorScheme.onSurface.withOpacity(0.7),
+            color: colorScheme.onSurface.withValues(alpha: 0.7),
           ),
         ),
       ],
     );
   }
 }
-
-
-
-
-

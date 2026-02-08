@@ -1,3 +1,4 @@
+// ignore_for_file: deprecated_member_use
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:collegebus/features/user/domain/user_model.dart';
@@ -348,8 +349,3 @@ class DataService extends ChangeNotifier {
     String signature,
   ) => _paymentService.verifyPayment(orderId, paymentId, signature);
 }
-
-
-
-
-

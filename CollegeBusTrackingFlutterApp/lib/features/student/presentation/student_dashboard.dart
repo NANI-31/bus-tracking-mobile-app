@@ -348,18 +348,21 @@ class _StudentDashboardState extends ConsumerState<StudentDashboard>
                   ),
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
-                      colors: [color.withOpacity(0.7), color.withOpacity(0.4)],
+                      colors: [
+                        color.withValues(alpha: 0.7),
+                        color.withValues(alpha: 0.4),
+                      ],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     ),
                     borderRadius: BorderRadius.circular(30),
                     border: Border.all(
-                      color: color.withOpacity(0.3),
+                      color: color.withValues(alpha: 0.3),
                       width: 1.5,
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: color.withOpacity(0.2),
+                        color: color.withValues(alpha: 0.2),
                         blurRadius: 15,
                         offset: const Offset(0, 8),
                       ),
@@ -450,7 +453,7 @@ class _PulsatingDotState extends State<PulsatingDot>
           shape: BoxShape.circle,
           boxShadow: [
             BoxShadow(
-              color: Colors.white.withOpacity(0.5),
+              color: Colors.white.withValues(alpha: 0.5),
               blurRadius: 4,
               spreadRadius: 2,
             ),

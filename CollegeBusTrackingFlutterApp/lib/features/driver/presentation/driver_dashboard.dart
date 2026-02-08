@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+
 import 'package:collegebus/shared/widgets/logout_confirmation_dialog.dart';
 import 'package:collegebus/l10n/driver/app_localizations.dart';
 
@@ -56,7 +56,7 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
   void initState() {
     super.initState();
     _getCurrentLocation();
-    _loadSavedSelections();
+    _getCurrentLocation();
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final socketService = ref.read(socketServiceProvider);
@@ -65,22 +65,6 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
         socketService.joinCollege(user.collegeId);
       }
     });
-  }
-
-  @override
-  void dispose() {
-    super.dispose();
-  }
-
-  Future<void> _loadSavedSelections() async {
-    final busNumber = await SecureStorageService.getDriverBusNumber();
-
-    if (mounted) {
-      setState(() {
-        if (busNumber != null) _selectedBusNumber = busNumber;
-      });
-      _updateMarkers();
-    }
   }
 
   Future<void> _saveSelections(BusModel? myBus) async {
@@ -440,13 +424,14 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
       if (!mounted) return;
       await _saveSelections(newBus);
       _updateMarkers();
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(DriverLocalizations.of(context)!.busAssignedSuccess),
-          backgroundColor: AppColors.success,
-        ),
-      );
+
+      // Auto-start location sharing and switch to tracking tab
+      if (mounted) {
+        await _startLocationSharing(newBus);
+        setState(() {
+          _bottomNavIndex = 1;
+        });
+      }
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -727,7 +712,7 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
         ),
         boxShadow: [
           BoxShadow(
-            color: gradientColors.last.withOpacity(0.5),
+            color: gradientColors.last.withValues(alpha: 0.5),
             blurRadius: 20,
             offset: const Offset(0, 10),
           ),
@@ -741,7 +726,7 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
             right: -20,
             child: CircleAvatar(
               radius: 60,
-              backgroundColor: Colors.white.withOpacity(0.1),
+              backgroundColor: Colors.white.withValues(alpha: 0.1),
             ),
           ),
           Positioned(
@@ -749,7 +734,7 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
             left: -30,
             child: CircleAvatar(
               radius: 80,
-              backgroundColor: Colors.white.withOpacity(0.1),
+              backgroundColor: Colors.white.withValues(alpha: 0.1),
             ),
           ),
 

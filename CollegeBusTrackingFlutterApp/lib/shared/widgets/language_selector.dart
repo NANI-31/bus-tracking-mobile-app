@@ -17,17 +17,17 @@ class LanguageSelector extends ConsumerWidget {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 12),
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.1),
+            color: Colors.white.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(24),
             border: Border.all(
-              color: Colors.white.withOpacity(0.2),
+              color: Colors.white.withValues(alpha: 0.2),
               width: 1.0,
             ),
           ),
           child: DropdownButtonHideUnderline(
             child: DropdownButton<String>(
               value: localeService.languageCode,
-              dropdownColor: Colors.black.withOpacity(0.85),
+              dropdownColor: Colors.black.withValues(alpha: 0.85),
               icon: const Icon(
                 Icons.keyboard_arrow_down_rounded,
                 color: Colors.white,
@@ -85,8 +85,3 @@ class LanguageSelector extends ConsumerWidget {
     );
   }
 }
-
-
-
-
-

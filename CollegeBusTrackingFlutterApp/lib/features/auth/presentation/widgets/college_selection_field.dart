@@ -66,7 +66,7 @@ class CollegeSelectionField extends StatelessWidget {
                       borderSide: BorderSide(
                         color: Theme.of(
                           context,
-                        ).colorScheme.onSurface.withOpacity(0.1),
+                        ).colorScheme.onSurface.withValues(alpha: 0.1),
                         width: 1.0,
                       ),
                     ),
@@ -75,7 +75,7 @@ class CollegeSelectionField extends StatelessWidget {
                       borderSide: BorderSide(
                         color: Theme.of(
                           context,
-                        ).colorScheme.onSurface.withOpacity(0.1),
+                        ).colorScheme.onSurface.withValues(alpha: 0.1),
                         width: 1.0,
                       ),
                     ),
@@ -99,8 +99,3 @@ class CollegeSelectionField extends StatelessWidget {
     ]);
   }
 }
-
-
-
-
-

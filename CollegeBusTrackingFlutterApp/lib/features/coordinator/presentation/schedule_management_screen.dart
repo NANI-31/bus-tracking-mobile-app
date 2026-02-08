@@ -75,7 +75,7 @@ class _ScheduleManagementScreenState
                 ),
                 16.heightBox,
                 DropdownButtonFormField<BusModel>(
-                  value: selectedBus,
+                  initialValue: selectedBus,
                   decoration: const InputDecoration(
                     labelText: 'Select Bus',
                     border: OutlineInputBorder(),
@@ -92,7 +92,7 @@ class _ScheduleManagementScreenState
                 ),
                 16.heightBox,
                 DropdownButtonFormField<String>(
-                  value: selectedTripType,
+                  initialValue: selectedTripType,
                   decoration: const InputDecoration(
                     labelText: 'Trip Type',
                     border: OutlineInputBorder(),
@@ -132,7 +132,7 @@ class _ScheduleManagementScreenState
                         ]).box
                         .padding(const EdgeInsets.all(12))
                         .color(
-                          Theme.of(context).primaryColor.withOpacity(0.1),
+                          Theme.of(context).primaryColor.withValues(alpha: 0.1),
                         )
                         .rounded
                         .make(),
@@ -149,7 +149,7 @@ class _ScheduleManagementScreenState
                         .color(
                           Theme.of(
                             context,
-                          ).colorScheme.secondary.withOpacity(0.1),
+                          ).colorScheme.secondary.withValues(alpha: 0.1),
                         )
                         .rounded
                         .make(),
@@ -288,7 +288,7 @@ class _ScheduleManagementScreenState
                   labelColor: Theme.of(context).colorScheme.onPrimary,
                   unselectedLabelColor: Theme.of(
                     context,
-                  ).colorScheme.onPrimary.withOpacity(0.7),
+                  ).colorScheme.onPrimary.withValues(alpha: 0.7),
                   indicatorColor: Theme.of(context).colorScheme.onPrimary,
                   tabs: tabs as List<Widget>,
                 )
@@ -366,7 +366,7 @@ class _ScheduleManagementScreenState
               size: 64,
               color: Theme.of(
                 context,
-              ).colorScheme.onSurface.withOpacity(0.6),
+              ).colorScheme.onSurface.withValues(alpha: 0.6),
             ),
             AppSizes.paddingMedium.heightBox,
             'No $shift shift timetables created yet'.text
@@ -375,7 +375,7 @@ class _ScheduleManagementScreenState
                 .color(
                   Theme.of(
                     context,
-                  ).colorScheme.onSurface.withOpacity(0.6),
+                  ).colorScheme.onSurface.withValues(alpha: 0.6),
                 )
                 .make(),
             AppSizes.paddingSmall.heightBox,
@@ -385,7 +385,7 @@ class _ScheduleManagementScreenState
                 .color(
                   Theme.of(
                     context,
-                  ).colorScheme.onSurface.withOpacity(0.6),
+                  ).colorScheme.onSurface.withValues(alpha: 0.6),
                 )
                 .make(),
           ],
@@ -535,7 +535,7 @@ class _ScheduleManagementScreenState
                                         : Theme.of(
                                             context,
                                           ).colorScheme.tertiary)
-                                    .withOpacity(0.1),
+                                    .withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(
                               color: isStart
@@ -608,8 +608,3 @@ class _ScheduleManagementScreenState
     );
   }
 }
-
-
-
-
-

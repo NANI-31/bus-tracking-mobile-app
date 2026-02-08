@@ -23,7 +23,7 @@ class RouteCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.03),
+            color: Colors.black.withValues(alpha: 0.03),
             blurRadius: 20,
             offset: const Offset(0, 10),
           ),
@@ -43,7 +43,7 @@ class RouteCard extends StatelessWidget {
                         fontSize: 13,
                         fontWeight: FontWeight.bold,
                         letterSpacing: 1.2,
-                        color: colorScheme.onSurface.withOpacity(0.5),
+                        color: colorScheme.onSurface.withValues(alpha: 0.5),
                       ),
                     ),
                     const SizedBox(height: 4),
@@ -73,12 +73,12 @@ class RouteCard extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: colorScheme.onSurface.withOpacity(0.05),
+                  color: colorScheme.onSurface.withValues(alpha: 0.05),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Icon(
                   Icons.alt_route_rounded,
-                  color: colorScheme.onSurface.withOpacity(0.5),
+                  color: colorScheme.onSurface.withValues(alpha: 0.5),
                 ),
               ),
             ],
@@ -207,8 +207,3 @@ class RouteCard extends StatelessWidget {
     );
   }
 }
-
-
-
-
-

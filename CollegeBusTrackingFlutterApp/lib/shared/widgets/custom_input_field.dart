@@ -69,7 +69,7 @@ class _CustomInputFieldState extends State<CustomInputField> {
           hintStyle: TextStyle(
             color: Theme.of(
               context,
-            ).colorScheme.onSurface.withOpacity(0.6),
+            ).colorScheme.onSurface.withValues(alpha: 0.6),
             fontSize: 14,
           ),
           prefixIcon: widget.prefixIcon,
@@ -93,7 +93,7 @@ class _CustomInputFieldState extends State<CustomInputField> {
             context,
             color: Theme.of(
               context,
-            ).colorScheme.onSurface.withOpacity(0.1),
+            ).colorScheme.onSurface.withValues(alpha: 0.1),
           ),
           focusedBorder: _buildBorder(
             context,
@@ -128,14 +128,9 @@ class _CustomInputFieldState extends State<CustomInputField> {
       borderSide: BorderSide(
         color:
             color ??
-            Theme.of(context).colorScheme.onSurface.withOpacity(0.1),
+            Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.1),
         width: width,
       ),
     );
   }
 }
-
-
-
-
-

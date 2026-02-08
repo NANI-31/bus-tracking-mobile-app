@@ -31,7 +31,7 @@ class TimelineItem extends StatelessWidget {
               size: 24,
               color: isActive
                   ? AppColors.primary
-                  : colorScheme.onSurface.withOpacity(0.2),
+                  : colorScheme.onSurface.withValues(alpha: 0.2),
             ),
             if (!isLast)
               Padding(
@@ -39,7 +39,7 @@ class TimelineItem extends StatelessWidget {
                 child: Container(
                   width: 2.0,
                   height: 40,
-                  color: colorScheme.onSurface.withOpacity(0.1),
+                  color: colorScheme.onSurface.withValues(alpha: 0.1),
                 ),
               ),
           ],
@@ -59,7 +59,7 @@ class TimelineItem extends StatelessWidget {
                     letterSpacing: 1,
                     color: isActive
                         ? AppColors.primary
-                        : colorScheme.onSurface.withOpacity(0.4),
+                        : colorScheme.onSurface.withValues(alpha: 0.4),
                   ),
                 ),
                 const SizedBox(height: 4),
@@ -78,7 +78,7 @@ class TimelineItem extends StatelessWidget {
                       subtext!,
                       style: TextStyle(
                         fontSize: 13,
-                        color: colorScheme.onSurface.withOpacity(0.6),
+                        color: colorScheme.onSurface.withValues(alpha: 0.6),
                       ),
                     ),
                   ),
@@ -90,8 +90,3 @@ class TimelineItem extends StatelessWidget {
     );
   }
 }
-
-
-
-
-

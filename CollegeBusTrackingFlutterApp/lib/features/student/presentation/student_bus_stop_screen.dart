@@ -95,7 +95,7 @@ class _StudentBusStopScreenState extends ConsumerState<StudentBusStopScreen> {
                 'Where will you board?'.text.white.extraBold.size(24).make(),
                 8.heightBox,
                 'Select your stop and route to receive arrival alerts.'.text
-                    .color(Colors.white.withOpacity(0.7))
+                    .color(Colors.white.withValues(alpha: 0.7))
                     .make(),
                 24.heightBox,
                 TextField(
@@ -314,13 +314,13 @@ class _StudentBusStopScreenState extends ConsumerState<StudentBusStopScreen> {
         border: Border.all(
           color: isSelected
               ? Theme.of(context).primaryColor
-              : Theme.of(context).colorScheme.onSurface.withOpacity(0.05),
+              : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.05),
           width: 2.0,
         ),
         boxShadow: isSelected
             ? [
                 BoxShadow(
-                  color: Theme.of(context).primaryColor.withOpacity(0.1),
+                  color: Theme.of(context).primaryColor.withValues(alpha: 0.1),
                   blurRadius: 12,
                   offset: const Offset(0, 4),
                 ),
@@ -343,7 +343,7 @@ class _StudentBusStopScreenState extends ConsumerState<StudentBusStopScreen> {
                         (isSelected
                                 ? Theme.of(context).primaryColor
                                 : Colors.grey)
-                            .withOpacity(0.1),
+                            .withValues(alpha: 0.1),
                     shape: BoxShape.circle,
                   ),
                   child: Icon(
@@ -383,8 +383,3 @@ class _StudentBusStopScreenState extends ConsumerState<StudentBusStopScreen> {
     );
   }
 }
-
-
-
-
-

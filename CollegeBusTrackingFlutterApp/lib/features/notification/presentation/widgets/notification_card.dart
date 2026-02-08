@@ -33,13 +33,13 @@ class NotificationCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
         ],
         border: isUnread
-            ? Border.all(color: iconColor.withOpacity(0.3), width: 1.5)
+            ? Border.all(color: iconColor.withValues(alpha: 0.3), width: 1.5)
             : null,
       ),
       child: Row(
@@ -65,14 +65,14 @@ class NotificationCard extends StatelessWidget {
                   title.text.bold.size(16).color(colorScheme.onSurface).make(),
                   time.text
                       .size(12)
-                      .color(colorScheme.onSurface.withOpacity(0.5))
+                      .color(colorScheme.onSurface.withValues(alpha: 0.5))
                       .make(),
                 ],
               ),
               4.heightBox,
               description.text
                   .size(14)
-                  .color(colorScheme.onSurface.withOpacity(0.7))
+                  .color(colorScheme.onSurface.withValues(alpha: 0.7))
                   .make(),
             ],
           ).expand(),
@@ -91,8 +91,3 @@ class NotificationCard extends StatelessWidget {
     );
   }
 }
-
-
-
-
-

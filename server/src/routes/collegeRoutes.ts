@@ -12,6 +12,13 @@ import {
 
 import { protect, authorize } from "../middleware/authMiddleware";
 
+import { validate } from "../middleware/validate";
+import {
+  addBusNumberSchema,
+  removeBusNumberSchema,
+  renameBusNumberSchema,
+} from "../schemas/college.schema";
+
 const router = express.Router();
 
 router.post("/", protect, authorize("admin"), createCollege);
@@ -24,18 +31,21 @@ router.post(
   "/bus-numbers",
   protect,
   authorize("admin", "busCoordinator"),
+  validate(addBusNumberSchema),
   addBusNumber,
 );
 router.delete(
   "/:collegeId/bus-numbers/:busNumber",
   protect,
   authorize("admin", "busCoordinator"),
+  validate(removeBusNumberSchema),
   removeBusNumber,
 );
 router.put(
   "/bus-numbers/rename",
   protect,
   authorize("admin", "busCoordinator"),
+  validate(renameBusNumberSchema),
   renameBusNumber,
 );
 router.put(

@@ -101,7 +101,7 @@ class _StudentMapTabState extends ConsumerState<StudentMapTab>
                   borderRadius: BorderRadius.circular(12),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.1),
+                      color: Colors.black.withValues(alpha: 0.1),
                       blurRadius: 10,
                       offset: const Offset(0, 4),
                     ),
@@ -153,7 +153,7 @@ class _StudentMapTabState extends ConsumerState<StudentMapTab>
                     borderRadius: BorderRadius.circular(12),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
+                        color: Colors.black.withValues(alpha: 0.1),
                         blurRadius: 10,
                         offset: const Offset(0, 4),
                       ),
@@ -208,12 +208,12 @@ class _StudentMapTabState extends ConsumerState<StudentMapTab>
                                     decoration: BoxDecoration(
                                       color: Theme.of(
                                         context,
-                                      ).primaryColor.withOpacity(0.05),
+                                      ).primaryColor.withValues(alpha: 0.05),
                                       borderRadius: BorderRadius.circular(16),
                                       border: Border.all(
                                         color: Theme.of(
                                           context,
-                                        ).primaryColor.withOpacity(0.1),
+                                        ).primaryColor.withValues(alpha: 0.1),
                                       ),
                                     ),
                                     child: ListTile(
@@ -227,7 +227,7 @@ class _StudentMapTabState extends ConsumerState<StudentMapTab>
                                         decoration: BoxDecoration(
                                           color: Theme.of(
                                             context,
-                                          ).primaryColor.withOpacity(0.1),
+                                          ).primaryColor.withValues(alpha: 0.1),
                                           borderRadius: BorderRadius.circular(
                                             12,
                                           ),
@@ -245,7 +245,7 @@ class _StudentMapTabState extends ConsumerState<StudentMapTab>
                                           .text
                                           .size(11)
                                           .color(
-                                            Colors.grey.withOpacity(0.8),
+                                            Colors.grey.withValues(alpha: 0.8),
                                           )
                                           .make(),
                                       trailing: Container(
@@ -254,7 +254,9 @@ class _StudentMapTabState extends ConsumerState<StudentMapTab>
                                           vertical: 6,
                                         ),
                                         decoration: BoxDecoration(
-                                          color: Colors.green.withOpacity(0.12,),
+                                          color: Colors.green.withValues(
+                                            alpha: 0.12,
+                                          ),
                                           borderRadius: BorderRadius.circular(
                                             25,
                                           ),
@@ -350,7 +352,7 @@ class _StudentMapTabState extends ConsumerState<StudentMapTab>
                                   .italic
                                   .color(
                                     Theme.of(context).colorScheme.onSurface
-                                        .withOpacity(0.6),
+                                        .withValues(alpha: 0.6),
                                   )
                                   .make(),
                             ]).expand(),
@@ -376,8 +378,3 @@ class _StudentMapTabState extends ConsumerState<StudentMapTab>
     );
   }
 }
-
-
-
-
-

@@ -30,11 +30,6 @@ class LocationDisplay extends StatelessWidget {
           .medium
           .make()
           .expand(),
-    ]).p(AppSizes.paddingMedium).box.color(color.withOpacity(0.1)).make();
+    ]).p(AppSizes.paddingMedium).box.color(color.withValues(alpha: 0.1)).make();
   }
 }
-
-
-
-
-

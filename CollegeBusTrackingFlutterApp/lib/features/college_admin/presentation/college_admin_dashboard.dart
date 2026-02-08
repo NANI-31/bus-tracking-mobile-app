@@ -8,6 +8,8 @@ import 'package:collegebus/features/college_admin/services/college_admin_service
 import 'package:collegebus/features/college_admin/presentation/widgets/live_fleet_map.dart';
 import 'package:collegebus/features/college_admin/presentation/widgets/sos_dashboard.dart';
 import 'package:collegebus/features/notification/services/fcm_service.dart';
+import 'package:audioplayers/audioplayers.dart';
+import 'package:collegebus/features/settings/presentation/sos_sound_settings.dart';
 import 'dart:async';
 
 // New Tab Imports
@@ -58,11 +60,51 @@ class _CollegeAdminDashboardState extends ConsumerState<CollegeAdminDashboard> {
         });
       }
     });
+
+    // Listen to provider for new SOS alerts from socket
+    ref.listenManual(collegeAdminServiceProvider, (previous, next) {
+      final prevCount = previous?.activeSos.length ?? 0;
+      final nextCount = next.activeSos.length;
+
+      if (nextCount > prevCount) {
+        // New alert
+        _playSosSound();
+        // If we are not already on Emergency tab, maybe show a snackbar or navigate?
+        // User requested sound, and dashboard usually handles visual via badge/tab.
+      } else if (nextCount == 0 && prevCount > 0) {
+        // All resolved
+        _stopSosSound();
+      }
+    });
+  }
+
+  final AudioPlayer _sosAudioPlayer = AudioPlayer();
+
+  Future<void> _playSosSound() async {
+    final enabled = await SosSettingsService.isSoundEnabled();
+    if (!enabled) return;
+
+    final soundFile = await SosSettingsService.getSoundFile();
+    try {
+      await _sosAudioPlayer.setReleaseMode(ReleaseMode.loop);
+      await _sosAudioPlayer.play(AssetSource('sounds/$soundFile'));
+    } catch (e) {
+      debugPrint('Error playing SOS sound: $e');
+    }
+  }
+
+  Future<void> _stopSosSound() async {
+    try {
+      await _sosAudioPlayer.stop();
+    } catch (e) {
+      debugPrint('Error stopping SOS sound: $e');
+    }
   }
 
   @override
   void dispose() {
     _fcmTapSubscription?.cancel();
+    _sosAudioPlayer.dispose();
     super.dispose();
   }
 

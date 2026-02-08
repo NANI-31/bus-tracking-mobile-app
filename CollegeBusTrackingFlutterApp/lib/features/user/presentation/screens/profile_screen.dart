@@ -16,6 +16,7 @@ import 'package:collegebus/l10n/common/app_localizations.dart' as common_l10n;
 import '../widgets/profile_section_card.dart';
 import '../widgets/profile_list_item.dart';
 import 'package:collegebus/shared/widgets/logout_confirmation_dialog.dart';
+import 'package:collegebus/features/settings/presentation/sos_sound_settings.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
@@ -84,7 +85,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       .color(
                         Theme.of(
                           context,
-                        ).colorScheme.onPrimary.withOpacity(0.8),
+                        ).colorScheme.onPrimary.withValues(alpha: 0.8),
                       )
                       .make(),
                 ], crossAlignment: CrossAxisAlignment.center),
@@ -169,7 +170,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     Icons.chevron_right_rounded,
                     color: Theme.of(
                       context,
-                    ).colorScheme.onSurface.withOpacity(0.5),
+                    ).colorScheme.onSurface.withValues(alpha: 0.5),
                   ),
                   onTap: () => context.push('/student/bus-stop'),
                   showDivider: true,
@@ -194,6 +195,23 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             ),
 
             24.heightBox,
+
+            24.heightBox,
+
+            // Emergency Settings
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4.0),
+              child: Card(
+                elevation: 2,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: const SosSoundSettings(),
+                ),
+              ),
+            ),
 
             // 3. Account and Security Section
             ProfileSectionCard(
@@ -325,7 +343,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         8.widthBox,
         Icon(
           Icons.keyboard_arrow_down_rounded,
-          color: Theme.of(context).colorScheme.onSurface.withOpacity(0.5),
+          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
         ),
       ]),
       showDivider: true,
@@ -355,7 +373,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               label.text
                   .size(12)
                   .color(
-                    Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                    Theme.of(
+                      context,
+                    ).colorScheme.onSurface.withValues(alpha: 0.6),
                   )
                   .make(),
               4.heightBox,

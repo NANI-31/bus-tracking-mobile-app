@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:collegebus/core/utils/app_logger.dart';
 import 'package:collegebus/features/auth/application/auth_provider.dart';
 import 'package:collegebus/core/providers/socket_provider.dart';
 import 'package:collegebus/features/sos/application/sos_provider.dart';
@@ -21,6 +22,8 @@ import 'package:collegebus/features/coordinator/presentation/modules/routes_tab.
 import 'package:collegebus/features/coordinator/presentation/modules/bus_numbers_tab.dart';
 
 import 'package:collegebus/features/coordinator/presentation/modules/live_map_tab.dart';
+import 'package:audioplayers/audioplayers.dart';
+import 'package:collegebus/features/settings/presentation/sos_sound_settings.dart';
 import 'package:collegebus/l10n/coordinator/app_localizations.dart'
     as coord_l10n;
 
@@ -37,6 +40,7 @@ class _CoordinatorDashboardState extends ConsumerState<CoordinatorDashboard>
   late TabController _tabController;
   int _bottomNavIndex = 0;
   BusModel? _selectedBus;
+  StreamSubscription? _fcmTapSubscription;
 
   @override
   void initState() {
@@ -49,6 +53,15 @@ class _CoordinatorDashboardState extends ConsumerState<CoordinatorDashboard>
 
     _tabController = TabController(length: 5, vsync: this);
 
+    // Listen for user data to join socket room
+    // This handles both initial load and re-auth scenarios
+    ref.listenManual(currentUserProvider, (previous, next) {
+      if (next?.collegeId != null && (previous?.collegeId != next?.collegeId)) {
+        ref.read(socketServiceProvider).joinCollege(next!.collegeId);
+      }
+    });
+
+    // Also check initial state
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final user = ref.read(currentUserProvider);
       if (user?.collegeId != null) {
@@ -65,8 +78,41 @@ class _CoordinatorDashboardState extends ConsumerState<CoordinatorDashboard>
     });
   }
 
+  final AudioPlayer _sosAudioPlayer = AudioPlayer();
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    _sosAudioPlayer.dispose();
+    _fcmTapSubscription?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _playSosSound() async {
+    final enabled = await SosSettingsService.isSoundEnabled();
+    if (!enabled) return;
+
+    final soundFile = await SosSettingsService.getSoundFile();
+    try {
+      await _sosAudioPlayer.setReleaseMode(ReleaseMode.loop);
+      await _sosAudioPlayer.play(AssetSource('sounds/$soundFile'));
+    } catch (e) {
+      AppLogger.e('Error playing SOS sound: $e');
+    }
+  }
+
+  Future<void> _stopSosSound() async {
+    try {
+      await _sosAudioPlayer.stop();
+    } catch (e) {
+      AppLogger.e('Error stopping SOS sound: $e');
+    }
+  }
+
   void _showSOSAlert(SosModel sos) {
     if (!mounted) return;
+
+    _playSosSound();
 
     showDialog(
       context: context,
@@ -117,6 +163,7 @@ class _CoordinatorDashboardState extends ConsumerState<CoordinatorDashboard>
         actions: [
           ElevatedButton(
             onPressed: () {
+              _stopSosSound();
               Navigator.pop(ctx);
               _handleTrackBus(
                 BusModel(
@@ -139,6 +186,7 @@ class _CoordinatorDashboardState extends ConsumerState<CoordinatorDashboard>
           ),
           ElevatedButton(
             onPressed: () {
+              _stopSosSound();
               Navigator.pop(ctx);
               _resolveSos(sos.sosId);
             },
@@ -152,7 +200,10 @@ class _CoordinatorDashboardState extends ConsumerState<CoordinatorDashboard>
             ),
           ),
           TextButton(
-            onPressed: () => Navigator.pop(ctx),
+            onPressed: () {
+              _stopSosSound();
+              Navigator.pop(ctx);
+            },
             child: const Text('DISMISS', style: TextStyle(color: Colors.white)),
           ),
         ],
@@ -204,7 +255,7 @@ class _CoordinatorDashboardState extends ConsumerState<CoordinatorDashboard>
                   return Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: Colors.red.withOpacity(0.1),
+                      color: Colors.red.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(color: Colors.red.shade900),
                     ),
@@ -305,12 +356,6 @@ class _CoordinatorDashboardState extends ConsumerState<CoordinatorDashboard>
   }
 
   @override
-  void dispose() {
-    _tabController.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
     final user = ref.watch(currentUserProvider);
     final collegeId = user?.collegeId;
@@ -358,7 +403,7 @@ class _CoordinatorDashboardState extends ConsumerState<CoordinatorDashboard>
                 labelColor: Theme.of(context).colorScheme.onPrimary,
                 unselectedLabelColor: Theme.of(
                   context,
-                ).colorScheme.onPrimary.withOpacity(0.7),
+                ).colorScheme.onPrimary.withValues(alpha: 0.7),
                 indicatorColor: Theme.of(context).colorScheme.onPrimary,
                 isScrollable: true,
                 tabs: [

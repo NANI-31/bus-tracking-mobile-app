@@ -301,7 +301,9 @@ class _RouteEditScreenState extends ConsumerState<RouteEditScreen> {
                           ),
                           prefixIcon: CircleAvatar(
                             radius: 12,
-                            backgroundColor: AppColors.primary.withOpacity(0.2,),
+                            backgroundColor: AppColors.primary.withValues(
+                              alpha: 0.2,
+                            ),
                             child: Text(
                               '${idx + 1}',
                               style: TextStyle(
@@ -403,8 +405,3 @@ class _RouteEditScreenState extends ConsumerState<RouteEditScreen> {
     );
   }
 }
-
-
-
-
-

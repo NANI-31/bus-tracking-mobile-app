@@ -6,6 +6,9 @@ import {
 } from "../controllers/sos.controller";
 import { protect, authorize } from "../middleware/authMiddleware";
 
+import { validate } from "../middleware/validate";
+import { triggerSosSchema, resolveSosSchema } from "../schemas/sos.schema";
+
 const router = express.Router();
 
 // Only drivers and busCoordinators can send SOS
@@ -13,6 +16,7 @@ router.post(
   "/",
   protect,
   authorize("driver", "busCoordinator", "collegeAdmin", "superAdmin"),
+  validate(triggerSosSchema),
   sendSOS,
 );
 
@@ -21,6 +25,7 @@ router.put(
   "/:id/resolve",
   protect,
   authorize("busCoordinator", "collegeAdmin", "superAdmin"),
+  validate(resolveSosSchema),
   resolveSos,
 );
 

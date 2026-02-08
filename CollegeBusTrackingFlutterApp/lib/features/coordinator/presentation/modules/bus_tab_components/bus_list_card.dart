@@ -39,11 +39,11 @@ class BusListCard extends StatelessWidget {
         color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(24),
         border: Border.all(
-          color: Theme.of(context).dividerColor.withOpacity(0.1),
+          color: Theme.of(context).dividerColor.withValues(alpha: 0.1),
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 20,
             offset: const Offset(0, 10),
           ),
@@ -53,7 +53,7 @@ class BusListCard extends StatelessWidget {
           end: Alignment.bottomRight,
           colors: [
             Theme.of(context).cardColor,
-            Theme.of(context).cardColor.withOpacity(0.8),
+            Theme.of(context).cardColor.withValues(alpha: 0.8),
           ],
         ),
       ),
@@ -69,10 +69,10 @@ class BusListCard extends StatelessWidget {
           tilePadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
           leading: CircleAvatar(
             backgroundColor: isAssigned
-                ? AppColors.success.withOpacity(0.1)
+                ? AppColors.success.withValues(alpha: 0.1)
                 : (isOfficial
-                      ? AppColors.warning.withOpacity(0.1)
-                      : Colors.grey.withOpacity(0.1)),
+                      ? AppColors.warning.withValues(alpha: 0.1)
+                      : Colors.grey.withValues(alpha: 0.1)),
             child: Icon(
               Icons.directions_bus,
               color: isAssigned
@@ -94,7 +94,7 @@ class BusListCard extends StatelessWidget {
                   .pOnly(top: 4),
           children: [
             Divider(
-              color: Theme.of(context).dividerColor.withOpacity(0.05),
+              color: Theme.of(context).dividerColor.withValues(alpha: 0.05),
               indent: 20,
               endIndent: 20,
             ),
@@ -168,19 +168,14 @@ class BusListCard extends StatelessWidget {
       label: Text(label, style: const TextStyle(fontSize: 12)),
       style: ElevatedButton.styleFrom(
         padding: const EdgeInsets.symmetric(vertical: 12),
-        backgroundColor: color.withOpacity(0.08),
+        backgroundColor: color.withValues(alpha: 0.08),
         foregroundColor: color,
         elevation: 0,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),
-          side: BorderSide(color: color.withOpacity(0.2)),
+          side: BorderSide(color: color.withValues(alpha: 0.2)),
         ),
       ),
     );
   }
 }
-
-
-
-
-
