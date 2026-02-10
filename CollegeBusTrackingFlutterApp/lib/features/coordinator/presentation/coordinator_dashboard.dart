@@ -71,6 +71,24 @@ class _CoordinatorDashboardState extends ConsumerState<CoordinatorDashboard>
         ref.read(socketServiceProvider).joinCollege(user!.collegeId);
       }
       _checkPermissions();
+      _setupSosListener();
+    });
+  }
+
+  StreamSubscription? _sosAlertSubscription;
+
+  void _setupSosListener() {
+    final socket = ref.read(socketServiceProvider);
+    final user = ref.read(currentUserProvider);
+    final collegeId = user?.collegeId;
+
+    _sosAlertSubscription?.cancel();
+    _sosAlertSubscription = socket.sosAlertStream.listen((data) {
+      AppLogger.i('[CoordinatorDashboard] Direct SOS stream received: $data');
+      final sos = SosModel.fromMap(data);
+      if (collegeId == null || sos.collegeId == collegeId) {
+        _showSOSAlert(sos);
+      }
     });
   }
 
@@ -104,6 +122,7 @@ class _CoordinatorDashboardState extends ConsumerState<CoordinatorDashboard>
     _tabController.dispose();
     _sosAudioPlayer.dispose();
     _fcmTapSubscription?.cancel();
+    _sosAlertSubscription?.cancel();
     super.dispose();
   }
 
@@ -230,128 +249,155 @@ class _CoordinatorDashboardState extends ConsumerState<CoordinatorDashboard>
     );
   }
 
-  void _showActiveSosList(List<SosModel> activeSosAlerts) {
-    if (!mounted || activeSosAlerts.isEmpty) return;
+  void _showActiveSosList() {
+    if (!mounted) return;
 
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        height: MediaQuery.of(context).size.height * 0.7,
-        decoration: BoxDecoration(
-          color: Theme.of(context).scaffoldBackgroundColor,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-        ),
-        child: Column(
-          children: [
-            Container(
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              decoration: BoxDecoration(
-                color: Colors.red.shade900,
-                borderRadius: const BorderRadius.vertical(
-                  top: Radius.circular(20),
-                ),
-              ),
-              child: Center(
-                child: Text(
-                  'ACTIVE SOS ALERTS (${activeSosAlerts.length})',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 18,
+      builder: (context) => Consumer(
+        builder: (context, ref, _) {
+          final user = ref.watch(currentUserProvider);
+          final collegeId = user?.collegeId;
+          if (collegeId == null) return const SizedBox.shrink();
+
+          final activeSosAsync = ref.watch(activeSosProvider(collegeId));
+
+          return activeSosAsync.when(
+            data: (activeSosAlerts) {
+              if (activeSosAlerts.isEmpty) {
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  if (mounted && Navigator.canPop(context)) {
+                    Navigator.pop(context);
+                  }
+                });
+                return const SizedBox.shrink();
+              }
+              return Container(
+                height: MediaQuery.of(context).size.height * 0.7,
+                decoration: BoxDecoration(
+                  color: Theme.of(context).scaffoldBackgroundColor,
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(20),
                   ),
                 ),
-              ),
-            ),
-            Expanded(
-              child: ListView.separated(
-                padding: const EdgeInsets.all(16),
-                itemCount: activeSosAlerts.length,
-                separatorBuilder: (ctx, i) => const Divider(),
-                itemBuilder: (ctx, index) {
-                  final sos = activeSosAlerts[index];
-                  return Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Colors.red.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.red.shade900),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              'Bus: ${sos.busNumber}',
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 16,
-                              ),
-                            ),
-                            Text(
-                              DateFormat(
-                                'hh:mm a',
-                              ).format(sos.timestamp.toLocal()),
-                              style: const TextStyle(
-                                fontSize: 12,
-                                color: Colors.grey,
-                              ),
-                            ),
-                          ],
+                child: Column(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      decoration: BoxDecoration(
+                        color: Colors.red.shade900,
+                        borderRadius: const BorderRadius.vertical(
+                          top: Radius.circular(20),
                         ),
-                        const SizedBox(height: 8),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: ElevatedButton.icon(
-                                icon: const Icon(Icons.map, size: 18),
-                                label: const Text('TRACK'),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.white,
-                                  foregroundColor: Colors.red.shade900,
-                                ),
-                                onPressed: () {
-                                  Navigator.pop(context);
-                                  _handleTrackBus(
-                                    BusModel(
-                                      id: sos.busId,
-                                      busNumber: sos.busNumber,
-                                      driverId: sos.userId,
-                                      collegeId: sos.collegeId,
-                                      createdAt: DateTime.now(),
+                      ),
+                      child: Center(
+                        child: Text(
+                          'ACTIVE SOS ALERTS (${activeSosAlerts.length})',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 18,
+                          ),
+                        ),
+                      ),
+                    ),
+                    Expanded(
+                      child: ListView.separated(
+                        padding: const EdgeInsets.all(16),
+                        itemCount: activeSosAlerts.length,
+                        separatorBuilder: (ctx, i) => const Divider(),
+                        itemBuilder: (ctx, index) {
+                          final sos = activeSosAlerts[index];
+                          return Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: Colors.red.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: Colors.red.shade900),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Text(
+                                      'Bus: ${sos.busNumber}',
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 16,
+                                      ),
                                     ),
-                                  );
-                                },
-                              ),
-                            ),
-                            const SizedBox(width: 8.0),
-                            Expanded(
-                              child: ElevatedButton.icon(
-                                icon: const Icon(Icons.check, size: 18),
-                                label: const Text('RESOLVE'),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.green,
-                                  foregroundColor: Colors.white,
+                                    Text(
+                                      DateFormat(
+                                        'hh:mm a',
+                                      ).format(sos.timestamp.toLocal()),
+                                      style: const TextStyle(
+                                        fontSize: 12,
+                                        color: Colors.grey,
+                                      ),
+                                    ),
+                                  ],
                                 ),
-                                onPressed: () {
-                                  Navigator.pop(context);
-                                  _resolveSos(sos.sosId);
-                                },
-                              ),
+                                const SizedBox(height: 8),
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: ElevatedButton.icon(
+                                        icon: const Icon(Icons.map, size: 18),
+                                        label: const Text('TRACK'),
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: Colors.white,
+                                          foregroundColor: Colors.red.shade900,
+                                        ),
+                                        onPressed: () {
+                                          Navigator.pop(context);
+                                          _handleTrackBus(
+                                            BusModel(
+                                              id: sos.busId,
+                                              busNumber: sos.busNumber,
+                                              driverId: sos.userId,
+                                              collegeId: sos.collegeId,
+                                              createdAt: DateTime.now(),
+                                            ),
+                                          );
+                                        },
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8.0),
+                                    Expanded(
+                                      child: ElevatedButton.icon(
+                                        icon: const Icon(Icons.check, size: 18),
+                                        label: const Text('RESOLVE'),
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: Colors.green,
+                                          foregroundColor: Colors.white,
+                                        ),
+                                        onPressed: () {
+                                          Navigator.pop(context);
+                                          _resolveSos(sos.sosId);
+                                        },
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
                             ),
-                          ],
-                        ),
-                      ],
+                          );
+                        },
+                      ),
                     ),
-                  );
-                },
-              ),
-            ),
-          ],
-        ),
+                  ],
+                ),
+              );
+            },
+            loading: () => const Center(child: CircularProgressIndicator()),
+            error: (e, st) => Center(child: Text('Error: $e')),
+          );
+        },
       ),
     );
   }
@@ -360,6 +406,10 @@ class _CoordinatorDashboardState extends ConsumerState<CoordinatorDashboard>
     final api = ref.read(apiServiceProvider);
     try {
       await api.resolveSos(sosId);
+      final user = ref.read(currentUserProvider);
+      if (user?.collegeId != null) {
+        ref.invalidate(activeSosProvider(user!.collegeId));
+      }
       if (mounted) {
         ScaffoldMessenger.of(
           context,
@@ -385,7 +435,7 @@ class _CoordinatorDashboardState extends ConsumerState<CoordinatorDashboard>
         ? ref.watch(activeSosProvider(collegeId)).value ?? []
         : <SosModel>[];
 
-    // Listen for new SOS alerts
+    // Listen for new SOS alerts from provider (for notification only, UI handled by direct stream)
     if (collegeId != null) {
       ref.listen<AsyncValue<List<SosModel>>>(activeSosProvider(collegeId), (
         previous,
@@ -397,8 +447,8 @@ class _CoordinatorDashboardState extends ConsumerState<CoordinatorDashboard>
 
           for (final alert in currentAlerts) {
             if (!previousAlerts.any((s) => s.sosId == alert.sosId)) {
-              _showSOSAlert(alert);
-              // Trigger loud alarm notification
+              // Note: SOS UI dialog is shown via direct socket stream in _setupSosListener
+              // Only trigger system notification here
               NotificationService.showSOSAlert(
                 busNumber: alert.busNumber,
                 driverName: alert.userId, // Using userId as name placeholder
@@ -448,7 +498,7 @@ class _CoordinatorDashboardState extends ConsumerState<CoordinatorDashboard>
                 onSosTap: () => _tabController.animateTo(1), // Go to Live Map
               ),
               LiveMapTab(selectedBus: _selectedBus),
-              const DriverManagementTab(),
+              DriverManagementTab(onTrack: _handleTrackBus),
               const RoutesTab(),
               const BusNumbersTab(),
             ],
@@ -495,7 +545,7 @@ class _CoordinatorDashboardState extends ConsumerState<CoordinatorDashboard>
           ? FloatingActionButton.extended(
               onPressed: () {
                 if (activeSosAlerts.length > 1) {
-                  _showActiveSosList(activeSosAlerts);
+                  _showActiveSosList();
                 } else {
                   _showSOSAlert(activeSosAlerts.first);
                 }

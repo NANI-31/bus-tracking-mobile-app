@@ -69,8 +69,8 @@ const logger = winston.createLogger({
   transports: [
     new winston.transports.Console(),
     // File logging removed for containerization (logs should be captured by stdout/stderr)
-    // new winston.transports.File({ filename: "logs/error.log", level: "error" }),
-    // new winston.transports.File({ filename: "logs/all.log" }),
+    new winston.transports.File({ filename: "logs/error.log", level: "error" }),
+    new winston.transports.File({ filename: "logs/all.log" }),
   ],
 });
 

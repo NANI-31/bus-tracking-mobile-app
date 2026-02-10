@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import User from "../../models/User";
+import User from "../../models/User.model";
 import { sendEmail } from "../../utils/emailService";
 import { getOtpEmailTemplate } from "../../utils/emailTemplates";
 
@@ -24,7 +24,7 @@ export const sendOtp = async (req: Request, res: Response) => {
       email,
       "Your OTP Code",
       `Your verification code is: ${otp}. It expires in 10 minutes.`,
-      getOtpEmailTemplate(user.fullName, otp)
+      getOtpEmailTemplate(user.fullName, otp),
     );
 
     res.json({ message: "OTP sent to email" });

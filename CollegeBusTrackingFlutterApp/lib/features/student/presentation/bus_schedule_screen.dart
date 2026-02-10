@@ -25,6 +25,7 @@ class _BusScheduleScreenState extends ConsumerState<BusScheduleScreen> {
   String? _selectedRoute;
   String? _selectedStop;
   String? _activeFilterType; // 'bus', 'route', 'stop', or 'trip'
+  String _selectedStatus = 'all'; // Default to 'all' for status filter
 
   final LayerLink _layerLink = LayerLink();
 
@@ -43,7 +44,9 @@ class _BusScheduleScreenState extends ConsumerState<BusScheduleScreen> {
       _selectedBusNumber = null;
       _selectedRoute = null;
       _selectedStop = null;
+      _selectedStop = null;
       _activeFilterType = null;
+      _selectedStatus = 'all';
     });
   }
 
@@ -235,6 +238,19 @@ class _BusScheduleScreenState extends ConsumerState<BusScheduleScreen> {
             return false;
           }
         }
+        if (_selectedStatus != 'all') {
+          final bus = buses.firstWhere(
+            (b) => b.id == schedule.busId,
+            orElse: () => BusModel(
+              id: '',
+              busNumber: '',
+              driverId: '',
+              collegeId: '',
+              createdAt: DateTime.now(),
+            ),
+          );
+          if (bus.status != _selectedStatus) return false;
+        }
         return true;
       }).toList();
     }
@@ -250,20 +266,25 @@ class _BusScheduleScreenState extends ConsumerState<BusScheduleScreen> {
                   margin: const EdgeInsets.all(16),
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
-                    color: Theme.of(
-                      context,
-                    ).primaryColor.withValues(alpha: 0.05),
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? AppColors.primary.withValues(alpha: 0.45)
+                        : Theme.of(
+                            context,
+                          ).primaryColor.withValues(alpha: 0.05),
                     borderRadius: BorderRadius.circular(24),
                     border: Border.all(
                       color: Theme.of(
                         context,
-                      ).primaryColor.withValues(alpha: 0.1),
+                      ).primaryColor.withValues(alpha: 0.3),
+                      width: 1.5,
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.03),
-                        blurRadius: 10,
-                        offset: const Offset(0, 4),
+                        color: Theme.of(
+                          context,
+                        ).primaryColor.withValues(alpha: 0.15),
+                        blurRadius: 20,
+                        offset: const Offset(0, 8),
                       ),
                     ],
                   ),
@@ -274,7 +295,10 @@ class _BusScheduleScreenState extends ConsumerState<BusScheduleScreen> {
                           Icon(
                             Icons.tune_rounded,
                             size: 18,
-                            color: Theme.of(context).primaryColor,
+                            color:
+                                Theme.of(context).brightness == Brightness.dark
+                                ? Colors.white
+                                : Theme.of(context).primaryColor,
                           ),
                           const SizedBox(width: 8.0),
                           Text(
@@ -282,7 +306,11 @@ class _BusScheduleScreenState extends ConsumerState<BusScheduleScreen> {
                             style: TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.bold,
-                              color: Theme.of(context).primaryColor,
+                              color:
+                                  Theme.of(context).brightness ==
+                                      Brightness.dark
+                                  ? Colors.white
+                                  : Theme.of(context).primaryColor,
                             ),
                           ),
                           const Spacer(),
@@ -312,6 +340,7 @@ class _BusScheduleScreenState extends ConsumerState<BusScheduleScreen> {
                             child: _buildFilterSelector(
                               label: 'Bus',
                               value: _selectedBusNumber,
+                              placeholder: 'All',
                               icon: Icons.directions_bus_rounded,
                               isActive: _activeFilterType == 'bus',
                               onTap: () => _toggleFilter('bus'),
@@ -322,6 +351,7 @@ class _BusScheduleScreenState extends ConsumerState<BusScheduleScreen> {
                             child: _buildFilterSelector(
                               label: 'Route',
                               value: _selectedRoute,
+                              placeholder: 'All',
                               icon: Icons.alt_route_rounded,
                               isActive: _activeFilterType == 'route',
                               onTap: () => _toggleFilter('route'),
@@ -333,9 +363,29 @@ class _BusScheduleScreenState extends ConsumerState<BusScheduleScreen> {
                       _buildFilterSelector(
                         label: 'Stop Name',
                         value: _selectedStop,
+                        placeholder: 'Search Stop',
                         icon: Icons.location_on_rounded,
                         isActive: _activeFilterType == 'stop',
                         onTap: () => _toggleFilter('stop'),
+                      ),
+
+                      const SizedBox(height: 16),
+                      SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: Row(
+                          children: [
+                            _buildStatusFilterButton('all', 'All'),
+                            const SizedBox(width: 8),
+                            _buildStatusFilterButton('on-time', 'On Time'),
+                            const SizedBox(width: 8),
+                            _buildStatusFilterButton('delayed', 'Delayed'),
+                            const SizedBox(width: 8),
+                            _buildStatusFilterButton(
+                              'not-running',
+                              'Not Running',
+                            ),
+                          ],
+                        ),
                       ),
                       const SizedBox(height: 12),
                     ],
@@ -526,86 +576,99 @@ class _BusScheduleScreenState extends ConsumerState<BusScheduleScreen> {
                   fontSize: 18,
                   letterSpacing: -0.5,
                 ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
               subtitle: Padding(
                 padding: const EdgeInsets.only(top: 4),
-                child: Text(
-                  '${route.startPoint.name}-${route.endPoint.name}'
-                      .toUpperCase(),
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Theme.of(
-                      context,
-                    ).colorScheme.onSurface.withValues(alpha: 0.5),
-                    fontWeight: FontWeight.w600,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '${route.startPoint.name}-${route.endPoint.name}'
+                          .toUpperCase(),
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.onSurface.withValues(alpha: 0.5),
+                        fontWeight: FontWeight.w600,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 4),
+                    _buildStatusBadge(bus.status, bus.delay),
+                  ],
                 ),
               ),
-              trailing: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (widget.onBusSelected != null)
-                    InkWell(
-                      onTap: () => widget.onBusSelected!(bus),
-                      borderRadius: BorderRadius.circular(8),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 6,
-                        ),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF00BCD4).withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: const Row(
-                          children: [
-                            Icon(
-                              Icons.location_on_rounded,
-                              size: 14,
-                              color: Color(0xFF00BCD4),
-                            ),
-                            SizedBox(width: 4),
-                            Text(
-                              "Track",
-                              style: TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.bold,
-                                color: Color(0xFF00BCD4),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  const SizedBox(width: 8),
-                  Icon(
-                    Icons.keyboard_arrow_down_rounded,
-                    color: Theme.of(
-                      context,
-                    ).colorScheme.onSurface.withValues(alpha: 0.4),
-                  ),
-                ],
+              trailing: Icon(
+                Icons.keyboard_arrow_down_rounded,
+                color: Theme.of(
+                  context,
+                ).colorScheme.onSurface.withValues(alpha: 0.4),
               ),
               children: [
                 const Divider(height: 1),
                 const SizedBox(height: 16),
                 Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Icon(
-                      Icons.access_time_filled_rounded,
-                      size: 16,
-                      color: Theme.of(context).primaryColor,
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.access_time_filled_rounded,
+                          size: 16,
+                          color: Theme.of(context).primaryColor,
+                        ),
+                        const SizedBox(width: 8),
+                        const Text(
+                          'Schedule Details',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(width: 8),
-                    const Text(
-                      'Schedule Details',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
+                    if (widget.onBusSelected != null)
+                      InkWell(
+                        onTap: () => widget.onBusSelected!(bus),
+                        borderRadius: BorderRadius.circular(8),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 6,
+                          ),
+                          decoration: BoxDecoration(
+                            color:
+                                Theme.of(context).brightness == Brightness.dark
+                                ? AppColors.turkishBlue.withValues(alpha: 0.15)
+                                : Theme.of(
+                                    context,
+                                  ).primaryColor.withValues(alpha: 0.05),
+                            borderRadius: BorderRadius.circular(24),
+                          ),
+                          child: const Row(
+                            children: [
+                              Icon(
+                                Icons.location_on_rounded,
+                                size: 14,
+                                color: Color(0xFF00BCD4),
+                              ),
+                              SizedBox(width: 4),
+                              Text(
+                                "Track",
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF00BCD4),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                       ),
-                    ),
                   ],
                 ),
                 const SizedBox(height: 12),
@@ -725,6 +788,7 @@ class _BusScheduleScreenState extends ConsumerState<BusScheduleScreen> {
   Widget _buildFilterSelector({
     required String label,
     required String? value,
+    required String placeholder,
     required IconData icon,
     required bool isActive,
     required VoidCallback onTap,
@@ -735,25 +799,14 @@ class _BusScheduleScreenState extends ConsumerState<BusScheduleScreen> {
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
         decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.surface,
+          color: Theme.of(context).cardColor,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
             color: isActive
                 ? Theme.of(context).primaryColor
-                : Theme.of(context).primaryColor.withValues(alpha: 0.1),
-            width: isActive ? 1.5 : 1.0,
+                : Colors.transparent,
+            width: isActive ? 1.5 : 0.0,
           ),
-          boxShadow: isActive
-              ? [
-                  BoxShadow(
-                    color: Theme.of(
-                      context,
-                    ).primaryColor.withValues(alpha: 0.1),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
-                  ),
-                ]
-              : null,
         ),
         child: Row(
           children: [
@@ -762,7 +815,11 @@ class _BusScheduleScreenState extends ConsumerState<BusScheduleScreen> {
               size: 20,
               color: isActive
                   ? Theme.of(context).primaryColor
-                  : Theme.of(context).primaryColor.withValues(alpha: 0.7),
+                  : (Theme.of(context).brightness == Brightness.dark
+                        ? Colors.white.withValues(alpha: 0.7)
+                        : Theme.of(
+                            context,
+                          ).primaryColor.withValues(alpha: 0.7)),
             ),
             const SizedBox(width: 10),
             Expanded(
@@ -774,18 +831,25 @@ class _BusScheduleScreenState extends ConsumerState<BusScheduleScreen> {
                     style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.bold,
-                      color: Theme.of(
-                        context,
-                      ).primaryColor.withValues(alpha: isActive ? 1.0 : 0.6),
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? Colors.white.withValues(alpha: isActive ? 1.0 : 0.7)
+                          : Theme.of(context).primaryColor.withValues(
+                              alpha: isActive ? 1.0 : 0.6,
+                            ),
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
                   Text(
-                    value ?? 'Select',
-                    style: const TextStyle(
+                    value ?? placeholder,
+                    style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
+                      color: value != null
+                          ? Theme.of(context).colorScheme.onSurface
+                          : Theme.of(
+                              context,
+                            ).colorScheme.onSurface.withValues(alpha: 0.4),
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -952,6 +1016,101 @@ class _BusScheduleScreenState extends ConsumerState<BusScheduleScreen> {
               ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildStatusFilterButton(String status, String label) {
+    final isSelected = _selectedStatus == status;
+
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          _selectedStatus = status;
+        });
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? Theme.of(context).primaryColor
+              : Theme.of(context).primaryColor.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(
+            color: isSelected
+                ? Theme.of(context).primaryColor
+                : Theme.of(context).primaryColor.withValues(alpha: 0.2),
+          ),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: isSelected ? Colors.white : Theme.of(context).primaryColor,
+            fontSize: 12,
+            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStatusBadge(String status, int delay) {
+    Color color;
+    String label;
+
+    switch (status) {
+      case 'on-time':
+        color = const Color(0xFF4CAF50);
+        label = 'On Time';
+        break;
+      case 'delayed':
+        color = const Color(0xFFE67E22);
+        label = 'Delayed';
+        break;
+      case 'not-running':
+        color = const Color(0xFFE74C3C);
+        label = 'Not Running';
+        break;
+      default:
+        color = Colors.grey;
+        label = 'Unknown';
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 6,
+            height: 6,
+            decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+          ),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.bold,
+              color: color.withValues(alpha: 0.9),
+            ),
+          ),
+          if (status == 'delayed' && delay > 0) ...[
+            const SizedBox(width: 4),
+            Text(
+              '+$delay m',
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.bold,
+                color: color.withValues(alpha: 0.9),
+              ),
+            ),
+          ],
+        ],
       ),
     );
   }

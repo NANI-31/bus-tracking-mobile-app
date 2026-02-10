@@ -4,7 +4,7 @@ import { pubClient, subClient } from "./config/redis";
 import { LRUCache } from "lru-cache";
 import { RateLimiterMemory } from "rate-limiter-flexible";
 import { authenticateSocket, AuthenticatedSocket } from "./utils/socketAuth";
-import { Bus, BusLocation } from "./models/Bus";
+import { Bus, BusLocation } from "./models/Bus.model";
 import { checkAndNotifyBusNearby } from "./utils/busNearbyLogic";
 import logger from "./utils/logger";
 

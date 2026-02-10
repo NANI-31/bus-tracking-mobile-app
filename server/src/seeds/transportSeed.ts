@@ -1,6 +1,6 @@
-import Route from "../models/Route";
-import { Bus } from "../models/Bus";
-import Schedule from "../models/Schedule";
+import Route from "../models/Route.model";
+import { Bus } from "../models/Bus.model";
+import Schedule from "../models/Schedule.model";
 // Helper to generate dummy coordinates
 const generateGeo = (index: number) => {
   const baseLat = 16.3067;
@@ -16,7 +16,7 @@ export const seedTransport = async (
   coordinatorId: string,
   routesData: any[],
   domain: string,
-  drivers: any[]
+  drivers: any[],
 ) => {
   console.log(`Seeding Transport for college with domain ${domain}...`);
 

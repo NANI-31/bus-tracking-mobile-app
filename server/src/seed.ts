@@ -3,18 +3,18 @@ console.log("Starting master seed script...");
 import mongoose from "mongoose";
 import dotenv from "dotenv";
 import { pubClient } from "./config/redis";
-import { kkrKsrTransportData } from "./seedData/routesData";
+import { kkrKsrTransportData } from "./seeds/seedData/routesData";
 import { seedColleges } from "./seeds/collegeSeed";
 import { seedUsers } from "./seeds/userSeed";
 import { seedTransport } from "./seeds/transportSeed";
-import { UserRole } from "./models/User";
+import { UserRole } from "./models/User.model";
 
-import Route from "./models/Route";
-import { Bus } from "./models/Bus";
-import Schedule from "./models/Schedule";
-import College from "./models/College";
-import User from "./models/User";
-import { collegesData } from "./seedData/collegesData";
+import Route from "./models/Route.model";
+import { Bus } from "./models/Bus.model";
+import Schedule from "./models/Schedule.model";
+import College from "./models/College.model";
+import User from "./models/User.model";
+import { collegesData } from "./seeds/seedData/collegesData";
 
 dotenv.config();
 

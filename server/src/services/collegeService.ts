@@ -1,6 +1,6 @@
 import { Server } from "socket.io";
-import College from "../models/College";
-import { Bus } from "../models/Bus";
+import College from "../models/College.model";
+import { Bus } from "../models/Bus.model";
 import logger from "../utils/logger";
 
 export class CollegeService {

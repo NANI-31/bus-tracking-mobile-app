@@ -5,10 +5,10 @@ import { Server } from "socket.io";
 import connectDB from "./config/db";
 import { connectRedis } from "./config/redis";
 import { initializeFirebase } from "./utils/firebase";
-import { registerRoutes } from "./routes";
+import { router } from "./routes";
 import { initializeSocket } from "./socket";
 import logger from "./utils/logger";
-import { errorHandler } from "./middlewares/errorMiddleware";
+import { errorHandler } from "./middleware/errorMiddleware";
 
 dotenv.config();
 
@@ -20,6 +20,16 @@ const startServer = async () => {
 
     const app = express();
     const httpServer = createServer(app);
+
+    // Request Logging Middleware
+    app.use((req, res, next) => {
+      logger.info(`${req.method} ${req.url}`);
+      next();
+    });
+
+    app.use(express.json());
+    app.use(express.urlencoded({ extended: true }));
+
     const io = new Server(httpServer, {
       cors: {
         origin: "*", // Allow all origins for mobile app
@@ -31,7 +41,8 @@ const startServer = async () => {
     app.set("io", io);
 
     // Register Middleware and Routes
-    registerRoutes(app);
+    app.use("/api/v1", router);
+    app.get("/ping", (req, res) => res.send("pong"));
 
     // Global Error Handler
     app.use(errorHandler);
@@ -49,5 +60,19 @@ const startServer = async () => {
     process.exit(1);
   }
 };
+
+// Catch unhandled rejections
+process.on("unhandledRejection", (err) => {
+  logger.error("UNHANDLED REJECTION! 💥 Shutting down...");
+  console.error(err);
+  process.exit(1);
+});
+
+// Catch uncaught exceptions
+process.on("uncaughtException", (err) => {
+  logger.error("UNCAUGHT EXCEPTION! 💥 Shutting down...");
+  console.error(err);
+  process.exit(1);
+});
 
 startServer();

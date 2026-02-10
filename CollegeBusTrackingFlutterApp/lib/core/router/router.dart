@@ -21,6 +21,7 @@ import 'package:collegebus/features/college_admin/presentation/college_admin_das
 import 'package:collegebus/features/super_admin/presentation/super_admin_dashboard.dart';
 import 'package:collegebus/features/user/presentation/screens/profile_screen.dart';
 import 'package:collegebus/features/student/presentation/student_change_password_screen.dart';
+import 'package:collegebus/features/user/presentation/screens/language_selection_screen.dart';
 import 'package:collegebus/shared/screens/privacy_policy_screen.dart';
 import 'package:collegebus/shared/screens/terms_conditions_screen.dart';
 import 'package:collegebus/features/notification/presentation/screens/notifications_screen.dart';
@@ -74,6 +75,9 @@ final routerProvider = riverpod.Provider<GoRouter>((ref) {
       final isLoginRoute =
           state.matchedLocation == '/login' ||
           state.matchedLocation == '/register' ||
+          state.matchedLocation.startsWith(
+            '/register',
+          ) || // Handle sub-routes/params
           state.matchedLocation == '/forgot-password' ||
           state.matchedLocation == '/otp-verify' ||
           state.matchedLocation.startsWith('/reset-password');
@@ -192,6 +196,10 @@ final routerProvider = riverpod.Provider<GoRouter>((ref) {
             path: 'bus-stop',
             builder: (context, state) => const StudentBusStopScreen(),
           ),
+          GoRoute(
+            path: 'language',
+            builder: (context, state) => const LanguageSelectionScreen(),
+          ),
         ],
       ),
 
@@ -254,8 +262,3 @@ final routerProvider = riverpod.Provider<GoRouter>((ref) {
 class SimpleNotifier extends ChangeNotifier {
   void notify() => notifyListeners();
 }
-
-
-
-
-

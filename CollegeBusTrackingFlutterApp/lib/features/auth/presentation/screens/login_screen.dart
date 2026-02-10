@@ -11,8 +11,6 @@ import 'package:collegebus/shared/widgets/api_error_modal.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:collegebus/l10n/auth/login/auth_login_localizations.dart';
 import 'package:collegebus/shared/widgets/language_selector.dart';
-import 'package:collegebus/features/user/domain/user_model.dart';
-import 'package:collegebus/features/college/domain/college_model.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -29,13 +27,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
   final _emailController = TextEditingController(text: 'c@kkr.ac.in');
   final _passwordController = TextEditingController(text: 'a');
   bool _isLoading = false;
-
-  // Testing Tool State
-  List<UserModel> _allTestUsers = [];
-  List<CollegeModel> _allColleges = [];
-  UserRole? _selectedTestRole;
-  CollegeModel? _selectedTestCollege;
-  bool _isFetchingTestUsers = false;
 
   @override
   void initState() {
@@ -54,25 +45,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
       SystemUiMode.manual,
       overlays: [SystemUiOverlay.bottom],
     );
-
-    _fetchTestData();
-  }
-
-  Future<void> _fetchTestData() async {
-    setState(() => _isFetchingTestUsers = true);
-    try {
-      final apiService = ref.read(apiServiceProvider);
-      final users = await apiService.getAllUsers();
-      final colleges = await apiService.getAllColleges();
-      setState(() {
-        _allTestUsers = users;
-        _allColleges = colleges;
-      });
-    } catch (e) {
-      debugPrint('\x1B[31mError fetching test data: $e\x1B[0m');
-    } finally {
-      setState(() => _isFetchingTestUsers = false);
-    }
   }
 
   @override
@@ -240,7 +212,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                     return VxBox(
                           child: Icon(
                             Icons.directions_bus_rounded,
-                            color: AppColors.primary,
+                            color: Theme.of(context).colorScheme.primary,
                             size: 32,
                           ),
                         ).white.rounded.shadow
@@ -278,7 +250,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                         .bold
                         .color(
                           Theme.of(context).textTheme.headlineMedium?.color ??
-                              AppColors.textPrimary,
+                              Theme.of(context).colorScheme.onSurface,
                         )
                         .letterSpacing(-0.5)
                         .makeCentered(),
@@ -289,7 +261,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                         .size(12)
                         .color(
                           Theme.of(context).textTheme.bodyMedium?.color ??
-                              AppColors.textSecondary,
+                              Theme.of(context).colorScheme.secondary,
                         )
                         .center
                         .makeCentered()
@@ -298,177 +270,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                     16.heightBox,
 
                     // --- TESTING TOOL START ---
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: Colors.grey.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: Colors.grey.withValues(alpha: 0.2),
-                        ),
-                      ),
-                      child: Column(
-                        children: [
-                          const Text(
-                            'TEST TOOL (DEV ONLY)',
-                            style: TextStyle(
-                              fontSize: 10,
-                              color: Colors.grey,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Wrap(
-                            alignment: WrapAlignment.center,
-                            spacing: 8,
-                            runSpacing: 4,
-                            children: UserRole.values
-                                .map(
-                                  (role) => ChoiceChip(
-                                    label: Text(
-                                      role.displayName,
-                                      style: const TextStyle(fontSize: 10),
-                                    ),
-                                    selected: _selectedTestRole == role,
-                                    onSelected: (selected) {
-                                      setState(() {
-                                        _selectedTestRole = selected
-                                            ? role
-                                            : null;
-                                        _selectedTestCollege = null;
-
-                                        // Auto-fill for Super Admin
-                                        if (selected &&
-                                            role == UserRole.superAdmin) {
-                                          _emailController.text =
-                                              'super@admin.com';
-                                          _passwordController.text =
-                                              'a'; // Dev password
-                                          // _handleLogin(); // Uncomment if auto-login desired
-                                        }
-                                      });
-                                    },
-                                  ),
-                                )
-                                .toList(),
-                          ),
-                          if (_selectedTestRole != null &&
-                              _selectedTestRole != UserRole.superAdmin) ...[
-                            const SizedBox(height: 12),
-                            const Text(
-                              'Select College:',
-                              style: TextStyle(
-                                fontSize: 10,
-                                color: Colors.grey,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Wrap(
-                              alignment: WrapAlignment.center,
-                              spacing: 8,
-                              runSpacing: 4,
-                              children: _allColleges
-                                  .map(
-                                    (college) => ChoiceChip(
-                                      label: Text(
-                                        college.name.split(' ').first,
-                                        style: const TextStyle(fontSize: 10),
-                                      ),
-                                      selected:
-                                          _selectedTestCollege?.id ==
-                                          college.id,
-                                      onSelected: (selected) {
-                                        setState(() {
-                                          _selectedTestCollege = selected
-                                              ? college
-                                              : null;
-                                        });
-                                      },
-                                    ),
-                                  )
-                                  .toList(),
-                            ),
-                          ],
-                          if (_selectedTestRole != null &&
-                              (_selectedTestRole == UserRole.superAdmin ||
-                                  _selectedTestCollege != null)) ...[
-                            const SizedBox(height: 12),
-                            if (_isFetchingTestUsers)
-                              const CircularProgressIndicator()
-                            else if (_allTestUsers
-                                .where(
-                                  (u) =>
-                                      u.role == _selectedTestRole &&
-                                      (_selectedTestRole ==
-                                              UserRole.superAdmin ||
-                                          u.collegeId ==
-                                              _selectedTestCollege!.id),
-                                )
-                                .isEmpty)
-                              const Padding(
-                                padding: EdgeInsets.all(8.0),
-                                child: Text(
-                                  'No users found',
-                                  style: TextStyle(
-                                    fontSize: 10,
-                                    color: Colors.grey,
-                                  ),
-                                ),
-                              )
-                            else
-                              Wrap(
-                                spacing: 8,
-                                runSpacing: 4,
-                                children: _allTestUsers
-                                    .where(
-                                      (u) =>
-                                          u.role == _selectedTestRole &&
-                                          (_selectedTestRole ==
-                                                  UserRole.superAdmin ||
-                                              u.collegeId ==
-                                                  _selectedTestCollege!.id),
-                                    )
-                                    // Ensure unique IDs to prevent UI confusion
-                                    .fold<List<UserModel>>([], (list, u) {
-                                      if (!list.any((e) => e.id == u.id)) {
-                                        list.add(u);
-                                      }
-                                      return list;
-                                    })
-                                    .map(
-                                      (user) => ActionChip(
-                                        avatar: Icon(
-                                          Icons.person,
-                                          size: 14,
-                                          color: AppColors.primary,
-                                        ),
-                                        label: Text(
-                                          '${user.fullName.split(' ').first} (${user.email.split('@').first})',
-                                          style: const TextStyle(fontSize: 10),
-                                        ),
-                                        onPressed: () {
-                                          setState(() {
-                                            _emailController.text = user.email;
-                                            _passwordController.text = 'a';
-                                          });
-                                          _handleLogin();
-                                        },
-                                      ),
-                                    )
-                                    .toList(),
-                              ),
-                          ],
-                        ],
-                      ),
-                    ),
-                    const Divider().pSymmetric(v: 16),
-                    // --- TESTING TOOL END ---
+                    // --- TESTING TOOL REMOVED ---
 
                     // Account Input
                     l10n.emailOrPhone.text.semiBold
                         .color(
                           Theme.of(context).textTheme.bodyLarge?.color ??
-                              AppColors.textPrimary,
+                              Theme.of(context).colorScheme.onSurface,
                         )
                         .make(),
                     8.heightBox,
@@ -488,7 +296,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                     l10n.password.text.semiBold
                         .color(
                           Theme.of(context).textTheme.bodyLarge?.color ??
-                              AppColors.textPrimary,
+                              Theme.of(context).colorScheme.onSurface,
                         )
                         .make(),
                     8.heightBox,
@@ -509,7 +317,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                       child: GestureDetector(
                         onTap: () => context.push('/forgot-password'),
                         child: l10n.forgotPassword.text.semiBold
-                            .color(AppColors.primary)
+                            .color(Theme.of(context).colorScheme.primary)
                             .make()
                             .p8(), // padding still works
                       ),
@@ -521,8 +329,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                     ElevatedButton(
                       onPressed: _handleLogin,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primary,
-                        foregroundColor: Colors.white,
+                        backgroundColor: Theme.of(context).colorScheme.primary,
+                        foregroundColor: Theme.of(
+                          context,
+                        ).colorScheme.onPrimary,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
@@ -544,11 +354,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
 
                     // Footer
                     HStack([
-                      l10n.newHere.text.color(AppColors.textSecondary).make(),
+                      l10n.newHere.text
+                          .color(Theme.of(context).colorScheme.secondary)
+                          .make(),
                       GestureDetector(
                         onTap: () => context.go('/register'),
                         child: l10n.createAccount.text.bold
-                            .color(AppColors.primary)
+                            .color(Theme.of(context).colorScheme.primary)
                             .make(),
                       ),
                     ], alignment: MainAxisAlignment.center).centered(),

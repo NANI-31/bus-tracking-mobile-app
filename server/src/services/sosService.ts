@@ -1,9 +1,9 @@
 import { Server } from "socket.io";
 import { v4 as uuidv4 } from "uuid";
-import { Sos, SosStatus, ISos } from "../models/Sos";
-import User from "../models/User";
-import { Bus } from "../models/Bus";
-import { sendNotificationToDevices } from "../utils/firebase";
+import { Sos, SosStatus, ISos } from "../models/Sos.model";
+import User from "../models/User.model";
+import { Bus } from "../models/Bus.model";
+import { sendSosNotification } from "../utils/firebase";
 import logger from "../utils/logger";
 
 interface TriggerSosParams {
@@ -139,7 +139,7 @@ export class SosService {
         .filter((t): t is string => !!t);
 
       if (tokens.length > 0) {
-        await sendNotificationToDevices(
+        await sendSosNotification(
           tokens,
           "🚨 SOS Alert!",
           `Emergency reported by ${userRole}. Bus: ${busNumber}`,

@@ -15,11 +15,10 @@ import 'package:collegebus/features/route/domain/route_model.dart';
 import 'package:collegebus/core/services/persistence_service.dart';
 import 'package:collegebus/features/notification/application/proximity_provider.dart';
 import 'package:collegebus/features/notification/services/fcm_service.dart';
-import 'package:go_router/go_router.dart';
 
 // Import the new modules
 import 'tabs/student_map_tab.dart';
-import 'tabs/student_bus_list_tab.dart';
+import 'student_notifications_screen.dart';
 import 'package:collegebus/features/user/presentation/screens/profile_screen.dart';
 import 'student_home_screen.dart';
 import 'bus_schedule_screen.dart';
@@ -271,18 +270,11 @@ class _StudentDashboardState extends ConsumerState<StudentDashboard>
                   if (mounted) setState(() => _selectedBus = bus);
                 },
               ),
-              StudentBusListTab(
-                filteredBuses: filteredBuses,
-                routes: routes,
-                selectedBus: _selectedBus,
-                onBusSelected: (bus) => _selectBus(bus),
-                selectedStop: _selectedStop,
-                onClearFilters: _clearFilters,
-              ),
               BusScheduleScreen(
                 isTab: true,
                 onBusSelected: (bus) => _selectBus(bus),
               ),
+              StudentNotificationsScreen(),
               const ProfileScreen(),
             ],
           ),
@@ -290,20 +282,12 @@ class _StudentDashboardState extends ConsumerState<StudentDashboard>
           _buildConnectivityBanner(),
         ],
       ),
-      floatingActionButton: _bottomNavIndex == 1
-          ? null
-          : FloatingActionButton(
-              onPressed: () => context.push('/notifications'),
-              backgroundColor: Theme.of(context).primaryColor,
-              child: Icon(
-                Icons.notifications_rounded,
-                color: Theme.of(context).colorScheme.onPrimary,
-              ),
-            ),
       bottomNavigationBar: CurvedBottomNavBar(
-        activeColor: Theme.of(context).primaryColor,
+        activeColor: Theme.of(context).colorScheme.primary,
         inactiveColor: Theme.of(context).colorScheme.secondary,
-        backgroundColor: Theme.of(context).cardColor,
+        backgroundColor: Theme.of(context).brightness == Brightness.light
+            ? Theme.of(context).cardColor
+            : Theme.of(context).colorScheme.primaryContainer,
         currentIndex: _bottomNavIndex,
         onTap: _onBottomNavChanged,
         items: [
@@ -315,12 +299,18 @@ class _StudentDashboardState extends ConsumerState<StudentDashboard>
             icon: _bottomNavIndex == 1 ? Icons.map : Icons.map_outlined,
             label: 'Live Map',
           ),
-          CurvedBottomNavIcon(icon: Icons.show_chart_rounded, label: 'Route'),
           CurvedBottomNavIcon(
-            icon: _bottomNavIndex == 3
+            icon: _bottomNavIndex == 2
                 ? Icons.calendar_month
                 : Icons.calendar_month_outlined,
             label: 'Schedule',
+          ),
+          CurvedBottomNavIcon(
+            icon: _bottomNavIndex == 3
+                ? Icons.notifications
+                : Icons.notifications_none_outlined,
+            label: 'Activity',
+            badgeCount: 3,
           ),
           CurvedBottomNavIcon(
             icon: _bottomNavIndex == 4 ? Icons.person : Icons.person_outline,
@@ -352,7 +342,7 @@ class _StudentDashboardState extends ConsumerState<StudentDashboard>
             curve: Curves.easeOutBack,
             builder: (context, value, child) {
               return Opacity(
-                opacity: value,
+                opacity: value.clamp(0.0, 1.0),
                 child: Transform.translate(
                   offset: Offset(0, (1 - value) * -20),
                   child: child,

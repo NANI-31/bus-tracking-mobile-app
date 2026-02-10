@@ -118,7 +118,7 @@ class FCMService {
       },
     );
 
-    // Create notification channel for Android
+    // General high importance channel
     const channel = AndroidNotificationChannel(
       'high_importance_channel',
       'High Importance Notifications',
@@ -132,6 +132,23 @@ class FCMService {
           AndroidFlutterLocalNotificationsPlugin
         >()
         ?.createNotificationChannel(channel);
+
+    // SOS Emergency channel with loud alarm for background notifications
+    const sosChannel = AndroidNotificationChannel(
+      'sos_emergency_channel',
+      'SOS Emergency Alerts',
+      description: 'Critical SOS alerts with loud alarm sound',
+      importance: Importance.max,
+      playSound: true,
+      sound: RawResourceAndroidNotificationSound('sos_alarm'),
+      enableVibration: true,
+    );
+
+    await _localNotifications
+        .resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin
+        >()
+        ?.createNotificationChannel(sosChannel);
   }
 
   Future<void> _getToken() async {

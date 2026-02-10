@@ -136,6 +136,29 @@ class SocketService extends ChangeNotifier {
       AppLogger.w('[SocketService] Disconnected');
     });
 
+    // Handle reconnection (fired when socket reconnects after a disconnect)
+    _socket!.on('reconnect', (_) async {
+      _isConnected = true;
+      _isConnecting = false;
+      notifyListeners();
+      AppLogger.i('[SocketService] Reconnected successfully');
+
+      // Re-join last college if any
+      if (_lastJoinedCollegeId != null) {
+        joinCollege(_lastJoinedCollegeId!);
+      }
+
+      await _flushQueue();
+    });
+
+    // Handle reconnecting state
+    _socket!.on('reconnecting', (_) {
+      _isConnecting = true;
+      _isConnected = false;
+      notifyListeners();
+      AppLogger.i('[SocketService] Reconnecting...');
+    });
+
     _socket!.onConnectError((err) {
       if (_isConnecting) {
         _isConnecting = false;
@@ -315,8 +338,3 @@ class SocketService extends ChangeNotifier {
     super.dispose();
   }
 }
-
-
-
-
-

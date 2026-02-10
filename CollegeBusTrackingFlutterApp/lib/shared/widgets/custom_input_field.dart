@@ -77,7 +77,7 @@ class _CustomInputFieldState extends State<CustomInputField> {
               ? IconButton(
                   icon: Icon(
                     _obscureText ? Icons.visibility : Icons.visibility_off,
-                    color: AppColors.textSecondary,
+                    color: Theme.of(context).colorScheme.secondary,
                   ),
                   onPressed: () {
                     setState(() {
@@ -97,7 +97,7 @@ class _CustomInputFieldState extends State<CustomInputField> {
           ),
           focusedBorder: _buildBorder(
             context,
-            color: Theme.of(context).primaryColor,
+            color: Theme.of(context).colorScheme.primary,
             width: 1.5,
           ),
           errorBorder: _buildBorder(

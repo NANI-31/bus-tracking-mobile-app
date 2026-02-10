@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:ui';
 
 import 'package:collegebus/shared/widgets/logout_confirmation_dialog.dart';
 import 'package:collegebus/l10n/driver/app_localizations.dart';
@@ -499,6 +500,103 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
     }
   }
 
+  Widget _buildConnectivityBanner() {
+    return Consumer(
+      builder: (context, ref, child) {
+        final socketService = ref.watch(socketServiceProvider);
+        final isConnected = socketService.isConnected;
+        final isConnecting = socketService.isConnecting;
+
+        if (isConnected && !isConnecting) return const SizedBox.shrink();
+
+        final color = isConnecting ? Colors.amber : Colors.redAccent;
+
+        return Positioned(
+          top: MediaQuery.of(context).padding.top + 12,
+          left: 20,
+          right: 20,
+          child: TweenAnimationBuilder<double>(
+            tween: Tween(begin: 0.0, end: 1.0),
+            duration: const Duration(milliseconds: 500),
+            curve: Curves.easeOutBack,
+            builder: (context, value, child) {
+              return Opacity(
+                opacity: value.clamp(0.0, 1.0),
+                child: Transform.translate(
+                  offset: Offset(0, (1 - value) * -20),
+                  child: child,
+                ),
+              );
+            },
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(30),
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 12.0, sigmaY: 12.0),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 10,
+                  ),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        color.withValues(alpha: 0.7),
+                        color.withValues(alpha: 0.4),
+                      ],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(30),
+                    border: Border.all(
+                      color: color.withValues(alpha: 0.3),
+                      width: 1.5,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: color.withValues(alpha: 0.2),
+                        blurRadius: 15,
+                        offset: const Offset(0, 8),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const PulsatingDot(),
+                      const SizedBox(width: 12),
+                      Text(
+                        isConnecting ? "Connecting..." : "Server Disconnected",
+                        style: TextStyle(
+                          color: isConnecting ? Colors.black87 : Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.only(left: 10),
+                        child: const SizedBox(
+                          width: 12,
+                          height: 12,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 1.5,
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              Colors.black54,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final userId = ref.watch(currentUserProvider.select((u) => u?.id));
@@ -517,89 +615,89 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
     final routesAsync = ref.watch(collegeRoutesProvider(collegeId));
     final busNumbersAsync = ref.watch(busNumbersProvider(collegeId));
 
-    return myBusAsync.when(
-      data: (myBus) {
-        // Match selection from saved preferences on first load
-        if (_selectedRoute == null && myBus?.routeId != null) {
-          routesAsync.whenData((routes) {
-            try {
-              final route = routes.firstWhere((r) => r.id == myBus!.routeId);
-              if (mounted) {
-                setState(() {
-                  _selectedRoute = route;
-                });
-                _updateMarkers();
-              }
-            } catch (e) {
-              debugPrint('Error matching route selection: $e');
-            }
-          });
-        }
+    final myBus = myBusAsync.valueOrNull;
 
-        return Scaffold(
-          backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-          appBar: AppBar(
-            title: DriverLocalizations.of(
-              context,
-            )!.welcomeDriver(fullName).text.ellipsis.make(),
-            backgroundColor: Theme.of(context).primaryColor,
-            foregroundColor: Theme.of(context).colorScheme.onPrimary,
-            actions: [
-              IconButton(
-                icon: const Icon(Icons.notifications),
-                onPressed: () {},
-              ),
-              IconButton(
-                icon: const Icon(Icons.logout),
-                onPressed: () async {
-                  final confirmed = await LogoutConfirmationDialog.show(
-                    context,
-                  );
-                  if (confirmed) {
-                    await ref.read(authProvider.notifier).signOut();
-                    if (context.mounted) context.go('/login');
-                  }
-                },
-              ),
-            ],
-          ),
-          body: IndexedStack(
-            index: _bottomNavIndex,
-            children: [
-              _buildBusSetupTab(myBus, routesAsync, busNumbersAsync),
-              _buildLiveTrackingTab(myBus),
-              const ProfileScreen(),
-            ],
-          ),
-          bottomNavigationBar: NavigationBar(
-            selectedIndex: _bottomNavIndex,
-            onDestinationSelected: (index) {
-              setState(() => _bottomNavIndex = index);
+    // Match selection from saved preferences on first load
+    if (myBus != null && _selectedRoute == null && myBus.routeId != null) {
+      routesAsync.whenData((routes) {
+        try {
+          final route = routes.firstWhere((r) => r.id == myBus.routeId);
+          if (mounted) {
+            setState(() {
+              _selectedRoute = route;
+            });
+            _updateMarkers();
+          }
+        } catch (e) {
+          debugPrint('Error matching route selection: $e');
+        }
+      });
+    }
+
+    return Scaffold(
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      appBar: AppBar(
+        title: DriverLocalizations.of(
+          context,
+        )!.welcomeDriver(fullName).text.ellipsis.make(),
+        backgroundColor: Theme.of(context).primaryColor,
+        foregroundColor: Theme.of(context).colorScheme.onPrimary,
+        actions: [
+          IconButton(icon: const Icon(Icons.notifications), onPressed: () {}),
+          IconButton(
+            icon: const Icon(Icons.logout),
+            onPressed: () async {
+              final confirmed = await LogoutConfirmationDialog.show(context);
+              if (confirmed) {
+                await ref.read(authProvider.notifier).signOut();
+                if (context.mounted) context.go('/login');
+              }
             },
-            destinations: [
-              NavigationDestination(
-                icon: const Icon(Icons.settings_outlined),
-                selectedIcon: const Icon(Icons.settings),
-                label: DriverLocalizations.of(context)!.busSetupTab,
-              ),
-              NavigationDestination(
-                icon: const Icon(Icons.map_outlined),
-                selectedIcon: const Icon(Icons.map),
-                label: DriverLocalizations.of(context)!.liveTrackingTab,
-              ),
-              const NavigationDestination(
-                icon: Icon(Icons.person_outline),
-                selectedIcon: Icon(Icons.person),
-                label: 'Profile',
-              ),
-            ],
           ),
-        );
-      },
-      loading: () =>
-          const Scaffold(body: Center(child: CircularProgressIndicator())),
-      error: (e, s) =>
-          Scaffold(body: Center(child: Text('Error loading dashboard: $e'))),
+        ],
+      ),
+      body: Stack(
+        children: [
+          // Main Content
+          if (myBusAsync.isLoading && !myBusAsync.hasValue)
+            const Center(child: CircularProgressIndicator())
+          else
+            IndexedStack(
+              index: _bottomNavIndex,
+              children: [
+                _buildBusSetupTab(myBus, routesAsync, busNumbersAsync),
+                _buildLiveTrackingTab(myBus),
+                const ProfileScreen(),
+              ],
+            ),
+
+          // Connectivity Banner
+          _buildConnectivityBanner(),
+        ],
+      ),
+      bottomNavigationBar: NavigationBar(
+        selectedIndex: _bottomNavIndex,
+        onDestinationSelected: (index) {
+          setState(() => _bottomNavIndex = index);
+        },
+        destinations: [
+          NavigationDestination(
+            icon: const Icon(Icons.settings_outlined),
+            selectedIcon: const Icon(Icons.settings),
+            label: DriverLocalizations.of(context)!.busSetupTab,
+          ),
+          NavigationDestination(
+            icon: const Icon(Icons.map_outlined),
+            selectedIcon: const Icon(Icons.map),
+            label: DriverLocalizations.of(context)!.liveTrackingTab,
+          ),
+          const NavigationDestination(
+            icon: Icon(Icons.person_outline),
+            selectedIcon: Icon(Icons.person),
+            label: 'Profile',
+          ),
+        ],
+      ),
     );
   }
 
@@ -897,6 +995,63 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
             ),
           ),
       ],
+    );
+  }
+}
+
+class PulsatingDot extends StatefulWidget {
+  const PulsatingDot({super.key});
+
+  @override
+  State<PulsatingDot> createState() => _PulsatingDotState();
+}
+
+class _PulsatingDotState extends State<PulsatingDot>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _animation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1000),
+    )..repeat(reverse: true);
+    _animation = Tween<double>(
+      begin: 0.6,
+      end: 1.0,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _animation,
+      builder: (context, child) {
+        return Transform.scale(scale: _animation.value, child: child);
+      },
+      child: Container(
+        width: 10,
+        height: 10,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          shape: BoxShape.circle,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.white.withValues(alpha: 0.5),
+              blurRadius: 4,
+              spreadRadius: 2,
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
-import User, { IUser } from "../../models/User";
+import User, { IUser } from "../../models/User.model";
 import crypto from "crypto";
 import logger from "../../utils/logger";
 
@@ -86,7 +86,7 @@ export const register = async (req: Request, res: Response) => {
         role: newUser.role,
       },
       JWT_SECRET,
-      { expiresIn: "30d" }
+      { expiresIn: "30d" },
     );
 
     res.status(201).json({

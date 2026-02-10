@@ -1,5 +1,5 @@
 import { Server } from "socket.io";
-import { Bus, IBus } from "../models/Bus";
+import { Bus, IBus } from "../models/Bus.model";
 import logger from "../utils/logger";
 import { getBusAssignmentService } from "./busAssignmentService";
 

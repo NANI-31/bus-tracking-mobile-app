@@ -1,8 +1,8 @@
-import { IBus } from "../models/Bus";
-import { BusAssignmentLog } from "../models/BusAssignmentLog";
-import User, { UserRole } from "../models/User";
-import { sendTemplatedNotificationHelper } from "../controllers/notification.controller";
-import { logHistoryHelper } from "../controllers/history.controller";
+import { IBus } from "../models/Bus.model";
+import { BusAssignmentLog } from "../models/BusAssignmentLog.model";
+import User, { UserRole } from "../models/User.model";
+import { sendTemplatedNotificationHelper } from "../controllers/features/notification.controller";
+import { logHistoryHelper } from "../controllers/transport/history.controller";
 import { NOTIFICATION_TYPES } from "../constants/notificationTypes";
 import logger from "../utils/logger";
 

@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import User from "../../models/User";
+import User from "../../models/User.model";
 import { AuthRequest } from "../../middleware/authMiddleware";
 
 export const logout = async (req: Request, res: Response) => {

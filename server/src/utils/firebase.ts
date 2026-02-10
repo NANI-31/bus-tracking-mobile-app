@@ -20,7 +20,7 @@ export const initializeFirebase = () => {
         clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
         privateKey: (process.env.FIREBASE_PRIVATE_KEY ?? "").replace(
           /\\n/g,
-          "\n"
+          "\n",
         ),
       }),
     });
@@ -36,7 +36,7 @@ export const sendNotificationToDevice = async (
   fcmToken: string,
   title: string,
   body: string,
-  data?: Record<string, string>
+  data?: Record<string, string>,
 ): Promise<boolean> => {
   try {
     const message: admin.messaging.Message = {
@@ -70,18 +70,18 @@ export const sendNotificationToDevice = async (
     console.log(
       `[Firebase] Notification sent successfully to ${fcmToken.substring(
         0,
-        10
+        10,
       )}...:`,
-      response
+      response,
     );
     return true;
   } catch (error) {
     console.error(
       `[Firebase] Error sending notification to ${fcmToken.substring(
         0,
-        10
+        10,
       )}...:`,
-      error
+      error,
     );
     return false;
   }
@@ -92,7 +92,7 @@ export const sendNotificationToDevices = async (
   fcmTokens: string[],
   title: string,
   body: string,
-  data?: Record<string, string>
+  data?: Record<string, string>,
 ): Promise<{ success: number; failure: number }> => {
   try {
     const message: admin.messaging.MulticastMessage = {
@@ -113,7 +113,7 @@ export const sendNotificationToDevices = async (
 
     const response = await admin.messaging().sendEachForMulticast(message);
     logger.info(
-      `Notifications sent: ${response.successCount} success, ${response.failureCount} failed`
+      `Notifications sent: ${response.successCount} success, ${response.failureCount} failed`,
     );
 
     return {
@@ -126,12 +126,66 @@ export const sendNotificationToDevices = async (
   }
 };
 
+// Send SOS emergency notification with loud alarm sound
+export const sendSosNotification = async (
+  fcmTokens: string[],
+  title: string,
+  body: string,
+  data?: Record<string, string>,
+): Promise<{ success: number; failure: number }> => {
+  try {
+    const message: admin.messaging.MulticastMessage = {
+      tokens: fcmTokens,
+      notification: {
+        title,
+        body,
+      },
+      data: data || {},
+      android: {
+        priority: "high",
+        notification: {
+          channelId: "sos_emergency_channel",
+          priority: "max",
+          sound: "sos_alarm",
+          defaultVibrateTimings: true,
+        },
+      },
+      apns: {
+        payload: {
+          aps: {
+            alert: { title, body },
+            badge: 1,
+            sound: "sos_alarm.aiff",
+            "content-available": 1,
+          },
+        },
+        headers: {
+          "apns-priority": "10",
+        },
+      },
+    };
+
+    const response = await admin.messaging().sendEachForMulticast(message);
+    logger.info(
+      `SOS Notifications sent: ${response.successCount} success, ${response.failureCount} failed`,
+    );
+
+    return {
+      success: response.successCount,
+      failure: response.failureCount,
+    };
+  } catch (error) {
+    logger.error(`Error sending SOS notification: ${error}`);
+    return { success: 0, failure: fcmTokens.length };
+  }
+};
+
 // Send notification to a topic (e.g., all users of a college)
 export const sendNotificationToTopic = async (
   topic: string,
   title: string,
   body: string,
-  data?: Record<string, string>
+  data?: Record<string, string>,
 ): Promise<boolean> => {
   try {
     const message: admin.messaging.Message = {

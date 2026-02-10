@@ -368,7 +368,11 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                 if (_selectedRole != UserRole.parent &&
                     _emailDomainHint != null)
                   _emailDomainHint!.text
-                      .color(AppColors.primary.withValues(alpha: 0.8))
+                      .color(
+                        Theme.of(
+                          context,
+                        ).colorScheme.primary.withValues(alpha: 0.8),
+                      )
                       .size(12)
                       .medium
                       .make()
@@ -443,12 +447,12 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
             // Sign in link
             HStack([
               l10n.alreadyHaveAccount.text
-                  .color(AppColors.textSecondary)
+                  .color(Theme.of(context).colorScheme.secondary)
                   .make(),
               GestureDetector(
                 onTap: () => context.go('/login'),
                 child: l10n.signIn.text.semiBold
-                    .color(AppColors.primary)
+                    .color(Theme.of(context).colorScheme.primary)
                     .make(),
               ),
             ], alignment: MainAxisAlignment.center).centered(),

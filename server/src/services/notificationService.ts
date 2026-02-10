@@ -1,6 +1,6 @@
-import User, { UserRole } from "../models/User";
-import Notification from "../models/Notification";
-import { logHistoryHelper } from "../controllers/history.controller";
+import User, { UserRole } from "../models/User.model";
+import Notification from "../models/Notification.model";
+import { logHistoryHelper } from "../controllers/transport/history.controller";
 import {
   sendNotificationToDevice,
   sendNotificationToDevices,

@@ -4,90 +4,193 @@ import 'package:flutter/material.dart';
 // ... (AppColors, AppTheme, AppSizes, AppStrings classes remain unchanged)
 
 class AppColors {
-  // New Color Schema
-  static const Color primary = Color(0xFF00C6E6); // #00c6e6
-  static const Color secondary = Color(0xFFBFC0D1); // #bfc0d1
+  // --- Core Brand Colors ---
+  static const Color turkishBlue = Color(0xFF00C6E6); // Main Brand Color
+  static const Color deepTeal = Color(0xFF0097B2); // Accessible (Light Mode)
+  static const Color gunmetal = Color(0xFF12181F); // Dark Background
+  static const Color coolSlate = Color(0xFF546E7A); // Secondary
+  static const Color amberAccent = Color(0xFFFFC107); // Tertiary/Accent
+
+  // --- Functional Colors ---
   static const Color success = Color(0xFF4CAF50);
-  static const Color error = Color(0xFFB00020);
+  static const Color error = Color.fromARGB(
+    255,
+    194,
+    10,
+    44,
+  ); // Material Error (lighter red)
   static const Color warning = Color(0xFFFF9800);
 
-  // Light Theme Colors
-  static const Color background = Color(0xFFF6F7F8);
-  static const Color surface = Colors.white;
-  static const Color onPrimary = Colors.white;
-  static const Color onSecondary = Color(0xFF191E2B);
-  static const Color onBackground = Color(0xFF111418);
-  static const Color onSurface = Color(0xFF111418);
-  static const Color textPrimary = Color(0xFF111418);
-  static const Color textSecondary = Color(0xFF637588);
+  // --- Light Theme Colors ---
+  static const Color lightPrimary = deepTeal; // Darker for accessibility
+  static const Color lightOnPrimary = Colors.white;
+  static const Color lightPrimaryContainer = Color(0xFFB3EBF2);
+  static const Color lightOnPrimaryContainer = Color(0xFF004D40);
+  static const Color lightSecondary = coolSlate;
+  static const Color lightOnSecondary = Colors.white;
+  static const Color lightBackground = Color(0xFFF5F7FA);
+  static const Color lightSurface = Colors.white;
+  static const Color lightOnSurface = Color(0xFF111418);
+  static const Color lightOutline = Color(0xFF78909C);
 
-  // Dark Mode Colors
-  static const Color darkBackground = Color(0xFF191E2B); // #191e2b
-  static const Color darkSurface = Color(0xFF253041); // #25304 (assumed 1)
-  static const Color darkOnSurface = Colors.white;
-  static const Color darkTextPrimary = Colors.white;
-  static const Color darkTextSecondary = Color(0xFFBFC0D1); // #bfc0d1
+  // --- Dark Theme Colors ---
+  static const Color darkPrimary = turkishBlue; // Brighter for dark mode
+  static const Color darkOnPrimary = Color(
+    0xFF00363D,
+  ); // Dark text on bright btn
+  static const Color darkPrimaryContainer = Color(
+    0xFF23303B,
+  ); // Dark Blue-Grey (No Green)
+  static const Color darkOnPrimaryContainer = Color(0xFFCFD8DC);
+  static const Color darkSecondary = Color(0xFFB0BEC5); // Lighter slate
+  static const Color darkOnSecondary = Color(0xFF191E2B);
+  static const Color darkBackground = gunmetal;
+  static const Color darkSurface = Color(
+    0xFF1E2732,
+  ); // Slightly lighter than bg
+  static const Color darkOnSurface = Color(0xFFE1E3E6);
+
+  // --- Legacy/Direct Access (Backward Compatibility) ---
+  static const Color primary = turkishBlue;
+  static const Color secondary = coolSlate;
+
+  // Light Mode Fallbacks
+  static const Color background = lightBackground;
+  static const Color surface = lightSurface;
+  static const Color onPrimary = lightOnPrimary;
+  static const Color onSecondary = lightOnSecondary;
+  static const Color onBackground = lightOnSurface;
+  static const Color onSurface = lightOnSurface;
+  static const Color textPrimary = lightOnSurface;
+  static const Color textSecondary = AppColors.coolSlate;
+
+  // Dark Mode Fallbacks
+  static const Color darkTextPrimary = darkOnSurface;
+  static const Color darkTextSecondary = Color(0xFFB0BEC5);
 }
 
 class AppTheme {
-  static final lightTheme = ThemeData(
+  static final ThemeData lightTheme = ThemeData(
     useMaterial3: true,
     brightness: Brightness.light,
-    primaryColor: AppColors.primary,
-    scaffoldBackgroundColor: AppColors.background,
-    colorScheme: ColorScheme.light(
-      primary: AppColors.primary,
-      secondary: AppColors.secondary,
-      surface: AppColors.surface,
-      onPrimary: AppColors.onPrimary,
-      onSecondary: AppColors.onSecondary,
-      onSurface: AppColors.onSurface,
+    colorScheme: ColorScheme(
+      brightness: Brightness.light,
+      primary: AppColors.lightPrimary,
+      onPrimary: AppColors.lightOnPrimary,
+      primaryContainer: AppColors.lightPrimaryContainer,
+      onPrimaryContainer: AppColors.lightOnPrimaryContainer,
+      secondary: AppColors.lightSecondary,
+      onSecondary: AppColors.lightOnSecondary,
       error: AppColors.error,
+      onError: Colors.white,
+      surface: AppColors.lightSurface,
+      onSurface: AppColors.lightOnSurface,
+      outline: AppColors.lightOutline,
     ),
+    scaffoldBackgroundColor: AppColors.lightBackground,
     appBarTheme: AppBarTheme(
       backgroundColor: Colors.transparent,
       elevation: 0,
       centerTitle: true,
-      foregroundColor: AppColors.textPrimary,
+      foregroundColor: AppColors.lightOnSurface,
+    ),
+    cardTheme: CardThemeData(
+      color: AppColors.lightSurface,
+      elevation: 2,
+      shadowColor: Colors.black.withOpacity(0.1),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+    ),
+    elevatedButtonTheme: ElevatedButtonThemeData(
+      style: ElevatedButton.styleFrom(
+        backgroundColor: AppColors.lightPrimary,
+        foregroundColor: AppColors.lightOnPrimary,
+        elevation: 2,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+      ),
     ),
     textTheme: TextTheme(
-      bodyLarge: TextStyle(color: AppColors.textPrimary),
-      bodyMedium: TextStyle(color: AppColors.textPrimary),
-      titleLarge: TextStyle(color: AppColors.textPrimary),
-      titleMedium: TextStyle(color: AppColors.textPrimary),
-      labelLarge: TextStyle(color: AppColors.textPrimary),
+      displayLarge: TextStyle(
+        color: AppColors.lightOnSurface,
+        fontWeight: FontWeight.bold,
+      ),
+      displayMedium: TextStyle(
+        color: AppColors.lightOnSurface,
+        fontWeight: FontWeight.bold,
+      ),
+      bodyLarge: TextStyle(color: AppColors.lightOnSurface),
+      bodyMedium: TextStyle(color: AppColors.lightOnSurface),
+      titleLarge: TextStyle(
+        color: AppColors.lightOnSurface,
+        fontWeight: FontWeight.w600,
+      ),
+      labelLarge: TextStyle(
+        color: AppColors.lightOnSurface,
+      ), // Button text usually
     ),
-    iconTheme: IconThemeData(color: AppColors.textPrimary),
+    iconTheme: IconThemeData(color: AppColors.lightOnSurface),
   );
 
   static final ThemeData darkTheme = ThemeData(
     useMaterial3: true,
     brightness: Brightness.dark,
-    primaryColor: AppColors.primary,
-    scaffoldBackgroundColor: AppColors.darkBackground,
-    colorScheme: ColorScheme.dark(
-      primary: AppColors.primary,
-      secondary: AppColors.secondary,
-      surface: AppColors.darkSurface,
-      onPrimary: AppColors.onPrimary,
-      onSecondary: AppColors.onSecondary,
-      onSurface: AppColors.darkOnSurface,
+    colorScheme: ColorScheme(
+      brightness: Brightness.dark,
+      primary: AppColors.darkPrimary,
+      onPrimary: AppColors.darkOnPrimary,
+      primaryContainer: AppColors.darkPrimaryContainer,
+      onPrimaryContainer: AppColors.darkOnPrimaryContainer,
+      secondary: AppColors.darkSecondary,
+      onSecondary: AppColors.darkOnSecondary,
       error: AppColors.error,
+      onError: Colors.white,
+      surface: AppColors.darkSurface,
+      onSurface: AppColors.darkOnSurface,
+      outline: AppColors.darkSecondary,
     ),
+    scaffoldBackgroundColor: AppColors.darkBackground,
     appBarTheme: AppBarTheme(
       backgroundColor: Colors.transparent,
       elevation: 0,
       centerTitle: true,
-      foregroundColor: AppColors.darkTextPrimary,
+      foregroundColor: AppColors.darkOnSurface,
+    ),
+    cardTheme: CardThemeData(
+      color: AppColors.darkSurface,
+      elevation:
+          0, // Flat in dark mode usually looks better with outline or different color
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: Colors.white.withOpacity(0.05), width: 1),
+      ),
+    ),
+    elevatedButtonTheme: ElevatedButtonThemeData(
+      style: ElevatedButton.styleFrom(
+        backgroundColor: AppColors.darkPrimary,
+        foregroundColor: AppColors.darkOnPrimary,
+        elevation: 0,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+      ),
     ),
     textTheme: TextTheme(
-      bodyLarge: TextStyle(color: AppColors.darkTextPrimary),
-      bodyMedium: TextStyle(color: AppColors.darkTextPrimary),
-      titleLarge: TextStyle(color: AppColors.darkTextPrimary),
-      titleMedium: TextStyle(color: AppColors.darkTextPrimary),
-      labelLarge: TextStyle(color: AppColors.darkTextPrimary),
+      displayLarge: TextStyle(
+        color: AppColors.darkOnSurface,
+        fontWeight: FontWeight.bold,
+      ),
+      displayMedium: TextStyle(
+        color: AppColors.darkOnSurface,
+        fontWeight: FontWeight.bold,
+      ),
+      bodyLarge: TextStyle(color: AppColors.darkOnSurface),
+      bodyMedium: TextStyle(color: AppColors.darkOnSurface),
+      titleLarge: TextStyle(
+        color: AppColors.darkOnSurface,
+        fontWeight: FontWeight.w600,
+      ),
+      labelLarge: TextStyle(color: AppColors.darkOnSurface),
     ),
-    iconTheme: IconThemeData(color: AppColors.darkTextPrimary),
+    iconTheme: IconThemeData(color: AppColors.darkOnSurface),
   );
 }
 

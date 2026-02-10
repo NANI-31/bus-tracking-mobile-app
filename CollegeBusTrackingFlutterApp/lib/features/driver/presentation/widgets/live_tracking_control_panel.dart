@@ -74,43 +74,12 @@ class LiveTrackingControlPanel extends StatelessWidget {
                   : Theme.of(context).colorScheme.onSecondary,
             ),
           ),
-          if (isSharing) _buildSharingStatus(context),
+          // if (isSharing) _buildSharingStatus(context), // Removed per user request
         ])
         .p(AppSizes.paddingMedium)
         .box
         .color(Theme.of(context).colorScheme.surface)
         .topRounded(value: AppSizes.radiusLarge)
         .make();
-  }
-
-  Widget _buildSharingStatus(BuildContext context) {
-    return HStack([
-          Icon(Icons.location_on, color: AppColors.success),
-          AppSizes.paddingMedium.widthBox,
-          VStack([
-            DriverLocalizations.of(
-              context,
-            )!.sharingStatusMessage.text.color(AppColors.success).medium.make(),
-            if (currentLocation != null)
-              VStack([
-                4.heightBox,
-                DriverLocalizations.of(context)!
-                    .currentLocationStats(
-                      currentLocation!.latitude.toStringAsFixed(4),
-                      currentLocation!.longitude.toStringAsFixed(4),
-                    )
-                    .text
-                    .size(12)
-                    .color(AppColors.success)
-                    .make(),
-              ]),
-          ]).expand(),
-        ])
-        .p(AppSizes.paddingMedium)
-        .box
-        .color(AppColors.success.withValues(alpha: 0.1))
-        .withRounded(value: AppSizes.radiusMedium)
-        .make()
-        .pOnly(top: AppSizes.paddingMedium);
   }
 }

@@ -3,8 +3,13 @@ import 'package:flutter/material.dart';
 class CurvedBottomNavIcon {
   final IconData icon;
   final String label;
+  final int? badgeCount;
 
-  CurvedBottomNavIcon({required this.icon, required this.label});
+  CurvedBottomNavIcon({
+    required this.icon,
+    required this.label,
+    this.badgeCount,
+  });
 }
 
 class CurvedBottomNavBar extends StatefulWidget {
@@ -159,13 +164,32 @@ class _CurvedBottomNavBarState extends State<CurvedBottomNavBar>
                         builder: (context, value, child) {
                           return Transform.translate(
                             offset: Offset(0, -10 * value),
-                            child: Icon(
-                              item.icon,
-                              color: isSelected
-                                  ? Colors.white
-                                  : widget.inactiveColor,
-                              size: 28,
-                            ),
+                            child:
+                                item.badgeCount != null && item.badgeCount! > 0
+                                ? Badge(
+                                    label: Text(
+                                      item.badgeCount.toString(),
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 10,
+                                      ),
+                                    ),
+                                    backgroundColor: Colors.red,
+                                    child: Icon(
+                                      item.icon,
+                                      color: isSelected
+                                          ? Colors.white
+                                          : widget.inactiveColor,
+                                      size: 28,
+                                    ),
+                                  )
+                                : Icon(
+                                    item.icon,
+                                    color: isSelected
+                                        ? Colors.white
+                                        : widget.inactiveColor,
+                                    size: 28,
+                                  ),
                           );
                         },
                       ),

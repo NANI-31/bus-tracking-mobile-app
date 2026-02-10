@@ -4,7 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:collegebus/features/payment/presentation/screens/payment_screen.dart';
 import 'package:collegebus/features/auth/application/auth_provider.dart';
-import 'package:collegebus/features/user/application/user_provider.dart';
 import 'package:collegebus/core/providers/service_providers.dart';
 import 'package:collegebus/core/constants/constants.dart';
 import 'package:velocity_x/velocity_x.dart';
@@ -198,20 +197,25 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
             24.heightBox,
 
-            // Emergency Settings
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 4.0),
-              child: Card(
-                elevation: 2,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: const SosSoundSettings(),
+            // Emergency Settings (Hidden for Student, Parent, Teacher)
+            if (![
+              UserRole.student,
+              UserRole.parent,
+              UserRole.teacher,
+            ].contains(user.role))
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                child: Card(
+                  elevation: 2,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: const SosSoundSettings(),
+                  ),
                 ),
               ),
-            ),
 
             // 3. Account and Security Section
             ProfileSectionCard(
@@ -307,42 +311,19 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         ? l10n.telugu
         : l10n.hindi;
 
-    Future<void> cycleLanguage() async {
-      String newLang;
-      final localeNotifier = ref.read(localeServiceProvider.notifier);
-      if (currentCode == 'en') {
-        newLang = 'te';
-        localeNotifier.setLocale(const Locale('te'));
-      } else if (currentCode == 'te') {
-        newLang = 'hi';
-        localeNotifier.setLocale(const Locale('hi'));
-      } else {
-        newLang = 'en';
-        localeNotifier.setLocale(const Locale('en'));
-      }
-
-      // Update language using userListProvider
-      final user = ref.read(currentUserProvider);
-      if (user != null) {
-        await ref.read(userListProvider.notifier).updateUser(user.id, {
-          'language': newLang,
-        });
-      }
-    }
-
     return ProfileListItem(
       leadingIcon: Icons.language_rounded,
       iconColor: TwColors.indigo.i400,
       title: l10n.language,
       subtitle: l10n.chooseLanguage,
-      onTap: cycleLanguage,
+      onTap: () => context.push('/student/language'),
       trailing: HStack([
         languageName.text.bold
             .color(Theme.of(context).colorScheme.onSurface)
             .make(),
         8.widthBox,
         Icon(
-          Icons.keyboard_arrow_down_rounded,
+          Icons.chevron_right_rounded,
           color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
         ),
       ]),

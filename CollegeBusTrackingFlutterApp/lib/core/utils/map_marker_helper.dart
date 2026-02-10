@@ -7,7 +7,7 @@ class MapMarkerHelper {
   static Future<BitmapDescriptor> createBusMarker() async {
     final ui.PictureRecorder pictureRecorder = ui.PictureRecorder();
     final Canvas canvas = Canvas(pictureRecorder);
-    const double size = 120.0; // High res for crispness
+    const double size = 40.0; // Reduced from 70.0
     const double width = size * 0.6;
     const double height = size;
 
