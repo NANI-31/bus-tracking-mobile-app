@@ -97,7 +97,7 @@ class AppTheme {
     cardTheme: CardThemeData(
       color: AppColors.lightSurface,
       elevation: 2,
-      shadowColor: Colors.black.withOpacity(0.1),
+      shadowColor: Colors.black.withValues(alpha: 0.1),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
     ),
     elevatedButtonTheme: ElevatedButtonThemeData(
@@ -161,7 +161,7 @@ class AppTheme {
           0, // Flat in dark mode usually looks better with outline or different color
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
-        side: BorderSide(color: Colors.white.withOpacity(0.05), width: 1),
+        side: BorderSide(color: Colors.white.withValues(alpha: 0.05), width: 1),
       ),
     ),
     elevatedButtonTheme: ElevatedButtonThemeData(

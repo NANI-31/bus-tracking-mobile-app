@@ -31,6 +31,25 @@ export const protect = async (
       token = req.headers.authorization.split(" ")[1];
       const decoded = jwt.verify(token, JWT_SECRET) as any;
 
+      // Check if user still exists and tokenVersion matches
+      const User = require("../models/User.model").default;
+      const user = await User.findById(decoded.id);
+
+      if (!user) {
+        return res.status(401).json({ message: "User no longer exists" });
+      }
+
+      if (
+        decoded.tokenVersion !== undefined &&
+        decoded.tokenVersion !== user.tokenVersion
+      ) {
+        return res.status(401).json({
+          message:
+            "Session expired. You have been logged in on another device.",
+          code: "SESSION_EXPIRED",
+        });
+      }
+
       req.user = {
         id: decoded.id,
         email: decoded.email,

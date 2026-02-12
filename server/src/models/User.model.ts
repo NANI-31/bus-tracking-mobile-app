@@ -50,6 +50,7 @@ export interface IUser extends Document {
   };
   isPremium: boolean;
   isLoggedIn: boolean;
+  tokenVersion: number;
 }
 
 const UserSchema: Schema = new Schema({
@@ -111,6 +112,7 @@ const UserSchema: Schema = new Schema({
   },
   isPremium: { type: Boolean, default: false },
   isLoggedIn: { type: Boolean, default: false },
+  tokenVersion: { type: Number, default: 0 },
 });
 
 // Index for geospatial queries

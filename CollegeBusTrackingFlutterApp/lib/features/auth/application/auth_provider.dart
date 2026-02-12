@@ -9,6 +9,7 @@ import 'package:collegebus/core/services/persistence_service.dart';
 import 'package:collegebus/core/services/secure_storage_service.dart';
 import 'package:collegebus/features/notification/services/fcm_service.dart';
 import 'package:collegebus/core/constants/constants.dart';
+import 'package:collegebus/core/data/base_repository.dart';
 import 'package:collegebus/features/auth/data/auth_service.dart';
 
 // Repository providers
@@ -50,6 +51,13 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
   @override
   Future<AuthState> build() async {
     debugPrint('AUTH NOTIFIER: build() started');
+
+    // Hook global 401 handler
+    BaseRepository.onUnauthorized = () {
+      debugPrint('AUTH NOTIFIER: Unauthorized signal received, signing out...');
+      signOut();
+    };
+
     // Standard initialization: check storage
     await PersistenceService.init();
     debugPrint('AUTH NOTIFIER: PersistenceService initialized');

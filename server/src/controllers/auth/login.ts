@@ -66,29 +66,31 @@ export const login = async (req: Request, res: Response) => {
       });
     }
 
-    // Check if already logged in
-    if (user.isLoggedIn) {
-      logger.warn(`User ${email} attempted login while already logged in.`);
-      return res.status(403).json({
-        message:
-          "You are already logged in on another device. Please logout from that device first.",
-      });
-    }
+    // Increment tokenVersion and set isLoggedIn to true atomically
+    const updatedUser = await User.findOneAndUpdate(
+      { _id: user._id },
+      {
+        $inc: { tokenVersion: 1 },
+        $set: { isLoggedIn: true },
+      },
+      { new: true },
+    );
 
-    // Set isLoggedIn to true
-    user.isLoggedIn = true;
-    await user.save();
+    if (!updatedUser) {
+      throw new Error("Failed to update user session");
+    }
 
     // Create token
     console.log("LOGIN: Creating token...");
     const token = jwt.sign(
       {
-        id: user._id,
-        email: user.email,
-        fullName: user.fullName, // Added fullName
-        role: user.role,
-        collegeId: user.collegeId,
-        approved: user.approved,
+        id: updatedUser._id,
+        email: updatedUser.email,
+        fullName: updatedUser.fullName,
+        role: updatedUser.role,
+        collegeId: updatedUser.collegeId,
+        approved: updatedUser.approved,
+        tokenVersion: updatedUser.tokenVersion,
       },
       JWT_SECRET,
       { expiresIn: "30d" },

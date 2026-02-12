@@ -11,12 +11,14 @@ import Dashboard from "./features/college-admin/pages/Dashboard";
 import Users from "./features/college-admin/pages/Users";
 import Fleet from "./features/college-admin/pages/Fleet";
 import CollegeRoutes from "./features/college-admin/pages/Routes";
+import Payments from "./features/college-admin/pages/Payments";
 
 import SuperAdminLayout from "./layouts/SuperAdminLayout";
 import SuperAdminDashboard from "./features/super-admin/pages/SuperAdminDashboard";
 import Colleges from "./features/super-admin/pages/Colleges";
 import GlobalUsers from "./features/super-admin/pages/GlobalUsers";
 import AuditLogs from "./features/super-admin/pages/AuditLogs";
+import GlobalPayments from "./features/super-admin/pages/GlobalPayments";
 
 import Login from "./pages/Login";
 import PrivateRoute from "./components/PrivateRoute";
@@ -35,6 +37,7 @@ function App() {
             <Route path="users" element={<Users />} />
             <Route path="fleet" element={<Fleet />} />
             <Route path="routes" element={<CollegeRoutes />} />
+            <Route path="payments" element={<Payments />} />
           </Route>
         </Route>
 
@@ -45,6 +48,7 @@ function App() {
             <Route path="colleges" element={<Colleges />} />
             <Route path="users" element={<GlobalUsers />} />
             <Route path="audit" element={<AuditLogs />} />
+            <Route path="payments" element={<GlobalPayments />} />
           </Route>
         </Route>
       </Routes>

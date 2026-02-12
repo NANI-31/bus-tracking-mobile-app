@@ -14,6 +14,9 @@ abstract class BaseRepository {
     return _sharedDio!;
   }
 
+  /// Global callback to handle 401 errors (e.g., force logout)
+  static void Function()? onUnauthorized;
+
   static Dio _createDio() {
     final dio = Dio(
       BaseOptions(
@@ -31,6 +34,15 @@ abstract class BaseRepository {
             options.headers['Authorization'] = 'Bearer $token';
           }
           return handler.next(options);
+        },
+        onError: (e, handler) {
+          if (e.response?.statusCode == 401) {
+            // Trigger global logout if authorized session found but expired/invalidated
+            if (PersistenceService.getAuthToken() != null) {
+              onUnauthorized?.call();
+            }
+          }
+          return handler.next(e);
         },
       ),
     );
@@ -63,8 +75,3 @@ abstract class BaseRepository {
     return AppException(e.toString());
   }
 }
-
-
-
-
-

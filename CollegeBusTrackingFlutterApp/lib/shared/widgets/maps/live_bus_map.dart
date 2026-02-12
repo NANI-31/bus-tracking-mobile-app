@@ -9,6 +9,7 @@ import 'package:collegebus/features/auth/application/auth_provider.dart';
 import 'package:collegebus/features/bus/application/bus_provider.dart';
 import 'package:collegebus/widgets/common/common_map_view.dart';
 import 'package:collegebus/core/utils/map_marker_helper.dart';
+import 'package:collegebus/core/providers/socket_provider.dart';
 
 class LiveBusMap extends ConsumerStatefulWidget {
   final List<BusModel> buses;
@@ -290,6 +291,11 @@ class LiveBusMapState extends ConsumerState<LiveBusMap>
       return const Center(child: CircularProgressIndicator());
     }
 
+    final socketService = ref.watch(socketServiceProvider);
+    final isConnected = socketService.isConnected;
+    final isConnecting = socketService.isConnecting;
+    final errorMessage = socketService.errorMessage;
+
     return Stack(
       children: [
         CommonMapView(
@@ -313,6 +319,66 @@ class LiveBusMapState extends ConsumerState<LiveBusMap>
           myLocationButtonEnabled: widget.showUserLocation,
           bottomPadding: widget.bottomPadding,
         ),
+
+        // Connection Status Indicator
+        if (!isConnected)
+          Positioned(
+            top: 10,
+            left: 0,
+            right: 0,
+            child: Center(
+              child: AnimatedOpacity(
+                opacity: 1.0,
+                duration: const Duration(milliseconds: 300),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 8,
+                  ),
+                  decoration: BoxDecoration(
+                    color: (errorMessage != null)
+                        ? Colors.red.withValues(alpha: 0.9)
+                        : Colors.orange.withValues(alpha: 0.9),
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.2),
+                        blurRadius: 4,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      SizedBox(
+                        width: 14,
+                        height: 14,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            Colors.white.withValues(alpha: 0.8),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Text(
+                        errorMessage ??
+                            (isConnecting
+                                ? 'Connecting...'
+                                : 'Offline - Waiting for connection'),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
         if (!_isFollowing && widget.selectedBus != null)
           Positioned(
             bottom: 20 + widget.bottomPadding,

@@ -11,6 +11,7 @@ import {
   ArrowLeftOnRectangleIcon,
   Bars3Icon,
   XMarkIcon,
+  CreditCardIcon,
 } from "@heroicons/react/24/outline";
 
 const CollegeAdminLayout = () => {
@@ -29,6 +30,7 @@ const CollegeAdminLayout = () => {
     { name: "Users", path: "/college-admin/users", icon: UsersIcon },
     { name: "Fleet", path: "/college-admin/fleet", icon: TruckIcon },
     { name: "Routes", path: "/college-admin/routes", icon: MapIcon },
+    { name: "Payments", path: "/college-admin/payments", icon: CreditCardIcon },
   ];
 
   return (

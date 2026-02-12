@@ -11,6 +11,7 @@ import {
   ArrowLeftOnRectangleIcon,
   Bars3Icon,
   XMarkIcon,
+  CreditCardIcon,
 } from "@heroicons/react/24/outline";
 
 const SuperAdminLayout = () => {
@@ -33,6 +34,7 @@ const SuperAdminLayout = () => {
       path: "/super-admin/audit",
       icon: ClipboardDocumentListIcon,
     },
+    { name: "Payments", path: "/super-admin/payments", icon: CreditCardIcon },
   ];
 
   return (

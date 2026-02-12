@@ -12,11 +12,13 @@ class SocketService extends ChangeNotifier {
   String? _currentUrl;
   String? _token;
   String? _lastJoinedCollegeId;
+  String? _errorMessage;
   final List<Map<String, dynamic>> _eventQueue = [];
 
   bool get isConnected => _isConnected;
   bool get isConnecting => _isConnecting;
   String? get token => _token;
+  String? get errorMessage => _errorMessage;
 
   Stream<Map<String, dynamic>> get locationUpdateStream =>
       _locationUpdateController.stream;
@@ -30,6 +32,7 @@ class SocketService extends ChangeNotifier {
   Stream<Map<String, dynamic>> get sosAlertStream => _sosAlertController.stream;
   Stream<Map<String, dynamic>> get sosResolvedStream =>
       _sosResolvedController.stream;
+  Stream<String?> get errorStream => _errorController.stream;
 
   SocketService() {
     _locationUpdateController =
@@ -42,6 +45,7 @@ class SocketService extends ChangeNotifier {
         StreamController<Map<String, dynamic>>.broadcast();
     _sosAlertController = StreamController<Map<String, dynamic>>.broadcast();
     _sosResolvedController = StreamController<Map<String, dynamic>>.broadcast();
+    _errorController = StreamController<String?>.broadcast();
   }
 
   late final StreamController<Map<String, dynamic>> _locationUpdateController;
@@ -52,6 +56,7 @@ class SocketService extends ChangeNotifier {
   late final StreamController<Map<String, dynamic>> _driverStatusController;
   late final StreamController<Map<String, dynamic>> _sosAlertController;
   late final StreamController<Map<String, dynamic>> _sosResolvedController;
+  late final StreamController<String?> _errorController;
 
   Future<void> init(String url, {String? token}) async {
     _currentUrl = url;
@@ -71,6 +76,8 @@ class SocketService extends ChangeNotifier {
       _socket = null;
       _isConnected = false;
       _isConnecting = false;
+      _errorMessage = null;
+      _errorController.add(null);
       notifyListeners();
       if (kDebugMode) {
         AppLogger.i('[SocketService] Logged out: Disconnected and cleaned up.');
@@ -118,6 +125,8 @@ class SocketService extends ChangeNotifier {
     _socket!.onConnect((_) async {
       _isConnected = true;
       _isConnecting = false;
+      _errorMessage = null;
+      _errorController.add(null);
       notifyListeners();
       AppLogger.i('[SocketService] Connected successfully to $_currentUrl');
 
@@ -140,6 +149,8 @@ class SocketService extends ChangeNotifier {
     _socket!.on('reconnect', (_) async {
       _isConnected = true;
       _isConnecting = false;
+      _errorMessage = null;
+      _errorController.add(null);
       notifyListeners();
       AppLogger.i('[SocketService] Reconnected successfully');
 
@@ -155,23 +166,43 @@ class SocketService extends ChangeNotifier {
     _socket!.on('reconnecting', (_) {
       _isConnecting = true;
       _isConnected = false;
+      _errorMessage = 'Reconnecting to server...';
+      _errorController.add(_errorMessage);
       notifyListeners();
       AppLogger.i('[SocketService] Reconnecting...');
+    });
+
+    _socket!.on('reconnect_attempt', (attempt) {
+      _errorMessage = 'Connection lost. Reconnecting (Attempt $attempt)...';
+      _errorController.add(_errorMessage);
+      notifyListeners();
+    });
+
+    _socket!.on('reconnect_failed', (_) {
+      _isConnecting = false;
+      _errorMessage = 'Failed to reconnect. Please check your internet.';
+      _errorController.add(_errorMessage);
+      notifyListeners();
+      AppLogger.e('[SocketService] Reconnection failed');
     });
 
     _socket!.onConnectError((err) {
       if (_isConnecting) {
         _isConnecting = false;
-        notifyListeners();
       }
+      _errorMessage = 'Unable to connect to server.';
+      _errorController.add(_errorMessage);
+      notifyListeners();
       AppLogger.e('[SocketService] Connection Error: $err');
     });
 
     _socket!.onError((err) {
       if (_isConnecting) {
         _isConnecting = false;
-        notifyListeners();
       }
+      _errorMessage = 'Socket communication error.';
+      _errorController.add(_errorMessage);
+      notifyListeners();
       AppLogger.e('[SocketService] Error: $err');
     });
 
@@ -335,6 +366,7 @@ class SocketService extends ChangeNotifier {
     _driverStatusController.close();
     _sosAlertController.close();
     _sosResolvedController.close();
+    _errorController.close();
     super.dispose();
   }
 }
