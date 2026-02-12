@@ -22,6 +22,8 @@ class ScheduleManagementScreen extends ConsumerStatefulWidget {
 
 class _ScheduleManagementScreenState
     extends ConsumerState<ScheduleManagementScreen> {
+  final Set<String> _expandedScheduleIds = {};
+
   @override
   void initState() {
     super.initState();
@@ -46,188 +48,274 @@ class _ScheduleManagementScreenState
       builder: (context) {
         return StatefulBuilder(
           builder: (context, setState) {
-            return AlertDialog(
-              title: 'Create $shift Shift Timetable'.text.make(),
-              content: VStack([
-                DropdownButtonFormField<RouteModel>(
-                  initialValue: selectedRoute,
-                  decoration: const InputDecoration(
-                    labelText: 'Select Route',
-                    border: OutlineInputBorder(),
-                  ),
-                  items: routes
-                      .map(
-                        (route) => DropdownMenuItem(
-                          value: route,
-                          child:
-                              '${route.routeName} (${route.routeType.toUpperCase()})'
-                                  .text
-                                  .ellipsis
-                                  .make(),
+            return Dialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: SizedBox(
+                width: 320,
+                child: Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: SingleChildScrollView(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Text(
+                          'Create $shift Shift Timetable',
+                          style: const TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
-                      )
-                      .toList(),
-                  onChanged: (route) {
-                    setState(() {
-                      selectedRoute = route;
-                    });
-                  },
-                ),
-                16.heightBox,
-                DropdownButtonFormField<BusModel>(
-                  initialValue: selectedBus,
-                  decoration: const InputDecoration(
-                    labelText: 'Select Bus',
-                    border: OutlineInputBorder(),
-                  ),
-                  items: buses
-                      .map(
-                        (bus) => DropdownMenuItem(
-                          value: bus,
-                          child: 'Bus ${bus.busNumber}'.text.ellipsis.make(),
+                        const SizedBox(height: 24),
+                        DropdownButtonFormField<RouteModel>(
+                          initialValue: selectedRoute,
+                          isExpanded: true,
+                          decoration: const InputDecoration(
+                            labelText: 'Select Route',
+                            border: OutlineInputBorder(),
+                            contentPadding: EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 16,
+                            ),
+                          ),
+                          items: routes
+                              .map(
+                                (route) => DropdownMenuItem(
+                                  value: route,
+                                  child: Text(
+                                    '${route.routeName} (${route.routeType.toUpperCase()})',
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              )
+                              .toList(),
+                          onChanged: (route) {
+                            setState(() {
+                              selectedRoute = route;
+                            });
+                          },
                         ),
-                      )
-                      .toList(),
-                  onChanged: (bus) => setState(() => selectedBus = bus),
-                ),
-                16.heightBox,
-                DropdownButtonFormField<String>(
-                  initialValue: selectedTripType,
-                  decoration: const InputDecoration(
-                    labelText: 'Trip Type',
-                    border: OutlineInputBorder(),
+                        const SizedBox(height: 16),
+                        DropdownButtonFormField<BusModel>(
+                          initialValue: selectedBus,
+                          isExpanded: true,
+                          decoration: const InputDecoration(
+                            labelText: 'Select Bus',
+                            border: OutlineInputBorder(),
+                            contentPadding: EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 16,
+                            ),
+                          ),
+                          items: buses
+                              .map(
+                                (bus) => DropdownMenuItem(
+                                  value: bus,
+                                  child: Text(
+                                    'Bus ${bus.busNumber}',
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              )
+                              .toList(),
+                          onChanged: (bus) => setState(() => selectedBus = bus),
+                        ),
+                        const SizedBox(height: 16),
+                        DropdownButtonFormField<String>(
+                          initialValue: selectedTripType,
+                          isExpanded: true,
+                          decoration: const InputDecoration(
+                            labelText: 'Trip Type',
+                            border: OutlineInputBorder(),
+                            contentPadding: EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 16,
+                            ),
+                          ),
+                          items: const [
+                            DropdownMenuItem(
+                              value: 'pickup',
+                              child: Text('Pickup'),
+                            ),
+                            DropdownMenuItem(
+                              value: 'drop',
+                              child: Text('Drop'),
+                            ),
+                          ],
+                          onChanged: (val) {
+                            if (val != null) {
+                              setState(() => selectedTripType = val);
+                            }
+                          },
+                        ),
+                        const SizedBox(height: 16),
+                        if (selectedRoute != null) ...[
+                          Container(
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: Theme.of(
+                                context,
+                              ).primaryColor.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'Route Information:',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  '${selectedRoute!.startPoint.name} → ${selectedRoute!.endPoint.name}',
+                                  style: const TextStyle(fontSize: 14),
+                                ),
+                                if (selectedRoute!.stopPoints.isNotEmpty) ...[
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    'Stops: ${selectedRoute!.stopPoints.map((s) => s.name).join(' → ')}',
+                                    style: const TextStyle(fontSize: 12),
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ],
+                                const SizedBox(height: 4),
+                                Text(
+                                  'Type: ${selectedRoute!.routeType.toUpperCase()}',
+                                  style: const TextStyle(fontSize: 12),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          Container(
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.secondary.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: const Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Note:',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                SizedBox(height: 4),
+                                Text(
+                                  'This will create a timetable showing which bus goes to which stops. No specific times are needed.',
+                                  style: TextStyle(fontSize: 12),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                        const SizedBox(height: 24),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            TextButton(
+                              onPressed: () => Navigator.of(context).pop(),
+                              child: const Text('Cancel'),
+                            ),
+                            const SizedBox(width: 12),
+                            ElevatedButton(
+                              onPressed:
+                                  selectedRoute != null && selectedBus != null
+                                  ? () async {
+                                      final user = ref.read(
+                                        currentUserProvider,
+                                      );
+                                      final api = ref.read(apiServiceProvider);
+
+                                      // Create stop schedules without specific times
+                                      final stopSchedules = <StopSchedule>[];
+                                      final allStops = [
+                                        selectedRoute!.startPoint.name,
+                                        ...selectedRoute!.stopPoints.map(
+                                          (s) => s.name,
+                                        ),
+                                        selectedRoute!.endPoint.name,
+                                      ];
+
+                                      for (final stop in allStops) {
+                                        stopSchedules.add(
+                                          StopSchedule(
+                                            stopName: stop,
+                                            arrivalTime: 'As per schedule',
+                                            departureTime: 'As per schedule',
+                                          ),
+                                        );
+                                      }
+
+                                      final schedule = ScheduleModel(
+                                        id: DateTime.now()
+                                            .millisecondsSinceEpoch
+                                            .toString(),
+                                        routeId: selectedRoute!.id,
+                                        busId: selectedBus!.id,
+                                        shift: shift,
+                                        tripType: selectedTripType,
+                                        stopSchedules: stopSchedules,
+                                        collegeId: user!.collegeId,
+                                        createdBy: user.id,
+                                        createdAt: DateTime.now(),
+                                      );
+
+                                      try {
+                                        await api.createSchedule(schedule);
+                                        if (!context.mounted) return;
+                                        Navigator.of(context).pop();
+                                        ScaffoldMessenger.of(
+                                          context,
+                                        ).showSnackBar(
+                                          SnackBar(
+                                            content: Text(
+                                              '$shift shift timetable created successfully',
+                                            ),
+                                            backgroundColor: Theme.of(
+                                              context,
+                                            ).colorScheme.secondary,
+                                          ),
+                                        );
+                                      } catch (e) {
+                                        ScaffoldMessenger.of(
+                                          context,
+                                        ).showSnackBar(
+                                          SnackBar(
+                                            content: Text(
+                                              e.toString().replaceAll(
+                                                'Exception: ',
+                                                '',
+                                              ),
+                                            ),
+                                            backgroundColor: Theme.of(
+                                              context,
+                                            ).colorScheme.error,
+                                          ),
+                                        );
+                                      }
+                                    }
+                                  : null,
+                              child: const Text('Create Timetable'),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
-                  items: const [
-                    DropdownMenuItem(value: 'pickup', child: Text('Pickup')),
-                    DropdownMenuItem(value: 'drop', child: Text('Drop')),
-                  ],
-                  onChanged: (val) {
-                    if (val != null) setState(() => selectedTripType = val);
-                  },
                 ),
-                16.heightBox,
-                if (selectedRoute != null)
-                  VStack([
-                    VStack([
-                          'Route Information:'.text.size(16).semiBold.make(),
-                          8.heightBox,
-                          '${selectedRoute!.startPoint.name} → ${selectedRoute!.endPoint.name}'
-                              .text
-                              .size(14)
-                              .make(),
-                          if (selectedRoute!.stopPoints.isNotEmpty)
-                            VStack([
-                              4.heightBox,
-                              'Stops: ${selectedRoute!.stopPoints.map((s) => s.name).join(' → ')}'
-                                  .text
-                                  .size(12)
-                                  .ellipsis
-                                  .maxLines(2)
-                                  .make(),
-                            ]),
-                          4.heightBox,
-                          'Type: ${selectedRoute!.routeType.toUpperCase()}'.text
-                              .size(12)
-                              .make(),
-                        ]).box
-                        .padding(const EdgeInsets.all(12))
-                        .color(
-                          Theme.of(context).primaryColor.withValues(alpha: 0.1),
-                        )
-                        .rounded
-                        .make(),
-                    16.heightBox,
-                    VStack([
-                          'Note:'.text.size(14).semiBold.make(),
-                          4.heightBox,
-                          'This will create a timetable showing which bus goes to which stops. No specific times are needed.'
-                              .text
-                              .size(12)
-                              .make(),
-                        ]).box
-                        .padding(const EdgeInsets.all(12))
-                        .color(
-                          Theme.of(
-                            context,
-                          ).colorScheme.secondary.withValues(alpha: 0.1),
-                        )
-                        .rounded
-                        .make(),
-                  ]),
-              ]).scrollVertical(),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  child: const Text('Cancel'),
-                ),
-                ElevatedButton(
-                  onPressed: selectedRoute != null && selectedBus != null
-                      ? () async {
-                          final user = ref.read(currentUserProvider);
-                          final api = ref.read(apiServiceProvider);
-
-                          // Create stop schedules without specific times
-                          final stopSchedules = <StopSchedule>[];
-                          final allStops = [
-                            selectedRoute!.startPoint.name,
-                            ...selectedRoute!.stopPoints.map((s) => s.name),
-                            selectedRoute!.endPoint.name,
-                          ];
-
-                          for (final stop in allStops) {
-                            stopSchedules.add(
-                              StopSchedule(
-                                stopName: stop,
-                                arrivalTime: 'As per schedule',
-                                departureTime: 'As per schedule',
-                              ),
-                            );
-                          }
-
-                          final schedule = ScheduleModel(
-                            id: DateTime.now().millisecondsSinceEpoch
-                                .toString(),
-                            routeId: selectedRoute!.id,
-                            busId: selectedBus!.id,
-                            shift: shift,
-                            tripType: selectedTripType,
-                            stopSchedules: stopSchedules,
-                            collegeId: user!.collegeId,
-                            createdBy: user.id,
-                            createdAt: DateTime.now(),
-                          );
-
-                          try {
-                            await api.createSchedule(schedule);
-                            if (!context.mounted) return;
-                            Navigator.of(context).pop();
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text(
-                                  '$shift shift timetable created successfully',
-                                ),
-                                backgroundColor: Theme.of(
-                                  context,
-                                ).colorScheme.secondary,
-                              ),
-                            );
-                          } catch (e) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text(
-                                  e.toString().replaceAll('Exception: ', ''),
-                                ),
-                                backgroundColor: Theme.of(
-                                  context,
-                                ).colorScheme.error,
-                              ),
-                            );
-                          }
-                        }
-                      : null,
-                  child: const Text('Create Timetable'),
-                ),
-              ],
+              ),
             );
           },
         );
@@ -398,135 +486,195 @@ class _ScheduleManagementScreenState
       padding: const EdgeInsets.all(AppSizes.paddingMedium),
       itemCount: schedules.length,
       itemBuilder: (context, index) {
-        final schedule = schedules[index];
-        final route = routes.firstWhere(
-          (r) => r.id == schedule.routeId,
-          orElse: () => RouteModel(
-            id: '',
-            routeName: 'Unknown Route',
-            routeType: '',
-            startPoint: RoutePoint(name: '', lat: 0, lng: 0),
-            endPoint: RoutePoint(name: '', lat: 0, lng: 0),
-            stopPoints: const [],
-            collegeId: '',
-            createdBy: '',
-            isActive: false,
-            createdAt: DateTime.now(),
-          ),
-        );
-        final bus = buses.firstWhere(
-          (b) => b.id == schedule.busId,
-          orElse: () => BusModel(
-            id: '',
-            busNumber: 'Unknown Bus',
-            driverId: '',
-            collegeId: '',
-            createdAt: DateTime.now(),
-          ),
-        );
+        try {
+          final schedule = schedules[index];
+          final isExpanded = _expandedScheduleIds.contains(schedule.id);
+          // Determine Route
+          final route = routes.firstWhere(
+            (r) => r.id == schedule.routeId,
+            orElse: () => RouteModel(
+              id: '',
+              routeName: 'Unknown Route',
+              routeType: '',
+              startPoint: RoutePoint(name: '', lat: 0, lng: 0),
+              endPoint: RoutePoint(name: '', lat: 0, lng: 0),
+              stopPoints: const [],
+              collegeId: '',
+              createdBy: '',
+              isActive: false,
+              createdAt: DateTime.now(),
+            ),
+          );
 
-        return Card(
-          margin: const EdgeInsets.only(bottom: AppSizes.paddingMedium),
-          child: ExpansionTile(
-            leading: CircleAvatar(
-              backgroundColor: Theme.of(context).primaryColor,
-              child: Icon(
-                shift == '1st' ? Icons.wb_sunny : Icons.nights_stay,
-                color: Theme.of(context).colorScheme.onPrimary,
-              ),
+          // Determine Bus
+          final bus = buses.firstWhere(
+            (b) => b.id == schedule.busId,
+            orElse: () => BusModel(
+              id: '',
+              busNumber: 'Unknown Bus',
+              driverId: '',
+              collegeId: '',
+              createdAt: DateTime.now(),
             ),
-            title: 'Bus ${bus.busNumber}'.text.semiBold.make(),
-            subtitle: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+          );
+
+          return Card(
+            margin: const EdgeInsets.only(bottom: AppSizes.paddingMedium),
+            child: Column(
               children: [
-                'Route: ${route.routeName}'.text.make(),
-                'Type: ${route.routeType.toUpperCase()}'.text.make(),
-                '${route.startPoint.name} → ${route.endPoint.name}'.text.make(),
-              ],
-            ),
-            trailing: PopupMenuButton(
-              itemBuilder: (context) => [
-                PopupMenuItem(
-                  value: 'delete',
-                  child: Row(
+                ListTile(
+                  leading: CircleAvatar(
+                    backgroundColor: Theme.of(context).primaryColor,
+                    child: Icon(
+                      shift == '1st' ? Icons.wb_sunny : Icons.nights_stay,
+                      color: Theme.of(context).colorScheme.onPrimary,
+                    ),
+                  ),
+                  title: 'Bus ${bus.busNumber}'.text.semiBold.make(),
+                  subtitle: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Icon(
-                        Icons.delete,
-                        color: Theme.of(context).colorScheme.error,
-                      ),
-                      8.widthBox,
-                      'Delete'.text.make(),
+                      'Route: ${route.routeName}'.text.make(),
+                      'Type: ${route.routeType.toUpperCase()}'.text.make(),
+                      '${route.startPoint.name} → ${route.endPoint.name}'.text
+                          .make(),
                     ],
                   ),
-                ),
-              ],
-              onSelected: (value) async {
-                if (value == 'delete') {
-                  final confirmed = await showDialog<bool>(
-                    context: context,
-                    builder: (context) => AlertDialog(
-                      title: const Text('Delete Timetable'),
-                      content: const Text(
-                        'Are you sure you want to delete this timetable?',
-                      ),
-                      actions: [
-                        TextButton(
-                          onPressed: () => Navigator.of(context).pop(false),
-                          child: const Text('Cancel'),
-                        ),
-                        ElevatedButton(
-                          onPressed: () => Navigator.of(context).pop(true),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Theme.of(
-                              context,
-                            ).colorScheme.error,
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      PopupMenuButton(
+                        itemBuilder: (context) => [
+                          PopupMenuItem(
+                            value: 'delete',
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.delete,
+                                  color: Theme.of(context).colorScheme.error,
+                                ),
+                                8.widthBox,
+                                'Delete'.text.make(),
+                              ],
+                            ),
                           ),
-                          child: const Text('Delete'),
-                        ),
-                      ],
-                    ),
-                  );
-                  if (confirmed == true) {
-                    if (!context.mounted) return;
-                    final api = ref.read(apiServiceProvider);
-                    await api.deleteSchedule(schedule.id);
-                    if (!context.mounted) return;
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: const Text('Timetable deleted successfully'),
-                        backgroundColor: Theme.of(
-                          context,
-                        ).colorScheme.secondary,
+                        ],
+                        onSelected: (value) async {
+                          if (value == 'delete') {
+                            final confirmed = await showDialog<bool>(
+                              context: context,
+                              builder: (context) => AlertDialog(
+                                title: const Text('Delete Timetable'),
+                                content: const Text(
+                                  'Are you sure you want to delete this timetable?',
+                                ),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () =>
+                                        Navigator.of(context).pop(false),
+                                    child: const Text('Cancel'),
+                                  ),
+                                  ElevatedButton(
+                                    onPressed: () =>
+                                        Navigator.of(context).pop(true),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Theme.of(
+                                        context,
+                                      ).colorScheme.error,
+                                    ),
+                                    child: const Text('Delete'),
+                                  ),
+                                ],
+                              ),
+                            );
+                            if (confirmed == true) {
+                              if (!context.mounted) return;
+                              final api = ref.read(apiServiceProvider);
+                              await api.deleteSchedule(schedule.id);
+                              if (!context.mounted) return;
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: const Text(
+                                    'Timetable deleted successfully',
+                                  ),
+                                  backgroundColor: Theme.of(
+                                    context,
+                                  ).colorScheme.secondary,
+                                ),
+                              );
+                            }
+                          }
+                        },
                       ),
-                    );
-                  }
-                }
-              },
-            ),
-            children: [
-              Padding(
-                padding: const EdgeInsets.all(AppSizes.paddingMedium),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    'Bus Stops on this Route:'.text.size(16).semiBold.make(),
-                    AppSizes.paddingSmall.heightBox,
-                    Column(
-                      children: schedule.stopSchedules.asMap().entries.map((
-                        entry,
-                      ) {
-                        final index = entry.key;
-                        final stopSchedule = entry.value;
-                        final isStart = index == 0;
-                        final isEnd =
-                            index == schedule.stopSchedules.length - 1;
+                      Icon(isExpanded ? Icons.expand_less : Icons.expand_more),
+                    ],
+                  ),
+                  onTap: () {
+                    setState(() {
+                      if (isExpanded) {
+                        _expandedScheduleIds.remove(schedule.id);
+                      } else {
+                        _expandedScheduleIds.add(schedule.id);
+                      }
+                    });
+                  },
+                ),
+                if (isExpanded)
+                  Padding(
+                    padding: const EdgeInsets.all(AppSizes.paddingMedium),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        'Bus Stops on this Route:'.text
+                            .size(16)
+                            .semiBold
+                            .make(),
+                        AppSizes.paddingSmall.heightBox,
+                        Column(
+                          children: schedule.stopSchedules.asMap().entries.map((
+                            entry,
+                          ) {
+                            final index = entry.key;
+                            final stopSchedule = entry.value;
+                            final isStart = index == 0;
+                            final isEnd =
+                                index == schedule.stopSchedules.length - 1;
 
-                        return Container(
-                          margin: const EdgeInsets.only(bottom: 8),
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color:
-                                (isStart
+                            return Container(
+                              margin: const EdgeInsets.only(bottom: 8),
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color:
+                                    (isStart
+                                            ? Theme.of(
+                                                context,
+                                              ).colorScheme.secondary
+                                            : isEnd
+                                            ? Theme.of(
+                                                context,
+                                              ).colorScheme.error
+                                            : Theme.of(
+                                                context,
+                                              ).colorScheme.tertiary)
+                                        .withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: isStart
+                                      ? Theme.of(context).colorScheme.secondary
+                                      : isEnd
+                                      ? Theme.of(context).colorScheme.error
+                                      : Theme.of(context).colorScheme.tertiary,
+                                ),
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    isStart
+                                        ? Icons.play_arrow
+                                        : isEnd
+                                        ? Icons.stop
+                                        : Icons.location_on,
+                                    color: isStart
                                         ? Theme.of(
                                             context,
                                           ).colorScheme.secondary
@@ -534,76 +682,68 @@ class _ScheduleManagementScreenState
                                         ? Theme.of(context).colorScheme.error
                                         : Theme.of(
                                             context,
-                                          ).colorScheme.tertiary)
-                                    .withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                              color: isStart
-                                  ? Theme.of(context).colorScheme.secondary
-                                  : isEnd
-                                  ? Theme.of(context).colorScheme.error
-                                  : Theme.of(context).colorScheme.tertiary,
-                            ),
-                          ),
-                          child: Row(
-                            children: [
-                              Icon(
-                                isStart
-                                    ? Icons.play_arrow
-                                    : isEnd
-                                    ? Icons.stop
-                                    : Icons.location_on,
-                                color: isStart
-                                    ? Theme.of(context).colorScheme.secondary
-                                    : isEnd
-                                    ? Theme.of(context).colorScheme.error
-                                    : Theme.of(context).colorScheme.tertiary,
+                                          ).colorScheme.tertiary,
+                                  ),
+                                  12.widthBox,
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        stopSchedule.stopName.text
+                                            .size(16)
+                                            .semiBold
+                                            .make(),
+                                        (isStart
+                                                ? 'Starting Point'
+                                                : isEnd
+                                                ? 'End Point'
+                                                : 'Bus Stop')
+                                            .text
+                                            .size(12)
+                                            .color(
+                                              isStart
+                                                  ? Theme.of(
+                                                      context,
+                                                    ).colorScheme.secondary
+                                                  : isEnd
+                                                  ? Theme.of(
+                                                      context,
+                                                    ).colorScheme.error
+                                                  : Theme.of(
+                                                      context,
+                                                    ).colorScheme.tertiary,
+                                            )
+                                            .make(),
+                                      ],
+                                    ),
+                                  ),
+                                ],
                               ),
-                              12.widthBox,
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    stopSchedule.stopName.text
-                                        .size(16)
-                                        .semiBold
-                                        .make(),
-                                    (isStart
-                                            ? 'Starting Point'
-                                            : isEnd
-                                            ? 'End Point'
-                                            : 'Bus Stop')
-                                        .text
-                                        .size(12)
-                                        .color(
-                                          isStart
-                                              ? Theme.of(
-                                                  context,
-                                                ).colorScheme.secondary
-                                              : isEnd
-                                              ? Theme.of(
-                                                  context,
-                                                ).colorScheme.error
-                                              : Theme.of(
-                                                  context,
-                                                ).colorScheme.tertiary,
-                                        )
-                                        .make(),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                        );
-                      }).toList(),
+                            );
+                          }).toList(),
+                        ),
+                      ],
                     ),
-                  ],
+                  ),
+              ],
+            ),
+          );
+        } catch (e) {
+          return Card(
+            color: Theme.of(context).colorScheme.errorContainer,
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Text(
+                'Error loading item: $e',
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onErrorContainer,
                 ),
               ),
-            ],
-          ),
-        );
+            ),
+          );
+        }
       },
     );
   }

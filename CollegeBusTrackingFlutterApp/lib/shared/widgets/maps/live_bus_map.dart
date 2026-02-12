@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:ui' show lerpDouble;
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -23,7 +24,6 @@ class LiveBusMap extends ConsumerStatefulWidget {
     required this.buses,
     this.selectedBus,
     this.onBusTap,
-
     this.showUserLocation = true,
     this.onMapCreated,
     this.bottomPadding = 0.0,
@@ -33,10 +33,16 @@ class LiveBusMap extends ConsumerStatefulWidget {
   ConsumerState<LiveBusMap> createState() => LiveBusMapState();
 }
 
-class LiveBusMapState extends ConsumerState<LiveBusMap> {
+class LiveBusMapState extends ConsumerState<LiveBusMap>
+    with TickerProviderStateMixin {
   final Map<String, Marker> _markers = {};
   // Cache locations to handle updates
   final Map<String, BusLocationModel> _liveLocations = {};
+
+  // Animation maps
+  final Map<String, AnimationController> _animationControllers = {};
+  final Map<String, LatLng> _animatedLocations = {};
+  final Map<String, double> _animatedRotations = {};
 
   LatLng? _centerLocation;
   GoogleMapController? _mapController;
@@ -70,7 +76,7 @@ class LiveBusMapState extends ConsumerState<LiveBusMap> {
         setState(() {
           _busIcon = icon;
         });
-        _updateAllMarkers();
+        _rebuildMarkers();
       }
     } catch (e) {
       debugPrint('Error creating custom marker: $e');
@@ -82,7 +88,7 @@ class LiveBusMapState extends ConsumerState<LiveBusMap> {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.buses != widget.buses ||
         oldWidget.selectedBus != widget.selectedBus) {
-      _updateAllMarkers();
+      _rebuildMarkers();
 
       // If a new bus is selected, or initial selection, reset following
       if (widget.selectedBus != null &&
@@ -124,33 +130,108 @@ class LiveBusMapState extends ConsumerState<LiveBusMap> {
     }
   }
 
-  void _updateAllMarkers() {
-    final Map<String, Marker> newMarkers = {};
+  void _handleLocationUpdate(BusLocationModel nextLoc) {
+    final busId = nextLoc.busId;
+    final prevLoc = _liveLocations[busId];
 
-    for (var bus in widget.buses) {
-      if (_liveLocations.containsKey(bus.id)) {
-        final loc = _liveLocations[bus.id]!;
-        final marker = _createMarker(bus, loc);
-        newMarkers[bus.id] = marker;
-      }
+    // 1. Timestamp out-of-order check
+    if (prevLoc != null && nextLoc.timestamp.isBefore(prevLoc.timestamp)) {
+      debugPrint('Ignoring stale location update for bus $busId');
+      return;
     }
 
-    setState(() {
-      _markers.clear();
-      _markers.addAll(newMarkers);
-    });
+    _liveLocations[busId] = nextLoc;
+
+    final startPos = _animatedLocations[busId] ?? nextLoc.currentLocation;
+    final endPos = nextLoc.currentLocation;
+    final startRot = _animatedRotations[busId] ?? nextLoc.heading ?? 0.0;
+    final endRot = nextLoc.heading ?? startRot;
+
+    // 2. Initialize or obtain AnimationController
+    var controller = _animationControllers[busId];
+    if (controller == null) {
+      controller = AnimationController(
+        vsync: this,
+        duration: const Duration(milliseconds: 1000),
+      );
+      _animationControllers[busId] = controller;
+      _animatedLocations[busId] = startPos;
+      _animatedRotations[busId] = startRot;
+
+      controller.addListener(() {
+        if (mounted) {
+          final t = controller!.value;
+          setState(() {
+            _animatedLocations[busId] = LatLng(
+              lerpDouble(startPos.latitude, endPos.latitude, t)!,
+              lerpDouble(startPos.longitude, endPos.longitude, t)!,
+            );
+            _animatedRotations[busId] = lerpDouble(startRot, endRot, t)!;
+            _rebuildMarkers();
+          });
+        }
+      });
+    } else {
+      // Re-target existing animation
+      controller.stop();
+      // Simple way: Clear listener and recreate or just reset targets
+      // Since we use the local state startPos/endPos in the listener closure,
+      // we should recreate it or use a more dynamic closure.
+      controller.dispose();
+      controller = AnimationController(
+        vsync: this,
+        duration: const Duration(milliseconds: 1000),
+      );
+      _animationControllers[busId] = controller;
+
+      controller.addListener(() {
+        if (mounted) {
+          final t = controller!.value;
+          setState(() {
+            _animatedLocations[busId] = LatLng(
+              lerpDouble(startPos.latitude, endPos.latitude, t)!,
+              lerpDouble(startPos.longitude, endPos.longitude, t)!,
+            );
+            _animatedRotations[busId] = lerpDouble(startRot, endRot, t)!;
+            _rebuildMarkers();
+          });
+        }
+      });
+    }
+
+    controller.forward(from: 0.0);
 
     // Auto-center if following
-    if (_isFollowing && widget.selectedBus != null) {
+    if (_isFollowing && widget.selectedBus?.id == busId) {
       _animateToBus(widget.selectedBus!);
     }
   }
 
-  Marker _createMarker(BusModel bus, BusLocationModel loc) {
+  void _rebuildMarkers() {
+    final Map<String, Marker> newMarkers = {};
+
+    for (var bus in widget.buses) {
+      final pos =
+          _animatedLocations[bus.id] ?? _liveLocations[bus.id]?.currentLocation;
+      if (pos != null) {
+        final rot =
+            _animatedRotations[bus.id] ??
+            _liveLocations[bus.id]?.heading ??
+            0.0;
+        final marker = _createMarker(bus, pos, rot);
+        newMarkers[bus.id] = marker;
+      }
+    }
+
+    _markers.clear();
+    _markers.addAll(newMarkers);
+  }
+
+  Marker _createMarker(BusModel bus, LatLng pos, double rotation) {
     return Marker(
       markerId: MarkerId(bus.id),
-      position: loc.currentLocation,
-      rotation: loc.heading ?? 0.0,
+      position: pos,
+      rotation: rotation,
       icon:
           _busIcon ??
           BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueAzure),
@@ -164,22 +245,26 @@ class LiveBusMapState extends ConsumerState<LiveBusMap> {
   }
 
   void _animateToBus(BusModel bus) {
-    if (_liveLocations.containsKey(bus.id) && _mapController != null) {
-      final loc = _liveLocations[bus.id]!;
+    final pos =
+        _animatedLocations[bus.id] ?? _liveLocations[bus.id]?.currentLocation;
+    if (pos != null && _mapController != null) {
       _isProgrammaticMove = true;
-      _mapController!
-          .animateCamera(CameraUpdate.newLatLngZoom(loc.currentLocation, 17.0))
-          .then((_) {
-            // Reset flag after animation completes/starts
-            Future.delayed(const Duration(milliseconds: 1500), () {
-              if (mounted) _isProgrammaticMove = false;
-            });
+      _mapController!.animateCamera(CameraUpdate.newLatLngZoom(pos, 17.0)).then(
+        (_) {
+          // Reset flag after animation completes/starts
+          Future.delayed(const Duration(milliseconds: 1500), () {
+            if (mounted) _isProgrammaticMove = false;
           });
+        },
+      );
     }
   }
 
   @override
   void dispose() {
+    for (var controller in _animationControllers.values) {
+      controller.dispose();
+    }
     super.dispose();
   }
 
@@ -194,9 +279,8 @@ class LiveBusMapState extends ConsumerState<LiveBusMap> {
         (previous, next) {
           next.whenData((locations) {
             for (var loc in locations) {
-              _liveLocations[loc.busId] = loc;
+              _handleLocationUpdate(loc);
             }
-            _updateAllMarkers();
           });
         },
       );
@@ -225,7 +309,6 @@ class LiveBusMapState extends ConsumerState<LiveBusMap> {
             }
           },
           initialZoom: 17.0,
-
           myLocationEnabled: widget.showUserLocation,
           myLocationButtonEnabled: widget.showUserLocation,
           bottomPadding: widget.bottomPadding,

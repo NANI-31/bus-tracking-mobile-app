@@ -107,6 +107,8 @@ export const sendNotificationToDevices = async (
         notification: {
           channelId: "high_importance_channel",
           priority: "high",
+          defaultSound: true,
+          defaultVibrateTimings: true,
         },
       },
     };

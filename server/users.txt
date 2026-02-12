@@ -1,0 +1,56 @@
+SEEDED USERS LIST (Domain: kkr.ac.in)
+-------------------------------------
+Default Password for ALL users: a
+
+[Category: Student] (Prefix: s, Count: 10)
+s1@kkr.ac.in
+s2@kkr.ac.in
+s3@kkr.ac.in
+s4@kkr.ac.in
+s5@kkr.ac.in
+s6@kkr.ac.in
+s7@kkr.ac.in
+s8@kkr.ac.in
+s9@kkr.ac.in
+s10@kkr.ac.in
+Special Student: darkbutterflystar31@gmail.com
+
+[Category: Teacher] (Prefix: t, Count: 5)
+t1@kkr.ac.in
+t2@kkr.ac.in
+t3@kkr.ac.in
+t4@kkr.ac.in
+t5@kkr.ac.in
+
+[Category: Parent] (Prefix: p, Count: 5)
+p1@kkr.ac.in
+p2@kkr.ac.in
+p3@kkr.ac.in
+p4@kkr.ac.in
+p5@kkr.ac.in
+
+[Category: Driver] (Prefix: d, Count: 15)
+d1@kkr.ac.in
+d2@kkr.ac.in
+d3@kkr.ac.in
+d4@kkr.ac.in
+d5@kkr.ac.in
+d6@kkr.ac.in
+d7@kkr.ac.in
+d8@kkr.ac.in
+d9@kkr.ac.in
+d10@kkr.ac.in
+d11@kkr.ac.in
+d12@kkr.ac.in
+d13@kkr.ac.in
+d14@kkr.ac.in
+d15@kkr.ac.in
+
+[Category: Bus Coordinator] (Count: 1)
+c@kkr.ac.in
+
+[Category: Admin] (Count: 1)
+ad@kkr.ac.in
+
+[Category: College Admin] (Count: 1)
+ca@kkr.ac.in

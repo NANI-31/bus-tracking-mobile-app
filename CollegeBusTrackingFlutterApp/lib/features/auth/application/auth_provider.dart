@@ -223,15 +223,33 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
     }
   }
 
+  StreamSubscription<String>? _tokenSubscription;
+
   Future<void> _registerFCMToken(String userId) async {
     try {
-      // Permissions are now requested in Dashboard
-      // Just check if we already have a token
+      // 1. Register current token
       final token = await FCMService().getStoredToken();
       if (token != null) {
         await _userRepo.updateUser(userId, {'fcmToken': token});
-        debugPrint('\x1B[32mFCM Token registered with backend\x1B[0m');
+        debugPrint(
+          '\x1B[32mFCM Token initially registered with backend\x1B[0m',
+        );
       }
+
+      // 2. Listen for future changes (refresh)
+      _tokenSubscription?.cancel();
+      _tokenSubscription = FCMService().tokenStream.listen((newToken) async {
+        debugPrint('\x1B[32mFCM Token refreshed, updating backend...\x1B[0m');
+        try {
+          await _userRepo.updateUser(userId, {'fcmToken': newToken});
+        } catch (e) {
+          debugPrint('\x1B[31mError updating refreshed FCM token: $e\x1B[0m');
+        }
+      });
+
+      ref.onDispose(() {
+        _tokenSubscription?.cancel();
+      });
     } catch (e) {
       debugPrint('\x1B[31mError registering FCM token: $e\x1B[0m');
     }

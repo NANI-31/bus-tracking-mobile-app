@@ -178,9 +178,21 @@ export class NotificationService {
     // 1. Find target users
     const users = await User.find({
       collegeId,
-      role: { $in: [UserRole.Student, UserRole.Teacher, UserRole.Parent] },
+      role: {
+        $in: [
+          UserRole.Student,
+          UserRole.Teacher,
+          UserRole.Parent,
+          UserRole.BusCoordinator,
+          UserRole.Admin,
+        ],
+      },
       fcmToken: { $exists: true, $ne: null },
     });
+
+    logger.info(
+      `[NotificationService] Found ${users.length} users with FCM tokens for broadcast in college ${collegeId}`,
+    );
 
     if (users.length === 0) {
       return { success: true, count: 0 };

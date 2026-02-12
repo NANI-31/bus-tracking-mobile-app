@@ -31,8 +31,9 @@ export const login = async (req: Request, res: Response) => {
       // If the input identifier matches the phone number but NOT the email,
       // it means they tried to login with a phone number.
       // We perform a case-insensitive comparison for email just in case.
-      const userEmail = user.email || "";
-      const isEmailLogin = userEmail.toLowerCase() === email.toLowerCase();
+      const userEmail = (user.email || "") as string;
+      const inputEmail = (email || "") as string;
+      const isEmailLogin = userEmail.toLowerCase() === inputEmail.toLowerCase();
       if (!isEmailLogin) {
         logger.warn(
           `Login blocked: ${user.role} attempted login with phone number.`,

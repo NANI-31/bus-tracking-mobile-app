@@ -55,7 +55,7 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
   @override
   void initState() {
     super.initState();
-    _getCurrentLocation();
+    _isSharing = PersistenceService.getIsSharingLocation();
     _getCurrentLocation();
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -65,6 +65,85 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
         socketService.joinCollege(user.collegeId);
       }
     });
+  }
+
+  // ... existing code ...
+
+  Future<void> _startLocationSharing(
+    BusModel myBus, {
+    bool silent = false,
+  }) async {
+    final locationService = ref.read(locationServiceProvider);
+    final socketService = ref.read(socketServiceProvider);
+    final user = ref.read(currentUserProvider);
+    final api = ref.read(apiServiceProvider);
+
+    // SECURITY: Re-verify location permission before each trip start
+    final hasPermission = await locationService.checkLocationPermission();
+    if (!hasPermission) {
+      final granted = await locationService.requestLocationPermission();
+      if (!granted) {
+        if (!mounted) return;
+        if (!silent) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                DriverLocalizations.of(context)!.locationNotAvailable,
+              ),
+              backgroundColor: AppColors.error,
+              duration: const Duration(seconds: 4),
+            ),
+          );
+        }
+        // If we can't share, update state to false
+        setState(() => _isSharing = false);
+        await PersistenceService.setIsSharingLocation(false);
+        return;
+      }
+    }
+
+    // Update bus status to live
+    api.updateBusStatus(myBus.id, 'on-time').catchError((e) {
+      AppLogger.e('Failed to update bus status: $e');
+    });
+
+    locationService.startLocationTracking(
+      onLocationUpdate: (position) {
+        socketService.updateLocation({
+          'busId': myBus.id,
+          'collegeId': user!.collegeId,
+          'location': {'lat': position.latitude, 'lng': position.longitude},
+          'speed': position.speed,
+          'heading': position.heading,
+        });
+        if (mounted) {
+          setState(
+            () => _currentLocation = LatLng(
+              position.latitude,
+              position.longitude,
+            ),
+          );
+          _checkRouteDeviation(position, myBus);
+        }
+      },
+    );
+
+    if (mounted) {
+      setState(() => _isSharing = true);
+    }
+    _saveSelections(myBus);
+
+    if (!mounted) return;
+    if (!silent) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            DriverLocalizations.of(context)!.locationSharingStarted,
+          ),
+          backgroundColor: AppColors.success,
+        ),
+      );
+    }
   }
 
   Future<void> _saveSelections(BusModel? myBus) async {
@@ -193,66 +272,7 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
     }
   }
 
-  Future<void> _startLocationSharing(BusModel myBus) async {
-    final locationService = ref.read(locationServiceProvider);
-    final socketService = ref.read(socketServiceProvider);
-    final user = ref.read(currentUserProvider);
-    final api = ref.read(apiServiceProvider);
-
-    // SECURITY: Re-verify location permission before each trip start
-    final hasPermission = await locationService.checkLocationPermission();
-    if (!hasPermission) {
-      final granted = await locationService.requestLocationPermission();
-      if (!granted) {
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              DriverLocalizations.of(context)!.locationNotAvailable,
-            ),
-            backgroundColor: AppColors.error,
-            duration: const Duration(seconds: 4),
-          ),
-        );
-        return;
-      }
-    }
-
-    // Update bus status to live
-    api.updateBusStatus(myBus.id, 'on-time').catchError((e) {
-      AppLogger.e('Failed to update bus status: $e');
-    });
-
-    locationService.startLocationTracking(
-      onLocationUpdate: (position) {
-        socketService.updateLocation({
-          'busId': myBus.id,
-          'collegeId': user!.collegeId,
-          'location': {'lat': position.latitude, 'lng': position.longitude},
-          'speed': position.speed,
-          'heading': position.heading,
-        });
-        if (mounted) {
-          setState(
-            () => _currentLocation = LatLng(
-              position.latitude,
-              position.longitude,
-            ),
-          );
-          _checkRouteDeviation(position, myBus);
-        }
-      },
-    );
-    setState(() => _isSharing = true);
-    _saveSelections(myBus);
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(DriverLocalizations.of(context)!.locationSharingStarted),
-        backgroundColor: AppColors.success,
-      ),
-    );
-  }
+  // Removed duplicate _startLocationSharing method
 
   DateTime? _lastDeviationAlertTime;
 
@@ -612,6 +632,19 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
     }
 
     final myBusAsync = ref.watch(driverBusProvider(userId));
+
+    // Auto-resume location sharing if state was persisted
+    ref.listen(driverBusProvider(userId), (previous, next) {
+      next.whenData((bus) {
+        if (bus != null && _isSharing) {
+          final locationService = ref.read(locationServiceProvider);
+          if (!locationService.isTracking) {
+            _startLocationSharing(bus, silent: true);
+          }
+        }
+      });
+    });
+
     final routesAsync = ref.watch(collegeRoutesProvider(collegeId));
     final busNumbersAsync = ref.watch(busNumbersProvider(collegeId));
 

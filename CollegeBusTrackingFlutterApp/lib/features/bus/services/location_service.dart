@@ -87,7 +87,7 @@ class LocationService {
   }
 
   DateTime? _lastEmitTime;
-  static const int _minUpdateIntervalMs = 3000; // Min 3 seconds between updates
+  static const int _minUpdateIntervalMs = 1000; // Min 1 second between updates
 
   Future<void> startLocationTracking({
     required Function(Position) onLocationUpdate,
@@ -109,9 +109,9 @@ class LocationService {
       if (defaultTargetPlatform == TargetPlatform.android) {
         locationSettings = AndroidSettings(
           accuracy: LocationAccuracy.high,
-          distanceFilter: 10,
+          distanceFilter: 2,
           forceLocationManager: true,
-          intervalDuration: const Duration(seconds: 10),
+          intervalDuration: const Duration(seconds: 2),
           // Set foreground notification config to keep the service alive
           foregroundNotificationConfig: const ForegroundNotificationConfig(
             notificationTitle: "Bus Tracking Active",
@@ -124,14 +124,12 @@ class LocationService {
         locationSettings = AppleSettings(
           accuracy: LocationAccuracy.high,
           activityType: ActivityType.automotiveNavigation,
-          distanceFilter: 10,
-          pauseLocationUpdatesAutomatically: false,
-          showBackgroundLocationIndicator: true,
+          distanceFilter: 2,
         );
       } else {
         locationSettings = const LocationSettings(
           accuracy: LocationAccuracy.high,
-          distanceFilter: 10,
+          distanceFilter: 2,
         );
       }
 
