@@ -19,6 +19,21 @@ export class CollegeService {
       await college.save();
     }
 
+    // 2. Ensure an actual Bus document exists in the Bus collection
+    const existingBus = await Bus.findOne({ collegeId, busNumber });
+    if (!existingBus) {
+      logger.info(
+        `Creating new Bus document for ${busNumber} in college ${collegeId}`,
+      );
+      await Bus.create({
+        collegeId,
+        busNumber,
+        isActive: false,
+        status: "not-running",
+        assignmentStatus: "unassigned",
+      });
+    }
+
     this.broadcastBusListUpdate(collegeId);
     return college.busNumbers;
   }
