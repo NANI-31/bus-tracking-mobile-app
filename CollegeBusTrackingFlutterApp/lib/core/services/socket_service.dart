@@ -15,6 +15,9 @@ class SocketService extends ChangeNotifier {
   String? _errorMessage;
   final List<Map<String, dynamic>> _eventQueue = [];
 
+  /// Callback for REST fallback when socket is disconnected
+  Future<void> Function(Map<String, dynamic>)? onFallbackUpdate;
+
   bool get isConnected => _isConnected;
   bool get isConnecting => _isConnecting;
   String? get token => _token;
@@ -92,6 +95,23 @@ class SocketService extends ChangeNotifier {
     _socket?.dispose();
     _socket = null;
     _connect();
+  }
+
+  /// Proactively ensures the socket is connected and in the correct room.
+  /// Called when app resumes from background.
+  void ensureConnected() {
+    if (_socket == null || !_isConnected) {
+      AppLogger.i(
+        '[SocketService] ensureConnected: Socket disconnected, reconnecting...',
+      );
+      _reconnect();
+    } else {
+      AppLogger.d('[SocketService] ensureConnected: Socket already connected.');
+      // Re-emit join_college just in case the server lost our session/room membership
+      if (_lastJoinedCollegeId != null) {
+        joinCollege(_lastJoinedCollegeId!);
+      }
+    }
   }
 
   void _connect() {
@@ -263,13 +283,26 @@ class SocketService extends ChangeNotifier {
   }
 
   Future<void> updateLocation(Map<String, dynamic> data) async {
-    AppLogger.v('[SocketService] Emitting update_location: $data');
+    AppLogger.v('[SocketService] update_location attempt: $data');
     if (_isConnected && _socket != null) {
       _socket?.emit('update_location', data);
     } else {
       AppLogger.w(
-        '[SocketService] Socket not connected, queueing update_location',
+        '[SocketService] Socket disconnected, using REST fallback and queueing',
       );
+
+      // Trigger REST fallback if available
+      if (onFallbackUpdate != null) {
+        try {
+          await onFallbackUpdate!(data);
+          AppLogger.i(
+            '[SocketService] REST fallback location update successful',
+          );
+        } catch (e) {
+          AppLogger.e('[SocketService] REST fallback failed: $e');
+        }
+      }
+
       await _queueEvent('update_location', data);
     }
   }

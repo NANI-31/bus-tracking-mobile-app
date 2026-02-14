@@ -80,6 +80,59 @@ export class BusService {
   }
 
   /**
+   * Update bus location and handle side effects (broadcasting, nearby notifications)
+   */
+  async updateBusLocation(data: {
+    busId: string;
+    location: { lat: number; lng: number };
+    speed?: number;
+    heading?: number;
+  }): Promise<void> {
+    const { busId, location, speed, heading } = data;
+
+    const { Bus, BusLocation } = require("../models/Bus.model");
+    const { checkAndNotifyBusNearby } = require("../utils/busNearbyLogic");
+
+    // 1. Fetch bus details to get collegeId, busNumber, and routeId
+    const bus = await Bus.findById(busId);
+    if (!bus) {
+      throw new Error("Bus not found");
+    }
+
+    const collegeId = bus.collegeId.toString();
+
+    // 2. Broadcast to college room
+    this.io.to(collegeId).emit("location_updated", {
+      busId,
+      collegeId,
+      location,
+      speed: speed ?? 0,
+      heading: heading ?? 0,
+      timestamp: new Date(),
+    });
+
+    // 3. Save location to DB
+    const newLocation = new BusLocation({
+      busId,
+      currentLocation: location,
+      speed: speed ?? 0,
+      heading: heading ?? 0,
+    });
+    await newLocation.save();
+
+    // 4. Check for nearby notifications
+    if (bus.routeId) {
+      checkAndNotifyBusNearby(
+        busId,
+        bus.busNumber,
+        location.lat,
+        location.lng,
+        bus.routeId.toString(),
+      );
+    }
+  }
+
+  /**
    * Broadcast bus list update to college room
    */
   private broadcastBusListUpdate(collegeId: string): void {

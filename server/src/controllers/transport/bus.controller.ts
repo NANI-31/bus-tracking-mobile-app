@@ -120,17 +120,18 @@ export const deleteBus = async (req: Request, res: Response) => {
 export const updateBusLocation = async (req: Request, res: Response) => {
   try {
     const { busId, currentLocation, speed, heading } = req.body;
-    const newLocation = new BusLocation({
+
+    const io = req.app.get("io");
+    const busService = getBusService(io);
+
+    await busService.updateBusLocation({
       busId,
-      currentLocation,
+      location: currentLocation,
       speed,
       heading,
     });
-    await newLocation.save();
 
-    // Optionally update latest location cache or trigger socket event here
-
-    res.status(201).json(newLocation);
+    res.status(200).json({ message: "Location updated successfully" });
   } catch (error) {
     res.status(500).json({ message: (error as Error).message });
   }

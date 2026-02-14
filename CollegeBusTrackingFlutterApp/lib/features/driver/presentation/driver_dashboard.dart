@@ -41,7 +41,7 @@ class DriverDashboard extends ConsumerStatefulWidget {
 }
 
 class _DriverDashboardState extends ConsumerState<DriverDashboard>
-    with SingleTickerProviderStateMixin {
+    with SingleTickerProviderStateMixin, WidgetsBindingObserver {
   int _bottomNavIndex = 0;
   LatLng? _currentLocation;
   bool _isSharing = false;
@@ -55,6 +55,7 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _isSharing = PersistenceService.getIsSharingLocation();
     _getCurrentLocation();
 
@@ -65,6 +66,22 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
         socketService.joinCollege(user.collegeId);
       }
     });
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      AppLogger.i(
+        '[DriverDashboard] App resumed. Ensuring socket connection...',
+      );
+      ref.read(socketServiceProvider).ensureConnected();
+    }
   }
 
   // ... existing code ...
