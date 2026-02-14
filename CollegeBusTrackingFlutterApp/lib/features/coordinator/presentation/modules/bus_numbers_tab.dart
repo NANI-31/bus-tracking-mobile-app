@@ -174,7 +174,8 @@ class _BusNumbersTabState extends ConsumerState<BusNumbersTab>
     if (collegeId == null) return const SizedBox.shrink();
 
     final busNumbers = ref.watch(busNumbersProvider(collegeId)).value ?? [];
-    final buses = ref.watch(collegeBusesStreamProvider(collegeId)).value ?? [];
+    final buses =
+        ref.watch(allCollegeBusesStreamProvider(collegeId)).value ?? [];
 
     final allDrivers =
         ref

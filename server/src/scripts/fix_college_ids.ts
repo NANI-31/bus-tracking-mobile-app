@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 import dotenv from "dotenv";
 import User from "../models/User.model";
 import College from "../models/College.model";
+import { Bus } from "../models/Bus.model";
 import logger from "../utils/logger";
 
 dotenv.config();
@@ -51,6 +52,36 @@ const fixCollegeIds = async () => {
         console.log(
           `Updated user ${user.email} with collegeId: ${college._id}`,
         );
+      }
+    }
+
+    const buses = await Bus.find();
+    console.log(`Checking ${buses.length} buses...`);
+
+    for (const bus of buses) {
+      if (bus.collegeId && !mongoose.Types.ObjectId.isValid(bus.collegeId)) {
+        console.log(
+          `Found invalid collegeId for bus ${bus.busNumber}: ${bus.collegeId}`,
+        );
+
+        const collegeName = bus.collegeId
+          .split("_")
+          .map((word: string) => word.charAt(0).toUpperCase() + word.slice(1))
+          .join(" ");
+
+        let college = await College.findOne({ name: collegeName });
+
+        if (college) {
+          bus.collegeId = college._id.toString();
+          await bus.save();
+          console.log(
+            `Updated bus ${bus.busNumber} with collegeId: ${college._id}`,
+          );
+        } else {
+          console.warn(
+            `No matching college found for bus slug: ${bus.collegeId}`,
+          );
+        }
       }
     }
 

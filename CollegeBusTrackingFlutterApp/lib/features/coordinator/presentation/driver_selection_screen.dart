@@ -165,7 +165,7 @@ class _DriverSelectionScreenState extends ConsumerState<DriverSelectionScreen> {
     final driversAsync = ref.watch(
       usersByRoleProvider((role: UserRole.driver, collegeId: collegeId)),
     );
-    final busesAsync = ref.watch(collegeBusesStreamProvider(collegeId));
+    final busesAsync = ref.watch(allCollegeBusesStreamProvider(collegeId));
     final routesAsync = ref.watch(collegeRoutesProvider(collegeId));
 
     return Scaffold(
@@ -283,8 +283,3 @@ class _DriverSelectionScreenState extends ConsumerState<DriverSelectionScreen> {
     );
   }
 }
-
-
-
-
-

@@ -18,7 +18,7 @@ export const createBus = async (req: Request, res: Response) => {
     const savedBus = await newBus.save();
 
     // Invalidate caches
-    await delCache("all_buses");
+    await delCache("buses:all");
     await delCache(`buses:${savedBus.collegeId}`);
 
     res.status(201).json(savedBus);
@@ -38,20 +38,23 @@ export const getBus = async (req: Request, res: Response) => {
 };
 
 export const getAllBuses = async (req: Request, res: Response) => {
-  logger.info("BUS: Entering getAllBuses");
-  const cacheKey = "all_buses";
+  const { collegeId } = req.query;
+  const cacheKey = collegeId ? `buses:${collegeId}` : "buses:all";
 
   try {
     // 1. Check cache
     const cachedBuses = await getCache<any[]>(cacheKey);
     if (cachedBuses) {
-      logger.info("CACHE: Hit for all_buses");
+      logger.info(`CACHE: Hit for ${cacheKey}`);
       return res.status(200).json(cachedBuses);
     }
 
     // 2. Fetch from DB
-    const buses = await Bus.find();
-    logger.info(`BUS: Found ${buses.length} buses`);
+    const filter = collegeId ? { collegeId } : {};
+    const buses = await Bus.find(filter);
+    logger.info(
+      `BUS: Found ${buses.length} buses for filter: ${JSON.stringify(filter)}`,
+    );
 
     // 3. Set cache
     await setCache(cacheKey, buses, CACHE_TTL);
@@ -82,7 +85,7 @@ export const updateBus = async (req: Request, res: Response) => {
     );
 
     // Invalidate caches
-    await delCache("all_buses");
+    await delCache("buses:all");
     if (updatedBus) {
       await delCache(`buses:${updatedBus.collegeId}`);
     }
@@ -103,7 +106,7 @@ export const deleteBus = async (req: Request, res: Response) => {
     if (!bus) return res.status(404).json({ message: "Bus not found" });
 
     // Invalidate caches
-    await delCache("all_buses");
+    await delCache("buses:all");
     await delCache(`buses:${bus.collegeId}`);
 
     // Broadcast update to college room

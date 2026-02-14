@@ -68,6 +68,31 @@ final collegeBusesStreamProvider =
       });
     });
 
+/// StreamProvider for ALL buses in a specific college (including inactive)
+final allCollegeBusesStreamProvider =
+    StreamProvider.family<List<BusModel>, String>((ref, collegeId) {
+      final api = ref.watch(apiServiceProvider);
+      final socket = ref.read(socketServiceProvider);
+
+      return Stream.multi((controller) async {
+        Future<void> fetch() async {
+          try {
+            final buses = await api.getAllBuses();
+            final filtered = buses
+                .where((b) => b.collegeId == collegeId)
+                .toList();
+            if (!controller.isClosed) controller.add(filtered);
+          } catch (e) {
+            if (!controller.isClosed) controller.addError(e);
+          }
+        }
+
+        await fetch();
+        final subscription = socket.busListUpdateStream.listen((_) => fetch());
+        controller.onCancel = () => subscription.cancel();
+      });
+    });
+
 /// StreamProvider for bus numbers of a specific college
 final busNumbersProvider = StreamProvider.family<List<String>, String>((
   ref,
@@ -186,8 +211,3 @@ final driverBusProvider = StreamProvider.family<BusModel?, String>((
     };
   });
 });
-
-
-
-
-

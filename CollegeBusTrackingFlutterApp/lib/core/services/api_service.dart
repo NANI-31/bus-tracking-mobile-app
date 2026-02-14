@@ -68,7 +68,8 @@ class ApiService {
   );
 
   // ============== Bus Operations (delegates to BusRepository) ==============
-  Future<List<BusModel>> getAllBuses() => _busRepo.getAllBuses();
+  Future<List<BusModel>> getAllBuses({String? collegeId}) =>
+      _busRepo.getAllBuses(collegeId: collegeId);
 
   Future<BusModel> createBus(BusModel bus) => _busRepo.createBus(bus);
 
@@ -125,7 +126,7 @@ class ApiService {
     required String collegeId,
     String? routeId,
   }) async {
-    final buses = await getAllBuses();
+    final buses = await getAllBuses(collegeId: collegeId);
     final existingBus = buses.firstWhere(
       (b) => b.busNumber == busNumber && b.collegeId == collegeId,
       orElse: () => throw Exception('Bus not found'),
@@ -242,8 +243,3 @@ class ApiService {
     String signature,
   ) => _paymentRepo.verifyPayment(orderId, paymentId, signature);
 }
-
-
-
-
-

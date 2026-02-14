@@ -2,6 +2,7 @@ import { Server } from "socket.io";
 import College from "../models/College.model";
 import { Bus } from "../models/Bus.model";
 import logger from "../utils/logger";
+import { delCache } from "../utils/cache";
 
 export class CollegeService {
   private io: Server;
@@ -32,6 +33,10 @@ export class CollegeService {
         status: "not-running",
         assignmentStatus: "unassigned",
       });
+
+      // Invalidate caches
+      await delCache("all_buses");
+      await delCache(`buses:${collegeId}`);
     }
 
     this.broadcastBusListUpdate(collegeId);
@@ -72,6 +77,10 @@ export class CollegeService {
       { collegeId, busNumber: oldBusNumber },
       { busNumber: newBusNumber },
     );
+
+    // Invalidate caches
+    await delCache("all_buses");
+    await delCache(`buses:${collegeId}`);
 
     this.broadcastBusListUpdate(collegeId);
     return college.busNumbers;

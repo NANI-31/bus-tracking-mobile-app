@@ -7,9 +7,12 @@ class BusRepository extends BaseRepository {
   // ============== Bus CRUD ==============
 
   /// Get all buses
-  Future<List<BusModel>> getAllBuses() async {
+  Future<List<BusModel>> getAllBuses({String? collegeId}) async {
     try {
-      final response = await dio.get('/buses');
+      final response = await dio.get(
+        '/buses',
+        queryParameters: collegeId != null ? {'collegeId': collegeId} : null,
+      );
       return (response.data as List)
           .map((data) => BusModel.fromMap(data, data['_id']))
           .toList();
@@ -125,8 +128,3 @@ class BusRepository extends BaseRepository {
     }
   }
 }
-
-
-
-
-
