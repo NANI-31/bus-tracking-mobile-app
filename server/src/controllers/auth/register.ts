@@ -2,6 +2,8 @@ import { Request, Response } from "express";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import User, { IUser } from "../../models/User.model";
+import College from "../../models/College.model";
+import mongoose from "mongoose";
 import crypto from "crypto";
 import logger from "../../utils/logger";
 
@@ -59,6 +61,38 @@ export const register = async (req: Request, res: Response) => {
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
+    let finalCollegeId = collegeId;
+
+    // Special logic for Bus Coordinators: Create a new college if the ID is not a valid ObjectId
+    if (
+      role === "busCoordinator" &&
+      collegeId &&
+      !mongoose.Types.ObjectId.isValid(collegeId)
+    ) {
+      try {
+        logger.info(`Creating new college for coordinator: ${collegeId}`);
+        const newCollege = new College({
+          name: collegeId
+            .split("_")
+            .map((word: string) => word.charAt(0).toUpperCase() + word.slice(1))
+            .join(" "),
+          allowedDomains: email ? [email.split("@")[1]] : [],
+          createdBy: "system_registration",
+          verified: false,
+        });
+        const savedCollege = await newCollege.save();
+        finalCollegeId = savedCollege._id;
+        logger.info(`New college created with ID: ${finalCollegeId}`);
+      } catch (collegeError) {
+        logger.error(
+          "Error creating college during registration:",
+          collegeError,
+        );
+        // Fallback or re-throw? Let's re-throw to prevent inconsistent user state
+        throw collegeError;
+      }
+    }
+
     // Create user
     const newUser = new User({
       _id: crypto.randomUUID(),
@@ -66,7 +100,7 @@ export const register = async (req: Request, res: Response) => {
       password: hashedPassword,
       fullName,
       role,
-      collegeId,
+      collegeId: finalCollegeId,
       phoneNumber,
       rollNumber,
       approved: role === "parent", // Parents auto-approved (from original logic)

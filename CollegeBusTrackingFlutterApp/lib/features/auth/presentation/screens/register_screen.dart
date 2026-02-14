@@ -108,11 +108,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       if (_selectedRole == UserRole.busCoordinator) {
         email =
             '${_emailIdController.text.trim()}@${_emailDomainController.text.trim()}';
-        // Coordinator creates a slug for now, or we could handle it differently
-        collegeId = _collegeController.text.trim().toLowerCase().replaceAll(
-          ' ',
-          '_',
-        );
+        // Coordinator provides a college name which will be used to create the college document on the server
+        collegeId = _collegeController.text.trim();
       } else {
         email = _emailController.text.trim();
         collegeId = _selectedCollege?.id ?? '';
@@ -272,9 +269,10 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
             if (_selectedRole == UserRole.busCoordinator)
               CustomInputField(
                 label: l10n.collegeName,
-                hint: l10n.collegeHint,
+                hint:
+                    'e.g. Vignan University', // Hardcoded hint for clarity since l10n might be generic
                 controller: _collegeController,
-                prefixIcon: const Icon(Icons.school_outlined),
+                prefixIcon: const Icon(Icons.add_business_rounded),
                 validator: (value) => (value == null || value.isEmpty)
                     ? l10n.requiredField
                     : null,
