@@ -101,7 +101,7 @@ class ApiService {
   Future<BusModel?> getBusByDriver(String driverId) async {
     final buses = await getAllBuses();
     try {
-      return buses.firstWhere((b) => b.driverId == driverId && b.isActive);
+      return buses.firstWhere((b) => b.driverId == driverId);
     } catch (e) {
       return null;
     }
@@ -135,6 +135,7 @@ class ApiService {
     final Map<String, dynamic> updateData = {
       'driverId': driverId,
       'assignmentStatus': 'pending',
+      'isActive': true,
     };
     if (routeId != null) {
       updateData['routeId'] = routeId;
@@ -234,12 +235,25 @@ class ApiService {
   // ============== Payment Operations (delegates to PaymentRepository) ==============
   Future<Map<String, dynamic>> createPaymentOrder(
     int amount,
-    String currency,
-  ) => _paymentRepo.createOrder(amount, currency);
+    String currency, {
+    String? plan,
+  }) => _paymentRepo.createOrder(amount, currency, plan: plan);
 
   Future<Map<String, dynamic>> verifyPayment(
     String orderId,
     String paymentId,
     String signature,
   ) => _paymentRepo.verifyPayment(orderId, paymentId, signature);
+
+  Future<List<dynamic>> getPaymentTransactions({
+    String? plan,
+    DateTime? startDate,
+    DateTime? endDate,
+    String? collegeId,
+  }) => _paymentRepo.getTransactions(
+    plan: plan,
+    startDate: startDate,
+    endDate: endDate,
+    collegeId: collegeId,
+  );
 }

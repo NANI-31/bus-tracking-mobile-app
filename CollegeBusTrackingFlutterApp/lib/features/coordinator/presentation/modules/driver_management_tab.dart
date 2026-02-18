@@ -571,7 +571,10 @@ class DriverManagementTab extends ConsumerWidget {
           ),
         ),
         24.heightBox,
-        message.text.size(16).color(AppColors.textSecondary).make(),
+        message.text
+            .size(16)
+            .color(context.colorScheme.onSurface.withValues(alpha: 0.6))
+            .make(),
       ],
       alignment: MainAxisAlignment.center,
       crossAlignment: CrossAxisAlignment.center,

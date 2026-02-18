@@ -22,7 +22,7 @@ class BusEmptyState extends StatelessWidget {
         Icon(
           isSearching ? Icons.search_off : Icons.directions_bus_outlined,
           size: 64,
-          color: AppColors.textSecondary,
+          color: context.colorScheme.onSurface.withValues(alpha: 0.4),
         ),
         AppSizes.paddingMedium.heightBox,
         (isSearching
@@ -30,13 +30,13 @@ class BusEmptyState extends StatelessWidget {
                 : l10n.noBusesFound)
             .text
             .size(16)
-            .color(AppColors.textSecondary)
+            .color(context.colorScheme.onSurface.withValues(alpha: 0.6))
             .make(),
         if (!isSearching) ...[
           AppSizes.paddingSmall.heightBox,
           l10n.addBusPrompt.text
               .size(14)
-              .color(AppColors.textSecondary)
+              .color(context.colorScheme.onSurface.withValues(alpha: 0.4))
               .center
               .make(),
         ],
@@ -46,8 +46,3 @@ class BusEmptyState extends StatelessWidget {
     ).centered();
   }
 }
-
-
-
-
-

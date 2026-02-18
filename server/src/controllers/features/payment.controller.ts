@@ -3,6 +3,7 @@ import Razorpay from "razorpay";
 import crypto from "crypto";
 import dotenv from "dotenv";
 import User from "../../models/User.model";
+import Transaction from "../../models/Transaction.model";
 import { AuthRequest } from "../../middleware/authMiddleware";
 
 dotenv.config();
@@ -21,12 +22,15 @@ export const createOrder = async (req: Request, res: Response) => {
     });
   }
   try {
-    const { amount, currency = "INR" } = req.body;
+    const { amount, currency = "INR", plan } = req.body;
 
     const options = {
       amount: amount * 100, // Amount in paise
       currency,
       receipt: `receipt_order_${Date.now()}`,
+      notes: {
+        plan: plan || "monthly", // Default to monthly if not specified
+      },
     };
 
     const order = await razorpay.orders.create(options);
@@ -59,8 +63,39 @@ export const verifyPayment = async (req: Request, res: Response) => {
       // --- NEW: Update User to Premium ---
       const authReq = req as AuthRequest;
       if (authReq.user) {
-        await User.findByIdAndUpdate(authReq.user.id, { isPremium: true });
-        console.log(`User ${authReq.user.id} updated to Premium.`);
+        // Fetch order to get the plan from notes
+        const order = await razorpay.orders.fetch(razorpay_order_id);
+        const plan = order.notes?.plan as string;
+
+        let monthsToAdd = 1;
+        if (plan === "semester") {
+          monthsToAdd = 4;
+        }
+
+        const premiumUntil = new Date();
+        premiumUntil.setMonth(premiumUntil.getMonth() + monthsToAdd);
+
+        await User.findByIdAndUpdate(authReq.user.id, {
+          isPremium: true,
+          premiumUntil: premiumUntil,
+        });
+
+        // Create Transaction record
+        await Transaction.create({
+          userId: authReq.user.id,
+          collegeId: authReq.user.collegeId,
+          orderId: razorpay_order_id,
+          paymentId: razorpay_payment_id,
+          amount: (order.amount as any) / 100, // paise to rupees
+          currency: order.currency,
+          plan: plan,
+          premiumUntil: premiumUntil,
+          status: "captured",
+        });
+
+        console.log(
+          `User ${authReq.user.id} updated to Premium (${plan}) until ${premiumUntil}. Transaction logged.`,
+        );
       }
       // -----------------------------------
 
@@ -72,6 +107,48 @@ export const verifyPayment = async (req: Request, res: Response) => {
     }
   } catch (error) {
     console.error("Error verifying payment:", error);
+    res.status(500).json({ message: "Internal server error", error });
+  }
+};
+
+export const getTransactions = async (req: Request, res: Response) => {
+  try {
+    const authReq = req as any;
+    const { role, collegeId: userCollegeId } = authReq.user;
+    const { plan, startDate, endDate, collegeId } = req.query;
+
+    let query: any = {};
+
+    // Role-based filtering
+    if (role === "collegeAdmin") {
+      query.collegeId = userCollegeId;
+    } else if (role === "superAdmin" && collegeId) {
+      query.collegeId = collegeId;
+    }
+
+    // Plan filtering
+    if (plan) {
+      query.plan = plan;
+    }
+
+    // Date range filtering
+    if (startDate || endDate) {
+      query.createdAt = {};
+      if (startDate) {
+        query.createdAt.$gte = new Date(startDate as string);
+      }
+      if (endDate) {
+        query.createdAt.$lte = new Date(endDate as string);
+      }
+    }
+
+    const transactions = await Transaction.find(query)
+      .populate("userId", "fullName email")
+      .sort({ createdAt: -1 });
+
+    res.status(200).json(transactions);
+  } catch (error) {
+    console.error("Error fetching transactions:", error);
     res.status(500).json({ message: "Internal server error", error });
   }
 };

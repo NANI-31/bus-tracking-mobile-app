@@ -34,7 +34,11 @@ class OverviewTab extends ConsumerWidget {
         'System Overview'.text
             .size(24)
             .bold
-            .color(Theme.of(context).colorScheme.onSurface)
+            .color(
+              Theme.of(context).brightness == Brightness.dark
+                  ? Colors.white
+                  : context.colorScheme.onSurface,
+            )
             .make(),
         AppSizes.paddingLarge.heightBox,
 
@@ -45,7 +49,7 @@ class OverviewTab extends ConsumerWidget {
             'Total Routes',
             routes.length.toString(),
             Icons.route,
-            Theme.of(context).primaryColor,
+            AppColors.primary,
           ).expand(),
           AppSizes.paddingMedium.widthBox,
           _buildStatCard(
@@ -53,7 +57,7 @@ class OverviewTab extends ConsumerWidget {
             'Active Buses',
             buses.where((b) => b.isActive).length.toString(),
             Icons.directions_bus,
-            Theme.of(context).colorScheme.secondary,
+            AppColors.secondary,
           ).expand(),
         ]),
 
@@ -65,7 +69,7 @@ class OverviewTab extends ConsumerWidget {
             'Pending Drivers',
             pendingDrivers.length.toString(),
             Icons.pending,
-            Theme.of(context).colorScheme.error,
+            AppColors.error,
           ).expand(),
           AppSizes.paddingMedium.widthBox,
           _buildStatCard(
@@ -73,7 +77,7 @@ class OverviewTab extends ConsumerWidget {
             'Bus Numbers',
             busNumbers.length.toString(),
             Icons.confirmation_number,
-            Theme.of(context).colorScheme.secondary,
+            AppColors.secondary,
           ).expand(),
         ]),
 
@@ -110,11 +114,14 @@ class OverviewTab extends ConsumerWidget {
               VStack([
                 'Send Broadcast Message'.text.bold.lg.make(),
                 'Notify all students, teachers & parents'.text
-                    .color(AppColors.textSecondary)
+                    .color(context.colorScheme.onSurface.withValues(alpha: 0.6))
                     .size(12)
                     .make(),
               ]).expand(),
-              Icon(Icons.chevron_right, color: AppColors.textSecondary),
+              Icon(
+                Icons.chevron_right,
+                color: context.colorScheme.onSurface.withValues(alpha: 0.3),
+              ),
             ]).p(16),
           ),
         ),
@@ -166,7 +173,9 @@ class OverviewTab extends ConsumerWidget {
         title.text
             .size(14)
             .color(
-              Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+              Theme.of(context).brightness == Brightness.dark
+                  ? Colors.white.withValues(alpha: 0.7)
+                  : context.colorScheme.onSurface.withValues(alpha: 0.6),
             )
             .center
             .make(),

@@ -5,19 +5,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:collegebus/core/providers/api_provider.dart';
 import 'package:collegebus/features/auth/application/auth_provider.dart';
 import 'package:collegebus/core/utils/app_logger.dart';
+import 'package:collegebus/core/constants/constants.dart';
 
 // We'll use standard colors to avoid dependency issues if any
 enum SnackBarType { success, error, warning, info }
 
-class AppColors {
-  static const Color primary = Color(0xFF2563EB); // blue-600
-  static const Color background = Color(0xFFF8FAFC); // slate-50
-  static const Color surface = Colors.white;
-  static const Color textPrimary = Color(0xFF1E293B); // slate-800
-  static const Color textSecondary = Color(0xFF64748B); // slate-500
-  static const Color success = Color(0xFF16A34A); // green-600
-  static const Color error = Color(0xFFDC2626); // red-600
-}
+// Redundant local AppColors removed to use global Theme system
 
 class PaymentScreen extends ConsumerStatefulWidget {
   const PaymentScreen({super.key});
@@ -28,8 +21,9 @@ class PaymentScreen extends ConsumerStatefulWidget {
 class _PaymentScreenState extends ConsumerState<PaymentScreen> {
   late Razorpay _razorpay;
   bool _isLoading = false;
+  String _selectedPlan = 'monthly'; // 'monthly' or 'semester'
 
-  final int _fixedAmount = 20;
+  int get _currentAmount => _selectedPlan == 'monthly' ? 20 : 60;
 
   @override
   void initState() {
@@ -134,8 +128,12 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
 
       if (user == null) throw "User not logged in";
 
-      final amount = _fixedAmount;
-      final orderData = await api.createPaymentOrder(amount, "INR");
+      final amount = _currentAmount;
+      final orderData = await api.createPaymentOrder(
+        amount,
+        "INR",
+        plan: _selectedPlan,
+      );
       final orderId = orderData['id']?.toString() ?? "";
       final keyId =
           orderData['key_id']?.toString() ?? 'rzp_test_1DP5mmOlF5G5ag';
@@ -187,7 +185,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
         icon = Icons.warning_rounded;
         break;
       case SnackBarType.info:
-        bgColor = AppColors.textPrimary;
+        bgColor = Theme.of(context).colorScheme.onSurface;
         icon = Icons.info_rounded;
         break;
     }
@@ -239,10 +237,10 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
       child: Scaffold(
         backgroundColor: theme.scaffoldBackgroundColor,
         appBar: AppBar(
-          title: const Text(""), // Minimalist Header
-          backgroundColor: Colors.transparent,
+          title: const Text("Payments"),
+          backgroundColor: isDark ? Colors.transparent : theme.primaryColor,
           elevation: 0,
-          foregroundColor: theme.textTheme.bodyLarge?.color,
+          foregroundColor: Colors.white,
         ),
         body: SafeArea(
           child: Column(
@@ -253,22 +251,108 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const SizedBox(height: 10),
-                      Text(
-                        "Premium Access",
-                        style: theme.textTheme.headlineLarge?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: theme.colorScheme.primary,
+                      const SizedBox(height: 8),
+                      // Premium Card
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(24),
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [
+                              AppColors.primary,
+                              AppColors.primary.withValues(alpha: 0.7),
+                            ],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          borderRadius: BorderRadius.circular(24),
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppColors.primary.withValues(alpha: 0.3),
+                              blurRadius: 20,
+                              offset: const Offset(0, 10),
+                            ),
+                          ],
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  "PREMIUM",
+                                  style: TextStyle(
+                                    color: Colors.white.withValues(alpha: 0.9),
+                                    fontWeight: FontWeight.w900,
+                                    letterSpacing: 1.5,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                                const Icon(
+                                  Icons.star_rounded,
+                                  color: Colors.white,
+                                  size: 28,
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 16),
+                            const Text(
+                              "Unlock All Features",
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 28,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              "Get full access to live tracking, detailed reports, and priority support.",
+                              style: TextStyle(
+                                color: Colors.white.withValues(alpha: 0.8),
+                                fontSize: 14,
+                                height: 1.4,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                      const SizedBox(height: 12),
                       Text(
-                        "Get full access to live tracking, detailed reports, and priority support.",
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: theme.textTheme.bodyMedium?.color?.withValues(
-                            alpha: 0.7,
-                          ),
+                        "Plan Benefits",
+                        style: theme.textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.bold,
                         ),
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Plan Selection
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _buildPlanCard(
+                              title: "Monthly",
+                              price: "₹20",
+                              duration: "1 Month",
+                              isSelected: _selectedPlan == 'monthly',
+                              onTap: () =>
+                                  setState(() => _selectedPlan = 'monthly'),
+                              theme: theme,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: _buildPlanCard(
+                              title: "Semesterly",
+                              price: "₹60",
+                              duration: "4 Months",
+                              isSelected: _selectedPlan == 'semester',
+                              onTap: () =>
+                                  setState(() => _selectedPlan = 'semester'),
+                              theme: theme,
+                              isBestValue: true,
+                            ),
+                          ),
+                        ],
                       ),
                       const SizedBox(height: 32),
 
@@ -309,31 +393,60 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
                       ),
 
                       // Feature Comparison Table
-                      _buildFeatureRow("Live Bus Tracking", true, true, theme),
-                      _buildFeatureRow(
-                        "Arrival Alerts (2 Stops Away)", // Renamed as requested
-                        false, // Standard: No
-                        true, // Premium: Yes
-                        theme,
-                      ),
-                      _buildFeatureRow(
-                        "Detailed Analytics",
-                        false,
-                        true,
-                        theme,
-                      ),
-                      _buildFeatureRow(
-                        "Ad-Free Experience",
-                        false,
-                        true,
-                        theme,
-                      ),
-                      _buildFeatureRow("Priority Support", false, true, theme),
-                      _buildFeatureRow(
-                        "Early Access Features",
-                        false,
-                        true,
-                        theme,
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: theme.cardColor,
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                            color: theme.dividerColor.withValues(alpha: 0.1),
+                          ),
+                        ),
+                        child: Column(
+                          children: [
+                            _buildFeatureRow(
+                              "Live Bus Tracking",
+                              true,
+                              true,
+                              theme,
+                            ),
+                            const Divider(),
+                            _buildFeatureRow(
+                              "Arrival Alerts (2 Stops Away)",
+                              false,
+                              true,
+                              theme,
+                            ),
+                            const Divider(),
+                            _buildFeatureRow(
+                              "Detailed Analytics",
+                              false,
+                              true,
+                              theme,
+                            ),
+                            const Divider(),
+                            _buildFeatureRow(
+                              "Ad-Free Experience",
+                              false,
+                              true,
+                              theme,
+                            ),
+                            const Divider(),
+                            _buildFeatureRow(
+                              "Priority Support",
+                              false,
+                              true,
+                              theme,
+                            ),
+                            const Divider(),
+                            _buildFeatureRow(
+                              "Early Access Features",
+                              false,
+                              true,
+                              theme,
+                            ),
+                          ],
+                        ),
                       ),
 
                       const SizedBox(height: 24),
@@ -373,7 +486,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
                             elevation: 0,
                           ),
                           child: Text(
-                            "Pay ₹$_fixedAmount",
+                            "Pay ₹$_currentAmount",
                             style: const TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
@@ -381,21 +494,128 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
                           ),
                         ),
                       ),
-                    const SizedBox(height: 12),
-                    Text(
-                      "One-time payment. Secure & Encrypted.",
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.textTheme.bodySmall?.color?.withValues(
-                          alpha: 0.5,
+                    const SizedBox(height: 16),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.security_rounded,
+                          size: 14,
+                          color: theme.colorScheme.primary.withValues(
+                            alpha: 0.6,
+                          ),
                         ),
-                        fontSize: 12,
-                      ),
+                        const SizedBox(width: 8),
+                        Text(
+                          "Secured by Razorpay. Encrypted Payment.",
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.textTheme.bodySmall?.color?.withValues(
+                              alpha: 0.5,
+                            ),
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPlanCard({
+    required String title,
+    required String price,
+    required String duration,
+    required bool isSelected,
+    required VoidCallback onTap,
+    required ThemeData theme,
+    bool isBestValue = false,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? theme.colorScheme.primary.withValues(alpha: 0.1)
+              : theme.cardColor,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: isSelected
+                ? theme.colorScheme.primary
+                : theme.dividerColor.withValues(alpha: 0.1),
+            width: isSelected ? 2 : 1,
+          ),
+        ),
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                    color: isSelected
+                        ? theme.colorScheme.primary
+                        : theme.textTheme.bodyLarge?.color?.withValues(
+                            alpha: 0.6,
+                          ),
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  price,
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 24,
+                    color: theme.textTheme.bodyLarge?.color,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  duration,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: theme.textTheme.bodySmall?.color?.withValues(
+                      alpha: 0.6,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            if (isBestValue)
+              Positioned(
+                top: -12,
+                right: -12,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.orange,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Text(
+                    "SAVE 25%",
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 8,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ),
+          ],
         ),
       ),
     );

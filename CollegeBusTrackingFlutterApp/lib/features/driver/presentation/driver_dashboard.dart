@@ -50,7 +50,6 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
   RouteModel? _selectedRoute;
 
   Set<Marker> _markers = {};
-  Set<Polyline> _polylines = {};
 
   @override
   void initState() {
@@ -240,25 +239,8 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
         ),
       );
     }
-    final polylinePoints = [
-      startCoord,
-      ...route.stopPoints.map(
-        (s) => s.lat != 0
-            ? LatLng(s.lat, s.lng)
-            : _getMockCoordinateForLocation(s.name),
-      ),
-      endCoord,
-    ];
     setState(() {
       _markers = markers;
-      _polylines = {
-        Polyline(
-          polylineId: const PolylineId('route'),
-          points: polylinePoints,
-          color: AppColors.primary,
-          width: 4,
-        ),
-      };
     });
   }
 
@@ -986,7 +968,7 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
             CommonMapView(
               currentLocation: _currentLocation,
               markers: _markers,
-              polylines: _polylines,
+              polylines: const {},
               onMapCreated: (controller) {},
               initialZoom: 17.0,
             ).expand(),

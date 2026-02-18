@@ -1,4 +1,5 @@
 import 'package:collegebus/features/user/domain/user_model.dart';
+import 'package:collegebus/features/payment/domain/transaction_model.dart';
 import 'package:collegebus/features/college/domain/college_model.dart';
 import 'package:collegebus/features/bus/domain/bus_model.dart';
 import 'package:collegebus/features/sos/domain/sos_model.dart';
@@ -13,6 +14,7 @@ class CollegeAdminService extends ChangeNotifier {
   final CollegeRepository _collegeRepo = CollegeRepository();
   final UserRepository _userRepo = UserRepository();
   final BusRepository _busRepo = BusRepository();
+  final PaymentRepository _paymentRepo = PaymentRepository();
 
   bool _isLoading = false;
   String? _error;
@@ -22,6 +24,7 @@ class CollegeAdminService extends ChangeNotifier {
   final Map<String, BusLocationModel> _fleetLocations = {};
   List<SosModel> _activeSos = [];
   List<SosModel> _sosLogs = [];
+  List<TransactionModel> _transactions = [];
   CollegeModel? _college;
 
   // Socket management
@@ -38,6 +41,7 @@ class CollegeAdminService extends ChangeNotifier {
   Map<String, BusLocationModel> get fleetLocations => _fleetLocations;
   List<SosModel> get activeSos => _activeSos;
   List<SosModel> get sosLogs => _sosLogs;
+  List<TransactionModel> get transactions => _transactions;
   CollegeModel? get college => _college;
 
   CollegeAdminService({SocketService? socketService})
@@ -94,10 +98,41 @@ class CollegeAdminService extends ChangeNotifier {
       AppLogger.d('DEBUG: Loading SOS Logs...');
       await fetchSosLogs(collegeId);
 
+      AppLogger.d('DEBUG: Loading Transactions for $collegeId...');
+      await fetchTransactions(collegeId: collegeId);
+
       AppLogger.d('College Dashboard fully loaded for $collegeId');
     } catch (e) {
       _error = e.toString();
       AppLogger.e('Failed to load college dashboard: $e');
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> fetchTransactions({
+    required String collegeId,
+    String? plan,
+    DateTime? startDate,
+    DateTime? endDate,
+  }) async {
+    try {
+      _isLoading = true;
+      notifyListeners();
+      final transData = await _paymentRepo.getTransactions(
+        collegeId: collegeId,
+        plan: plan,
+        startDate: startDate,
+        endDate: endDate,
+      );
+      _transactions = transData
+          .map((m) => TransactionModel.fromJson(m))
+          .toList();
+      _error = null;
+    } catch (e) {
+      _error = e.toString();
+      AppLogger.e('Error fetching college transactions: $e');
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -279,8 +314,3 @@ class CollegeAdminService extends ChangeNotifier {
     }
   }
 }
-
-
-
-
-

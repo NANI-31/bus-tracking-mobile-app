@@ -15,6 +15,7 @@ import 'dart:async';
 // New Tab Imports
 import 'package:collegebus/features/college_admin/presentation/tabs/overview_tab.dart';
 import 'package:collegebus/features/college_admin/presentation/tabs/users_tab.dart';
+import 'package:collegebus/features/college_admin/presentation/tabs/transactions_tab.dart';
 import 'package:collegebus/features/college_admin/presentation/tabs/settings_tab.dart';
 import 'package:collegebus/shared/widgets/logout_confirmation_dialog.dart';
 
@@ -49,14 +50,14 @@ class _CollegeAdminDashboardState extends ConsumerState<CollegeAdminDashboard> {
     // Check for initial message that opened the app
     final initialMessage = FCMService().initialMessage;
     if (initialMessage != null && initialMessage.data['type'] == 'SOS') {
-      _currentIndex = 3;
+      _currentIndex = 3; // Emergency tab (now 3)
       FCMService().consumeInitialMessage();
     }
 
     _fcmTapSubscription = FCMService().tapStream.listen((message) {
       if (message.data['type'] == 'SOS') {
         setState(() {
-          _currentIndex = 3; // Emergency tab
+          _currentIndex = 3; // Emergency tab (now 3)
         });
       }
     });
@@ -178,6 +179,11 @@ class _CollegeAdminDashboardState extends ConsumerState<CollegeAdminDashboard> {
             selectedIcon: Icon(Icons.people),
             label: 'Users',
           ),
+          const NavigationDestination(
+            icon: Icon(Icons.receipt_long_outlined),
+            selectedIcon: Icon(Icons.receipt_long),
+            label: 'Transactions',
+          ),
           NavigationDestination(
             icon: Badge(
               label: Text('${collegeAdminService.activeSos.length}'),
@@ -212,13 +218,15 @@ class _CollegeAdminDashboardState extends ConsumerState<CollegeAdminDashboard> {
       case 1:
         return const UsersTab();
       case 2:
-        return const SosDashboard();
+        return const CollegeAdminTransactionsTab();
       case 3:
+        return const SosDashboard();
+      case 4:
         return LiveFleetMap(
           buses: collegeAdminService.collegeBuses,
           collegeId: collegeId,
         );
-      case 4:
+      case 5:
         return const SettingsTab();
       default:
         return const Center(child: Text('Tab under construction'));

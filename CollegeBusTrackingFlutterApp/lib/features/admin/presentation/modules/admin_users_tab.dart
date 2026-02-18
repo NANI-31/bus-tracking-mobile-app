@@ -13,7 +13,7 @@ class AdminUsersTab extends ConsumerWidget {
 
     return usersAsync.when(
       data: (users) => users.isEmpty
-          ? _buildEmptyState()
+          ? _buildEmptyState(context)
           : ListView.builder(
               padding: const EdgeInsets.all(AppSizes.paddingMedium),
               itemCount: users.length,
@@ -63,20 +63,22 @@ class AdminUsersTab extends ConsumerWidget {
     );
   }
 
-  Widget _buildEmptyState() {
+  Widget _buildEmptyState(BuildContext context) {
     return VStack(
       [
-        Icon(Icons.people_outlined, size: 64, color: AppColors.textSecondary),
+        Icon(
+          Icons.people_outlined,
+          size: 64,
+          color: context.colorScheme.onSurface.withValues(alpha: 0.4),
+        ),
         AppSizes.paddingMedium.heightBox,
-        'No users found'.text.size(18).color(AppColors.textSecondary).make(),
+        'No users found'.text
+            .size(18)
+            .color(context.colorScheme.onSurface.withValues(alpha: 0.6))
+            .make(),
       ],
       alignment: MainAxisAlignment.center,
       crossAlignment: CrossAxisAlignment.center,
     ).centered();
   }
 }
-
-
-
-
-

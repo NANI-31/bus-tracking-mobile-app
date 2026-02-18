@@ -14,6 +14,7 @@ import 'package:collegebus/features/super_admin/presentation/tabs/configuration_
 import 'package:collegebus/features/super_admin/presentation/tabs/audit_tab.dart';
 import 'package:collegebus/features/super_admin/presentation/tabs/sos_logs_tab.dart';
 import 'package:collegebus/features/super_admin/presentation/tabs/safety_monitor_tab.dart';
+import 'package:collegebus/features/super_admin/presentation/tabs/transactions_tab.dart';
 import 'package:collegebus/features/super_admin/presentation/tabs/danger_zone_tab.dart';
 import 'package:collegebus/shared/widgets/logout_confirmation_dialog.dart';
 
@@ -179,6 +180,11 @@ class _SuperAdminDashboardState extends ConsumerState<SuperAdminDashboard> {
             selectedIcon: Icon(Icons.monitor_heart),
             label: Text('Safety Monitor'),
           ),
+          const NavigationDrawerDestination(
+            icon: Icon(Icons.receipt_long_outlined),
+            selectedIcon: Icon(Icons.receipt_long),
+            label: Text('Transactions'),
+          ),
           const Divider(),
           const NavigationDrawerDestination(
             icon: Icon(Icons.warning_amber_outlined),
@@ -238,8 +244,10 @@ class _SuperAdminDashboardState extends ConsumerState<SuperAdminDashboard> {
           colleges: saService.colleges,
         );
       case 6:
-        return SafetyMonitorTab(colleges: saService.colleges);
+        return TransactionsTab(transactions: saService.transactions);
       case 7:
+        return SafetyMonitorTab(colleges: saService.colleges);
+      case 8:
         return const DangerZoneTab();
       default:
         return const Center(child: Text('Tab under construction'));

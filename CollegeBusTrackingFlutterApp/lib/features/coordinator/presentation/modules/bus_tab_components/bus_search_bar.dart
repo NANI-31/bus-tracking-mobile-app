@@ -31,14 +31,14 @@ class BusSearchBar extends StatelessWidget {
           decoration: InputDecoration(
             hintText: hintText,
             hintStyle: TextStyle(
-              color: AppColors.textSecondary.withValues(alpha: 0.5),
+              color: context.colorScheme.onSurface.withValues(alpha: 0.4),
             ),
             border: InputBorder.none,
             isDense: true,
             contentPadding: EdgeInsets.zero,
             prefixIcon: Icon(
               Icons.search,
-              color: AppColors.textSecondary,
+              color: context.colorScheme.onSurface.withValues(alpha: 0.4),
               size: 28,
             ),
             suffixIcon: searchQuery.isNotEmpty
@@ -51,7 +51,7 @@ class BusSearchBar extends StatelessWidget {
         .color(context.cardColor)
         .withRounded(value: 35)
         .shadowSm
-        .border(color: Colors.grey.withValues(alpha: 0.2))
+        .border(color: context.colorScheme.onSurface.withValues(alpha: 0.1))
         .make()
         .pOnly(left: 16, right: 16, top: 16, bottom: 12);
   }

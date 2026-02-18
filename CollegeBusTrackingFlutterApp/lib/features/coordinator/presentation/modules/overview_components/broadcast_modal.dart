@@ -77,7 +77,7 @@ class _BroadcastModalState extends ConsumerState<BroadcastModal> {
               const SizedBox(height: 8),
               'Send an announcement to all students, teachers, and parents.'
                   .text
-                  .color(AppColors.textSecondary)
+                  .color(context.colorScheme.onSurface.withValues(alpha: 0.6))
                   .make(),
               const SizedBox(height: 20),
               TextField(
@@ -134,8 +134,3 @@ class _BroadcastModalState extends ConsumerState<BroadcastModal> {
     );
   }
 }
-
-
-
-
-

@@ -156,7 +156,9 @@ class _CoordinatorDashboardState extends ConsumerState<CoordinatorDashboard>
       context: context,
       barrierDismissible: false,
       builder: (ctx) => AlertDialog(
-        backgroundColor: Colors.red.shade900,
+        backgroundColor: context.isDarkMode
+            ? Color(0xFF420000)
+            : Colors.red.shade900,
         title: const Row(
           children: [
             Icon(Icons.report_problem_rounded, color: Colors.white, size: 32),
@@ -335,9 +337,10 @@ class _CoordinatorDashboardState extends ConsumerState<CoordinatorDashboard>
                                       DateFormat(
                                         'hh:mm a',
                                       ).format(sos.timestamp.toLocal()),
-                                      style: const TextStyle(
+                                      style: TextStyle(
                                         fontSize: 12,
-                                        color: Colors.grey,
+                                        color: context.colorScheme.onSurface
+                                            .withValues(alpha: 0.5),
                                       ),
                                     ),
                                   ],
@@ -466,14 +469,12 @@ class _CoordinatorDashboardState extends ConsumerState<CoordinatorDashboard>
           ? AppBar(
               title: Text(l10n.dashboardTitle),
               backgroundColor: Theme.of(context).primaryColor,
-              foregroundColor: Theme.of(context).colorScheme.onPrimary,
+              foregroundColor: Colors.white,
               bottom: TabBar(
                 controller: _tabController,
-                labelColor: Theme.of(context).colorScheme.onPrimary,
-                unselectedLabelColor: Theme.of(
-                  context,
-                ).colorScheme.onPrimary.withValues(alpha: 0.7),
-                indicatorColor: Theme.of(context).colorScheme.onPrimary,
+                labelColor: Colors.white,
+                unselectedLabelColor: Colors.white.withValues(alpha: 0.7),
+                indicatorColor: Colors.white,
                 isScrollable: true,
                 tabs: [
                   Tab(text: l10n.overview, icon: const Icon(Icons.dashboard)),

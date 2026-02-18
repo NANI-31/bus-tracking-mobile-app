@@ -1,6 +1,13 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
+extension ThemeContext on BuildContext {
+  ColorScheme get colorScheme => Theme.of(this).colorScheme;
+  TextTheme get textTheme => Theme.of(this).textTheme;
+  ThemeData get theme => Theme.of(this);
+  bool get isDarkMode => Theme.of(this).brightness == Brightness.dark;
+}
+
 // ... (AppColors, AppTheme, AppSizes, AppStrings classes remain unchanged)
 
 class AppColors {
@@ -53,20 +60,6 @@ class AppColors {
   // --- Legacy/Direct Access (Backward Compatibility) ---
   static const Color primary = turkishBlue;
   static const Color secondary = coolSlate;
-
-  // Light Mode Fallbacks
-  static const Color background = lightBackground;
-  static const Color surface = lightSurface;
-  static const Color onPrimary = lightOnPrimary;
-  static const Color onSecondary = lightOnSecondary;
-  static const Color onBackground = lightOnSurface;
-  static const Color onSurface = lightOnSurface;
-  static const Color textPrimary = lightOnSurface;
-  static const Color textSecondary = AppColors.coolSlate;
-
-  // Dark Mode Fallbacks
-  static const Color darkTextPrimary = darkOnSurface;
-  static const Color darkTextSecondary = Color(0xFFB0BEC5);
 }
 
 class AppTheme {
@@ -157,11 +150,10 @@ class AppTheme {
     ),
     cardTheme: CardThemeData(
       color: AppColors.darkSurface,
-      elevation:
-          0, // Flat in dark mode usually looks better with outline or different color
+      elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
-        side: BorderSide(color: Colors.white.withValues(alpha: 0.05), width: 1),
+        side: BorderSide(color: Colors.white.withValues(alpha: 0.1), width: 1),
       ),
     ),
     elevatedButtonTheme: ElevatedButtonThemeData(

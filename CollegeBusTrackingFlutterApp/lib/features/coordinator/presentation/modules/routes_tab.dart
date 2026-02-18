@@ -25,7 +25,15 @@ class RoutesTab extends ConsumerWidget {
     return VStack([
       HStack(
         [
-          l10n.routes.text.size(20).bold.make(),
+          l10n.routes.text
+              .size(20)
+              .bold
+              .color(
+                Theme.of(context).brightness == Brightness.dark
+                    ? Colors.white
+                    : context.colorScheme.onSurface,
+              )
+              .make(),
           ElevatedButton.icon(
             onPressed: () async {
               final result = await Navigator.push(
@@ -39,8 +47,8 @@ class RoutesTab extends ConsumerWidget {
             icon: const Icon(Icons.add),
             label: Text(l10n.createRoute),
             style: ElevatedButton.styleFrom(
-              backgroundColor: Theme.of(context).primaryColor,
-              foregroundColor: Theme.of(context).colorScheme.onPrimary,
+              backgroundColor: AppColors.primary,
+              foregroundColor: Colors.white,
             ),
           ),
         ],
@@ -61,12 +69,16 @@ class RoutesTab extends ConsumerWidget {
                   AppSizes.paddingMedium.heightBox,
                   l10n.noRoutesCreated.text
                       .size(18)
-                      .color(AppColors.textSecondary)
+                      .color(
+                        context.colorScheme.onSurface.withValues(alpha: 0.6),
+                      )
                       .make(),
                   AppSizes.paddingSmall.heightBox,
                   l10n.createRoutesPrompt.text
                       .size(14)
-                      .color(AppColors.textSecondary)
+                      .color(
+                        context.colorScheme.onSurface.withValues(alpha: 0.4),
+                      )
                       .center
                       .make(),
                 ],

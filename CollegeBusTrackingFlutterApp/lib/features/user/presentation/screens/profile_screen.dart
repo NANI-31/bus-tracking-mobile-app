@@ -50,63 +50,108 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         drawer: null,
         appBar: AppBar(
           title: Text(l10n.profile),
-          backgroundColor: Theme.of(context).primaryColor,
-          foregroundColor: Theme.of(context).colorScheme.onPrimary,
+          backgroundColor: isDark
+              ? Colors.transparent
+              : Theme.of(context).primaryColor,
+          foregroundColor: Colors.white,
           elevation: 0,
         ),
         body: VStack([
           // Header Section
           VxBox(
                 child: VStack([
-                  16.heightBox,
-                  CircleAvatar(
-                    radius: 50,
-                    backgroundColor: Theme.of(context).colorScheme.surface,
-                    child:
-                        (user.fullName.isNotEmpty
-                                ? user.fullName.substring(0, 1).toUpperCase()
-                                : 'U')
-                            .text
-                            .size(36)
-                            .bold
-                            .color(Theme.of(context).primaryColor)
-                            .make(),
+                  24.heightBox,
+                  // Avatar with glow
+                  Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: user.isPremium
+                            ? Colors.amber
+                            : Colors.white.withValues(alpha: 0.2),
+                        width: 2,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: user.isPremium
+                              ? Colors.amber.withValues(alpha: 0.3)
+                              : Colors.black.withValues(alpha: 0.1),
+                          blurRadius: 20,
+                          spreadRadius: 5,
+                        ),
+                      ],
+                    ),
+                    child: CircleAvatar(
+                      radius: 50,
+                      backgroundColor: Colors.white.withValues(alpha: 0.9),
+                      child: Stack(
+                        alignment: Alignment.bottomRight,
+                        children: [
+                          Center(
+                            child:
+                                (user.fullName.isNotEmpty
+                                        ? user.fullName
+                                              .substring(0, 1)
+                                              .toUpperCase()
+                                        : 'U')
+                                    .text
+                                    .size(36)
+                                    .bold
+                                    .color(AppColors.primary)
+                                    .make(),
+                          ),
+                          if (user.isPremium)
+                            const Icon(
+                              Icons.verified_rounded,
+                              color: Colors.amber,
+                              size: 28,
+                            ),
+                        ],
+                      ),
+                    ),
                   ),
-                  16.heightBox,
-                  user.fullName.text
-                      .size(24)
-                      .bold
-                      .color(Theme.of(context).colorScheme.onPrimary)
-                      .make(),
-                  8.heightBox,
+                  20.heightBox,
+                  user.fullName.text.size(26).bold.color(Colors.white).make(),
+                  4.heightBox,
                   user.email.text
                       .size(14)
-                      .color(
-                        Theme.of(
-                          context,
-                        ).colorScheme.onPrimary.withValues(alpha: 0.8),
-                      )
+                      .color(Colors.white.withValues(alpha: 0.7))
                       .make(),
+                  24.heightBox,
                 ], crossAlignment: CrossAxisAlignment.center),
               )
               .width(double.infinity)
-              .color(Theme.of(context).primaryColor)
-              .customRounded(
-                const BorderRadius.only(
-                  bottomLeft: Radius.circular(32),
-                  bottomRight: Radius.circular(32),
+              .withGradient(
+                LinearGradient(
+                  colors: [
+                    isDark
+                        ? AppColors.primary.withValues(alpha: 0.8)
+                        : AppColors.primary,
+                    isDark
+                        ? context.colorScheme.primaryContainer
+                        : AppColors.primary.withValues(alpha: 0.8),
+                  ],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
                 ),
               )
+              .customRounded(
+                const BorderRadius.only(
+                  bottomLeft: Radius.circular(40),
+                  bottomRight: Radius.circular(40),
+                ),
+              )
+              .shadow2xl
               .make()
-              .pOnly(bottom: 32),
+              .pOnly(bottom: 24),
 
           24.heightBox,
 
           // Sections
           VStack([
-            // 1. Quick Stats Column
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
+            // 1. Quick Stats Grid
+            Row(
               children: [
                 _buildStatCard(
                   context,
@@ -114,31 +159,25 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   user.role.displayName,
                   Icons.badge_rounded,
                   Colors.blue,
-                  fullWidth: true,
-                ),
-
-                12.heightBox,
-
+                ).expand(),
+                12.widthBox,
                 _buildStatCard(
                   context,
                   l10n.collegeId,
                   user.collegeId.isNotEmpty ? user.collegeId : 'N/A',
                   Icons.school_rounded,
                   Colors.purple,
-                  fullWidth: true,
-                ),
-
-                12.heightBox,
-
-                _buildStatCard(
-                  context,
-                  l10n.phone,
-                  user.phoneNumber ?? 'Not provided',
-                  Icons.phone_rounded,
-                  Colors.teal,
-                  fullWidth: true,
-                ),
+                ).expand(),
               ],
+            ),
+            12.heightBox,
+            _buildStatCard(
+              context,
+              l10n.phone,
+              user.phoneNumber ?? 'Not provided',
+              Icons.phone_rounded,
+              Colors.teal,
+              fullWidth: true,
             ),
             // Divider or spacing
             24.heightBox,
@@ -250,10 +289,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   leadingIcon: Icons.payment_rounded,
                   iconColor: TwColors.green.i400, // Green for money
                   title: "Payments",
-                  subtitle: "Pay fees & dues",
+                  subtitle: user.isPremium && user.premiumUntil != null
+                      ? "Premium active until ${user.premiumUntil!.day}/${user.premiumUntil!.month}/${user.premiumUntil!.year}"
+                      : "Pay fees & dues",
                   onTap: () => Navigator.of(context).push(
                     MaterialPageRoute(builder: (_) => const PaymentScreen()),
-                  ), // Using direct push for now or can register route
+                  ),
                   showDivider: false,
                 ),
               ],

@@ -1,11 +1,15 @@
 import 'package:collegebus/core/data/base_repository.dart';
 
 class PaymentRepository extends BaseRepository {
-  Future<Map<String, dynamic>> createOrder(int amount, String currency) async {
+  Future<Map<String, dynamic>> createOrder(
+    int amount,
+    String currency, {
+    String? plan,
+  }) async {
     try {
       final response = await dio.post(
         '/payment/create-order',
-        data: {'amount': amount, 'currency': currency},
+        data: {'amount': amount, 'currency': currency, 'plan': plan},
       );
       return response.data;
     } catch (e) {
@@ -32,9 +36,29 @@ class PaymentRepository extends BaseRepository {
       throw handleError(e);
     }
   }
+
+  Future<List<dynamic>> getTransactions({
+    String? plan,
+    DateTime? startDate,
+    DateTime? endDate,
+    String? collegeId,
+  }) async {
+    try {
+      final queryParams = <String, dynamic>{};
+      if (plan != null) queryParams['plan'] = plan;
+      if (startDate != null) {
+        queryParams['startDate'] = startDate.toIso8601String();
+      }
+      if (endDate != null) queryParams['endDate'] = endDate.toIso8601String();
+      if (collegeId != null) queryParams['collegeId'] = collegeId;
+
+      final response = await dio.get(
+        '/payment/transactions',
+        queryParameters: queryParams,
+      );
+      return response.data as List<dynamic>;
+    } catch (e) {
+      throw handleError(e);
+    }
+  }
 }
-
-
-
-
-

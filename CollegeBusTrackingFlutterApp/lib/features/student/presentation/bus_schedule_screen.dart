@@ -340,7 +340,7 @@ class _BusScheduleScreenState extends ConsumerState<BusScheduleScreen> {
                             child: _buildFilterSelector(
                               label: 'Bus',
                               value: _selectedBusNumber,
-                              placeholder: 'All',
+                              placeholder: 'Bus',
                               icon: Icons.directions_bus_rounded,
                               isActive: _activeFilterType == 'bus',
                               onTap: () => _toggleFilter('bus'),
@@ -351,7 +351,7 @@ class _BusScheduleScreenState extends ConsumerState<BusScheduleScreen> {
                             child: _buildFilterSelector(
                               label: 'Route',
                               value: _selectedRoute,
-                              placeholder: 'All',
+                              placeholder: 'Route',
                               icon: Icons.alt_route_rounded,
                               isActive: _activeFilterType == 'route',
                               onTap: () => _toggleFilter('route'),
@@ -363,7 +363,7 @@ class _BusScheduleScreenState extends ConsumerState<BusScheduleScreen> {
                       _buildFilterSelector(
                         label: 'Stop Name',
                         value: _selectedStop,
-                        placeholder: 'Search Stop',
+                        placeholder: 'Stop Name',
                         icon: Icons.location_on_rounded,
                         isActive: _activeFilterType == 'stop',
                         onTap: () => _toggleFilter('stop'),
@@ -793,6 +793,9 @@ class _BusScheduleScreenState extends ConsumerState<BusScheduleScreen> {
     required bool isActive,
     required VoidCallback onTap,
   }) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final primaryColor = Theme.of(context).primaryColor;
+
     return GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
@@ -803,9 +806,11 @@ class _BusScheduleScreenState extends ConsumerState<BusScheduleScreen> {
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
             color: isActive
-                ? Theme.of(context).primaryColor
-                : Colors.transparent,
-            width: isActive ? 1.5 : 0.0,
+                ? primaryColor
+                : isDarkMode
+                ? Colors.white.withValues(alpha: 0.1)
+                : primaryColor.withValues(alpha: 0.2),
+            width: isActive ? 1.5 : 1.0,
           ),
         ),
         child: Row(
@@ -814,54 +819,33 @@ class _BusScheduleScreenState extends ConsumerState<BusScheduleScreen> {
               icon,
               size: 20,
               color: isActive
-                  ? Theme.of(context).primaryColor
-                  : (Theme.of(context).brightness == Brightness.dark
-                        ? Colors.white.withValues(alpha: 0.7)
-                        : Theme.of(
-                            context,
-                          ).primaryColor.withValues(alpha: 0.7)),
+                  ? primaryColor
+                  : isDarkMode
+                  ? Colors.white.withValues(alpha: 0.5)
+                  : primaryColor.withValues(alpha: 0.5),
             ),
             const SizedBox(width: 10),
             Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    label,
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.bold,
-                      color: Theme.of(context).brightness == Brightness.dark
-                          ? Colors.white.withValues(alpha: isActive ? 1.0 : 0.7)
-                          : Theme.of(context).primaryColor.withValues(
-                              alpha: isActive ? 1.0 : 0.6,
-                            ),
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  Text(
-                    value ?? placeholder,
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: value != null
-                          ? Theme.of(context).colorScheme.onSurface
-                          : Theme.of(
-                              context,
-                            ).colorScheme.onSurface.withValues(alpha: 0.4),
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
+              child: Text(
+                value ?? placeholder,
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.bold,
+                  color: value != null
+                      ? Theme.of(context).colorScheme.onSurface
+                      : Theme.of(
+                          context,
+                        ).colorScheme.onSurface.withValues(alpha: 0.4),
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
             ),
             Icon(
               isActive
                   ? Icons.keyboard_arrow_up_rounded
                   : Icons.keyboard_arrow_down_rounded,
-              color: Theme.of(context).primaryColor,
+              color: primaryColor.withValues(alpha: 0.6),
               size: 20,
             ),
           ],

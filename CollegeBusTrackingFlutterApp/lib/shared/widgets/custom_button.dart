@@ -53,7 +53,7 @@ class CustomButton extends StatelessWidget {
               onPressed: isLoading ? null : onPressed,
               style: ElevatedButton.styleFrom(
                 backgroundColor: backgroundColor ?? AppColors.primary,
-                foregroundColor: textColor ?? AppColors.onPrimary,
+                foregroundColor: textColor ?? Colors.white,
                 elevation: 2,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(
@@ -80,7 +80,7 @@ class CustomButton extends StatelessWidget {
 
     final contentColor = isOutlined
         ? (backgroundColor ?? AppColors.primary)
-        : (textColor ?? AppColors.onPrimary);
+        : (textColor ?? Colors.white);
 
     if (icon != null) {
       return HStack([
@@ -93,8 +93,3 @@ class CustomButton extends StatelessWidget {
     return text.text.size(16).semiBold.color(contentColor).make();
   }
 }
-
-
-
-
-

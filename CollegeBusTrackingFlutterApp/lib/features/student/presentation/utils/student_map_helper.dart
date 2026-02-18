@@ -45,29 +45,6 @@ class StudentMapHelper {
     );
   }
 
-  static Polyline createRoutePolyline({
-    required BusModel bus,
-    required RouteModel route,
-    required LatLng? currentLocation,
-  }) {
-    final routePoints = <LatLng>[];
-
-    routePoints.add(_getPointLocation(route.startPoint, currentLocation));
-
-    for (final stop in route.stopPoints) {
-      routePoints.add(_getPointLocation(stop, currentLocation));
-    }
-
-    routePoints.add(_getPointLocation(route.endPoint, currentLocation));
-
-    return Polyline(
-      polylineId: PolylineId('route_${bus.id}'),
-      points: routePoints,
-      color: Colors.blue,
-      width: 4,
-    );
-  }
-
   static List<Marker> createStopMarkers({
     required BusModel bus,
     required RouteModel route,

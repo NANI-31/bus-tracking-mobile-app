@@ -29,13 +29,13 @@ export class CollegeService {
       await Bus.create({
         collegeId,
         busNumber,
-        isActive: false,
+        isActive: true,
         status: "not-running",
         assignmentStatus: "unassigned",
       });
 
       // Invalidate caches
-      await delCache("all_buses");
+      await delCache("buses:all");
       await delCache(`buses:${collegeId}`);
     }
 
@@ -79,7 +79,7 @@ export class CollegeService {
     );
 
     // Invalidate caches
-    await delCache("all_buses");
+    await delCache("buses:all");
     await delCache(`buses:${collegeId}`);
 
     this.broadcastBusListUpdate(collegeId);

@@ -49,6 +49,7 @@ export interface IUser extends Document {
     coordinates: number[]; // [lng, lat]
   };
   isPremium: boolean;
+  premiumUntil?: Date;
   isLoggedIn: boolean;
   tokenVersion: number;
 }
@@ -111,6 +112,7 @@ const UserSchema: Schema = new Schema({
     coordinates: { type: [Number] }, // [lng, lat]
   },
   isPremium: { type: Boolean, default: false },
+  premiumUntil: { type: Date },
   isLoggedIn: { type: Boolean, default: false },
   tokenVersion: { type: Number, default: 0 },
 });

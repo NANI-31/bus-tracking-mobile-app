@@ -13,7 +13,7 @@ class AdminCollegesTab extends ConsumerWidget {
 
     return collegesAsync.when(
       data: (colleges) => colleges.isEmpty
-          ? _buildEmptyState()
+          ? _buildEmptyState(context)
           : ListView.builder(
               padding: const EdgeInsets.all(AppSizes.paddingMedium),
               itemCount: colleges.length,
@@ -69,14 +69,18 @@ class AdminCollegesTab extends ConsumerWidget {
     );
   }
 
-  Widget _buildEmptyState() {
+  Widget _buildEmptyState(BuildContext context) {
     return VStack(
       [
-        Icon(Icons.school_outlined, size: 64, color: AppColors.textSecondary),
+        Icon(
+          Icons.school_outlined,
+          size: 64,
+          color: context.colorScheme.onSurface.withValues(alpha: 0.4),
+        ),
         AppSizes.paddingMedium.heightBox,
         'No colleges registered yet'.text
             .size(18)
-            .color(AppColors.textSecondary)
+            .color(context.colorScheme.onSurface.withValues(alpha: 0.6))
             .make(),
       ],
       alignment: MainAxisAlignment.center,
@@ -84,8 +88,3 @@ class AdminCollegesTab extends ConsumerWidget {
     ).centered();
   }
 }
-
-
-
-
-

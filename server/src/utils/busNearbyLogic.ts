@@ -19,7 +19,11 @@ export const checkAndNotifyBusNearby = async (
     const users = await User.find({
       routeId: routeId,
       fcmToken: { $exists: true, $ne: "" },
-      isPremium: true, // Only notify premium users
+      isPremium: true,
+      $or: [
+        { premiumUntil: { $exists: false } },
+        { premiumUntil: { $gt: new Date() } },
+      ],
       stopLocationGeo: {
         $near: {
           $geometry: {

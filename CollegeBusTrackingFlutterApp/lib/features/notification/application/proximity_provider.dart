@@ -57,6 +57,13 @@ class ProximityNotifier extends AsyncNotifier<void> {
     // Only Premium users go Proximity Alerts
     if (!isPremium) return;
 
+    // Check expiry
+    final user = ref.read(currentUserProvider);
+    if (user?.premiumUntil != null &&
+        user!.premiumUntil!.isBefore(DateTime.now())) {
+      return;
+    }
+
     for (final loc in locations) {
       // Find the bus details to get its routeId
       final bus = buses.firstWhere(

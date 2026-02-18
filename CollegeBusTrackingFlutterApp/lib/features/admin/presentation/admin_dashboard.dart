@@ -66,9 +66,11 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard>
         ],
         bottom: TabBar(
           controller: _tabController,
-          labelColor: AppColors.onPrimary,
-          unselectedLabelColor: AppColors.onPrimary.withValues(alpha: 0.7),
-          indicatorColor: AppColors.onPrimary,
+          labelColor: context.colorScheme.onPrimary,
+          unselectedLabelColor: context.colorScheme.onPrimary.withValues(
+            alpha: 0.7,
+          ),
+          indicatorColor: context.colorScheme.onPrimary,
           tabs: const [
             Tab(text: 'Overview', icon: Icon(Icons.dashboard)),
             Tab(text: 'Colleges', icon: Icon(Icons.school)),

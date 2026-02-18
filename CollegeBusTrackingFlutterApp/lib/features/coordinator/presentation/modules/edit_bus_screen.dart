@@ -94,7 +94,7 @@ class _EditBusScreenState extends ConsumerState<EditBusScreen> {
         title: const Text('Edit Bus'),
         backgroundColor: Colors.transparent,
         elevation: 0,
-        foregroundColor: AppColors.textPrimary,
+        foregroundColor: Theme.of(context).colorScheme.onSurface,
       ),
       body: routesAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
@@ -109,7 +109,7 @@ class _EditBusScreenState extends ConsumerState<EditBusScreen> {
                 'Bus Details'.text.bold.xl2.make(),
                 const SizedBox(height: 8),
                 'Modify the bus identifier and its default assigned route.'.text
-                    .color(AppColors.textSecondary)
+                    .color(context.colorScheme.onSurface.withValues(alpha: 0.6))
                     .make(),
                 const SizedBox(height: 32),
 
@@ -197,8 +197,3 @@ class _EditBusScreenState extends ConsumerState<EditBusScreen> {
     );
   }
 }
-
-
-
-
-

@@ -426,8 +426,8 @@ class _ScheduleManagementScreenState
                   buses: busesAsync.value ?? [],
                 );
               },
-              backgroundColor: Theme.of(context).primaryColor,
-              foregroundColor: Theme.of(context).colorScheme.onPrimary,
+              backgroundColor: AppColors.primary,
+              foregroundColor: Colors.white,
               label: const Text('Add Timetable'),
               icon: const Icon(Icons.add),
             );
@@ -452,9 +452,7 @@ class _ScheduleManagementScreenState
             Icon(
               shift == '1st' ? Icons.wb_sunny : Icons.nights_stay,
               size: 64,
-              color: Theme.of(
-                context,
-              ).colorScheme.onSurface.withValues(alpha: 0.6),
+              color: AppColors.primary.withValues(alpha: 0.6),
             ),
             AppSizes.paddingMedium.heightBox,
             'No $shift shift timetables created yet'.text
@@ -524,10 +522,10 @@ class _ScheduleManagementScreenState
               children: [
                 ListTile(
                   leading: CircleAvatar(
-                    backgroundColor: Theme.of(context).primaryColor,
+                    backgroundColor: AppColors.primary,
                     child: Icon(
                       shift == '1st' ? Icons.wb_sunny : Icons.nights_stay,
-                      color: Theme.of(context).colorScheme.onPrimary,
+                      color: Colors.white,
                     ),
                   ),
                   title: 'Bus ${bus.busNumber}'.text.semiBold.make(),
@@ -549,10 +547,7 @@ class _ScheduleManagementScreenState
                             value: 'delete',
                             child: Row(
                               children: [
-                                Icon(
-                                  Icons.delete,
-                                  color: Theme.of(context).colorScheme.error,
-                                ),
+                                Icon(Icons.delete, color: AppColors.error),
                                 8.widthBox,
                                 'Delete'.text.make(),
                               ],
@@ -646,24 +641,18 @@ class _ScheduleManagementScreenState
                               decoration: BoxDecoration(
                                 color:
                                     (isStart
-                                            ? Theme.of(
-                                                context,
-                                              ).colorScheme.secondary
+                                            ? AppColors.secondary
                                             : isEnd
-                                            ? Theme.of(
-                                                context,
-                                              ).colorScheme.error
-                                            : Theme.of(
-                                                context,
-                                              ).colorScheme.tertiary)
+                                            ? AppColors.error
+                                            : AppColors.primary)
                                         .withValues(alpha: 0.1),
                                 borderRadius: BorderRadius.circular(12),
                                 border: Border.all(
                                   color: isStart
-                                      ? Theme.of(context).colorScheme.secondary
+                                      ? AppColors.secondary
                                       : isEnd
-                                      ? Theme.of(context).colorScheme.error
-                                      : Theme.of(context).colorScheme.tertiary,
+                                      ? AppColors.error
+                                      : AppColors.primary,
                                 ),
                               ),
                               child: Row(
@@ -675,14 +664,10 @@ class _ScheduleManagementScreenState
                                         ? Icons.stop
                                         : Icons.location_on,
                                     color: isStart
-                                        ? Theme.of(
-                                            context,
-                                          ).colorScheme.secondary
+                                        ? AppColors.secondary
                                         : isEnd
-                                        ? Theme.of(context).colorScheme.error
-                                        : Theme.of(
-                                            context,
-                                          ).colorScheme.tertiary,
+                                        ? AppColors.error
+                                        : AppColors.primary,
                                   ),
                                   12.widthBox,
                                   Expanded(

@@ -225,12 +225,16 @@ class _DriverSelectionScreenState extends ConsumerState<DriverSelectionScreen> {
                     Icon(
                       Icons.person_off_outlined,
                       size: 64,
-                      color: AppColors.textSecondary,
+                      color: context.colorScheme.onSurface.withValues(
+                        alpha: 0.4,
+                      ),
                     ),
                     16.heightBox,
                     'No available drivers found'.text
                         .size(18)
-                        .color(AppColors.textSecondary)
+                        .color(
+                          context.colorScheme.onSurface.withValues(alpha: 0.6),
+                        )
                         .make(),
                   ]).centered().expand()
                 else

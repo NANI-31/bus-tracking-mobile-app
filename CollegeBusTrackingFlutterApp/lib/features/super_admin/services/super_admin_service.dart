@@ -7,6 +7,7 @@ import 'package:collegebus/core/constants/constants.dart';
 import 'package:collegebus/core/data/repositories.dart';
 import 'package:flutter/material.dart';
 import 'package:collegebus/core/utils/app_logger.dart';
+import 'package:collegebus/features/payment/domain/transaction_model.dart';
 
 /// Service for Super Admin operations and state management
 class SuperAdminService extends ChangeNotifier {
@@ -14,6 +15,7 @@ class SuperAdminService extends ChangeNotifier {
   final SystemRepository _systemRepo = SystemRepository();
   final CollegeRepository _collegeRepo = CollegeRepository();
   final UserRepository _userRepo = UserRepository();
+  final PaymentRepository _paymentRepo = PaymentRepository();
 
   bool _isLoading = false;
   String? _error;
@@ -23,6 +25,7 @@ class SuperAdminService extends ChangeNotifier {
   List<UserModel> _globalUsers = [];
   List<SosModel> _sosLogs = [];
   List<SosModel> _globalActiveSos = [];
+  List<TransactionModel> _transactions = [];
 
   bool get isLoading => _isLoading;
   String? get error => _error;
@@ -32,6 +35,7 @@ class SuperAdminService extends ChangeNotifier {
   List<UserModel> get globalUsers => _globalUsers;
   List<SosModel> get sosLogs => _sosLogs;
   List<SosModel> get globalActiveSos => _globalActiveSos;
+  List<TransactionModel> get transactions => _transactions;
 
   void clearError() {
     _error = null;
@@ -66,8 +70,14 @@ class SuperAdminService extends ChangeNotifier {
       final activeData = await IncidentRepository().getActiveSos('all');
       _globalActiveSos = activeData.map((m) => SosModel.fromMap(m)).toList();
 
+      AppLogger.d('DEBUG: Loading Transactions...');
+      final transData = await _paymentRepo.getTransactions();
+      _transactions = transData
+          .map((m) => TransactionModel.fromJson(m))
+          .toList();
+
       AppLogger.d(
-        'System Dashboard loaded: ${_colleges.length} colleges, ${_globalUsers.length} users',
+        'System Dashboard loaded: ${_colleges.length} colleges, ${_globalUsers.length} users, ${_transactions.length} transactions',
       );
     } catch (e) {
       _error = e.toString();
@@ -188,9 +198,35 @@ class SuperAdminService extends ChangeNotifier {
       notifyListeners();
     }
   }
+
+  Future<void> fetchTransactions({
+    String? plan,
+    DateTime? startDate,
+    DateTime? endDate,
+    String? collegeId,
+  }) async {
+    try {
+      _isLoading = true;
+      notifyListeners();
+      AppLogger.d(
+        'DEBUG: Fetching Transactions with filters: plan=$plan, start=$startDate, end=$endDate, collegeId=$collegeId',
+      );
+      final transData = await _paymentRepo.getTransactions(
+        plan: plan,
+        startDate: startDate,
+        endDate: endDate,
+        collegeId: collegeId,
+      );
+      _transactions = transData
+          .map((m) => TransactionModel.fromJson(m))
+          .toList();
+      _error = null;
+    } catch (e) {
+      _error = e.toString();
+      AppLogger.e('Error fetching transactions: $e');
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
 }
-
-
-
-
-

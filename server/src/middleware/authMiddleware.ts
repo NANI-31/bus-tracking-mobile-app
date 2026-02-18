@@ -59,9 +59,28 @@ export const protect = async (
       };
 
       next();
-    } catch (error) {
+    } catch (error: any) {
       console.error("Token verification failed:", error);
-      res.status(401).json({ message: "Not authorized, token failed" });
+
+      // Distinguish between actual token issues and system errors (like DB disconnection)
+      const isJwtError =
+        error.name === "JsonWebTokenError" ||
+        error.name === "TokenExpiredError" ||
+        error.name === "NotBeforeError";
+
+      if (isJwtError) {
+        return res.status(401).json({
+          message: "Session expired or invalid token.",
+          code: "SESSION_EXPIRED",
+        });
+      }
+
+      // For database errors (MongoServerSelectionError, etc.) or other system issues,
+      // return 500 so the app doesn't force a logout (which 401 triggers).
+      res.status(500).json({
+        message: "Internal server error during authentication check.",
+        code: "SERVER_ERROR",
+      });
     }
   }
 

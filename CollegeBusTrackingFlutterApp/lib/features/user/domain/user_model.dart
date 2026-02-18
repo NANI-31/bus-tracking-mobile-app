@@ -34,6 +34,7 @@ class UserModel {
   final String language;
   @JsonKey(defaultValue: false)
   final bool isPremium;
+  final DateTime? premiumUntil;
 
   UserModel({
     required this.id,
@@ -57,6 +58,7 @@ class UserModel {
     this.fcmToken,
     this.language = 'en',
     this.isPremium = false,
+    this.premiumUntil,
   });
 
   factory UserModel.fromJson(Map<String, dynamic> json) =>
@@ -107,6 +109,7 @@ class UserModel {
     String? fcmToken,
     String? language,
     bool? isPremium,
+    DateTime? premiumUntil,
   }) {
     return UserModel(
       id: id ?? this.id,
@@ -130,6 +133,7 @@ class UserModel {
       fcmToken: fcmToken ?? this.fcmToken,
       language: language ?? this.language,
       isPremium: isPremium ?? this.isPremium,
+      premiumUntil: premiumUntil ?? this.premiumUntil,
     );
   }
 }

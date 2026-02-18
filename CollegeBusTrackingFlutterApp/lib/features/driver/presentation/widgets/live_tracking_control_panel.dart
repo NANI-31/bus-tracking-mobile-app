@@ -33,7 +33,7 @@ class LiveTrackingControlPanel extends StatelessWidget {
                   .text
                   .size(20)
                   .bold
-                  .color(AppColors.textPrimary)
+                  .color(Theme.of(context).colorScheme.onSurface)
                   .make(),
               AppSizes.paddingSmall.heightBox,
               if (route != null)
@@ -42,7 +42,9 @@ class LiveTrackingControlPanel extends StatelessWidget {
                       .routeLabel(route!.routeName)
                       .text
                       .size(16)
-                      .color(AppColors.textSecondary)
+                      .color(
+                        context.colorScheme.onSurface.withValues(alpha: 0.6),
+                      )
                       .make(),
                   DriverLocalizations.of(context)!
                       .routeTypeDetails(
@@ -52,7 +54,9 @@ class LiveTrackingControlPanel extends StatelessWidget {
                       )
                       .text
                       .size(14)
-                      .color(AppColors.textSecondary)
+                      .color(
+                        context.colorScheme.onSurface.withValues(alpha: 0.6),
+                      )
                       .maxLines(2)
                       .ellipsis
                       .make(),

@@ -40,7 +40,7 @@ class BusCard extends StatelessWidget {
               child: bus.busNumber
                   .replaceAll('Bus ', '')
                   .text
-                  .color(AppColors.onPrimary)
+                  .color(Colors.white)
                   .bold
                   .make(),
             ),
@@ -49,19 +49,27 @@ class BusCard extends StatelessWidget {
               'Bus ${bus.busNumber}'.text
                   .size(18)
                   .bold
-                  .color(isSelected ? AppColors.primary : AppColors.textPrimary)
+                  .color(
+                    isSelected
+                        ? AppColors.primary
+                        : Theme.of(context).colorScheme.onSurface,
+                  )
                   .make(),
               if (route != null)
                 VStack([
                   '${route!.startPoint.name} → ${route!.endPoint.name}'.text
                       .size(14)
-                      .color(AppColors.textSecondary)
+                      .color(
+                        context.colorScheme.onSurface.withValues(alpha: 0.6),
+                      )
                       .make(),
                   if (route!.stopPoints.isNotEmpty)
                     'Stops: ${route!.stopPoints.map((s) => s.name).join(', ')}'
                         .text
                         .size(12)
-                        .color(AppColors.textSecondary)
+                        .color(
+                          context.colorScheme.onSurface.withValues(alpha: 0.6),
+                        )
                         .maxLines(2)
                         .ellipsis
                         .make(),
@@ -69,7 +77,7 @@ class BusCard extends StatelessWidget {
             ]).expand(),
             if (showLiveStatus)
               (bus.isActive ? 'Live' : 'Offline').text
-                  .color(AppColors.onPrimary)
+                  .color(Colors.white)
                   .size(12)
                   .semiBold
                   .make()
@@ -90,7 +98,7 @@ class BusCard extends StatelessWidget {
                   label: const Text('View Live Location'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primary,
-                    foregroundColor: AppColors.onPrimary,
+                    foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 12),
                   ),
                 ),
