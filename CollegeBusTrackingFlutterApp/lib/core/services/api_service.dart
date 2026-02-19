@@ -101,7 +101,15 @@ class ApiService {
   Future<BusModel?> getBusByDriver(String driverId) async {
     final buses = await getAllBuses();
     try {
-      return buses.firstWhere((b) => b.driverId == driverId);
+      // Prioritize accepted/pending assignments
+      final activeBus = buses.firstWhere(
+        (b) =>
+            b.driverId == driverId &&
+            (b.assignmentStatus == 'accepted' ||
+                b.assignmentStatus == 'pending'),
+        orElse: () => buses.firstWhere((b) => b.driverId == driverId),
+      );
+      return activeBus;
     } catch (e) {
       return null;
     }

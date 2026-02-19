@@ -1,8 +1,8 @@
 import { Request, Response } from "express";
 import { AuthRequest } from "../../middleware/authMiddleware";
 import SystemConfig from "../../models/SystemConfig.model";
-import AuditLog from "../../models/AuditLog.model";
 import logger from "../../utils/logger";
+import { AuditService } from "../../services/AuditService";
 
 /**
  * Get all system configurations
@@ -49,13 +49,11 @@ export const updateConfig = async (req: AuthRequest, res: Response) => {
       { new: true, upsert: true },
     );
 
-    // Log the action
-    await AuditLog.create({
-      userId: req.user?.id,
-      userEmail: req.user?.email,
-      userName: req.user?.fullName || "Super Admin",
-      action: "config.update",
-      resource: "config",
+    // Audit Log
+    await AuditService.log({
+      req,
+      action: "CONFIG_UPDATE",
+      resource: "Config",
       resourceId: key,
       newState: { value },
     });

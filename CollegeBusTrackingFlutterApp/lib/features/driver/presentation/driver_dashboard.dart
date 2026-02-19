@@ -45,26 +45,35 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
   int _bottomNavIndex = 0;
   LatLng? _currentLocation;
   bool _isSharing = false;
+  bool _hasInitialized = false; // Prevent auto-resume during first build
 
   // Selection state
   RouteModel? _selectedRoute;
 
   Set<Marker> _markers = {};
 
+  DateTime? _lastDeviationAlertTime;
+  String? _nextStopETA;
+
   @override
   void initState() {
     super.initState();
+    debugPrint('[DriverDashboard] initState START');
     WidgetsBinding.instance.addObserver(this);
     _isSharing = PersistenceService.getIsSharingLocation();
+    debugPrint('[DriverDashboard] _isSharing from persistence: $_isSharing');
     _getCurrentLocation();
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      debugPrint('[DriverDashboard] postFrameCallback - marking initialized');
+      _hasInitialized = true;
       final socketService = ref.read(socketServiceProvider);
       final user = ref.read(currentUserProvider);
       if (user != null) {
         socketService.joinCollege(user.collegeId);
       }
     });
+    debugPrint('[DriverDashboard] initState END');
   }
 
   @override
@@ -270,12 +279,6 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
       _stopLocationSharing(myBus);
     }
   }
-
-  // Removed duplicate _startLocationSharing method
-
-  DateTime? _lastDeviationAlertTime;
-
-  String? _nextStopETA;
 
   void _checkRouteDeviation(Position position, BusModel? myBus) {
     if (_selectedRoute == null) return;
@@ -618,6 +621,7 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
 
   @override
   Widget build(BuildContext context) {
+    debugPrint('[DriverDashboard] build() START');
     final userId = ref.watch(currentUserProvider.select((u) => u?.id));
     final collegeId = ref.watch(
       currentUserProvider.select((u) => u?.collegeId),
@@ -627,44 +631,135 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
     );
 
     if (userId == null || collegeId == null) {
+      debugPrint(
+        '[DriverDashboard] userId or collegeId is null, showing loader',
+      );
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
-    final myBusAsync = ref.watch(driverBusProvider(userId));
+    debugPrint('[DriverDashboard] userId=$userId, collegeId=$collegeId');
+    // Listen for bus changes to handle unassignment or reassignment
+    ref.listen<AsyncValue<BusModel?>>(driverBusProvider(userId), (
+      previous,
+      next,
+    ) {
+      final oldBus = previous?.value;
+      final newBus = next.value;
 
-    // Auto-resume location sharing if state was persisted
-    ref.listen(driverBusProvider(userId), (previous, next) {
-      next.whenData((bus) {
-        if (bus != null && _isSharing) {
-          final locationService = ref.read(locationServiceProvider);
-          if (!locationService.isTracking) {
-            _startLocationSharing(bus, silent: true);
+      // If bus ID changed (or bus was removed)
+      if (oldBus?.id != newBus?.id) {
+        // 1. Stop location sharing if it was active for the old bus
+        if (_isSharing) {
+          _stopLocationSharing(oldBus);
+        }
+
+        // 2. If new bus is pending or unassigned, force back to setup tab
+        if (newBus == null || newBus.assignmentStatus == 'pending') {
+          if (mounted) {
+            setState(() {
+              _bottomNavIndex = 0;
+            });
           }
         }
-      });
+      }
+    });
+
+    final myBusAsync = ref.watch(driverBusProvider(userId));
+    debugPrint(
+      '[DriverDashboard] myBusAsync state: isLoading=${myBusAsync.isLoading}, hasValue=${myBusAsync.hasValue}, hasError=${myBusAsync.hasError}',
+    );
+
+    // Auto-resume location sharing if state was persisted
+    // CRITICAL: Only auto-resume AFTER initialization is complete to prevent
+    // Android from killing the process when foreground service starts too early
+    ref.listen(driverBusProvider(userId), (previous, next) {
+      try {
+        next.whenData((bus) {
+          if (bus != null) {
+            debugPrint(
+              '[DriverDashboard] Bus data received: ${bus.busNumber}, assignmentStatus=${bus.assignmentStatus}',
+            );
+
+            // 1. Handle auto-resume location sharing (ONLY after init)
+            if (_isSharing && _hasInitialized) {
+              final locationService = ref.read(locationServiceProvider);
+              if (!locationService.isTracking) {
+                debugPrint(
+                  '[DriverDashboard] Auto-resuming location sharing...',
+                );
+                // Delay slightly to ensure app is fully ready
+                Future.delayed(const Duration(milliseconds: 500), () {
+                  if (mounted) {
+                    _startLocationSharing(bus, silent: true);
+                  }
+                });
+              }
+            }
+
+            // 2. Handle initial route selection if matching preference
+            if (_selectedRoute == null && bus.routeId != null) {
+              debugPrint(
+                '[DriverDashboard] Matching route for routeId=${bus.routeId}',
+              );
+              final routesAsync = ref.read(collegeRoutesProvider(collegeId));
+              routesAsync.whenData((routes) {
+                try {
+                  final route = routes.firstWhere((r) => r.id == bus.routeId);
+                  if (mounted) {
+                    setState(() {
+                      _selectedRoute = route;
+                    });
+                    _updateMarkers();
+                  }
+                } catch (e) {
+                  AppLogger.e('Error matching route selection: $e');
+                }
+              });
+            }
+          } else {
+            debugPrint('[DriverDashboard] Bus data is null (no assignment)');
+          }
+        });
+      } catch (e, stack) {
+        debugPrint('[DriverDashboard] ERROR in driverBus listener: $e');
+        debugPrint('[DriverDashboard] Stack: $stack');
+      }
+    });
+
+    // Match selection if routes load after bus
+    ref.listen(collegeRoutesProvider(collegeId), (previous, next) {
+      try {
+        if (_selectedRoute == null) {
+          final bus = ref.read(driverBusProvider(userId)).valueOrNull;
+          if (bus != null && bus.routeId != null) {
+            next.whenData((routes) {
+              try {
+                final route = routes.firstWhere((r) => r.id == bus.routeId);
+                if (mounted) {
+                  setState(() {
+                    _selectedRoute = route;
+                  });
+                  _updateMarkers();
+                }
+              } catch (e) {
+                AppLogger.e('Error matching route from route listener: $e');
+              }
+            });
+          }
+        }
+      } catch (e, stack) {
+        debugPrint('[DriverDashboard] ERROR in routes listener: $e');
+        debugPrint('[DriverDashboard] Stack: $stack');
+      }
     });
 
     final routesAsync = ref.watch(collegeRoutesProvider(collegeId));
     final busNumbersAsync = ref.watch(busNumbersProvider(collegeId));
 
     final myBus = myBusAsync.valueOrNull;
-
-    // Match selection from saved preferences on first load
-    if (myBus != null && _selectedRoute == null && myBus.routeId != null) {
-      routesAsync.whenData((routes) {
-        try {
-          final route = routes.firstWhere((r) => r.id == myBus.routeId);
-          if (mounted) {
-            setState(() {
-              _selectedRoute = route;
-            });
-            _updateMarkers();
-          }
-        } catch (e) {
-          debugPrint('Error matching route selection: $e');
-        }
-      });
-    }
+    debugPrint(
+      '[DriverDashboard] myBus=${myBus?.busNumber}, assignmentStatus=${myBus?.assignmentStatus}',
+    );
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,

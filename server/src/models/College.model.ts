@@ -9,7 +9,9 @@ export interface ICollege extends Document {
   suspended: boolean;
   suspensionReason?: string;
   settings?: Map<string, any>;
+  allowManualPremium: boolean;
   shiftCount: number;
+
   shifts: {
     shiftId: string;
     name: string;
@@ -30,7 +32,9 @@ const CollegeSchema: Schema = new Schema({
   suspended: { type: Boolean, default: false },
   suspensionReason: { type: String },
   settings: { type: Map, of: Schema.Types.Mixed, default: {} },
+  allowManualPremium: { type: Boolean, default: false },
   shiftCount: { type: Number, default: 1 },
+
   shifts: [
     {
       shiftId: { type: String, required: true },

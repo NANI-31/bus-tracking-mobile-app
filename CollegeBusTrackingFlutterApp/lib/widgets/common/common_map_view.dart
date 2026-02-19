@@ -108,8 +108,3 @@ class _CommonMapViewState extends ConsumerState<CommonMapView> {
     );
   }
 }
-
-
-
-
-

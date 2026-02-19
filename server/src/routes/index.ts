@@ -30,7 +30,7 @@ router.use("/assignments", assignmentRoutes);
 router.use("/sos", sosRoutes);
 router.use("/incidents", incidentRoutes);
 router.use("/history", historyRoutes);
-router.use("/payment", paymentRoutes);
+router.use("/payments", paymentRoutes);
 
 // Admin Routes
 

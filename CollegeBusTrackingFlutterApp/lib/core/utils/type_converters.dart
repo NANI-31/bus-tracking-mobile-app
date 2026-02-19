@@ -9,3 +9,11 @@ bool parseBool(dynamic value, [bool defaultValue = false]) {
   return defaultValue;
 }
 
+DateTime parseDateTime(dynamic value, [DateTime? defaultValue]) {
+  if (value == null) return defaultValue ?? DateTime.now();
+  if (value is DateTime) return value;
+  if (value is String) {
+    return DateTime.tryParse(value) ?? defaultValue ?? DateTime.now();
+  }
+  return defaultValue ?? DateTime.now();
+}

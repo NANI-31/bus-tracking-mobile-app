@@ -6,6 +6,11 @@ import {
   fetchGlobalUsers,
   deleteGlobalUser,
   fetchAuditLogs,
+  fetchTransactions,
+  fetchGlobalBuses,
+  toggleCollegeManualPremium,
+  fetchStorageStats,
+  fetchCollegeStorageHistory,
 } from "../api/superAdminApi";
 
 // Thunks
@@ -57,11 +62,66 @@ export const getAuditLogs = createAsyncThunk(
   },
 );
 
+export const getTransactions = createAsyncThunk(
+  "superAdmin/getTransactions",
+  async (params) => {
+    const response = await fetchTransactions(params);
+    return response;
+  },
+);
+
+export const getGlobalBuses = createAsyncThunk(
+  "superAdmin/getGlobalBuses",
+  async () => {
+    const response = await fetchGlobalBuses();
+    return response;
+  },
+);
+
+export const toggleManualPremiumAction = createAsyncThunk(
+  "superAdmin/toggleManualPremium",
+  async ({ collegeId, allowManualPremium }) => {
+    const response = await toggleCollegeManualPremium(
+      collegeId,
+      allowManualPremium,
+    );
+    return response;
+  },
+);
+
+export const getStorageStats = createAsyncThunk(
+  "superAdmin/getStorageStats",
+  async () => {
+    const response = await fetchStorageStats();
+    return response;
+  },
+);
+
+export const getCollegeStorageHistory = createAsyncThunk(
+  "superAdmin/getCollegeStorageHistory",
+  async ({ collegeId, startDate, endDate }, { rejectWithValue }) => {
+    try {
+      const response = await fetchCollegeStorageHistory(
+        collegeId,
+        startDate,
+        endDate,
+      );
+      return response;
+    } catch (error) {
+      return rejectWithValue(error);
+    }
+  },
+);
+
 const initialState = {
   stats: null,
   colleges: [],
   users: [],
   auditLogs: [],
+  transactions: [],
+  buses: [],
+  storageStats: null,
+  collegeStorageHistory: [],
   loading: false,
   error: null,
 };
@@ -69,7 +129,27 @@ const initialState = {
 const superAdminSlice = createSlice({
   name: "superAdmin",
   initialState,
-  reducers: {},
+  reducers: {
+    updateGlobalBusLocation: (state, action) => {
+      const { busId, location, speed, heading, timestamp } = action.payload;
+      const index = state.buses.findIndex((bus) => bus._id === busId);
+      if (index !== -1) {
+        state.buses[index] = {
+          ...state.buses[index],
+          lastLocation: {
+            ...location,
+            timestamp: timestamp || new Date().toISOString(),
+          },
+          speed: speed || 0,
+          heading: heading || 0,
+        };
+      }
+    },
+    addLiveLog: (state, action) => {
+      // Prepend new log and keep only last 50 if no filter is active
+      state.auditLogs = [action.payload, ...state.auditLogs].slice(0, 100);
+    },
+  },
   extraReducers: (builder) => {
     builder
       // Stats
@@ -93,6 +173,12 @@ const superAdminSlice = createSlice({
           : action.payload.data || [];
       })
       .addCase(verifyCollegeAction.fulfilled, (state, action) => {
+        const index = state.colleges.findIndex(
+          (c) => c._id === action.payload._id,
+        );
+        if (index !== -1) state.colleges[index] = action.payload;
+      })
+      .addCase(toggleManualPremiumAction.fulfilled, (state, action) => {
         const index = state.colleges.findIndex(
           (c) => c._id === action.payload._id,
         );
@@ -122,8 +208,54 @@ const superAdminSlice = createSlice({
       .addCase(getAuditLogs.rejected, (state, action) => {
         state.loading = false;
         state.error = action.error.message;
+      })
+
+      // Transactions
+      .addCase(getTransactions.pending, (state) => {
+        state.loading = true;
+      })
+      .addCase(getTransactions.fulfilled, (state, action) => {
+        state.loading = false;
+        state.transactions = Array.isArray(action.payload)
+          ? action.payload
+          : action.payload.transactions || [];
+      })
+      .addCase(getTransactions.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.error.message;
+      })
+
+      // Buses
+      .addCase(getGlobalBuses.fulfilled, (state, action) => {
+        state.buses = Array.isArray(action.payload) ? action.payload : [];
+      })
+
+      // Storage Stats
+      .addCase(getStorageStats.pending, (state) => {
+        state.loading = true;
+      })
+      .addCase(getStorageStats.fulfilled, (state, action) => {
+        state.loading = false;
+        state.storageStats = action.payload;
+      })
+      .addCase(getStorageStats.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.error.message;
+      })
+      .addCase(getCollegeStorageHistory.pending, (state) => {
+        state.loading = true;
+      })
+      .addCase(getCollegeStorageHistory.fulfilled, (state, action) => {
+        state.loading = false;
+        state.collegeStorageHistory = action.payload;
+      })
+      .addCase(getCollegeStorageHistory.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.error.message;
       });
   },
 });
+
+export const { updateGlobalBusLocation, addLiveLog } = superAdminSlice.actions;
 
 export default superAdminSlice.reducer;

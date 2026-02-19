@@ -2,6 +2,7 @@ import { Server } from "socket.io";
 import { Bus, IBus } from "../models/Bus.model";
 import logger from "../utils/logger";
 import { getBusAssignmentService } from "./busAssignmentService";
+import { delCache } from "../utils/cache";
 
 /**
  * BusService - Encapsulates bus update business logic.
@@ -46,6 +47,10 @@ export class BusService {
 
     // Handle simulation triggers
     await this.handleSimulationTriggers(oldBus, updatedBus, updateData);
+
+    // Invalidate caches BEFORE broadcasting
+    await delCache("buses:all");
+    await delCache(`buses:${updatedBus.collegeId}`);
 
     // Broadcast update to college room
     this.broadcastBusListUpdate(updatedBus.collegeId.toString());
@@ -111,7 +116,36 @@ export class BusService {
       timestamp: new Date(),
     });
 
-    // 3. Save location to DB
+    // 2b. Broadcast to global tracking room (for Super Admin)
+    this.io.to("global_tracking").emit("location_updated", {
+      busId,
+      collegeId,
+      location,
+      speed: speed ?? 0,
+      heading: heading ?? 0,
+      timestamp: new Date(),
+    });
+
+    // 3. Update Bus status in DB
+    const status =
+      speed && speed > 2
+        ? bus.delay > 10
+          ? "delayed"
+          : "on-time"
+        : bus.status;
+    const oldBusRecord = await Bus.findById(busId);
+    const oldStatus = oldBusRecord?.status;
+
+    await Bus.findByIdAndUpdate(busId, { status });
+
+    // Invalidate cache if status changed
+    if (oldStatus !== status) {
+      await delCache("buses:all");
+      await delCache(`buses:${collegeId}`);
+      this.broadcastBusListUpdate(collegeId);
+    }
+
+    // 4. Save location to DB
     const newLocation = new BusLocation({
       busId,
       currentLocation: location,

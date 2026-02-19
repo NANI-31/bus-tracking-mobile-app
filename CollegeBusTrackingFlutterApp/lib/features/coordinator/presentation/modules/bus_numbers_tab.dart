@@ -109,63 +109,6 @@ class _BusNumbersTabState extends ConsumerState<BusNumbersTab>
     );
   }
 
-  void _showEditDriverNameDialog(BuildContext context, UserModel driver) {
-    final l10n = coord_l10n.CoordinatorLocalizations.of(context)!;
-    final TextEditingController nameController = TextEditingController(
-      text: driver.fullName,
-    );
-
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text('Edit Driver Name'),
-          content: TextField(
-            controller: nameController,
-            decoration: InputDecoration(
-              labelText: 'Name',
-              hintText: 'Enter driver name',
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: Text(l10n.cancel),
-            ),
-            ElevatedButton(
-              onPressed: () async {
-                final newName = nameController.text.trim();
-                if (newName.isEmpty || newName == driver.fullName) return;
-
-                if (newName.isEmpty || newName == driver.fullName) return;
-
-                try {
-                  await ref.read(apiServiceProvider).updateUser(driver.id, {
-                    'fullName': newName,
-                  });
-                  if (!context.mounted) return;
-                  Navigator.of(context).pop();
-                  // Refresh is automatic
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Driver name updated to $newName')),
-                  );
-                } catch (e) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Failed to update name: $e'),
-                      backgroundColor: Colors.red,
-                    ),
-                  );
-                }
-              },
-              child: Text(l10n.save),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final user = ref.watch(currentUserProvider);
@@ -397,6 +340,7 @@ class _BusNumbersTabState extends ConsumerState<BusNumbersTab>
         }
 
         return BusListCard(
+          key: ValueKey(busNumber),
           busNumber: busNumber,
           isOfficial: isOfficial,
           assignedBus: assignedBus,
@@ -416,11 +360,6 @@ class _BusNumbersTabState extends ConsumerState<BusNumbersTab>
               '/coordinator/edit-bus/$busNumber',
               extra: isAssigned ? assignedBus : null,
             );
-          },
-          onEditDriver: () {
-            if (assignedDriver != null) {
-              _showEditDriverNameDialog(context, assignedDriver);
-            }
           },
           onDelete: () async {
             // Allow delete if NOT assigned OR (assigned but status is unassigned)

@@ -12,6 +12,7 @@ import {
   createRoute,
   removeRoute,
 } from "../slices/collegeAdminSlice";
+import ConfirmationModal from "../../../components/common/ConfirmationModal";
 
 const RouteFormModal = ({ isOpen, onClose, onSubmit }) => {
   const [formData, setFormData] = useState({
@@ -157,27 +158,53 @@ const Routes = () => {
   const dispatch = useDispatch();
   const { routes, loading } = useSelector((state) => state.collegeAdmin);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [deleteModal, setDeleteModal] = useState({
+    isOpen: false,
+    routeId: null,
+  });
 
   useEffect(() => {
     dispatch(getRoutes());
   }, [dispatch]);
 
   const handleAddRoute = (routeData) => {
-    // Transform lat/lng strings to numbers if needed
+    // Transform data to match IRoute model
     const formattedData = {
-      ...routeData,
-      stops: routeData.stops.map((stop) => ({
-        ...stop,
-        lat: parseFloat(stop.lat) || 0,
-        lng: parseFloat(stop.lng) || 0,
+      routeName: routeData.name,
+      routeType: "pickup", // Default to pickup for now
+      stopPoints: routeData.stops.map((stop) => ({
+        name: stop.name,
+        location: {
+          lat: parseFloat(stop.lat) || 0,
+          lng: parseFloat(stop.lng) || 0,
+        },
       })),
+      // Set start and end points from stops
+      startPoint: {
+        name: routeData.stops[0].name,
+        location: {
+          lat: parseFloat(routeData.stops[0].lat) || 0,
+          lng: parseFloat(routeData.stops[0].lng) || 0,
+        },
+      },
+      endPoint: {
+        name: routeData.stops[routeData.stops.length - 1].name,
+        location: {
+          lat: parseFloat(routeData.stops[routeData.stops.length - 1].lat) || 0,
+          lng: parseFloat(routeData.stops[routeData.stops.length - 1].lng) || 0,
+        },
+      },
     };
     dispatch(createRoute(formattedData));
   };
 
   const handleDeleteRoute = (routeId) => {
-    if (window.confirm("Are you sure you want to delete this route?")) {
-      dispatch(removeRoute(routeId));
+    setDeleteModal({ isOpen: true, routeId });
+  };
+
+  const confirmDeleteRoute = () => {
+    if (deleteModal.routeId) {
+      dispatch(removeRoute(deleteModal.routeId));
     }
   };
 
@@ -196,58 +223,59 @@ const Routes = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <AnimatePresence>
-          {routes.map((route) => (
-            <motion.div
-              key={route._id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              layout
-              className="bg-white rounded-xl shadow-sm p-6 border border-gray-100"
-            >
-              <div className="flex justify-between items-start mb-4">
-                <div className="flex items-center space-x-3">
-                  <div className="p-2 bg-purple-50 rounded-lg">
-                    <MapIcon className="w-6 h-6 text-purple-600" />
+          {Array.isArray(routes) &&
+            routes.map((route) => (
+              <motion.div
+                key={route._id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                layout
+                className="bg-white rounded-xl shadow-sm p-6 border border-gray-100"
+              >
+                <div className="flex justify-between items-start mb-4">
+                  <div className="flex items-center space-x-3">
+                    <div className="p-2 bg-purple-50 rounded-lg">
+                      <MapIcon className="w-6 h-6 text-purple-600" />
+                    </div>
+                    <h3 className="text-lg font-bold text-gray-800">
+                      {route.routeName}
+                    </h3>
                   </div>
-                  <h3 className="text-lg font-bold text-gray-800">
-                    {route.name}
-                  </h3>
+                  <button
+                    onClick={() => handleDeleteRoute(route._id)}
+                    className="text-gray-400 hover:text-red-500 transition-colors"
+                  >
+                    <TrashIcon className="w-5 h-5" />
+                  </button>
                 </div>
-                <button
-                  onClick={() => handleDeleteRoute(route._id)}
-                  className="text-gray-400 hover:text-red-500 transition-colors"
-                >
-                  <TrashIcon className="w-5 h-5" />
-                </button>
-              </div>
 
-              <div className="relative pl-4 border-l-2 border-gray-200 ml-4 space-y-6">
-                {route.stops.map((stop, index) => (
-                  <div key={index} className="relative">
-                    <div className="absolute -left-[25px] bg-white border-2 border-blue-500 rounded-full w-4 h-4"></div>
-                    <p className="text-sm font-medium text-gray-800">
-                      {stop.name}
-                    </p>
-                    <p className="text-xs text-gray-500">
-                      {stop.lat && stop.lng
-                        ? `${stop.lat.toFixed(4)}, ${stop.lng.toFixed(4)}`
-                        : "Coordinates not set"}
-                    </p>
-                  </div>
-                ))}
-              </div>
+                <div className="relative pl-4 border-l-2 border-gray-200 ml-4 space-y-6">
+                  {route.stopPoints?.map((stop, index) => (
+                    <div key={index} className="relative">
+                      <div className="absolute -left-[25px] bg-white border-2 border-blue-500 rounded-full w-4 h-4"></div>
+                      <p className="text-sm font-medium text-gray-800">
+                        {stop.name}
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        {stop.location?.lat && stop.location?.lng
+                          ? `${stop.location.lat.toFixed(4)}, ${stop.location.lng.toFixed(4)}`
+                          : "Coordinates not set"}
+                      </p>
+                    </div>
+                  ))}
+                </div>
 
-              <div className="mt-6 pt-4 border-t border-gray-100 flex justify-between text-sm text-gray-500">
-                <span>{route.stops.length} Stops</span>
-                <span>ID: {route._id.substring(0, 8)}...</span>
-              </div>
-            </motion.div>
-          ))}
+                <div className="mt-6 pt-4 border-t border-gray-100 flex justify-between text-sm text-gray-500">
+                  <span>{route.stopPoints?.length || 0} Stops</span>
+                  <span>ID: {route._id?.substring(0, 8)}...</span>
+                </div>
+              </motion.div>
+            ))}
         </AnimatePresence>
       </div>
 
-      {routes.length === 0 && !loading && (
+      {(!routes || routes.length === 0) && !loading && (
         <div className="text-center py-12 text-gray-500">
           <MapIcon className="w-16 h-16 mx-auto mb-4 text-gray-300" />
           <p className="text-lg">No routes defined. Create your first route!</p>
@@ -258,6 +286,15 @@ const Routes = () => {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         onSubmit={handleAddRoute}
+      />
+
+      <ConfirmationModal
+        isOpen={deleteModal.isOpen}
+        onClose={() => setDeleteModal({ isOpen: false, routeId: null })}
+        onConfirm={confirmDeleteRoute}
+        title="Delete Route"
+        message="Are you sure you want to delete this route? All associated bus schedules for this route will also be affected."
+        confirmText="Delete"
       />
     </div>
   );

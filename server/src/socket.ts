@@ -71,7 +71,17 @@ async function flushLocationBuffer() {
 // Start the flush interval
 setInterval(flushLocationBuffer, DB_FLUSH_INTERVAL_MS);
 
+let ioInstance: Server;
+
+export const getIO = () => {
+  if (!ioInstance) {
+    throw new Error("Socket.io not initialized!");
+  }
+  return ioInstance;
+};
+
 export const initializeSocket = (io: Server) => {
+  ioInstance = io;
   // Use Redis Adapter
   io.adapter(createAdapter(pubClient, subClient));
 
@@ -138,13 +148,19 @@ export const initializeSocket = (io: Server) => {
         user &&
         (user.role === "busCoordinator" ||
           user.role === "coordinator" ||
-          user.role === "admin")
+          user.role === "admin" ||
+          user.role === "collegeAdmin")
       ) {
         const coordRoom = `${collegeId}_coordinators`;
+        const logsRoom = `${collegeId}_audit_logs`;
         socket.join(coordRoom);
+        socket.join(logsRoom);
         logger.info(
-          `[Socket] User ${user.fullName} (${user.role}) joined SOS room: ${coordRoom}`,
+          `[Socket] User ${user.fullName} (${user.role}) joined SOS and Log rooms: ${coordRoom}, ${logsRoom}`,
         );
+      } else if (user && user.role === "superAdmin") {
+        socket.join("global_audit_logs");
+        logger.info(`[Socket] Super Admin ${user.fullName} joined global logs`);
       } else {
         logger.info(
           `[Socket Debug] User ${
@@ -157,7 +173,34 @@ export const initializeSocket = (io: Server) => {
         `[Socket] ${user?.fullName || "User"} joined room: ${collegeId}`,
       );
 
+      // ONLINE DRIVERS PUSH:
+      // When a coordinator/admin joins, send them the status of all currently connected drivers
+      if (
+        user &&
+        (user.role === "busCoordinator" ||
+          user.role === "coordinator" ||
+          user.role === "admin")
+      ) {
+        try {
+          const sockets = await io.in(collegeId).fetchSockets();
+          sockets.forEach((s) => {
+            const sUser = (s as any).user;
+            if (sUser && sUser.role === "driver") {
+              socket.emit("driver_status_update", {
+                driverId: sUser.id,
+                status: "online",
+              });
+            }
+          });
+        } catch (fetchErr) {
+          logger.warn(
+            `[Socket] fetchSockets timed out for room ${collegeId}, skipping online drivers push`,
+          );
+        }
+      }
+
       // IMMEDIATE LOCATION PUSH:
+
       // Fetch latest locations for buses in this college and send to the joining user
       try {
         const buses = await Bus.find({ collegeId, isActive: true });
@@ -246,6 +289,48 @@ export const initializeSocket = (io: Server) => {
         }
       } catch (err) {
         logger.error(`[Socket] Error fetching initial locations: ${err}`);
+      }
+    });
+
+    socket.on("join_global_tracking", async () => {
+      if (user && user.role === "superAdmin") {
+        socket.join("global_tracking");
+        socket.join("global_sos"); // Join SOS alerts globally
+        socket.join("global_audit_logs");
+        logger.info(
+          `[Socket] Super Admin ${user.fullName} joined global tracking, SOS and Logs`,
+        );
+
+        // Push all current locations
+        try {
+          const buses = await Bus.find({ isActive: true });
+          const busIds = buses.map((b) => b._id.toString());
+
+          const recentLocations = await BusLocation.aggregate([
+            {
+              $match: {
+                busId: { $in: busIds },
+                timestamp: { $gte: new Date(Date.now() - 15 * 60 * 1000) },
+              },
+            },
+            { $sort: { timestamp: -1 } },
+            { $group: { _id: "$busId", latestLocation: { $first: "$$ROOT" } } },
+          ]);
+
+          recentLocations.forEach((loc) => {
+            const bus = buses.find((b) => b._id.toString() === loc._id);
+            socket.emit("location_updated", {
+              busId: loc._id,
+              collegeId: bus?.collegeId,
+              location: loc.latestLocation.currentLocation,
+              speed: loc.latestLocation.speed,
+              heading: loc.latestLocation.heading,
+              timestamp: loc.latestLocation.timestamp,
+            });
+          });
+        } catch (err) {
+          logger.error(`[Socket] Error fetching global locations: ${err}`);
+        }
       }
     });
 

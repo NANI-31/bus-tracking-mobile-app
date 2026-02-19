@@ -7,8 +7,13 @@ import {
   MagnifyingGlassIcon,
   BuildingLibraryIcon,
   NoSymbolIcon,
+  CurrencyDollarIcon,
 } from "@heroicons/react/24/outline";
-import { getColleges, verifyCollegeAction } from "../slices/superAdminSlice";
+import {
+  getColleges,
+  verifyCollegeAction,
+  toggleManualPremiumAction,
+} from "../slices/superAdminSlice";
 
 const Colleges = () => {
   const dispatch = useDispatch();
@@ -37,6 +42,15 @@ const Colleges = () => {
   // Placeholder for suspend logic as backend implementation might vary
   const handleSuspend = (collegeId) => {
     alert("Suspend functionality to be connected to backend.");
+  };
+
+  const handleToggleManualPremium = (collegeId, currentStatus) => {
+    dispatch(
+      toggleManualPremiumAction({
+        collegeId,
+        allowManualPremium: !currentStatus,
+      }),
+    );
   };
 
   return (
@@ -122,6 +136,33 @@ const Colleges = () => {
                   <span className="font-medium text-right">
                     {college.adminName || "Pending"}
                   </span>
+                </div>
+                <div className="flex justify-between items-center pt-2">
+                  <span className="text-sm text-slate-500 flex items-center">
+                    <CurrencyDollarIcon className="w-4 h-4 mr-1" />
+                    Manual Premium
+                  </span>
+                  <button
+                    onClick={() =>
+                      handleToggleManualPremium(
+                        college._id,
+                        college.allowManualPremium,
+                      )
+                    }
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 ${
+                      college.allowManualPremium
+                        ? "bg-indigo-600"
+                        : "bg-slate-200"
+                    }`}
+                  >
+                    <span
+                      className={`${
+                        college.allowManualPremium
+                          ? "translate-x-6"
+                          : "translate-x-1"
+                      } inline-block h-4 w-4 transform rounded-full bg-white transition-transform`}
+                    />
+                  </button>
                 </div>
               </div>
 

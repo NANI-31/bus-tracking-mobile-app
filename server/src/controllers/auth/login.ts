@@ -3,6 +3,7 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import User from "../../models/User.model";
 import logger from "../../utils/logger";
+import { AuditService } from "../../services/AuditService";
 
 const JWT_SECRET = process.env.JWT_SECRET;
 if (!JWT_SECRET) {
@@ -129,6 +130,28 @@ export const login = async (req: Request, res: Response) => {
     }
 
     logger.info(`${user.fullName} (${user.role}) login successful.`);
+
+    // Audit Log for login
+    try {
+      // Temporarily set req.user so AuditService can read user info
+      (req as any).user = {
+        id: String(user._id),
+        email: user.email,
+        fullName: user.fullName,
+        role: user.role,
+        collegeId: user.collegeId,
+      };
+      await AuditService.log({
+        req,
+        action: "USER_LOGIN",
+        resource: "User",
+        resourceId: String(user._id),
+        resourceName: user.fullName,
+        collegeId: user.collegeId ? String(user.collegeId) : undefined,
+      });
+    } catch (auditErr) {
+      logger.warn("Failed to create login audit log", auditErr);
+    }
 
     res.json({
       success: true,

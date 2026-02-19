@@ -1,4 +1,4 @@
-import { IBus } from "../models/Bus.model";
+import { Bus, IBus } from "../models/Bus.model";
 import { BusAssignmentLog } from "../models/BusAssignmentLog.model";
 import User, { UserRole } from "../models/User.model";
 import { sendTemplatedNotificationHelper } from "../controllers/features/notification.controller";
@@ -131,6 +131,21 @@ export class BusAssignmentService {
     coordinatorName: string = "Coordinator",
   ): Promise<void> {
     if (!bus.driverId) return;
+
+    // Ensure driver is unassigned from other buses
+    await Bus.updateMany(
+      {
+        driverId: bus.driverId,
+        _id: { $ne: bus._id },
+      },
+      {
+        $set: {
+          driverId: "",
+          assignmentStatus: "unassigned",
+          status: "not-running",
+        },
+      },
+    );
 
     const driver = await User.findById(bus.driverId);
     const driverName = driver?.fullName || "Unknown Driver";

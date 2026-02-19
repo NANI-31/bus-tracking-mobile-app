@@ -7,6 +7,7 @@ export interface IBus extends Document {
   defaultRouteId?: string;
   collegeId: string;
   isActive: boolean;
+  capacity?: number;
   status: "on-time" | "delayed" | "not-running";
   shiftId?: string; // Associated shift ID from College
   assignmentStatus: "unassigned" | "pending" | "accepted";
@@ -22,6 +23,7 @@ const BusSchema: Schema = new Schema({
   defaultRouteId: { type: Schema.Types.ObjectId, ref: "Route" },
   collegeId: { type: Schema.Types.ObjectId, required: true, ref: "College" },
   isActive: { type: Boolean, default: true },
+  capacity: { type: Number, default: 40 },
   status: {
     type: String,
     enum: ["on-time", "delayed", "not-running"],

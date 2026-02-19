@@ -1,0 +1,23 @@
+﻿--------- beginning of crash
+FATAL EXCEPTION: main
+Process: com.example.collegebus, PID: 26536
+java.lang.NullPointerException: Attempt to invoke virtual method 'int io.flutter.plugins.googlemaps.Messages$PlatformMarkerType.ordinal()' on a null object reference
+	at io.flutter.plugins.googlemaps.MarkerBuilder.<init>(MarkerBuilder.java:23)
+	at io.flutter.plugins.googlemaps.MarkersController.addMarker(MarkersController.java:181)
+	at io.flutter.plugins.googlemaps.MarkersController.addMarkers(MarkersController.java:55)
+	at io.flutter.plugins.googlemaps.GoogleMapController.updateInitialMarkers(GoogleMapController.java:659)
+	at io.flutter.plugins.googlemaps.GoogleMapController.onMapReady(GoogleMapController.java:228)
+	at com.google.android.gms.maps.zzag.zzb(com.google.android.gms:play-services-maps@@20.0.0:1)
+	at com.google.android.gms.maps.internal.zzas.zza(com.google.android.gms:play-services-maps@@20.0.0:5)
+	at com.google.android.gms.internal.maps.zzb.onTransact(com.google.android.gms:play-services-maps@@20.0.0:3)
+	at android.os.Binder.transact(Binder.java:1406)
+	at m140.ayh.c(:com.google.android.gms.policy_maps_core_dynamite@254515607@254515602025.843324832.843324832:8)
+	at com.google.maps.api.android.lib6.impl.bz.run(:com.google.android.gms.policy_maps_core_dynamite@254515607@254515602025.843324832.843324832:17)
+	at android.os.Handler.handleCallback(Handler.java:1014)
+	at android.os.Handler.dispatchMessage(Handler.java:102)
+	at android.os.Looper.loopOnce(Looper.java:250)
+	at android.os.Looper.loop(Looper.java:340)
+	at android.app.ActivityThread.main(ActivityThread.java:9902)
+	at java.lang.reflect.Method.invoke(Native Method)
+	at com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run(RuntimeInit.java:625)
+	at com.android.internal.os.ZygoteInit.main(ZygoteInit.java:957)

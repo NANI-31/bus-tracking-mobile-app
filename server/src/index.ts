@@ -1,4 +1,5 @@
 import express from "express";
+import cors from "cors";
 import dotenv from "dotenv";
 import { createServer } from "http";
 import { Server } from "socket.io";
@@ -9,6 +10,7 @@ import { router } from "./routes";
 import { initializeSocket } from "./socket";
 import logger from "./utils/logger";
 import { errorHandler } from "./middleware/errorMiddleware";
+import { MetricsService } from "./services/MetricsService";
 
 dotenv.config();
 
@@ -17,9 +19,18 @@ const startServer = async () => {
     await connectDB();
     await connectRedis();
     initializeFirebase();
+    MetricsService.init();
 
     const app = express();
     const httpServer = createServer(app);
+
+    // Enable CORS for web client
+    app.use(
+      cors({
+        origin: ["http://localhost:5173"],
+        credentials: true,
+      }),
+    );
 
     // Request Logging Middleware
     app.use((req, res, next) => {
@@ -63,14 +74,14 @@ const startServer = async () => {
 
 // Catch unhandled rejections
 process.on("unhandledRejection", (err) => {
-  logger.error("UNHANDLED REJECTION! 💥 Shutting down...");
+  logger.error("UNHANDLED REJECTION! 💥 Shutting down...", err);
   console.error(err);
   process.exit(1);
 });
 
 // Catch uncaught exceptions
 process.on("uncaughtException", (err) => {
-  logger.error("UNCAUGHT EXCEPTION! 💥 Shutting down...");
+  logger.error("UNCAUGHT EXCEPTION! 💥 Shutting down...", err);
   console.error(err);
   process.exit(1);
 });

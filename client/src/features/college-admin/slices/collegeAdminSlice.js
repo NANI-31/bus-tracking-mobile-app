@@ -11,6 +11,11 @@ import {
   addRoute,
   updateRoute,
   deleteRoute,
+  fetchTransactions,
+  activateManualPremium,
+  bulkActivatePremium,
+  fetchCollege,
+  fetchAuditLogs,
 } from "../api/collegeAdminApi";
 
 // Async Thunks
@@ -100,10 +105,53 @@ export const removeRoute = createAsyncThunk(
   },
 );
 
+export const getTransactions = createAsyncThunk(
+  "collegeAdmin/getTransactions",
+  async (params) => {
+    const response = await fetchTransactions(params);
+    return response;
+  },
+);
+
+export const activateUserPremium = createAsyncThunk(
+  "collegeAdmin/activateUserPremium",
+  async ({ userId, planType }) => {
+    const response = await activateManualPremium(userId, planType);
+    return response; // Should include updated user or status
+  },
+);
+
+export const bulkUploadPremium = createAsyncThunk(
+  "collegeAdmin/bulkUploadPremium",
+  async (formData) => {
+    const response = await bulkActivatePremium(formData);
+    return response;
+  },
+);
+
+export const getCollege = createAsyncThunk(
+  "collegeAdmin/getCollege",
+  async (collegeId) => {
+    const response = await fetchCollege(collegeId);
+    return response;
+  },
+);
+
+export const getAuditLogs = createAsyncThunk(
+  "collegeAdmin/getAuditLogs",
+  async (filters = {}) => {
+    const response = await fetchAuditLogs(filters);
+    return response;
+  },
+);
+
 const initialState = {
   users: [],
   buses: [],
   routes: [],
+  transactions: [],
+  auditLogs: [],
+  currentCollege: null,
   loading: false,
   error: null,
 };
@@ -111,7 +159,27 @@ const initialState = {
 const collegeAdminSlice = createSlice({
   name: "collegeAdmin",
   initialState,
-  reducers: {},
+  reducers: {
+    updateBusLocation: (state, action) => {
+      const { busId, location, speed, heading, timestamp } = action.payload;
+      const index = state.buses.findIndex((bus) => bus._id === busId);
+      if (index !== -1) {
+        state.buses[index] = {
+          ...state.buses[index],
+          lastLocation: {
+            ...location,
+            timestamp: timestamp || new Date().toISOString(),
+          },
+          speed: speed || 0,
+          heading: heading || 0,
+        };
+      }
+    },
+    addLiveLog: (state, action) => {
+      // Prepend new log and keep only last 100
+      state.auditLogs = [action.payload, ...state.auditLogs].slice(0, 100);
+    },
+  },
   extraReducers: (builder) => {
     builder
       // Users
@@ -121,7 +189,7 @@ const collegeAdminSlice = createSlice({
       })
       .addCase(getUsers.fulfilled, (state, action) => {
         state.loading = false;
-        state.users = action.payload;
+        state.users = Array.isArray(action.payload) ? action.payload : [];
       })
       .addCase(getUsers.rejected, (state, action) => {
         state.loading = false;
@@ -135,6 +203,12 @@ const collegeAdminSlice = createSlice({
           state.users[index] = action.payload;
         }
       })
+      .addCase(activateUserPremium.fulfilled, (state, action) => {
+        // Find user in state and update their premium status if possible
+        // Note: Backend returns { message, premiumUntil }, we might need to re-fetch or use updateUser logic
+        // But for UI simplicity, we can assume the user list might need refresh or we update in-place if payload includes user
+      })
+
       .addCase(removeUser.fulfilled, (state, action) => {
         state.users = state.users.filter((user) => user._id !== action.payload);
       })
@@ -146,7 +220,7 @@ const collegeAdminSlice = createSlice({
       })
       .addCase(getBuses.fulfilled, (state, action) => {
         state.loading = false;
-        state.buses = action.payload;
+        state.buses = Array.isArray(action.payload) ? action.payload : [];
       })
       .addCase(getBuses.rejected, (state, action) => {
         state.loading = false;
@@ -174,7 +248,7 @@ const collegeAdminSlice = createSlice({
       })
       .addCase(getRoutes.fulfilled, (state, action) => {
         state.loading = false;
-        state.routes = action.payload;
+        state.routes = Array.isArray(action.payload) ? action.payload : [];
       })
       .addCase(getRoutes.rejected, (state, action) => {
         state.loading = false;
@@ -195,8 +269,39 @@ const collegeAdminSlice = createSlice({
         state.routes = state.routes.filter(
           (route) => route._id !== action.payload,
         );
+      })
+
+      // Transactions
+      .addCase(getTransactions.pending, (state) => {
+        state.loading = true;
+      })
+      .addCase(getTransactions.fulfilled, (state, action) => {
+        state.loading = false;
+        state.transactions = Array.isArray(action.payload)
+          ? action.payload
+          : action.payload.transactions || [];
+      })
+      .addCase(getTransactions.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.error.message;
+      })
+      .addCase(getCollege.fulfilled, (state, action) => {
+        state.currentCollege = action.payload;
+      })
+      .addCase(getAuditLogs.pending, (state) => {
+        state.loading = true;
+      })
+      .addCase(getAuditLogs.fulfilled, (state, action) => {
+        state.loading = false;
+        state.auditLogs = action.payload;
+      })
+      .addCase(getAuditLogs.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.error.message;
       });
   },
 });
+
+export const { updateBusLocation, addLiveLog } = collegeAdminSlice.actions;
 
 export default collegeAdminSlice.reducer;

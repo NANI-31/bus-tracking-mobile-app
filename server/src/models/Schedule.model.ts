@@ -25,12 +25,10 @@ const StopScheduleSchema: Schema = new Schema(
     arrivalTime: {
       type: String,
       required: true,
-      match: /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, // Simple HH:mm validation
     },
     departureTime: {
       type: String,
       required: true,
-      match: /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/,
     },
   },
   { _id: false },

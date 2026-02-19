@@ -1,6 +1,8 @@
 import { Request, Response } from "express";
 import User from "../../models/User.model";
 import { AuthRequest } from "../../middleware/authMiddleware";
+import logger from "../../utils/logger";
+import { AuditService } from "../../services/AuditService";
 
 export const logout = async (req: Request, res: Response) => {
   try {
@@ -12,11 +14,27 @@ export const logout = async (req: Request, res: Response) => {
     }
 
     const userId = authReq.user.id;
+    const userFullName = authReq.user.fullName || "Unknown";
+    const userCollegeId = authReq.user.collegeId;
 
     // Find user and update isLoggedIn to false
     await User.findByIdAndUpdate(userId, { isLoggedIn: false });
 
     console.log(`LOGOUT: User ${userId} logged out successfully.`);
+
+    // Audit Log for logout
+    try {
+      await AuditService.log({
+        req,
+        action: "USER_LOGOUT",
+        resource: "User",
+        resourceId: userId,
+        resourceName: userFullName,
+        collegeId: userCollegeId ? String(userCollegeId) : undefined,
+      });
+    } catch (auditErr) {
+      logger.warn("Failed to create logout audit log", auditErr);
+    }
 
     res.status(200).json({
       success: true,

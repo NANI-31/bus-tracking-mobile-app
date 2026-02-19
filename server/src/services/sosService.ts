@@ -5,6 +5,7 @@ import User from "../models/User.model";
 import { Bus } from "../models/Bus.model";
 import { sendSosNotification } from "../utils/firebase";
 import logger from "../utils/logger";
+import AuditLog from "../models/AuditLog.model";
 
 interface TriggerSosParams {
   userId: string;
@@ -49,8 +50,9 @@ export class SosService {
     // Broadcast via Socket.IO to coordinators only
     const coordRoom = `${collegeId}_coordinators`;
     this.io.to(coordRoom).emit("sos_alert", newSos);
+    this.io.to("global_sos").emit("sos_alert", newSos); // Global broadcast for Super Admins
     logger.info(
-      `[Socket] SOS alert broadcasted to coordinator room: ${coordRoom}`,
+      `[Socket] SOS alert broadcasted to coordinator room: ${coordRoom} and global room`,
     );
 
     // Send Firebase Notifications to Coordinators and College Admins
@@ -65,6 +67,29 @@ export class SosService {
     );
 
     logger.info(`SOS triggered: ${sosId} by ${userId}`);
+
+    // Log to Audit Trail
+    try {
+      await AuditLog.create({
+        userId: userId,
+        userEmail: "system@sos",
+        userName: userRole,
+        action: "SOS_ALERT_CREATED",
+        resource: "SOS",
+        resourceId: sosId,
+        newState: {
+          sosId: sosId,
+          busId: busId,
+          routeId: routeId,
+          location: location,
+        },
+        collegeId: collegeId,
+        ipAddress: "SYSTEM",
+      });
+    } catch (auditError) {
+      logger.error("Failed to create audit log for SOS trigger", auditError);
+    }
+
     return newSos;
   }
 
@@ -92,9 +117,31 @@ export class SosService {
     if (sos.collegeId) {
       const coordRoom = `${sos.collegeId}_coordinators`;
       this.io.to(coordRoom).emit("sos_resolved", { sos_id: sosId });
+      this.io.to("global_sos").emit("sos_resolved", { sos_id: sosId }); // Global broadcast
     }
 
     logger.info(`SOS resolved: ${sosId} by ${resolvedByApiKey}`);
+
+    // Log to Audit Trail
+    try {
+      await AuditLog.create({
+        userId: resolvedByApiKey,
+        userEmail: "system@sos",
+        userName: "Administrator",
+        action: "SOS_RESOLVED",
+        resource: "SOS",
+        resourceId: sosId,
+        newState: {
+          sosId: sosId,
+          resolutionNotes: resolutionNotes,
+        },
+        collegeId: sos.collegeId,
+        ipAddress: "SYSTEM",
+      });
+    } catch (auditError) {
+      logger.error("Failed to create audit log for SOS resolution", auditError);
+    }
+
     return sos;
   }
 

@@ -30,8 +30,3 @@ class LiveMapTab extends ConsumerWidget {
     );
   }
 }
-
-
-
-
-

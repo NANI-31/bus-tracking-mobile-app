@@ -83,7 +83,7 @@ const runSeed = async () => {
 
     // 4. Seed Global Super Admin
     console.log("\n--- Seeding Global Super Admin ---");
-    const password = "a"; // Fixed password for dev
+    const password = "password123"; // Fixed password for dev
     const salt = await import("bcryptjs").then((bcrypt) => bcrypt.genSalt(10));
     const passwordHash = await import("bcryptjs").then((bcrypt) =>
       bcrypt.hash(password, salt),

@@ -8,6 +8,11 @@ const router = Router();
 router.use(protect, superAdminOnly);
 
 router.get("/stats", SuperAdminController.getSystemStats);
+router.get("/storage-stats", SuperAdminController.getStorageStats);
+router.get(
+  "/colleges/:collegeId/storage-history",
+  SuperAdminController.getCollegeStorageHistory,
+);
 router.put("/colleges/:collegeId/verify", SuperAdminController.verifyCollege);
 router.put("/colleges/:collegeId/suspend", SuperAdminController.suspendCollege);
 

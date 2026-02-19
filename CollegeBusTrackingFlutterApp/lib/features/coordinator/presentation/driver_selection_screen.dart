@@ -12,6 +12,7 @@ import 'package:collegebus/shared/widgets/success_modal.dart';
 import 'package:collegebus/shared/widgets/api_error_modal.dart';
 import 'package:collegebus/features/route/domain/route_model.dart';
 import 'package:collegebus/features/bus/domain/bus_model.dart';
+import 'package:collegebus/core/providers/socket_provider.dart';
 import 'modules/bus_tab_components/route_selection_modal.dart';
 
 class DriverSelectionScreen extends ConsumerStatefulWidget {
@@ -116,6 +117,9 @@ class _DriverSelectionScreenState extends ConsumerState<DriverSelectionScreen> {
                   routeId: selectedRoute.id,
                 );
 
+                // Notify socket for real-time synchronization
+                ref.read(socketServiceProvider).sendBusListUpdate();
+
                 if (dialogContext.mounted) {
                   Navigator.pop(dialogContext); // Close Confirm Dialog
                 }
@@ -157,7 +161,11 @@ class _DriverSelectionScreenState extends ConsumerState<DriverSelectionScreen> {
 
     if (collegeId == null) {
       return Scaffold(
-        appBar: AppBar(title: Text('Assign Driver to ${widget.busNumber}')),
+        appBar: AppBar(
+          title: Text('Assign Driver to ${widget.busNumber}'),
+          backgroundColor: AppColors.primary,
+          foregroundColor: Colors.white,
+        ),
         body: const Center(child: Text('College context error')),
       );
     }
@@ -169,7 +177,11 @@ class _DriverSelectionScreenState extends ConsumerState<DriverSelectionScreen> {
     final routesAsync = ref.watch(collegeRoutesProvider(collegeId));
 
     return Scaffold(
-      appBar: AppBar(title: Text('Assign Driver to ${widget.busNumber}')),
+      appBar: AppBar(
+        title: Text('Assign Driver to ${widget.busNumber}'),
+        backgroundColor: AppColors.primary,
+        foregroundColor: Colors.white,
+      ),
       body: driversAsync.when(
         data: (drivers) => busesAsync.when(
           data: (buses) => routesAsync.when(

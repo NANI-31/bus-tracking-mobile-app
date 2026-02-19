@@ -68,9 +68,9 @@ class RouteModel {
       collegeId: map['collegeId'] ?? '',
       createdBy: map['createdBy'] ?? '',
       isActive: parseBool(map['isActive'], true),
-      createdAt: DateTime.parse(map['createdAt']),
+      createdAt: parseDateTime(map['createdAt']),
       updatedAt: map['updatedAt'] != null
-          ? DateTime.parse(map['updatedAt'])
+          ? parseDateTime(map['updatedAt'])
           : null,
     );
   }
@@ -120,4 +120,3 @@ class RouteModel {
 
   String get displayName => '$routeName (${routeType.toUpperCase()})';
 }
-

@@ -12,7 +12,6 @@ class BusListCard extends StatelessWidget {
   final VoidCallback onTap;
   final VoidCallback onHistory;
   final VoidCallback onEdit;
-  final VoidCallback onEditDriver;
   final VoidCallback onDelete;
 
   const BusListCard({
@@ -24,7 +23,6 @@ class BusListCard extends StatelessWidget {
     required this.onTap,
     required this.onHistory,
     required this.onEdit,
-    required this.onEditDriver,
     required this.onDelete,
   });
 
@@ -100,7 +98,7 @@ class BusListCard extends StatelessWidget {
             ),
             12.heightBox,
             HStack([
-              // Tracking / Assign button (onTap equivalent)
+              // Assign button
               _buildActionButton(
                 context,
                 icon: Icons.assignment_ind_outlined,
@@ -121,25 +119,18 @@ class BusListCard extends StatelessWidget {
                 12.widthBox,
               ],
 
-              _buildActionButton(
-                context,
-                icon: Icons.person_outline,
-                label: 'Driver',
-                color: Colors.indigo,
-                onPressed: onEditDriver,
-              ).expand(),
+              if (isOfficial)
+                _buildActionButton(
+                  context,
+                  icon: Icons.edit_outlined,
+                  label: 'Edit',
+                  color: Colors.orange,
+                  onPressed: onEdit,
+                ).expand(),
             ]).pSymmetric(h: 20),
             12.heightBox,
             if (isOfficial)
               HStack([
-                _buildActionButton(
-                  context,
-                  icon: Icons.edit_outlined,
-                  label: 'Edit Bus',
-                  color: Colors.orange,
-                  onPressed: onEdit,
-                ).expand(),
-                12.widthBox,
                 _buildActionButton(
                   context,
                   icon: Icons.delete_outline,

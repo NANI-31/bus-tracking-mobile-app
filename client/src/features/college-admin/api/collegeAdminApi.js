@@ -1,11 +1,9 @@
-import axios from "axios";
-
-const API_URL = "http://localhost:5000/api/v1"; // Update with your backend URL
+import axios from "../../../api/axios";
 
 // User Management
 export const fetchUsers = async () => {
   try {
-    const response = await axios.get(`${API_URL}/users`);
+    const response = await axios.get("/users");
     return response.data;
   } catch (error) {
     throw error.response ? error.response.data : error.message;
@@ -14,7 +12,7 @@ export const fetchUsers = async () => {
 
 export const updateUser = async (userId, data) => {
   try {
-    const response = await axios.put(`${API_URL}/users/${userId}`, data);
+    const response = await axios.put(`/users/${userId}`, data);
     return response.data;
   } catch (error) {
     throw error.response ? error.response.data : error.message;
@@ -23,7 +21,7 @@ export const updateUser = async (userId, data) => {
 
 export const deleteUser = async (userId) => {
   try {
-    const response = await axios.delete(`${API_URL}/users/${userId}`);
+    const response = await axios.delete(`/users/${userId}`);
     return response.data;
   } catch (error) {
     throw error.response ? error.response.data : error.message;
@@ -33,7 +31,7 @@ export const deleteUser = async (userId) => {
 // Bus Management
 export const fetchBuses = async () => {
   try {
-    const response = await axios.get(`${API_URL}/buses`);
+    const response = await axios.get("/buses");
     return response.data;
   } catch (error) {
     throw error.response ? error.response.data : error.message;
@@ -42,7 +40,7 @@ export const fetchBuses = async () => {
 
 export const addBus = async (busData) => {
   try {
-    const response = await axios.post(`${API_URL}/buses`, busData);
+    const response = await axios.post("/buses", busData);
     return response.data;
   } catch (error) {
     throw error.response ? error.response.data : error.message;
@@ -51,7 +49,7 @@ export const addBus = async (busData) => {
 
 export const updateBus = async (busId, busData) => {
   try {
-    const response = await axios.put(`${API_URL}/buses/${busId}`, busData);
+    const response = await axios.put(`/buses/${busId}`, busData);
     return response.data;
   } catch (error) {
     throw error.response ? error.response.data : error.message;
@@ -60,7 +58,7 @@ export const updateBus = async (busId, busData) => {
 
 export const deleteBus = async (busId) => {
   try {
-    const response = await axios.delete(`${API_URL}/buses/${busId}`);
+    const response = await axios.delete(`/buses/${busId}`);
     return response.data;
   } catch (error) {
     throw error.response ? error.response.data : error.message;
@@ -70,7 +68,7 @@ export const deleteBus = async (busId) => {
 // Route Management
 export const fetchRoutes = async () => {
   try {
-    const response = await axios.get(`${API_URL}/routes`);
+    const response = await axios.get("/routes");
     return response.data;
   } catch (error) {
     throw error.response ? error.response.data : error.message;
@@ -79,7 +77,7 @@ export const fetchRoutes = async () => {
 
 export const addRoute = async (routeData) => {
   try {
-    const response = await axios.post(`${API_URL}/routes`, routeData);
+    const response = await axios.post("/routes", routeData);
     return response.data;
   } catch (error) {
     throw error.response ? error.response.data : error.message;
@@ -88,7 +86,7 @@ export const addRoute = async (routeData) => {
 
 export const updateRoute = async (routeId, routeData) => {
   try {
-    const response = await axios.put(`${API_URL}/routes/${routeId}`, routeData);
+    const response = await axios.put(`/routes/${routeId}`, routeData);
     return response.data;
   } catch (error) {
     throw error.response ? error.response.data : error.message;
@@ -97,8 +95,64 @@ export const updateRoute = async (routeId, routeData) => {
 
 export const deleteRoute = async (routeId) => {
   try {
-    const response = await axios.delete(`${API_URL}/routes/${routeId}`);
+    const response = await axios.delete(`/routes/${routeId}`);
     return response.data;
+  } catch (error) {
+    throw error.response ? error.response.data : error.message;
+  }
+};
+// Payments & Transactions
+export const fetchTransactions = async (params) => {
+  try {
+    const response = await axios.get("/payments/transactions", {
+      params,
+    });
+    return response.data;
+  } catch (error) {
+    throw error.response ? error.response.data : error.message;
+  }
+};
+
+export const activateManualPremium = async (userId, planType) => {
+  try {
+    const response = await axios.post("/users/manual-premium", {
+      userId,
+      planType,
+    });
+    return response.data;
+  } catch (error) {
+    throw error.response ? error.response.data : error.message;
+  }
+};
+
+export const bulkActivatePremium = async (formData) => {
+  try {
+    const response = await axios.post("/users/bulk-premium", formData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    });
+    return response.data;
+  } catch (error) {
+    throw error.response ? error.response.data : error.message;
+  }
+};
+
+export const fetchCollege = async (collegeId) => {
+  try {
+    const response = await axios.get(`/colleges/${collegeId}`);
+    return response.data;
+  } catch (error) {
+    throw error.response ? error.response.data : error.message;
+  }
+};
+
+export const fetchAuditLogs = async (filters = {}) => {
+  try {
+    const response = await axios.get("/admin/audit-logs", {
+      params: filters,
+    });
+    return response.data.logs;
   } catch (error) {
     throw error.response ? error.response.data : error.message;
   }

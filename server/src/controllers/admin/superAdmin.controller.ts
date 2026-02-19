@@ -2,7 +2,96 @@ import { Request, Response } from "express";
 import { AuthRequest } from "../../middleware/authMiddleware";
 import College from "../../models/College.model";
 import User from "../../models/User.model";
-import AuditLog from "../../models/AuditLog.model";
+import mongoose from "mongoose";
+import { AuditService } from "../../services/AuditService";
+import { pubClient } from "../../config/redis";
+import logger from "../../utils/logger";
+import { MetricsService } from "../../services/MetricsService";
+import MetricSnapshot from "../../models/MetricSnapshot.model";
+
+/**
+ * Get storage statistics for Super Admin (MongoDB & Redis)
+ */
+export const getStorageStats = async (req: AuthRequest, res: Response) => {
+  try {
+    // 1. MongoDB Stats
+    if (!mongoose.connection.db) {
+      return res.status(503).json({ message: "Database connection not ready" });
+    }
+    const [dbStats, history] = await Promise.all([
+      mongoose.connection.db.stats(),
+      MetricsService.getHistory(),
+    ]);
+
+    // 2. Redis Memory Stats
+    let redisStats = { usedMemory: "0", peakMemory: "0", fragmentation: "0" };
+    try {
+      const info = await pubClient.info("memory");
+      // Basic parsing of redis info string
+      const lines = info.split("\r\n");
+      const findValue = (key: string) => {
+        const line = lines.find((l) => l.startsWith(key));
+        return line ? line.split(":")[1] : "0";
+      };
+
+      redisStats = {
+        usedMemory: findValue("used_memory_human"),
+        peakMemory: findValue("used_memory_peak_human"),
+        fragmentation: findValue("mem_fragmentation_ratio"),
+      };
+    } catch (redisErr) {
+      logger.error("Failed to fetch Redis stats", redisErr);
+      // Don't fail the whole request if Redis is just for pub/sub but not stats-accessible
+    }
+
+    res.json({
+      mongodb: {
+        dbName: dbStats.db,
+        collections: dbStats.collections,
+        objects: dbStats.objects,
+        avgObjSize: (dbStats.avgObjSize / 1024).toFixed(2) + " KB",
+        dataSize: (dbStats.dataSize / (1024 * 1024)).toFixed(2) + " MB",
+        storageSize: (dbStats.storageSize / (1024 * 1024)).toFixed(2) + " MB",
+        indexSize: (dbStats.indexSize / (1024 * 1024)).toFixed(2) + " MB",
+      },
+      redis: redisStats,
+      history,
+    });
+  } catch (error) {
+    logger.error("Storage Stats Error:", error);
+    res.status(500).json({ message: "Failed to fetch storage stats" });
+  }
+};
+
+/**
+ * Get historical storage metrics for a specific college
+ */
+export const getCollegeStorageHistory = async (
+  req: AuthRequest,
+  res: Response,
+) => {
+  try {
+    const { collegeId } = req.params;
+    const { startDate, endDate } = req.query;
+
+    const query: any = { collegeId };
+
+    if (startDate || endDate) {
+      query.date = {};
+      if (startDate) query.date.$gte = new Date(startDate as string);
+      if (endDate) query.date.$lte = new Date(endDate as string);
+    }
+
+    const history = await MetricSnapshot.find(query).sort({ date: 1 });
+
+    res.json(history);
+  } catch (error) {
+    logger.error("College Storage History Error:", error);
+    res
+      .status(500)
+      .json({ message: "Failed to fetch college storage history" });
+  }
+};
 
 /**
  * Get system-wide statistics for Super Admin
@@ -45,14 +134,13 @@ export const verifyCollege = async (req: AuthRequest, res: Response) => {
       return res.status(404).json({ message: "College not found" });
     }
 
-    // Log the action
-    await AuditLog.create({
-      userId: req.user?.id,
-      userEmail: req.user?.email,
-      userName: req.user?.fullName || "Super Admin",
-      action: "college.verify",
-      resource: "college",
+    // Audit Log
+    await AuditService.log({
+      req,
+      action: "COLLEGE_VERIFY",
+      resource: "College",
       resourceId: collegeId,
+      resourceName: college.name,
       newState: { verified: true },
     });
 
@@ -84,15 +172,14 @@ export const suspendCollege = async (req: AuthRequest, res: Response) => {
       return res.status(404).json({ message: "College not found" });
     }
 
-    // Log the action
-    await AuditLog.create({
-      userId: req.user?.id,
-      userEmail: req.user?.email,
-      userName: req.user?.fullName || "Super Admin",
-      action: "college.suspend",
-      resource: "college",
+    // Audit Log
+    await AuditService.log({
+      req,
+      action: "COLLEGE_SUSPEND",
+      resource: "College",
       resourceId: collegeId,
-      newState: { suspended: true, reason },
+      resourceName: college.name,
+      newState: { suspended: true, suspensionReason: reason },
     });
 
     res.json(college);

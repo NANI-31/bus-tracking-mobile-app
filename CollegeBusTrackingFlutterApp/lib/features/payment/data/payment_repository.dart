@@ -8,7 +8,7 @@ class PaymentRepository extends BaseRepository {
   }) async {
     try {
       final response = await dio.post(
-        '/payment/create-order',
+        '/payments/create-order',
         data: {'amount': amount, 'currency': currency, 'plan': plan},
       );
       return response.data;
@@ -24,7 +24,7 @@ class PaymentRepository extends BaseRepository {
   ) async {
     try {
       final response = await dio.post(
-        '/payment/verify-payment',
+        '/payments/verify-payment',
         data: {
           'razorpay_order_id': orderId,
           'razorpay_payment_id': paymentId,
@@ -53,7 +53,7 @@ class PaymentRepository extends BaseRepository {
       if (collegeId != null) queryParams['collegeId'] = collegeId;
 
       final response = await dio.get(
-        '/payment/transactions',
+        '/payments/transactions',
         queryParameters: queryParams,
       );
       return response.data as List<dynamic>;

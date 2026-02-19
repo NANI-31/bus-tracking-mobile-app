@@ -37,8 +37,13 @@ abstract class BaseRepository {
         },
         onError: (e, handler) {
           if (e.response?.statusCode == 401) {
+            // Check if this is a logout request to avoid circular dependency/loop
+            final isLogoutRequest = e.requestOptions.path.contains(
+              'auth/logout',
+            );
+
             // Trigger global logout if authorized session found but expired/invalidated
-            if (PersistenceService.getAuthToken() != null) {
+            if (PersistenceService.getAuthToken() != null && !isLogoutRequest) {
               onUnauthorized?.call();
             }
           }

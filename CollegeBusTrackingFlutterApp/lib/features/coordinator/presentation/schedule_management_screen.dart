@@ -23,14 +23,22 @@ class ScheduleManagementScreen extends ConsumerStatefulWidget {
 class _ScheduleManagementScreenState
     extends ConsumerState<ScheduleManagementScreen> {
   final Set<String> _expandedScheduleIds = {};
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
 
   @override
   void initState() {
     super.initState();
+    _searchController.addListener(() {
+      setState(() {
+        _searchQuery = _searchController.text.toLowerCase();
+      });
+    });
   }
 
   @override
   void dispose() {
+    _searchController.dispose();
     super.dispose();
   }
 
@@ -274,6 +282,11 @@ class _ScheduleManagementScreenState
 
                                       try {
                                         await api.createSchedule(schedule);
+                                        ref.invalidate(
+                                          collegeSchedulesProvider(
+                                            user.collegeId,
+                                          ),
+                                        );
                                         if (!context.mounted) return;
                                         Navigator.of(context).pop();
                                         ScaffoldMessenger.of(
@@ -316,6 +329,92 @@ class _ScheduleManagementScreenState
                   ),
                 ),
               ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  void _showChangeBusDialog({
+    required ScheduleModel schedule,
+    required List<BusModel> buses,
+  }) {
+    BusModel? selectedBus = buses.firstWhere(
+      (b) => b.id == schedule.busId,
+      orElse: () => buses.first,
+    );
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              title: const Text('Change Bus'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text('Select a new bus for this schedule:'),
+                  const SizedBox(height: 16),
+                  DropdownButtonFormField<BusModel>(
+                    initialValue: selectedBus,
+                    isExpanded: true,
+                    decoration: const InputDecoration(
+                      labelText: 'Select Bus',
+                      border: OutlineInputBorder(),
+                    ),
+                    items: buses
+                        .map(
+                          (bus) => DropdownMenuItem(
+                            value: bus,
+                            child: Text('Bus ${bus.busNumber}'),
+                          ),
+                        )
+                        .toList(),
+                    onChanged: (bus) => setState(() => selectedBus = bus),
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text('Cancel'),
+                ),
+                ElevatedButton(
+                  onPressed:
+                      selectedBus != null && selectedBus!.id != schedule.busId
+                      ? () async {
+                          final api = ref.read(apiServiceProvider);
+                          try {
+                            final updatedSchedule = schedule.copyWith(
+                              busId: selectedBus!.id,
+                              updatedAt: DateTime.now(),
+                            );
+                            await api.updateSchedule(
+                              schedule.id,
+                              updatedSchedule.toMap(),
+                            );
+                            ref.invalidate(
+                              collegeSchedulesProvider(schedule.collegeId),
+                            );
+                            if (!context.mounted) return;
+                            Navigator.of(context).pop();
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Bus reassigned successfully'),
+                              ),
+                            );
+                          } catch (e) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text('Error: $e')),
+                            );
+                          }
+                        }
+                      : null,
+                  child: const Text('Save'),
+                ),
+              ],
             );
           },
         );
@@ -382,31 +481,57 @@ class _ScheduleManagementScreenState
                 )
               : null,
         ),
-        body: schedulesAsync.when(
-          loading: () => const Center(child: CircularProgressIndicator()),
-          error: (err, stack) => Center(child: Text('Error: $err')),
-          data: (schedules) {
-            final routes = routesAsync.value ?? [];
-            final buses = busesAsync.value ?? [];
+        body: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(AppSizes.paddingMedium),
+              child: TextField(
+                controller: _searchController,
+                decoration: InputDecoration(
+                  hintText: 'Search by bus number or route...',
+                  prefixIcon: const Icon(Icons.search),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  filled: true,
+                  fillColor: Theme.of(context).cardColor,
+                ),
+              ),
+            ),
+            Expanded(
+              child: schedulesAsync.when(
+                loading: () => const Center(child: CircularProgressIndicator()),
+                error: (err, stack) => Center(child: Text('Error: $err')),
+                data: (schedules) {
+                  final routes = routesAsync.value ?? [];
+                  final buses = busesAsync.value ?? [];
 
-            if (hasMultipleShifts) {
-              return TabBarView(
-                children: college.shifts.map((shift) {
-                  final shiftSchedules = schedules
-                      .where((s) => s.shift == shift.shiftId)
-                      .toList();
-                  return _buildScheduleTab(
-                    shift.name,
-                    shiftSchedules,
-                    routes,
-                    buses,
-                  );
-                }).toList(),
-              );
-            } else {
-              return _buildScheduleTab('Morning', schedules, routes, buses);
-            }
-          },
+                  if (hasMultipleShifts) {
+                    return TabBarView(
+                      children: college.shifts.map((shift) {
+                        final shiftSchedules = schedules
+                            .where((s) => s.shift == shift.shiftId)
+                            .toList();
+                        return _buildScheduleTab(
+                          shift.name,
+                          shiftSchedules,
+                          routes,
+                          buses,
+                        );
+                      }).toList(),
+                    );
+                  } else {
+                    return _buildScheduleTab(
+                      'Morning',
+                      schedules,
+                      routes,
+                      buses,
+                    );
+                  }
+                },
+              ),
+            ),
+          ],
         ),
         floatingActionButton: Builder(
           builder: (context) {
@@ -443,7 +568,42 @@ class _ScheduleManagementScreenState
     List<RouteModel> routes,
     List<BusModel> buses,
   ) {
-    if (schedules.isEmpty) {
+    // Apply search filter
+    final filteredSchedules = schedules.where((schedule) {
+      if (_searchQuery.isEmpty) return true;
+
+      final bus = buses.firstWhere(
+        (b) => b.id == schedule.busId,
+        orElse: () => BusModel(
+          id: '',
+          busNumber: '',
+          driverId: '',
+          collegeId: '',
+          createdAt: DateTime.now(),
+        ),
+      );
+
+      final route = routes.firstWhere(
+        (r) => r.id == schedule.routeId,
+        orElse: () => RouteModel(
+          id: '',
+          routeName: '',
+          routeType: '',
+          startPoint: RoutePoint(name: '', lat: 0, lng: 0),
+          endPoint: RoutePoint(name: '', lat: 0, lng: 0),
+          stopPoints: const [],
+          collegeId: '',
+          createdBy: '',
+          isActive: false,
+          createdAt: DateTime.now(),
+        ),
+      );
+
+      return bus.busNumber.toLowerCase().contains(_searchQuery) ||
+          route.routeName.toLowerCase().contains(_searchQuery);
+    }).toList();
+
+    if (filteredSchedules.isEmpty) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -455,7 +615,10 @@ class _ScheduleManagementScreenState
               color: AppColors.primary.withValues(alpha: 0.6),
             ),
             AppSizes.paddingMedium.heightBox,
-            'No $shift shift timetables created yet'.text
+            (_searchQuery.isEmpty
+                    ? 'No $shift shift timetables created yet'
+                    : 'No matching timetables found')
+                .text
                 .size(18)
                 .center
                 .color(
@@ -465,7 +628,10 @@ class _ScheduleManagementScreenState
                 )
                 .make(),
             AppSizes.paddingSmall.heightBox,
-            'Tap the + button to create a timetable'.text
+            (_searchQuery.isEmpty
+                    ? 'Tap the + button to create a timetable'
+                    : 'Try a different search term')
+                .text
                 .size(14)
                 .center
                 .color(
@@ -480,12 +646,12 @@ class _ScheduleManagementScreenState
     }
 
     return ListView.builder(
-      key: PageStorageKey('mgmt_schedule_list_$shift'),
+      key: PageStorageKey('mgmt_schedule_list_${shift}_$_searchQuery'),
       padding: const EdgeInsets.all(AppSizes.paddingMedium),
-      itemCount: schedules.length,
+      itemCount: filteredSchedules.length,
       itemBuilder: (context, index) {
         try {
-          final schedule = schedules[index];
+          final schedule = filteredSchedules[index];
           final isExpanded = _expandedScheduleIds.contains(schedule.id);
           // Determine Route
           final route = routes.firstWhere(
@@ -529,80 +695,9 @@ class _ScheduleManagementScreenState
                     ),
                   ),
                   title: 'Bus ${bus.busNumber}'.text.semiBold.make(),
-                  subtitle: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      'Route: ${route.routeName}'.text.make(),
-                      'Type: ${route.routeType.toUpperCase()}'.text.make(),
-                      '${route.startPoint.name} → ${route.endPoint.name}'.text
-                          .make(),
-                    ],
-                  ),
-                  trailing: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      PopupMenuButton(
-                        itemBuilder: (context) => [
-                          PopupMenuItem(
-                            value: 'delete',
-                            child: Row(
-                              children: [
-                                Icon(Icons.delete, color: AppColors.error),
-                                8.widthBox,
-                                'Delete'.text.make(),
-                              ],
-                            ),
-                          ),
-                        ],
-                        onSelected: (value) async {
-                          if (value == 'delete') {
-                            final confirmed = await showDialog<bool>(
-                              context: context,
-                              builder: (context) => AlertDialog(
-                                title: const Text('Delete Timetable'),
-                                content: const Text(
-                                  'Are you sure you want to delete this timetable?',
-                                ),
-                                actions: [
-                                  TextButton(
-                                    onPressed: () =>
-                                        Navigator.of(context).pop(false),
-                                    child: const Text('Cancel'),
-                                  ),
-                                  ElevatedButton(
-                                    onPressed: () =>
-                                        Navigator.of(context).pop(true),
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: Theme.of(
-                                        context,
-                                      ).colorScheme.error,
-                                    ),
-                                    child: const Text('Delete'),
-                                  ),
-                                ],
-                              ),
-                            );
-                            if (confirmed == true) {
-                              if (!context.mounted) return;
-                              final api = ref.read(apiServiceProvider);
-                              await api.deleteSchedule(schedule.id);
-                              if (!context.mounted) return;
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: const Text(
-                                    'Timetable deleted successfully',
-                                  ),
-                                  backgroundColor: Theme.of(
-                                    context,
-                                  ).colorScheme.secondary,
-                                ),
-                              );
-                            }
-                          }
-                        },
-                      ),
-                      Icon(isExpanded ? Icons.expand_less : Icons.expand_more),
-                    ],
+                  subtitle: 'Route: ${route.routeName}'.text.make(),
+                  trailing: Icon(
+                    isExpanded ? Icons.expand_less : Icons.expand_more,
                   ),
                   onTap: () {
                     setState(() {
@@ -620,6 +715,93 @@ class _ScheduleManagementScreenState
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        Row(
+                          children: [
+                            Expanded(
+                              child: OutlinedButton.icon(
+                                icon: const Icon(Icons.edit, size: 18),
+                                label: const Text('Change Bus'),
+                                style: OutlinedButton.styleFrom(
+                                  foregroundColor: Colors.blue,
+                                  side: const BorderSide(color: Colors.blue),
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 12,
+                                  ),
+                                ),
+                                onPressed: () => _showChangeBusDialog(
+                                  schedule: schedule,
+                                  buses: buses,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: OutlinedButton.icon(
+                                icon: const Icon(Icons.delete, size: 18),
+                                label: const Text('Delete'),
+                                style: OutlinedButton.styleFrom(
+                                  foregroundColor: AppColors.error,
+                                  side: BorderSide(color: AppColors.error),
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 12,
+                                  ),
+                                ),
+                                onPressed: () async {
+                                  final confirmed = await showDialog<bool>(
+                                    context: context,
+                                    builder: (context) => AlertDialog(
+                                      title: const Text('Delete Timetable'),
+                                      content: const Text(
+                                        'Are you sure you want to delete this timetable?',
+                                      ),
+                                      actions: [
+                                        TextButton(
+                                          onPressed: () =>
+                                              Navigator.of(context).pop(false),
+                                          child: const Text('Cancel'),
+                                        ),
+                                        ElevatedButton(
+                                          onPressed: () =>
+                                              Navigator.of(context).pop(true),
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor: Theme.of(
+                                              context,
+                                            ).colorScheme.error,
+                                          ),
+                                          child: const Text('Delete'),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                  if (confirmed == true) {
+                                    if (!context.mounted) return;
+                                    final api = ref.read(apiServiceProvider);
+                                    await api.deleteSchedule(schedule.id);
+                                    ref.invalidate(
+                                      collegeSchedulesProvider(
+                                        schedule.collegeId,
+                                      ),
+                                    );
+                                    if (!context.mounted) return;
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: const Text(
+                                          'Timetable deleted successfully',
+                                        ),
+                                        backgroundColor: Theme.of(
+                                          context,
+                                        ).colorScheme.secondary,
+                                      ),
+                                    );
+                                  }
+                                },
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                        const Divider(),
+                        const SizedBox(height: 8),
                         'Bus Stops on this Route:'.text
                             .size(16)
                             .semiBold

@@ -6,8 +6,8 @@ import { LockClosedIcon, UserIcon } from "@heroicons/react/24/solid";
 import { login, clearError } from "../features/auth/slices/authSlice";
 
 const Login = () => {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [email, setEmail] = useState("ca@kkr.ac.in");
+  const [password, setPassword] = useState("a");
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
@@ -22,10 +22,17 @@ const Login = () => {
     try {
       setLoadingDevData(true);
       const [usersRes, collegesRes] = await Promise.all([
-        fetch("http://localhost:5000/api/users").then((res) => res.json()),
-        fetch("http://localhost:5000/api/colleges").then((res) => res.json()),
+        fetch("http://127.0.0.1:5000/api/v1/users/dev-list").then((res) =>
+          res.json(),
+        ),
+        fetch("http://127.0.0.1:5000/api/v1/colleges").then((res) =>
+          res.json(),
+        ),
       ]);
-      setDevData({ users: usersRes, colleges: collegesRes });
+      setDevData({
+        users: Array.isArray(usersRes) ? usersRes : [],
+        colleges: Array.isArray(collegesRes) ? collegesRes : [],
+      });
     } catch (err) {
       console.error("Failed to fetch dev data", err);
     } finally {

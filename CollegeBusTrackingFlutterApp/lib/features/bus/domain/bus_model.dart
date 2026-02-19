@@ -12,6 +12,7 @@ class BusModel {
   final String status;
   final String assignmentStatus;
   final int delay;
+  final int? capacity;
   final String? shiftId;
   final DateTime createdAt;
   final DateTime? updatedAt;
@@ -27,6 +28,7 @@ class BusModel {
     this.status = 'on-time',
     this.assignmentStatus = 'unassigned',
     this.delay = 0,
+    this.capacity,
     this.shiftId,
     required this.createdAt,
     this.updatedAt,
@@ -44,10 +46,11 @@ class BusModel {
       status: map['status'] ?? 'on-time',
       assignmentStatus: map['assignmentStatus'] ?? 'unassigned',
       delay: map['delay'] ?? 0,
+      capacity: map['capacity'],
       shiftId: map['shiftId'],
-      createdAt: DateTime.parse(map['createdAt']),
+      createdAt: parseDateTime(map['createdAt']),
       updatedAt: map['updatedAt'] != null
-          ? DateTime.parse(map['updatedAt'])
+          ? parseDateTime(map['updatedAt'])
           : null,
     );
   }
@@ -63,6 +66,7 @@ class BusModel {
       'status': status,
       'assignmentStatus': assignmentStatus,
       'delay': delay,
+      'capacity': capacity,
       'shiftId': shiftId,
       'createdAt': createdAt.toIso8601String(),
       'updatedAt': updatedAt?.toIso8601String(),
@@ -80,6 +84,7 @@ class BusModel {
     String? status,
     String? assignmentStatus,
     int? delay,
+    int? capacity,
     String? shiftId,
     DateTime? createdAt,
     DateTime? updatedAt,
@@ -95,6 +100,7 @@ class BusModel {
       status: status ?? this.status,
       assignmentStatus: assignmentStatus ?? this.assignmentStatus,
       delay: delay ?? this.delay,
+      capacity: capacity ?? this.capacity,
       shiftId: shiftId ?? this.shiftId,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
@@ -149,4 +155,3 @@ class BusLocationModel {
     };
   }
 }
-

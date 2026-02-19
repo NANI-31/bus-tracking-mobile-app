@@ -1,7 +1,9 @@
 import { Request, Response } from "express";
 import { Bus, BusLocation, IBus } from "../../models/Bus.model";
+import { AuthRequest } from "../../middleware/authMiddleware";
 import { getBusService } from "../../services/busService";
 import logger from "../../utils/logger";
+import { AuditService } from "../../services/AuditService";
 import {
   getCache,
   setCache,
@@ -14,12 +16,32 @@ const CACHE_TTL = 3600; // 1 hour
 // Bus Operations
 export const createBus = async (req: Request, res: Response) => {
   try {
-    const newBus = new Bus(req.body);
+    const authReq = req as AuthRequest;
+    const { collegeId } = authReq.user || {};
+
+    if (!collegeId) {
+      return res.status(401).json({ message: "College ID missing from token" });
+    }
+
+    const newBus = new Bus({
+      ...req.body,
+      collegeId,
+    });
     const savedBus = await newBus.save();
+
+    // Audit Log
+    await AuditService.log({
+      req: authReq,
+      action: "BUS_CREATE",
+      resource: "Bus",
+      resourceId: savedBus._id.toString(),
+      resourceName: savedBus.busNumber,
+      newState: savedBus.toObject(),
+    });
 
     // Invalidate caches
     await delCache("buses:all");
-    await delCache(`buses:${savedBus.collegeId}`);
+    await delCache(`buses:${collegeId}`);
 
     res.status(201).json(savedBus);
   } catch (error) {
@@ -38,10 +60,35 @@ export const getBus = async (req: Request, res: Response) => {
 };
 
 export const getAllBuses = async (req: Request, res: Response) => {
-  const { collegeId } = req.query;
-  const cacheKey = collegeId ? `buses:${collegeId}` : "buses:all";
-
   try {
+    const authReq = req as AuthRequest;
+    const { role, collegeId: userCollegeId } = authReq.user || {};
+    const { collegeId: queryCollegeId } = req.query;
+
+    let query: any = {};
+
+    // Multi-tenancy: College admins only see their own college's buses
+    if (role === "collegeAdmin") {
+      query.collegeId = userCollegeId;
+    } else if (role === "superAdmin") {
+      if (queryCollegeId) {
+        query.collegeId = queryCollegeId;
+      }
+    } else if (role) {
+      // Regular users/others shouldn't ideally use this, but if they do, restrict them
+      // In many cases, students might need to see buses for their college.
+      // For now, let's keep it consistent with the admin requirements.
+      if (userCollegeId) {
+        query.collegeId = userCollegeId;
+      } else {
+        return res.status(403).json({ message: "Not authorized" });
+      }
+    } else {
+      return res.status(401).json({ message: "Not authenticated" });
+    }
+
+    const cacheKey = query.collegeId ? `buses:${query.collegeId}` : "buses:all";
+
     // 1. Check cache
     const cachedBuses = await getCache<any[]>(cacheKey);
     if (cachedBuses) {
@@ -50,10 +97,9 @@ export const getAllBuses = async (req: Request, res: Response) => {
     }
 
     // 2. Fetch from DB
-    const filter = collegeId ? { collegeId } : {};
-    const buses = await Bus.find(filter);
+    const buses = await Bus.find(query);
     logger.info(
-      `BUS: Found ${buses.length} buses for filter: ${JSON.stringify(filter)}`,
+      `BUS: Found ${buses.length} buses for query: ${JSON.stringify(query)}`,
     );
 
     // 3. Set cache
@@ -84,11 +130,15 @@ export const updateBus = async (req: Request, res: Response) => {
       requestingUserName,
     );
 
-    // Invalidate caches
-    await delCache("buses:all");
-    if (updatedBus) {
-      await delCache(`buses:${updatedBus.collegeId}`);
-    }
+    // Audit Log
+    await AuditService.log({
+      req: req as AuthRequest,
+      action: "BUS_UPDATE",
+      resource: "Bus",
+      resourceId: updatedBus._id.toString(),
+      resourceName: updatedBus.busNumber,
+      newState: updatedBus.toObject(),
+    });
 
     res.status(200).json(updatedBus);
   } catch (error) {
@@ -102,8 +152,38 @@ export const updateBus = async (req: Request, res: Response) => {
 
 export const deleteBus = async (req: Request, res: Response) => {
   try {
-    const bus = await Bus.findByIdAndDelete(req.params.id);
-    if (!bus) return res.status(404).json({ message: "Bus not found" });
+    const authReq = req as AuthRequest;
+    const { role, collegeId } = authReq.user || {};
+
+    const query: any = { _id: req.params.id };
+
+    // Enforce multi-tenancy: College admins can only delete their own buses
+    if (role === "collegeAdmin" && collegeId) {
+      query.collegeId = collegeId;
+    } else if (role !== "superAdmin") {
+      // If not superAdmin or collegeAdmin, maybe coordinator but let's stick to these for now
+      // Or if coordinator, they should also have a collegeId
+      if (collegeId) {
+        query.collegeId = collegeId;
+      }
+    }
+
+    const bus = await Bus.findOneAndDelete(query);
+    if (!bus) {
+      return res.status(404).json({
+        message: "Bus not found or you don't have permission to delete it",
+      });
+    }
+
+    // Audit Log
+    await AuditService.log({
+      req: authReq,
+      action: "BUS_DELETE",
+      resource: "Bus",
+      resourceId: bus._id.toString(),
+      resourceName: bus.busNumber,
+      previousState: bus.toObject(),
+    });
 
     // Invalidate caches
     await delCache("buses:all");

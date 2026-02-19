@@ -9,12 +9,43 @@ import logger from "../../utils/logger";
 export const getAuditLogs = async (req: AuthRequest, res: Response) => {
   logger.info("AUDIT: Entering getAuditLogs");
   try {
-    const { collegeId, adminId, action, limit = 50, skip = 0 } = req.query;
+    const {
+      collegeId,
+      adminId,
+      action,
+      resource,
+      date,
+      limit = 50,
+      skip = 0,
+    } = req.query;
 
     const query: any = {};
-    if (collegeId) query.collegeId = collegeId;
+    const userRole = req.user?.role;
+    const userCollegeId = req.user?.collegeId;
+
+    if (userRole === "superAdmin") {
+      if (collegeId) query.collegeId = collegeId;
+    } else {
+      // For College Admins, force filter by their own collegeId
+      if (!userCollegeId) {
+        return res.status(403).json({ message: "College context missing" });
+      }
+      query.collegeId = userCollegeId.toString();
+    }
+
     if (adminId) query.userId = adminId;
     if (action) query.action = action;
+    if (resource) query.resource = resource;
+
+    if (date) {
+      const selectedDate = new Date(date as string);
+      const startOfDay = new Date(selectedDate.setHours(0, 0, 0, 0));
+      const endOfDay = new Date(selectedDate.setHours(23, 59, 59, 999));
+      query.createdAt = {
+        $gte: startOfDay,
+        $lte: endOfDay,
+      };
+    }
 
     const logs = await AuditLog.find(query)
       .sort({ createdAt: -1 })
@@ -22,7 +53,9 @@ export const getAuditLogs = async (req: AuthRequest, res: Response) => {
       .skip(Number(skip));
 
     const total = await AuditLog.countDocuments(query);
-    logger.info(`AUDIT: Found ${logs.length} logs, total ${total}`);
+    logger.info(
+      `AUDIT: Found ${logs.length} logs for role ${userRole}, total ${total}`,
+    );
 
     res.json({
       logs,

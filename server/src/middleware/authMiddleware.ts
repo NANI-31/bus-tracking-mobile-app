@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
+import logger from "../utils/logger";
 
 const JWT_SECRET = process.env.JWT_SECRET;
 if (!JWT_SECRET) {
@@ -36,6 +37,7 @@ export const protect = async (
       const user = await User.findById(decoded.id);
 
       if (!user) {
+        logger.warn(`Auth failed: User ${decoded.id} no longer exists`);
         return res.status(401).json({ message: "User no longer exists" });
       }
 
@@ -43,6 +45,9 @@ export const protect = async (
         decoded.tokenVersion !== undefined &&
         decoded.tokenVersion !== user.tokenVersion
       ) {
+        logger.warn(
+          `Auth failed: tokenVersion mismatch for user ${user.email}. Token: ${decoded.tokenVersion}, DB: ${user.tokenVersion}`,
+        );
         return res.status(401).json({
           message:
             "Session expired. You have been logged in on another device.",

@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Outlet, Link, useLocation, useNavigate } from "react-router-dom";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { motion, AnimatePresence } from "framer-motion";
 import { logout } from "../features/auth/slices/authSlice";
 import {
@@ -8,17 +8,59 @@ import {
   UsersIcon,
   TruckIcon,
   MapIcon,
+  MapPinIcon,
   ArrowLeftOnRectangleIcon,
   Bars3Icon,
   XMarkIcon,
   CreditCardIcon,
+  BellIcon,
+  ClipboardDocumentListIcon,
 } from "@heroicons/react/24/outline";
+import {
+  getActiveSos,
+  getSosLogs,
+  addSosAlert,
+  removeSosAlert,
+} from "../features/common/slices/sosSlice";
+import { initiateSocketConnection, getSocket } from "../services/socket";
+import SosAlertBanner from "../components/common/SosAlertBanner";
+import SosManager from "../components/common/SosManager";
 
 const CollegeAdminLayout = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const location = useLocation();
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const { user } = useSelector((state) => state.auth);
+  const { activeAlerts, sosLogs } = useSelector((state) => state.sos);
+  const [isSosManagerOpen, setIsSosManagerOpen] = useState(false);
+  const [isBannerDismissed, setIsBannerDismissed] = useState(false);
+
+  React.useEffect(() => {
+    if (user && user.token) {
+      const socket = initiateSocketConnection(user.token);
+
+      if (user.collegeId) {
+        socket.emit("join_college", user.collegeId);
+        dispatch(getActiveSos(user.collegeId));
+        dispatch(getSosLogs(user.collegeId));
+      }
+
+      socket.on("sos_alert", (alert) => {
+        dispatch(addSosAlert(alert));
+        setIsBannerDismissed(false);
+      });
+
+      socket.on("sos_resolved", (data) => {
+        dispatch(removeSosAlert(data));
+      });
+
+      return () => {
+        socket.off("sos_alert");
+        socket.off("sos_resolved");
+      };
+    }
+  }, [user, dispatch]);
 
   const handleLogout = () => {
     dispatch(logout());
@@ -29,8 +71,14 @@ const CollegeAdminLayout = () => {
     { name: "Dashboard", path: "/college-admin", icon: HomeIcon },
     { name: "Users", path: "/college-admin/users", icon: UsersIcon },
     { name: "Fleet", path: "/college-admin/fleet", icon: TruckIcon },
+    { name: "Live Map", path: "/college-admin/tracking", icon: MapPinIcon },
     { name: "Routes", path: "/college-admin/routes", icon: MapIcon },
     { name: "Payments", path: "/college-admin/payments", icon: CreditCardIcon },
+    {
+      name: "Logs",
+      path: "/college-admin/logs",
+      icon: ClipboardDocumentListIcon,
+    },
   ];
 
   return (
@@ -80,7 +128,7 @@ const CollegeAdminLayout = () => {
                     : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
                 }`}
               >
-                <item.icon className="w-6 h-6 flex-shrink-0" />
+                <item.icon className="w-6 h-6 shrink-0" />
                 <AnimatePresence>
                   {isSidebarOpen && (
                     <motion.span
@@ -103,7 +151,7 @@ const CollegeAdminLayout = () => {
             onClick={handleLogout}
             className="flex items-center w-full px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
           >
-            <ArrowLeftOnRectangleIcon className="w-6 h-6 flex-shrink-0" />
+            <ArrowLeftOnRectangleIcon className="w-6 h-6 shrink-0" />
             <AnimatePresence>
               {isSidebarOpen && (
                 <motion.span
@@ -122,6 +170,20 @@ const CollegeAdminLayout = () => {
 
       {/* Main Content */}
       <main className="flex-1 overflow-y-auto bg-gray-50 p-8">
+        <SosAlertBanner
+          activeAlerts={activeAlerts}
+          onOpenManager={() => setIsSosManagerOpen(true)}
+          onDismiss={() => setIsBannerDismissed(true)}
+          style={{ display: isBannerDismissed ? "none" : "block" }}
+        />
+
+        <SosManager
+          isOpen={isSosManagerOpen}
+          onClose={() => setIsSosManagerOpen(false)}
+          activeAlerts={activeAlerts}
+          sosLogs={sosLogs}
+        />
+
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}

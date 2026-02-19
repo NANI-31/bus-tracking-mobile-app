@@ -4,7 +4,7 @@ import User from "../../models/User.model";
 import College from "../../models/College.model";
 import { Bus } from "../../models/Bus.model";
 import Route from "../../models/Route.model";
-import AuditLog from "../../models/AuditLog.model";
+import { AuditService } from "../../services/AuditService";
 
 /**
  * Get statistics for the admin's college
@@ -86,15 +86,13 @@ export const updateCollegeSettings = async (
       return res.status(404).json({ message: "College not found" });
     }
 
-    // Log the action
-    await AuditLog.create({
-      userId: req.user?.id,
-      userEmail: req.user?.email,
-      userName: req.user?.fullName || "College Admin",
-      action: "college.update_settings",
-      resource: "college",
-      resourceId: collegeId,
-      collegeId: collegeId,
+    // Audit Log
+    await AuditService.log({
+      req,
+      action: "COLLEGE_UPDATE_SETTINGS",
+      resource: "College",
+      resourceId: String(collegeId),
+      resourceName: college.name,
       newState: req.body,
     });
 

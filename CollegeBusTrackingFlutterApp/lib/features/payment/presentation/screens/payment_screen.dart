@@ -23,7 +23,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
   bool _isLoading = false;
   String _selectedPlan = 'monthly'; // 'monthly' or 'semester'
 
-  int get _currentAmount => _selectedPlan == 'monthly' ? 20 : 60;
+  int get _currentAmount => _selectedPlan == 'monthly' ? 1 : 2;
 
   @override
   void initState() {
@@ -331,7 +331,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
                           Expanded(
                             child: _buildPlanCard(
                               title: "Monthly",
-                              price: "₹20",
+                              price: "₹1",
                               duration: "1 Month",
                               isSelected: _selectedPlan == 'monthly',
                               onTap: () =>
@@ -343,7 +343,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
                           Expanded(
                             child: _buildPlanCard(
                               title: "Semesterly",
-                              price: "₹60",
+                              price: "₹2",
                               duration: "4 Months",
                               isSelected: _selectedPlan == 'semester',
                               onTap: () =>

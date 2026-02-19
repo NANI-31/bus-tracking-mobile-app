@@ -8,6 +8,7 @@ import {
   removeBusNumber,
   renameBusNumber,
   updateBusDetails,
+  toggleManualPremium,
 } from "../../controllers/core/college.controller";
 
 import { protect, authorize } from "../../middleware/authMiddleware";
@@ -53,6 +54,13 @@ router.put(
   protect,
   authorize("admin", "busCoordinator"),
   updateBusDetails,
+);
+
+router.put(
+  "/:collegeId/toggle-manual-premium",
+  protect,
+  authorize("superAdmin"),
+  toggleManualPremium,
 );
 
 export default router;
