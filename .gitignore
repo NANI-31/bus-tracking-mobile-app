@@ -1,0 +1,86 @@
+# Dependency directories
+node_modules/
+jspm_packages/
+vendor/
+
+# Flutter/Dart
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub-cache/
+.pub/
+build/
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Web / React / Next.js
+dist/
+.next/
+out/
+build-web/
+.cache/
+public/hot/
+public/storage
+
+# Environment & Sensitive Files
+.env
+.env.*
+*.pem
+serviceAccountKey.zip
+serviceAccountKey.json
+*.key
+*.p12
+*.jks
+google-services.json
+FirebaseServiceAccount.json
+
+# Build & Generated Files
+coverage/
+.nyc_output/
+*.lcov
+test-results/
+
+# Logs & Cache
+*.log
+logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+# System Files
+.DS_Store
+Thumbs.db
+Icon?
+ehthumbs.db
+desktop.ini
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*.sjson
+.project
+.classpath
+.settings/
+*.sublime-workspace
+*.sublime-project
+
+# Project Specific
+analysis/
+all_logs.txt
+crash_log.txt
+crash_trace.txt
+deps.txt
+analyze_output.txt
+error_output.txt
+users.json
+users.txt
+
+# Temporary files
+tmp/
+temp/
