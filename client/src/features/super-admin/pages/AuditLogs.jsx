@@ -12,26 +12,90 @@ import {
   Square3Stack3DIcon,
   FunnelIcon,
   AcademicCapIcon,
+  TruckIcon,
+  UserGroupIcon,
+  MapIcon,
+  CalendarIcon,
+  Cog6ToothIcon,
+  InformationCircleIcon,
 } from "@heroicons/react/24/outline";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Paper,
+  Box,
+  Typography,
+  TablePagination,
+  Avatar,
+  Skeleton,
+  Tooltip,
+  Autocomplete,
+  TextField,
+} from "@mui/material";
 import {
   getAuditLogs,
   getColleges,
   addLiveLog,
 } from "../slices/superAdminSlice";
-import LogMetadataModal from "../../../components/common/LogMetadataModal";
-import { getSocket, initiateSocketConnection } from "../../../services/socket";
+import LogMetadataModal from "@/components/common/LogMetadataModal";
+import ActivityChart from "@/components/common/ActivityChart";
+import { getSocket, initiateSocketConnection } from "@/services/socket";
+
+// Helper for consistency in colors based on string
+const stringToColor = (string) => {
+  let hash = 0;
+  for (let i = 0; i < string.length; i++) {
+    hash = string.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  let color = "#";
+  for (let i = 0; i < 3; i++) {
+    const value = (hash >> (i * 8)) & 0xff;
+    color += `00${value.toString(16)}`.slice(-2);
+  }
+  return color;
+};
+
+const getInitials = (email) => {
+  if (!email) return "?";
+  return email.split("@")[0].substring(0, 2).toUpperCase();
+};
+
+const getResourceIcon = (resource) => {
+  switch (resource?.toLowerCase()) {
+    case "user":
+      return <UserGroupIcon className="w-4 h-4" />;
+    case "bus":
+      return <TruckIcon className="w-4 h-4" />;
+    case "college":
+      return <AcademicCapIcon className="w-4 h-4" />;
+    case "route":
+      return <MapIcon className="w-4 h-4" />;
+    case "schedule":
+      return <CalendarIcon className="w-4 h-4" />;
+    case "config":
+      return <Cog6ToothIcon className="w-4 h-4" />;
+    default:
+      return <InformationCircleIcon className="w-4 h-4" />;
+  }
+};
 
 const AuditLogs = () => {
   const dispatch = useDispatch();
-  const { auditLogs, colleges, loading } = useSelector(
+  const { auditLogs, colleges, loading, logsTotal } = useSelector(
     (state) => state.superAdmin,
   );
   const [filters, setFilters] = useState({
     date: "",
-    action: "",
-    resource: "",
+    action: [],
+    resource: [],
     collegeId: "",
   });
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(50);
   const [selectedLog, setSelectedLog] = useState(null);
   const dateInputRef = useRef(null);
 
@@ -42,19 +106,56 @@ const AuditLogs = () => {
   }, [dispatch, colleges.length]);
 
   useEffect(() => {
-    // Remove empty strings from filters
-    const activeFilters = Object.fromEntries(
-      Object.entries(filters).filter(([_, v]) => v !== ""),
-    );
-    dispatch(getAuditLogs(activeFilters));
-  }, [dispatch, filters]);
+    // Process filters: convert arrays to comma-separated strings for the backend
+    const activeFilters = {};
+    Object.entries(filters).forEach(([key, value]) => {
+      if (Array.isArray(value)) {
+        if (value.length > 0) activeFilters[key] = value.join(",");
+      } else if (value !== "") {
+        activeFilters[key] = value;
+      }
+    });
 
-  const { user } = useSelector((state) => state.auth);
+    activeFilters.limit = rowsPerPage;
+    activeFilters.skip = page * rowsPerPage;
+    dispatch(getAuditLogs(activeFilters));
+  }, [dispatch, filters, page, rowsPerPage]);
+
+  const actionOptions = [
+    { label: "Create Bus", value: "BUS_CREATE" },
+    { label: "Update Bus", value: "BUS_UPDATE" },
+    { label: "Delete Bus", value: "BUS_DELETE" },
+    { label: "Create Route", value: "ROUTE_CREATE" },
+    { label: "Update Route", value: "ROUTE_UPDATE" },
+    { label: "Delete Route", value: "ROUTE_DELETE" },
+    { label: "Create Schedule", value: "SCHEDULE_CREATE" },
+    { label: "Update Schedule", value: "SCHEDULE_UPDATE" },
+    { label: "Delete Schedule", value: "SCHEDULE_DELETE" },
+    { label: "Create User", value: "USER_CREATE" },
+    { label: "Update User", value: "USER_UPDATE" },
+    { label: "Delete User", value: "USER_DELETE" },
+    { label: "Activate Premium", value: "USER_PREMIUM_ACTIVATE" },
+    { label: "Bulk Premium", value: "USER_PREMIUM_BULK" },
+    { label: "System Config", value: "SYSTEM_CONFIG_UPDATE" },
+    { label: "Login", value: "LOGIN" },
+    { label: "Logout", value: "LOGOUT" },
+  ];
+
+  const resourceOptions = [
+    "User",
+    "College",
+    "Bus",
+    "Route",
+    "Schedule",
+    "SOS",
+  ];
+
+  const { userToken } = useSelector((state) => state.auth);
 
   useEffect(() => {
     let socket = getSocket();
-    if (!socket && user?.token) {
-      socket = initiateSocketConnection(user.token);
+    if (!socket && userToken) {
+      socket = initiateSocketConnection(userToken);
     }
 
     if (socket) {
@@ -62,13 +163,15 @@ const AuditLogs = () => {
       socket.on("new_audit_log", (newLog) => {
         console.log("RECEIVED LIVE LOG (GLOBAL):", newLog);
         const hasFilters = Object.values(filters).some((v) => v !== "");
-        if (!hasFilters) {
+        // Only add live log if on page 0 and no filters
+        if (!hasFilters && page === 0) {
           console.log("ADDING LIVE LOG TO REDUX (GLOBAL)");
           dispatch(addLiveLog(newLog));
         } else {
           console.log(
-            "SKIPPING LIVE LOG DUE TO ACTIVE FILTERS (GLOBAL)",
+            "SKIPPING LIVE LOG DUE TO ACTIVE FILTERS OR NOT ON PAGE 0 (GLOBAL)",
             filters,
+            page,
           );
         }
       });
@@ -80,41 +183,26 @@ const AuditLogs = () => {
         socket.off("new_audit_log");
       }
     };
-  }, [dispatch, filters, user?.token]);
+  }, [dispatch, filters, userToken, page]);
 
   const handleFilterChange = (name, value) => {
     setFilters((prev) => ({ ...prev, [name]: value }));
+    setPage(0);
   };
 
   const clearFilters = () => {
-    setFilters({ date: "", action: "", resource: "", collegeId: "" });
+    setFilters({ date: "", action: [], resource: [], collegeId: "" });
+    setPage(0);
   };
 
-  const actionOptions = [
-    { label: "All Actions", value: "" },
-    { label: "Verify College", value: "COLLEGE_VERIFY" },
-    { label: "Suspend College", value: "COLLEGE_SUSPEND" },
-    { label: "Update Settings", value: "COLLEGE_UPDATE_SETTINGS" },
-    { label: "Update Config", value: "CONFIG_UPDATE" },
-    { label: "Create User", value: "USER_CREATE" },
-    { label: "Update User", value: "USER_UPDATE" },
-    { label: "Delete User", value: "USER_DELETE" },
-    { label: "Activate Premium", value: "USER_PREMIUM_ACTIVATE" },
-    { label: "Bulk Premium", value: "USER_PREMIUM_BULK" },
-    { label: "Create Bus", value: "BUS_CREATE" },
-    { label: "Update Bus", value: "BUS_UPDATE" },
-    { label: "Delete Bus", value: "BUS_DELETE" },
-  ];
+  const handleChangePage = (event, newPage) => {
+    setPage(newPage);
+  };
 
-  const resourceOptions = [
-    { label: "All Resources", value: "" },
-    { label: "User", value: "User" },
-    { label: "College", value: "College" },
-    { label: "Bus", value: "Bus" },
-    { label: "Route", value: "Route" },
-    { label: "Schedule", value: "Schedule" },
-    { label: "Config", value: "Config" },
-  ];
+  const handleChangeRowsPerPage = (event) => {
+    setRowsPerPage(parseInt(event.target.value, 10));
+    setPage(0);
+  };
 
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleString();
@@ -143,7 +231,7 @@ const AuditLogs = () => {
             <select
               value={filters.collegeId}
               onChange={(e) => handleFilterChange("collegeId", e.target.value)}
-              className="pl-9 pr-10 py-2 bg-white border-2 border-slate-100 rounded-xl text-sm font-bold text-slate-700 outline-none hover:border-indigo-400 transition-all cursor-pointer appearance-none shadow-sm"
+              className="pl-9 pr-10 py-2 bg-white border-2 border-slate-100 rounded-xl text-sm font-bold text-slate-700 outline-none hover:border-[#1E90FF]/50 transition-all cursor-pointer appearance-none shadow-sm"
             >
               <option value="">All Colleges</option>
               {colleges.map((college) => (
@@ -158,54 +246,76 @@ const AuditLogs = () => {
           </div>
 
           {/* Action Filter */}
-          <div className="relative group">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <TagIcon className="h-4 w-4 text-slate-400 group-hover:text-indigo-500" />
-            </div>
-            <select
-              value={filters.action}
-              onChange={(e) => handleFilterChange("action", e.target.value)}
-              className="pl-9 pr-10 py-2 bg-white border-2 border-slate-100 rounded-xl text-sm font-bold text-slate-700 outline-none hover:border-indigo-400 transition-all cursor-pointer appearance-none shadow-sm"
-            >
-              {actionOptions.map((opt) => (
-                <option key={opt.value} value={opt.value}>
-                  {opt.label}
-                </option>
-              ))}
-            </select>
-            <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
-              <FunnelIcon className="h-3 w-3 text-slate-400" />
-            </div>
-          </div>
+          <Autocomplete
+            multiple
+            limitTags={1}
+            options={actionOptions}
+            getOptionLabel={(option) => option.label}
+            value={actionOptions.filter((opt) =>
+              filters.action.includes(opt.value),
+            )}
+            onChange={(e, newValue) => {
+              handleFilterChange(
+                "action",
+                newValue.map((v) => v.value),
+              );
+            }}
+            renderInput={(params) => (
+              <TextField
+                {...params}
+                variant="outlined"
+                placeholder="Actions"
+                sx={{
+                  width: { xs: "100%", md: 240 },
+                  "& .MuiOutlinedInput-root": {
+                    borderRadius: "12px",
+                    bgcolor: "white",
+                    "& fieldset": { border: "2px solid #f1f5f9" },
+                    "&:hover fieldset": { borderColor: "#1E90FF" },
+                    "&.Mui-focused fieldset": { borderColor: "#1E90FF" },
+                  },
+                }}
+              />
+            )}
+            size="small"
+          />
 
           {/* Resource Filter */}
-          <div className="relative group">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <Square3Stack3DIcon className="h-4 w-4 text-slate-400 group-hover:text-indigo-500" />
-            </div>
-            <select
-              value={filters.resource}
-              onChange={(e) => handleFilterChange("resource", e.target.value)}
-              className="pl-9 pr-10 py-2 bg-white border-2 border-slate-100 rounded-xl text-sm font-bold text-slate-700 outline-none hover:border-indigo-400 transition-all cursor-pointer appearance-none shadow-sm"
-            >
-              {resourceOptions.map((opt) => (
-                <option key={opt.value} value={opt.value}>
-                  {opt.label}
-                </option>
-              ))}
-            </select>
-            <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
-              <FunnelIcon className="h-3 w-3 text-slate-400" />
-            </div>
-          </div>
+          <Autocomplete
+            multiple
+            limitTags={1}
+            options={resourceOptions}
+            value={filters.resource}
+            onChange={(e, newValue) => {
+              handleFilterChange("resource", newValue);
+            }}
+            renderInput={(params) => (
+              <TextField
+                {...params}
+                variant="outlined"
+                placeholder="Resources"
+                sx={{
+                  width: { xs: "100%", md: 200 },
+                  "& .MuiOutlinedInput-root": {
+                    borderRadius: "12px",
+                    bgcolor: "white",
+                    "& fieldset": { border: "2px solid #f1f5f9" },
+                    "&:hover fieldset": { borderColor: "#1E90FF" },
+                    "&.Mui-focused fieldset": { borderColor: "#1E90FF" },
+                  },
+                }}
+              />
+            )}
+            size="small"
+          />
 
           <div className="relative">
             <button
               onClick={() => dateInputRef.current?.showPicker()}
               className={`flex items-center space-x-2 px-4 py-2 rounded-xl border-2 transition-all shadow-sm ${
                 filters.date
-                  ? "bg-indigo-600 text-white border-indigo-600"
-                  : "bg-white text-slate-700 border-slate-200 hover:border-indigo-400"
+                  ? "bg-[#1E90FF] text-white border-[#1E90FF]"
+                  : "bg-white text-slate-700 border-slate-200 hover:border-[#1E90FF]/50"
               }`}
             >
               <CalendarDaysIcon className="w-5 h-5" />
@@ -232,100 +342,225 @@ const AuditLogs = () => {
         </div>
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-slate-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
-                  Timestamp
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
-                  Action
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
-                  Actor
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
-                  Target
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
-                  Details
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              <AnimatePresence>
+      <ActivityChart data={auditLogs} loading={loading} />
+
+      <TableContainer
+        component={Paper}
+        elevation={0}
+        sx={{
+          borderRadius: "16px",
+          border: "1px solid #e2e8f0",
+          overflow: "hidden",
+        }}
+      >
+        <Table stickyHeader>
+          <TableHead>
+            <TableRow>
+              <TableCell
+                sx={{ fontWeight: 800, color: "#64748b", bgcolor: "#f8fafc" }}
+              >
+                TIMESTAMP
+              </TableCell>
+              <TableCell
+                sx={{ fontWeight: 800, color: "#64748b", bgcolor: "#f8fafc" }}
+              >
+                ACTION
+              </TableCell>
+              <TableCell
+                sx={{ fontWeight: 800, color: "#64748b", bgcolor: "#f8fafc" }}
+              >
+                ACTOR
+              </TableCell>
+              <TableCell
+                sx={{ fontWeight: 800, color: "#64748b", bgcolor: "#f8fafc" }}
+              >
+                TARGET
+              </TableCell>
+              <TableCell
+                sx={{ fontWeight: 800, color: "#64748b", bgcolor: "#f8fafc" }}
+              >
+                DETAILS
+              </TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {loading ? (
+              // Skeleton Rows
+              [...Array(10)].map((_, i) => (
+                <TableRow key={i}>
+                  <TableCell sx={{ py: 2 }}>
+                    <Skeleton variant="text" width={140} />
+                  </TableCell>
+                  <TableCell sx={{ py: 2 }}>
+                    <Skeleton variant="rounded" width={100} height={24} />
+                  </TableCell>
+                  <TableCell sx={{ py: 2 }}>
+                    <div className="flex items-center space-x-2">
+                      <Skeleton variant="circular" width={32} height={32} />
+                      <Skeleton variant="text" width={120} />
+                    </div>
+                  </TableCell>
+                  <TableCell sx={{ py: 2 }}>
+                    <Box
+                      sx={{
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: 0.5,
+                      }}
+                    >
+                      <Skeleton variant="text" width={150} />
+                      <Skeleton variant="text" width={100} height={12} />
+                    </Box>
+                  </TableCell>
+                  <TableCell sx={{ py: 2 }}>
+                    <Skeleton variant="circular" width={28} height={28} />
+                  </TableCell>
+                </TableRow>
+              ))
+            ) : (
+              <AnimatePresence mode="popLayout">
                 {auditLogs.map((log) => (
-                  <motion.tr
+                  <TableRow
                     key={log._id}
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    layout
+                    component={motion.tr}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.95 }}
+                    hover
+                    sx={{
+                      transition: "all 0.2s ease-in-out",
+                      "&:hover": {
+                        bgcolor: "rgba(30, 144, 255, 0.04) !important",
+                        transform: "scale(1.002)",
+                      },
+                      "&:last-child td, &:last-child th": { border: 0 },
+                    }}
                   >
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600">
-                      <div className="flex items-center">
-                        <ClockIcon className="w-4 h-4 mr-1 text-slate-400" />
+                    <TableCell>
+                      <div className="flex items-center text-slate-500 font-medium">
+                        <ClockIcon className="w-4 h-4 mr-2 text-slate-300" />
                         {formatDate(log.createdAt)}
                       </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    </TableCell>
+                    <TableCell>
                       <span
-                        className={`px-2.5 py-1 inline-flex text-[10px] leading-5 font-black rounded-lg border uppercase tracking-widest ${
+                        className={`px-3 py-1.5 inline-flex text-[10px] leading-4 font-black rounded-lg border uppercase tracking-wider shadow-sm transition-all hover:shadow-md ${
                           log.action.includes("DELETE")
                             ? "bg-red-50 text-red-700 border-red-100"
                             : log.action.includes("CREATE")
-                              ? "bg-green-50 text-green-700 border-green-100"
-                              : "bg-slate-50 text-slate-700 border-slate-200"
+                              ? "bg-emerald-50 text-emerald-700 border-emerald-100"
+                              : "bg-indigo-50 text-indigo-700 border-indigo-100"
                         }`}
                       >
                         {log.action.replace(/_/g, " ")}
                       </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600">
-                      <div className="flex items-center">
-                        <UserIcon className="w-4 h-4 mr-1 text-slate-400" />
-                        {log.userEmail}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center space-x-3">
+                        <Avatar
+                          sx={{
+                            width: 32,
+                            height: 32,
+                            fontSize: "0.75rem",
+                            fontWeight: 800,
+                            bgcolor: stringToColor(log.userEmail || "System"),
+                            color: "#fff",
+                            boxShadow: "0 2px 8px -2px rgba(0,0,0,0.2)",
+                          }}
+                        >
+                          {getInitials(log.userEmail)}
+                        </Avatar>
+                        <Typography
+                          variant="body2"
+                          sx={{ fontWeight: 600, color: "#475569" }}
+                        >
+                          {log.userEmail}
+                        </Typography>
                       </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-700 font-bold">
-                      <div className="flex flex-col">
-                        <span className="text-slate-900">
-                          {log.resourceName || log.resource}
-                        </span>
-                        <span className="text-[10px] text-slate-400 font-mono italic">
-                          {log.resourceId}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
-                      <button
-                        onClick={() => setSelectedLog(log)}
-                        className="flex items-center space-x-2 px-3 py-1.5 bg-indigo-50 text-indigo-600 rounded-xl font-bold hover:bg-indigo-100 transition-all border border-indigo-100 group"
+                    </TableCell>
+                    <TableCell>
+                      <Box
+                        sx={{ display: "flex", alignItems: "center", gap: 1.5 }}
                       >
-                        <CodeBracketIcon className="w-5 h-5 text-indigo-400 group-hover:scale-110 transition-transform" />
-                        <span className="text-xs">Metadata</span>
-                      </button>
-                    </td>
-                  </motion.tr>
+                        <div
+                          className={`p-2 rounded-xl border ${
+                            log.action.includes("CREATE")
+                              ? "bg-emerald-50 border-emerald-100 text-emerald-600"
+                              : "bg-slate-50 border-slate-100 text-slate-500"
+                          }`}
+                        >
+                          {getResourceIcon(log.resource)}
+                        </div>
+                        <Box sx={{ display: "flex", flexDirection: "column" }}>
+                          <Typography
+                            variant="body2"
+                            sx={{ fontWeight: 800, color: "#1e293b" }}
+                          >
+                            {log.resourceName || log.resource}
+                          </Typography>
+                          <Typography
+                            variant="caption"
+                            sx={{
+                              color: "#94a3b8",
+                              opacity: 0.8,
+                              fontFamily: "monospace",
+                            }}
+                          >
+                            {log.resourceId}
+                          </Typography>
+                        </Box>
+                      </Box>
+                    </TableCell>
+                    <TableCell>
+                      <Tooltip title="View Metadata" arrow>
+                        <button
+                          onClick={() => setSelectedLog(log)}
+                          className="p-2 text-[#1E90FF] hover:bg-white hover:text-[#1C64F2] rounded-xl transition-all border border-transparent shadow-sm hover:shadow-blue-200/50 hover:border-blue-100 group"
+                        >
+                          <CodeBracketIcon className="w-5 h-5 group-hover:rotate-12 transition-transform" />
+                        </button>
+                      </Tooltip>
+                    </TableCell>
+                  </TableRow>
                 ))}
               </AnimatePresence>
-              {auditLogs.length === 0 && !loading && (
-                <tr>
-                  <td
-                    colSpan="5"
-                    className="px-6 py-12 text-center text-slate-500"
-                  >
-                    <ClipboardDocumentListIcon className="w-16 h-16 mx-auto mb-4 text-slate-300" />
-                    No audit logs found.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
+            )}
+            {!loading && auditLogs.length === 0 && (
+              <TableRow>
+                <TableCell colSpan={5} align="center" sx={{ py: 10 }}>
+                  <div className="flex flex-col items-center text-slate-400">
+                    <ClipboardDocumentListIcon className="w-12 h-12 mb-2 opacity-20" />
+                    <p className="font-bold">No audit logs found</p>
+                  </div>
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </TableContainer>
+
+      <TablePagination
+        rowsPerPageOptions={[25, 50, 100]}
+        component="div"
+        count={logsTotal}
+        rowsPerPage={rowsPerPage}
+        page={page}
+        onPageChange={handleChangePage}
+        onRowsPerPageChange={handleChangeRowsPerPage}
+        sx={{
+          border: "1px solid #e2e8f0",
+          borderTop: 0,
+          borderBottomLeftRadius: "16px",
+          borderBottomRightRadius: "16px",
+          bgcolor: "#f8fafc",
+          "& .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows":
+            {
+              fontWeight: 700,
+              color: "#64748b",
+              fontSize: "0.8rem",
+            },
+        }}
+      />
 
       <LogMetadataModal
         isOpen={!!selectedLog}

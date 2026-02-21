@@ -65,13 +65,13 @@ const Colleges = () => {
             <input
               type="text"
               placeholder="Search colleges..."
-              className="pl-10 pr-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="pl-10 pr-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1E90FF]"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
           </div>
           <select
-            className="border border-slate-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
+            className="border border-slate-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[#1E90FF] bg-white"
             value={filter}
             onChange={(e) => setFilter(e.target.value)}
           >
@@ -97,7 +97,7 @@ const Colleges = () => {
               <div className="flex justify-between items-start mb-4">
                 <div className="flex items-center space-x-3">
                   <div className="p-3 bg-indigo-50 rounded-lg">
-                    <BuildingLibraryIcon className="w-8 h-8 text-indigo-600" />
+                    <BuildingLibraryIcon className="w-8 h-8 text-[#1E90FF]" />
                   </div>
                   <div>
                     <h3
@@ -149,9 +149,9 @@ const Colleges = () => {
                         college.allowManualPremium,
                       )
                     }
-                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 ${
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[#1E90FF] focus:ring-offset-2 ${
                       college.allowManualPremium
-                        ? "bg-indigo-600"
+                        ? "bg-[#1E90FF]"
                         : "bg-slate-200"
                     }`}
                   >

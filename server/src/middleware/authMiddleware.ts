@@ -1,24 +1,28 @@
 import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
-import logger from "../utils/logger";
+import logger from "@/utils/logger";
 
 const JWT_SECRET = process.env.JWT_SECRET;
 if (!JWT_SECRET) {
   throw new Error("JWT_SECRET must be set in environment variables");
 }
 
-export interface AuthRequest extends Request {
+// import { IAuthRequest } from "@/types";
+
+export interface IAuthRequest extends Request {
   user?: {
     id: string;
     email: string;
     role: string;
     fullName?: string;
     collegeId: any;
+    isPremium: boolean;
+    subscriptionPlan?: string;
   };
 }
 
 export const protect = async (
-  req: AuthRequest,
+  req: IAuthRequest,
   res: Response,
   next: NextFunction,
 ) => {
@@ -55,12 +59,24 @@ export const protect = async (
         });
       }
 
+      // --- NEW: Check for Premium Expiration ---
+      if (user.isPremium && user.premiumUntil) {
+        if (new Date() > new Date(user.premiumUntil)) {
+          console.log(`[AuthMiddleware] Premium expired for user ${user._id}`);
+          user.isPremium = false;
+          // user.subscriptionPlan = "expired";
+          await user.save();
+        }
+      }
+
       req.user = {
         id: decoded.id,
         email: decoded.email,
         role: decoded.role,
         fullName: decoded.fullName,
         collegeId: decoded.collegeId,
+        isPremium: user.isPremium,
+        subscriptionPlan: user.subscriptionPlan,
       };
 
       next();
@@ -95,7 +111,7 @@ export const protect = async (
 };
 
 export const authorize = (...roles: string[]) => {
-  return (req: AuthRequest, res: Response, next: NextFunction) => {
+  return (req: IAuthRequest, res: Response, next: NextFunction) => {
     if (!req.user) {
       return res.status(401).json({ message: "Not authenticated" });
     }
@@ -112,7 +128,7 @@ export const authorize = (...roles: string[]) => {
 export const superAdminOnly = authorize("superAdmin");
 
 export const collegeAdminOnly = (
-  req: AuthRequest,
+  req: IAuthRequest,
   res: Response,
   next: NextFunction,
 ) => {
@@ -138,6 +154,30 @@ export const collegeAdminOnly = (
   ) {
     return res.status(403).json({
       message: "Access denied. You can only manage your own college.",
+    });
+  }
+
+  next();
+};
+
+export const premiumOnly = (
+  req: IAuthRequest,
+  res: Response,
+  next: NextFunction,
+) => {
+  if (!req.user) {
+    return res.status(401).json({ message: "Not authenticated" });
+  }
+
+  // Super admins have access to everything
+  if (req.user.role === "superAdmin") {
+    return next();
+  }
+
+  if (!req.user.isPremium) {
+    return res.status(403).json({
+      message: "Premium subscription required to access this feature.",
+      code: "PREMIUM_REQUIRED",
     });
   }
 

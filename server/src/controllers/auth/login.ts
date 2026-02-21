@@ -1,9 +1,9 @@
 import { Request, Response } from "express";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
-import User from "../../models/User.model";
-import logger from "../../utils/logger";
-import { AuditService } from "../../services/AuditService";
+import User from "@/models/User.model";
+import logger from "@/utils/logger";
+import { AuditService } from "@/services/AuditService";
 
 const JWT_SECRET = process.env.JWT_SECRET;
 if (!JWT_SECRET) {

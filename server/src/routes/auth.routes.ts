@@ -7,9 +7,9 @@ import {
   resetPassword,
   logout,
 } from "../controllers/auth";
-// import { AuthController } from "../controllers/auth";
+// import { AuthController } from "@/controllers/auth";
 
-import { protect } from "../middleware/authMiddleware";
+import { protect } from "@/middleware/authMiddleware";
 
 const router = express.Router();
 

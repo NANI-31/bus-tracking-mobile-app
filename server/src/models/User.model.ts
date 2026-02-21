@@ -49,9 +49,12 @@ export interface IUser extends Document {
     coordinates: number[]; // [lng, lat]
   };
   isPremium: boolean;
+  subscriptionPlan?: string;
   premiumUntil?: Date;
   isLoggedIn: boolean;
   tokenVersion: number;
+  referralCode: string;
+  referredBy?: string;
 }
 
 const UserSchema: Schema = new Schema({
@@ -112,9 +115,12 @@ const UserSchema: Schema = new Schema({
     coordinates: { type: [Number] }, // [lng, lat]
   },
   isPremium: { type: Boolean, default: false },
+  subscriptionPlan: { type: String },
   premiumUntil: { type: Date },
   isLoggedIn: { type: Boolean, default: false },
   tokenVersion: { type: Number, default: 0 },
+  referralCode: { type: String, unique: true, sparse: true },
+  referredBy: { type: String, ref: "User" },
 });
 
 // Index for geospatial queries

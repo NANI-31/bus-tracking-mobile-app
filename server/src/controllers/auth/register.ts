@@ -1,11 +1,11 @@
 import { Request, Response } from "express";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
-import User, { IUser } from "../../models/User.model";
-import College from "../../models/College.model";
+import User, { IUser } from "@/models/User.model";
+import College from "@/models/College.model";
 import mongoose from "mongoose";
 import crypto from "crypto";
-import logger from "../../utils/logger";
+import logger from "@/utils/logger";
 
 const JWT_SECRET =
   process.env.JWT_SECRET || "your_jwt_secret_key_change_in_production";
@@ -20,6 +20,7 @@ export const register = async (req: Request, res: Response) => {
       collegeId,
       phoneNumber,
       rollNumber,
+      referrerCode,
     } = req.body;
 
     // Register Logic
@@ -93,6 +94,19 @@ export const register = async (req: Request, res: Response) => {
       }
     }
 
+    // Referral Logic
+    let referredBy: string | undefined;
+    if (referrerCode) {
+      const referrer = await User.findOne({
+        referralCode: referrerCode.toUpperCase(),
+      });
+      if (referrer) {
+        referredBy = referrer._id.toString();
+      }
+    }
+
+    const referralCode = crypto.randomBytes(3).toString("hex").toUpperCase();
+
     // Create user
     const newUser = new User({
       _id: crypto.randomUUID(),
@@ -107,6 +121,8 @@ export const register = async (req: Request, res: Response) => {
       emailVerified: false,
       needsManualApproval: role !== "parent",
       createdAt: new Date(),
+      referralCode,
+      referredBy,
     });
 
     await newUser.save();

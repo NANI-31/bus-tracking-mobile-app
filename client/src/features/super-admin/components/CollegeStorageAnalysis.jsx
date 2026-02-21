@@ -83,7 +83,7 @@ const CollegeStorageAnalysis = () => {
       <div className="p-6 border-b border-slate-100 bg-slate-50/50">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div className="flex items-center space-x-3">
-            <div className="p-2 bg-indigo-600 rounded-lg text-white">
+            <div className="p-2 bg-[#1E90FF] rounded-lg text-white">
               <BuildingOfficeIcon className="w-5 h-5" />
             </div>
             <div>
@@ -179,12 +179,12 @@ const CollegeStorageAnalysis = () => {
                       >
                         <stop
                           offset="5%"
-                          stopColor="#6366f1"
+                          stopColor="#1E90FF"
                           stopOpacity={0.1}
                         />
                         <stop
                           offset="95%"
-                          stopColor="#6366f1"
+                          stopColor="#1E90FF"
                           stopOpacity={0}
                         />
                       </linearGradient>
@@ -221,7 +221,7 @@ const CollegeStorageAnalysis = () => {
                     <Area
                       type="monotone"
                       dataKey="storage"
-                      stroke="#6366f1"
+                      stroke="#1E90FF"
                       strokeWidth={3}
                       fillOpacity={1}
                       fill="url(#colorStore)"
@@ -259,7 +259,7 @@ const CollegeStorageAnalysis = () => {
                         (trendData[trendData.length - 1]?.storage || 0) /
                         (trendData[trendData.length - 1]?.users || 1)
                       ).toFixed(3) + "MB",
-                    color: "text-indigo-600",
+                    color: "text-[#1E90FF]",
                     bg: "bg-indigo-50",
                   },
                 ].map((stat, i) => (

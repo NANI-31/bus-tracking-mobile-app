@@ -245,7 +245,13 @@ class ApiService {
     int amount,
     String currency, {
     String? plan,
-  }) => _paymentRepo.createOrder(amount, currency, plan: plan);
+    String? couponCode,
+  }) => _paymentRepo.createOrder(
+    amount,
+    currency,
+    plan: plan,
+    couponCode: couponCode,
+  );
 
   Future<Map<String, dynamic>> verifyPayment(
     String orderId,
@@ -264,4 +270,11 @@ class ApiService {
     endDate: endDate,
     collegeId: collegeId,
   );
+
+  Future<Map<String, dynamic>> requestRefund(
+    String transactionId,
+    String reason,
+  ) => _paymentRepo.requestRefund(transactionId, reason);
+
+  Future<List<dynamic>> getPlans() => _paymentRepo.getPlans();
 }

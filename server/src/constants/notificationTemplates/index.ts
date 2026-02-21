@@ -1,15 +1,15 @@
-import { NOTIFICATION_TYPES } from "../notificationTypes";
-import { busDelayed } from "./busDelayed";
-import { busArriving } from "./busArriving";
-import { busNearby } from "./busNearby";
-import { busCancelled } from "./busCancelled";
-import { nextStop } from "./nextStop";
-import { tripStarted } from "./tripStarted";
-import { tripEnded } from "./tripEnded";
-import { emergencyAlert } from "./emergencyAlert";
-import { routeChange } from "./routeChange";
-import { generalAnnouncement } from "./generalAnnouncement";
-import { driverAssigned } from "./driverAssigned";
+import { NOTIFICATION_TYPES } from "@/constants/notificationTypes";
+import { busDelayed } from "@/constants/notificationTemplates/busDelayed";
+import { busArriving } from "@/constants/notificationTemplates/busArriving";
+import { busNearby } from "@/constants/notificationTemplates/busNearby";
+import { busCancelled } from "@/constants/notificationTemplates/busCancelled";
+import { nextStop } from "@/constants/notificationTemplates/nextStop";
+import { tripStarted } from "@/constants/notificationTemplates/tripStarted";
+import { tripEnded } from "@/constants/notificationTemplates/tripEnded";
+import { emergencyAlert } from "@/constants/notificationTemplates/emergencyAlert";
+import { routeChange } from "@/constants/notificationTemplates/routeChange";
+import { generalAnnouncement } from "@/constants/notificationTemplates/generalAnnouncement";
+import { driverAssigned } from "@/constants/notificationTemplates/driverAssigned";
 
 type LanguageCode = "en" | "hi" | "te";
 

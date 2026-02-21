@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:collegebus/core/providers/service_providers.dart';
+import 'package:collegebus/core/services/map_tile_cache_service.dart';
 
 class CommonMapView extends ConsumerStatefulWidget {
   final LatLng? currentLocation;
@@ -16,19 +17,25 @@ class CommonMapView extends ConsumerStatefulWidget {
   final bool myLocationEnabled;
   final bool myLocationButtonEnabled;
   final VoidCallback? onCameraMoveStarted;
+  final Function(CameraPosition)? onCameraMove;
+  final VoidCallback? onCameraIdle;
+  final bool useTileCache;
   final double bottomPadding;
 
   const CommonMapView({
     super.key,
-    required this.currentLocation,
-    required this.markers,
-    required this.polylines,
+    this.currentLocation,
+    this.markers = const {},
+    this.polylines = const {},
     this.mapStyle,
     this.onMapCreated,
     this.initialZoom = 25.0,
     this.myLocationEnabled = true,
     this.myLocationButtonEnabled = true,
     this.onCameraMoveStarted,
+    this.onCameraMove,
+    this.onCameraIdle,
+    this.useTileCache = false,
     this.bottomPadding = 0.0,
   });
 
@@ -66,13 +73,22 @@ class _CommonMapViewState extends ConsumerState<CommonMapView> {
           myLocationButtonEnabled: false, // Disabling built-in button
           zoomControlsEnabled: false, // Disabling built-in zoom controls
           onCameraMoveStarted: widget.onCameraMoveStarted,
+          onCameraMove: widget.onCameraMove,
+          onCameraIdle: widget.onCameraIdle,
           mapType: MapType.normal,
           padding: EdgeInsets.only(bottom: widget.bottomPadding),
           style: widget.mapStyle ?? autoMapStyle,
           zoomGesturesEnabled: true,
           scrollGesturesEnabled: true,
           tiltGesturesEnabled: true,
-          rotateGesturesEnabled: true,
+          tileOverlays: widget.useTileCache
+              ? {
+                  TileOverlay(
+                    tileOverlayId: const TileOverlayId('cached_tiles'),
+                    tileProvider: CachedTileProvider(),
+                  ),
+                }
+              : {},
           gestureRecognizers: <Factory<OneSequenceGestureRecognizer>>{
             Factory<OneSequenceGestureRecognizer>(
               () => EagerGestureRecognizer(),

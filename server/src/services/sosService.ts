@@ -1,11 +1,11 @@
 import { Server } from "socket.io";
 import { v4 as uuidv4 } from "uuid";
-import { Sos, SosStatus, ISos } from "../models/Sos.model";
-import User from "../models/User.model";
-import { Bus } from "../models/Bus.model";
-import { sendSosNotification } from "../utils/firebase";
-import logger from "../utils/logger";
-import AuditLog from "../models/AuditLog.model";
+import { Sos, SosStatus, ISos } from "@/models/Sos.model";
+import User from "@/models/User.model";
+import { Bus } from "@/models/Bus.model";
+import { sendSosNotification } from "@/utils/firebase";
+import logger from "@/utils/logger";
+import AuditLog from "@/models/AuditLog.model";
 
 interface TriggerSosParams {
   userId: string;

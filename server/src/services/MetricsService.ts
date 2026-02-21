@@ -1,14 +1,14 @@
 import cron from "node-cron";
 import mongoose from "mongoose";
-import { pubClient } from "../config/redis";
-import logger from "../utils/logger";
-import College from "../models/College.model";
-import User from "../models/User.model";
-import { Bus } from "../models/Bus.model";
-import Transaction from "../models/Transaction.model";
-import Notification from "../models/Notification.model";
-import AuditLog from "../models/AuditLog.model";
-import MetricSnapshot from "../models/MetricSnapshot.model";
+import { pubClient } from "@/config/redis";
+import logger from "@/utils/logger";
+import College from "@/models/College.model";
+import User from "@/models/User.model";
+import { Bus } from "@/models/Bus.model";
+import Transaction from "@/models/Transaction.model";
+import Notification from "@/models/Notification.model";
+import AuditLog from "@/models/AuditLog.model";
+import MetricSnapshot from "@/models/MetricSnapshot.model";
 
 export class MetricsService {
   private static readonly HISTORY_KEY = "storage_stats:history";

@@ -1,4 +1,4 @@
-import axios from "../../../api/axios";
+import axios from "@/api/axios";
 
 // User Management
 export const fetchUsers = async () => {
@@ -152,7 +152,43 @@ export const fetchAuditLogs = async (filters = {}) => {
     const response = await axios.get("/admin/audit-logs", {
       params: filters,
     });
-    return response.data.logs;
+    return response.data;
+  } catch (error) {
+    throw error.response ? error.response.data : error.message;
+  }
+};
+
+// Admin Refund Management & Analytics
+export const fetchRefundRequests = async () => {
+  try {
+    const response = await axios.get("/payments/admin/refund-requests");
+    return response.data;
+  } catch (error) {
+    throw error.response ? error.response.data : error.message;
+  }
+};
+
+export const resolveRefundRequest = async (
+  transactionId,
+  status,
+  adminComment,
+) => {
+  try {
+    const response = await axios.post("/payments/admin/resolve-refund", {
+      transactionId,
+      status,
+      adminComment,
+    });
+    return response.data;
+  } catch (error) {
+    throw error.response ? error.response.data : error.message;
+  }
+};
+
+export const fetchSubscriptionAnalytics = async () => {
+  try {
+    const response = await axios.get("/payments/admin/analytics");
+    return response.data;
   } catch (error) {
     throw error.response ? error.response.data : error.message;
   }

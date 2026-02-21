@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
-import College from "../../models/College.model";
-import { getCollegeService } from "../../services/collegeService";
+import College from "@/models/College.model";
+import { getCollegeService } from "@/services/collegeService";
 
 export const createCollege = async (req: Request, res: Response) => {
   try {

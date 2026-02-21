@@ -1,19 +1,18 @@
-import { Request, Response } from "express";
-import { SosStatus } from "../../models/Sos.model";
-import { getSosService } from "../../services/sosService";
-import logger from "../../utils/logger";
-
-interface AuthRequest extends Request {
-  user?: any;
-}
+import { Response } from "express";
+import { IAuthRequest } from "@/types";
+import { SosStatus } from "@/models/Sos.model";
+import { getSosService } from "@/services/sosService";
+import logger from "@/utils/logger";
 
 /**
  * Handle triggering an SOS alert
  */
-export const sendSOS = async (req: AuthRequest, res: Response) => {
+export const sendSOS = async (req: IAuthRequest, res: Response) => {
   try {
     const { busId, routeId, location } = req.body;
-    const { id: userId, role: userRole, collegeId } = req.user;
+    const userId = req.user?.id;
+    const userRole = req.user?.role || "unknown";
+    const collegeId = req.user?.collegeId;
 
     if (!location || !location.lat || !location.lng) {
       return res.status(400).json({ message: "Location data required" });
@@ -29,7 +28,7 @@ export const sendSOS = async (req: AuthRequest, res: Response) => {
     const sosService = getSosService(io);
 
     const newSos = await sosService.triggerSos({
-      userId,
+      userId: userId!,
       userRole,
       collegeId: collegeId.toString(),
       busId,
@@ -54,11 +53,11 @@ export const sendSOS = async (req: AuthRequest, res: Response) => {
 /**
  * Resolve an active SOS alert
  */
-export const resolveSos = async (req: AuthRequest, res: Response) => {
+export const resolveSos = async (req: IAuthRequest, res: Response) => {
   try {
     const { id } = req.params;
     const { resolutionNotes } = req.body;
-    const { id: userId } = req.user;
+    const userId = req.user?.id || "unknown";
 
     const io = req.app.get("io");
     const sosService = getSosService(io);
@@ -79,7 +78,7 @@ export const resolveSos = async (req: AuthRequest, res: Response) => {
 /**
  * Get SOS alerts (active or logs)
  */
-export const getActiveSos = async (req: AuthRequest, res: Response) => {
+export const getActiveSos = async (req: IAuthRequest, res: Response) => {
   logger.info(
     `SOS: Entering getActiveSos. CollegeId: ${req.params.collegeId}, Path: ${req.path}`,
   );
@@ -102,7 +101,11 @@ export const getActiveSos = async (req: AuthRequest, res: Response) => {
     const io = req.app.get("io");
     const sosService = getSosService(io);
 
-    const alerts = await sosService.getActiveSos(collegeId, query, user.role);
+    const alerts = await sosService.getActiveSos(
+      collegeId,
+      query,
+      user?.role || "unknown",
+    );
 
     logger.info(`SOS: Found ${alerts.length} alerts`);
     res.json(alerts);
@@ -115,3 +118,4 @@ export const getActiveSos = async (req: AuthRequest, res: Response) => {
     res.status(500).json({ message: "Failed to fetch SOS alerts" });
   }
 };
+

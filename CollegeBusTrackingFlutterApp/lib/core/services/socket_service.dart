@@ -35,6 +35,8 @@ class SocketService extends ChangeNotifier {
   Stream<Map<String, dynamic>> get sosAlertStream => _sosAlertController.stream;
   Stream<Map<String, dynamic>> get sosResolvedStream =>
       _sosResolvedController.stream;
+  Stream<Map<String, dynamic>> get notificationStream =>
+      _notificationController.stream;
   Stream<String?> get errorStream => _errorController.stream;
 
   SocketService() {
@@ -48,6 +50,8 @@ class SocketService extends ChangeNotifier {
         StreamController<Map<String, dynamic>>.broadcast();
     _sosAlertController = StreamController<Map<String, dynamic>>.broadcast();
     _sosResolvedController = StreamController<Map<String, dynamic>>.broadcast();
+    _notificationController =
+        StreamController<Map<String, dynamic>>.broadcast();
     _errorController = StreamController<String?>.broadcast();
   }
 
@@ -59,6 +63,7 @@ class SocketService extends ChangeNotifier {
   late final StreamController<Map<String, dynamic>> _driverStatusController;
   late final StreamController<Map<String, dynamic>> _sosAlertController;
   late final StreamController<Map<String, dynamic>> _sosResolvedController;
+  late final StreamController<Map<String, dynamic>> _notificationController;
   late final StreamController<String?> _errorController;
 
   Future<void> init(String url, {String? token}) async {
@@ -269,6 +274,12 @@ class SocketService extends ChangeNotifier {
       AppLogger.i('[SocketService] SOS RESOLVED: $data');
       _sosResolvedController.add(Map<String, dynamic>.from(data));
     });
+
+    // Notification updates
+    _socket!.on('notification_received', (data) {
+      AppLogger.i('[SocketService] Received notification_received: $data');
+      _notificationController.add(Map<String, dynamic>.from(data));
+    });
   }
 
   void joinCollege(String collegeId) {
@@ -399,6 +410,7 @@ class SocketService extends ChangeNotifier {
     _driverStatusController.close();
     _sosAlertController.close();
     _sosResolvedController.close();
+    _notificationController.close();
     _errorController.close();
     super.dispose();
   }

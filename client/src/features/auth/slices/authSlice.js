@@ -1,5 +1,5 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
-import { loginUser } from "../api/authApi";
+import { loginUser } from "@/features/auth/api/authApi";
 
 // Get token from local storage if it exists
 const token = localStorage.getItem("userToken");

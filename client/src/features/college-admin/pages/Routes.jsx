@@ -6,158 +6,38 @@ import {
   PlusIcon,
   TrashIcon,
   MapPinIcon,
+  ChevronDownIcon,
+  ChevronUpIcon,
+  MapPinIcon as PinIcon,
+  EllipsisHorizontalIcon,
+  MagnifyingGlassIcon,
+  XMarkIcon,
 } from "@heroicons/react/24/outline";
 import {
   getRoutes,
   createRoute,
   removeRoute,
 } from "../slices/collegeAdminSlice";
-import ConfirmationModal from "../../../components/common/ConfirmationModal";
+import {
+  Card,
+  CardContent,
+  IconButton,
+  Collapse,
+  Tooltip,
+  Avatar,
+  Box,
+  Typography,
+} from "@mui/material";
+import ConfirmationModal from "@/components/common/ConfirmationModal";
 
-const RouteFormModal = ({ isOpen, onClose, onSubmit }) => {
-  const [formData, setFormData] = useState({
-    name: "",
-    stops: [{ name: "", lat: "", lng: "" }], // Initial stop
-  });
-
-  if (!isOpen) return null;
-
-  const handleAddStop = () => {
-    setFormData({
-      ...formData,
-      stops: [...formData.stops, { name: "", lat: "", lng: "" }],
-    });
-  };
-
-  const handleStopChange = (index, field, value) => {
-    const newStops = [...formData.stops];
-    newStops[index][field] = value;
-    setFormData({ ...formData, stops: newStops });
-  };
-
-  const handleRemoveStop = (index) => {
-    const newStops = formData.stops.filter((_, i) => i !== index);
-    setFormData({ ...formData, stops: newStops });
-  };
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    onSubmit(formData);
-    setFormData({ name: "", stops: [{ name: "", lat: "", lng: "" }] });
-    onClose();
-  };
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 overflow-y-auto">
-      <motion.div
-        initial={{ opacity: 0, scale: 0.9 }}
-        animate={{ opacity: 1, scale: 1 }}
-        exit={{ opacity: 0, scale: 0.9 }}
-        className="bg-white rounded-xl shadow-lg p-6 w-full max-w-lg my-8"
-      >
-        <h2 className="text-xl font-bold mb-4">Add New Route</h2>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Route Name
-            </label>
-            <input
-              type="text"
-              required
-              className="mt-1 block w-full border rounded-md p-2"
-              placeholder="e.g., Route A - Main Campus"
-              value={formData.name}
-              onChange={(e) =>
-                setFormData({ ...formData, name: e.target.value })
-              }
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Stops
-            </label>
-            {formData.stops.map((stop, index) => (
-              <div key={index} className="flex space-x-2 mb-2 items-start">
-                <div className="flex-1 space-y-2">
-                  <input
-                    type="text"
-                    required
-                    placeholder="Stop Name"
-                    className="block w-full border rounded-md p-2 text-sm"
-                    value={stop.name}
-                    onChange={(e) =>
-                      handleStopChange(index, "name", e.target.value)
-                    }
-                  />
-                  <div className="flex space-x-2">
-                    <input
-                      type="number"
-                      step="any"
-                      placeholder="Lat"
-                      className="block w-1/2 border rounded-md p-2 text-xs"
-                      value={stop.lat}
-                      onChange={(e) =>
-                        handleStopChange(index, "lat", e.target.value)
-                      }
-                    />
-                    <input
-                      type="number"
-                      step="any"
-                      placeholder="Lng"
-                      className="block w-1/2 border rounded-md p-2 text-xs"
-                      value={stop.lng}
-                      onChange={(e) =>
-                        handleStopChange(index, "lng", e.target.value)
-                      }
-                    />
-                  </div>
-                </div>
-                {formData.stops.length > 1 && (
-                  <button
-                    type="button"
-                    onClick={() => handleRemoveStop(index)}
-                    className="text-red-500 hover:text-red-700 mt-2"
-                  >
-                    <TrashIcon className="w-5 h-5" />
-                  </button>
-                )}
-              </div>
-            ))}
-            <button
-              type="button"
-              onClick={handleAddStop}
-              className="text-sm text-blue-600 hover:text-blue-800 flex items-center mt-2"
-            >
-              <PlusIcon className="w-4 h-4 mr-1" /> Add Stop
-            </button>
-          </div>
-
-          <div className="flex justify-end space-x-3 mt-6">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-            >
-              Create Route
-            </button>
-          </div>
-        </form>
-      </motion.div>
-    </div>
-  );
-};
+import RouteFormModal from "../components/Routes/RouteFormModal";
+import RouteCard from "../components/Routes/RouteCard";
 
 const Routes = () => {
   const dispatch = useDispatch();
   const { routes, loading } = useSelector((state) => state.collegeAdmin);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
   const [deleteModal, setDeleteModal] = useState({
     isOpen: false,
     routeId: null,
@@ -166,6 +46,15 @@ const Routes = () => {
   useEffect(() => {
     dispatch(getRoutes());
   }, [dispatch]);
+
+  const filteredRoutes = routes?.filter((route) => {
+    const q = searchQuery.toLowerCase();
+    const matchesName = route.routeName?.toLowerCase().includes(q);
+    const matchesStops = route.stopPoints?.some((stop) =>
+      stop.name?.toLowerCase().includes(q),
+    );
+    return matchesName || matchesStops;
+  });
 
   const handleAddRoute = (routeData) => {
     // Transform data to match IRoute model
@@ -209,77 +98,89 @@ const Routes = () => {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold text-gray-800">Route Management</h1>
-        <button
-          onClick={() => setIsModalOpen(true)}
-          className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-        >
-          <PlusIcon className="w-5 h-5 mr-2" />
-          Add Route
-        </button>
+    <div className="space-y-6 min-h-screen bg-[#f8fafc] -m-6 p-6">
+      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
+        <div>
+          <h1 className="text-2xl font-black text-slate-800 tracking-tight">
+            Route Management
+          </h1>
+          <p className="text-slate-500 text-sm font-medium">
+            Manage campus transportation pathways and stops
+          </p>
+        </div>
+
+        <div className="flex flex-col sm:flex-row items-center gap-3 w-full lg:w-auto">
+          {/* Search Bar */}
+          <div className="relative w-full sm:w-80 group">
+            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+              <MagnifyingGlassIcon className="h-5 h-5 text-slate-400 group-focus-within:text-[#1E90FF] transition-colors" />
+            </div>
+            <input
+              type="text"
+              placeholder="Search by route or stop name..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="block w-full pl-11 pr-10 py-2.5 bg-slate-50 border-2 border-slate-100 rounded-xl text-sm font-bold text-slate-700 placeholder:text-slate-400 placeholder:font-medium focus:bg-white focus:border-[#1E90FF] focus:ring-4 focus:ring-blue-50 transition-all outline-none"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery("")}
+                className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600"
+              >
+                <XMarkIcon className="h-5 w-5" />
+              </button>
+            )}
+          </div>
+
+          <button
+            onClick={() => setIsModalOpen(true)}
+            className="flex items-center justify-center space-x-2 px-6 py-2.5 bg-[#1E90FF] text-white rounded-xl font-bold hover:bg-[#1C64F2] hover:shadow-lg hover:shadow-blue-200 active:scale-95 transition-all w-full sm:w-auto"
+          >
+            <PlusIcon className="w-5 h-5" />
+            <span>Add New Route</span>
+          </button>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <AnimatePresence>
-          {Array.isArray(routes) &&
-            routes.map((route) => (
-              <motion.div
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+        <AnimatePresence mode="popLayout">
+          {Array.isArray(filteredRoutes) &&
+            filteredRoutes.map((route) => (
+              <RouteCard
                 key={route._id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                layout
-                className="bg-white rounded-xl shadow-sm p-6 border border-gray-100"
-              >
-                <div className="flex justify-between items-start mb-4">
-                  <div className="flex items-center space-x-3">
-                    <div className="p-2 bg-purple-50 rounded-lg">
-                      <MapIcon className="w-6 h-6 text-purple-600" />
-                    </div>
-                    <h3 className="text-lg font-bold text-gray-800">
-                      {route.routeName}
-                    </h3>
-                  </div>
-                  <button
-                    onClick={() => handleDeleteRoute(route._id)}
-                    className="text-gray-400 hover:text-red-500 transition-colors"
-                  >
-                    <TrashIcon className="w-5 h-5" />
-                  </button>
-                </div>
-
-                <div className="relative pl-4 border-l-2 border-gray-200 ml-4 space-y-6">
-                  {route.stopPoints?.map((stop, index) => (
-                    <div key={index} className="relative">
-                      <div className="absolute -left-[25px] bg-white border-2 border-blue-500 rounded-full w-4 h-4"></div>
-                      <p className="text-sm font-medium text-gray-800">
-                        {stop.name}
-                      </p>
-                      <p className="text-xs text-gray-500">
-                        {stop.location?.lat && stop.location?.lng
-                          ? `${stop.location.lat.toFixed(4)}, ${stop.location.lng.toFixed(4)}`
-                          : "Coordinates not set"}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-
-                <div className="mt-6 pt-4 border-t border-gray-100 flex justify-between text-sm text-gray-500">
-                  <span>{route.stopPoints?.length || 0} Stops</span>
-                  <span>ID: {route._id?.substring(0, 8)}...</span>
-                </div>
-              </motion.div>
+                route={route}
+                onDelete={handleDeleteRoute}
+              />
             ))}
         </AnimatePresence>
       </div>
 
-      {(!routes || routes.length === 0) && !loading && (
-        <div className="text-center py-12 text-gray-500">
-          <MapIcon className="w-16 h-16 mx-auto mb-4 text-gray-300" />
-          <p className="text-lg">No routes defined. Create your first route!</p>
-        </div>
+      {(!filteredRoutes || filteredRoutes.length === 0) && !loading && (
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-white rounded-2xl border-2 border-dashed border-slate-200 py-20 text-center"
+        >
+          <div className="bg-slate-50 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4 border-4 border-white shadow-sm">
+            <MapIcon className="w-10 h-10 text-slate-300" />
+          </div>
+          <h3 className="text-xl font-black text-slate-800 mb-1">
+            {searchQuery ? "No matches found" : "No routes yet"}
+          </h3>
+          <p className="text-slate-500 font-medium">
+            {searchQuery
+              ? `We couldn't find any routes or stops matching "${searchQuery}"`
+              : "Get started by creating your first transportation route."}
+          </p>
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery("")}
+              className="mt-6 text-[#1E90FF] font-black text-sm hover:underline"
+            >
+              Clear Search
+            </button>
+          )}
+        </motion.div>
       )}
 
       <RouteFormModal

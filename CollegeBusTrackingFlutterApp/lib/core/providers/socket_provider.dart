@@ -3,6 +3,8 @@ import 'package:collegebus/core/services/socket_service.dart';
 import 'package:collegebus/core/constants/constants.dart';
 import 'package:collegebus/core/providers/api_provider.dart';
 import 'package:collegebus/features/auth/application/auth_provider.dart';
+import 'package:collegebus/features/notification/application/notification_provider.dart';
+import 'package:collegebus/core/utils/app_logger.dart';
 
 /// SocketService provider - depends on auth token for initialization
 final socketServiceProvider = ChangeNotifierProvider<SocketService>((ref) {
@@ -37,6 +39,12 @@ final socketServiceProvider = ChangeNotifierProvider<SocketService>((ref) {
 
     await api.updateBusLocation(busId, lat, lng, speed, heading);
   };
+
+  // Notification Synchronization
+  socketService.notificationStream.listen((data) {
+    AppLogger.i('[socketServiceProvider] New notification received via socket');
+    ref.read(notificationsProvider.notifier).refreshNotifications(silent: true);
+  });
 
   return socketService;
 });

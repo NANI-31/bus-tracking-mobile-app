@@ -1,6 +1,6 @@
-import Route from "../models/Route.model";
-import { Bus } from "../models/Bus.model";
-import Schedule from "../models/Schedule.model";
+import Route from "@/models/Route.model";
+import { Bus } from "@/models/Bus.model";
+import Schedule from "@/models/Schedule.model";
 // Helper to generate dummy coordinates
 const generateGeo = (index: number) => {
   const baseLat = 16.3067;

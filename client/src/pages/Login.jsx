@@ -3,7 +3,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { LockClosedIcon, UserIcon } from "@heroicons/react/24/solid";
-import { login, clearError } from "../features/auth/slices/authSlice";
+import { login, clearError } from "@/features/auth/slices/authSlice";
 
 const Login = () => {
   const [email, setEmail] = useState("ca@kkr.ac.in");

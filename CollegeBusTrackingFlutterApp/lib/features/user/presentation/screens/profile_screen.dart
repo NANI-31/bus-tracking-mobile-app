@@ -9,8 +9,8 @@ import 'package:collegebus/core/constants/constants.dart';
 import 'package:velocity_x/velocity_x.dart';
 import 'package:flutter_tailwind_css_colors/flutter_tailwind_css_colors.dart';
 import 'package:collegebus/l10n/common/app_localizations.dart' as common_l10n;
+import 'package:collegebus/features/college/application/college_provider.dart';
 
-// New standalone widgets
 // New standalone widgets
 import '../widgets/profile_section_card.dart';
 import '../widgets/profile_list_item.dart';
@@ -32,6 +32,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
     // Safely get l10n, assuming context is valid and delegate is active
     final l10n = common_l10n.CommonLocalizations.of(context)!;
+    final collegesAsync = ref.watch(collegeServiceProvider);
 
     if (user == null) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
@@ -112,7 +113,30 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     ),
                   ),
                   20.heightBox,
-                  user.fullName.text.size(26).bold.color(Colors.white).make(),
+                  HStack([
+                    user.fullName.text.size(26).bold.color(Colors.white).make(),
+                    if (user.isPremium) ...[
+                      8.widthBox,
+                      const Icon(
+                        Icons.workspace_premium_rounded,
+                        color: Colors.amber,
+                        size: 28,
+                      ),
+                    ],
+                  ], crossAlignment: CrossAxisAlignment.center),
+                  if (user.isPremium) ...[
+                    8.heightBox,
+                    VxBox(
+                          child: "PREMIUM MEMBER".text
+                              .size(10)
+                              .bold
+                              .color(Colors.amber.shade700)
+                              .make()
+                              .pSymmetric(h: 8, v: 2),
+                        ).amber100.roundedLg
+                        .border(color: Colors.amber.shade300)
+                        .make(),
+                  ],
                   4.heightBox,
                   user.email.text
                       .size(14)
@@ -151,25 +175,36 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           // Sections
           VStack([
             // 1. Quick Stats Grid
-            Row(
-              children: [
-                _buildStatCard(
-                  context,
-                  l10n.role,
-                  user.role.displayName,
-                  Icons.badge_rounded,
-                  Colors.blue,
-                ).expand(),
-                12.widthBox,
-                _buildStatCard(
-                  context,
-                  l10n.collegeId,
-                  user.collegeId.isNotEmpty ? user.collegeId : 'N/A',
-                  Icons.school_rounded,
-                  Colors.purple,
-                ).expand(),
-              ],
-            ),
+            VStack([
+              _buildStatCard(
+                context,
+                l10n.role,
+                user.role.displayName,
+                Icons.badge_rounded,
+                Colors.blue,
+                fullWidth: true,
+              ),
+              12.heightBox,
+              _buildStatCard(
+                context,
+                'College',
+                collegesAsync.maybeWhen(
+                  data: (colleges) {
+                    try {
+                      return colleges
+                          .firstWhere((c) => c.id == user.collegeId)
+                          .name;
+                    } catch (_) {
+                      return user.collegeId.isNotEmpty ? user.collegeId : 'N/A';
+                    }
+                  },
+                  orElse: () => 'Loading...',
+                ),
+                Icons.school_rounded,
+                Colors.purple,
+                fullWidth: true,
+              ),
+            ]),
             12.heightBox,
             _buildStatCard(
               context,
@@ -282,6 +317,14 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   title: l10n.termsConditions,
                   subtitle: l10n.legalUsageRequirements,
                   onTap: () => context.push('/student/terms-conditions'),
+                  showDivider: true,
+                ),
+                ProfileListItem(
+                  leadingIcon: Icons.card_giftcard_rounded,
+                  iconColor: TwColors.pink.i400,
+                  title: "Refer & Earn",
+                  subtitle: "Get free Premium by inviting friends",
+                  onTap: () => context.push('/referral'),
                   showDivider: true,
                 ),
                 // Payment Option

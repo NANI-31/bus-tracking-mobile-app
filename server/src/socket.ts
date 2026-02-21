@@ -1,12 +1,12 @@
 import { Server } from "socket.io";
 import { createAdapter } from "@socket.io/redis-adapter";
-import { pubClient, subClient } from "./config/redis";
+import { pubClient, subClient } from "@/config/redis";
 import { LRUCache } from "lru-cache";
 import { RateLimiterMemory } from "rate-limiter-flexible";
-import { authenticateSocket, AuthenticatedSocket } from "./utils/socketAuth";
-import { Bus, BusLocation } from "./models/Bus.model";
-import { checkAndNotifyBusNearby } from "./utils/busNearbyLogic";
-import logger from "./utils/logger";
+import { authenticateSocket, AuthenticatedSocket } from "@/utils/socketAuth";
+import { Bus, BusLocation } from "@/models/Bus.model";
+import { checkAndNotifyBusNearby } from "@/utils/busNearbyLogic";
+import logger from "@/utils/logger";
 
 // LRU cache for bus metadata (max 500 entries, 30 min TTL)
 const busCache = new LRUCache<
@@ -469,19 +469,50 @@ export const initializeSocket = (io: Server) => {
       }
     });
 
-    socket.on("disconnect", () => {
+    socket.on("disconnect", (reason) => {
       if (user) {
-        logger.info(`${user.fullName || "User"} logout`);
+        logger.info(
+          `${user.fullName || "User"} disconnected (reason: ${reason}) - Socket ${socket.id}`,
+        );
       } else {
-        logger.info(`User disconnected: ${socket.id}`);
+        logger.info(`User disconnected: ${socket.id} (reason: ${reason})`);
       }
 
+      // For drivers, add a grace period before marking offline
+      // This prevents false offline notifications when the app briefly backgrounds
       if (user && user.role === "driver" && user.collegeId) {
-        socket.to(user.collegeId).emit("driver_status_update", {
-          driverId: user.id,
-          status: "offline",
-        });
-        logger.info(`${user.fullName || "Driver"} is OFFLINE`);
+        const collegeRoom = user.collegeId;
+        const driverId = user.id;
+        const driverName = user.fullName || "Driver";
+
+        // Wait 30 seconds before emitting offline status
+        // If the driver reconnects within this window, the new socket will override
+        setTimeout(async () => {
+          try {
+            // Check if driver has reconnected with a new socket
+            const sockets = await io.in(collegeRoom).fetchSockets();
+            const isStillConnected = sockets.some((s) => {
+              const sUser = (s as any).user;
+              return sUser && sUser.id === driverId;
+            });
+
+            if (!isStillConnected) {
+              io.to(collegeRoom).emit("driver_status_update", {
+                driverId,
+                status: "offline",
+              });
+              logger.info(
+                `${driverName} is OFFLINE (confirmed after grace period)`,
+              );
+            } else {
+              logger.info(
+                `${driverName} reconnected within grace period, skipping offline emit`,
+              );
+            }
+          } catch (err) {
+            logger.warn(`[Socket] Error checking driver reconnect: ${err}`);
+          }
+        }, 30000); // 30 second grace period
       }
     });
   });

@@ -18,6 +18,7 @@ import 'package:collegebus/features/college_admin/presentation/tabs/users_tab.da
 import 'package:collegebus/features/college_admin/presentation/tabs/transactions_tab.dart';
 import 'package:collegebus/features/college_admin/presentation/tabs/settings_tab.dart';
 import 'package:collegebus/shared/widgets/logout_confirmation_dialog.dart';
+import 'package:collegebus/shared/widgets/navigation/curved_bottom_nav_bar.dart';
 
 class CollegeAdminDashboard extends ConsumerStatefulWidget {
   const CollegeAdminDashboard({super.key});
@@ -165,42 +166,35 @@ class _CollegeAdminDashboardState extends ConsumerState<CollegeAdminDashboard> {
       body: isLoading
           ? const Center(child: CircularProgressIndicator())
           : _buildCurrentTab(collegeAdminService, authUser?.collegeId ?? ''),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _currentIndex,
-        onDestinationSelected: (index) => setState(() => _currentIndex = index),
-        destinations: [
-          const NavigationDestination(
-            icon: Icon(Icons.dashboard_outlined),
-            selectedIcon: Icon(Icons.dashboard),
+      bottomNavigationBar: CurvedBottomNavBar(
+        currentIndex: _currentIndex,
+        onTap: (index) => setState(() => _currentIndex = index),
+        activeColor: _getCollegeAdminActiveColor(context),
+        backgroundColor: Theme.of(context).cardColor,
+        items: [
+          const CurvedBottomNavItem(
+            icon: Icons.dashboard_outlined,
             label: 'Overview',
           ),
-          const NavigationDestination(
-            icon: Icon(Icons.people_outlined),
-            selectedIcon: Icon(Icons.people),
+          const CurvedBottomNavItem(
+            icon: Icons.people_outlined,
             label: 'Users',
           ),
-          const NavigationDestination(
-            icon: Icon(Icons.receipt_long_outlined),
-            selectedIcon: Icon(Icons.receipt_long),
+          const CurvedBottomNavItem(
+            icon: Icons.receipt_long_outlined,
             label: 'Transactions',
           ),
-          NavigationDestination(
-            icon: Badge(
-              label: Text('${collegeAdminService.activeSos.length}'),
-              isLabelVisible: collegeAdminService.activeSos.isNotEmpty,
-              child: const Icon(Icons.emergency_outlined),
-            ),
-            selectedIcon: const Icon(Icons.emergency),
+          CurvedBottomNavItem(
+            icon: Icons.emergency_outlined,
             label: 'Emergency',
+            badgeCount: collegeAdminService.activeSos.length,
           ),
-          const NavigationDestination(
-            icon: Icon(Icons.directions_bus_outlined),
-            selectedIcon: Icon(Icons.directions_bus),
+          const CurvedBottomNavItem(
+            icon: Icons.directions_bus_outlined,
             label: 'Fleet',
           ),
-          const NavigationDestination(
-            icon: Icon(Icons.settings_outlined),
-            selectedIcon: Icon(Icons.settings),
+          const CurvedBottomNavItem(
+            icon: Icons.settings_outlined,
             label: 'Settings',
           ),
         ],
@@ -230,6 +224,25 @@ class _CollegeAdminDashboardState extends ConsumerState<CollegeAdminDashboard> {
         return const SettingsTab();
       default:
         return const Center(child: Text('Tab under construction'));
+    }
+  }
+
+  Color _getCollegeAdminActiveColor(BuildContext context) {
+    switch (_currentIndex) {
+      case 0:
+        return Theme.of(context).primaryColor;
+      case 1:
+        return Colors.blue.shade600;
+      case 2:
+        return Colors.green.shade600;
+      case 3:
+        return Colors.red.shade600;
+      case 4:
+        return Colors.orange.shade600;
+      case 5:
+        return Colors.grey.shade600;
+      default:
+        return Theme.of(context).primaryColor;
     }
   }
 }

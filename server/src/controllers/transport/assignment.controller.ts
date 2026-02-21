@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { BusAssignmentLog } from "../../models/BusAssignmentLog.model";
+import { BusAssignmentLog } from "@/models/BusAssignmentLog.model";
 
 export const getAssignmentLogsByBus = async (req: Request, res: Response) => {
   try {

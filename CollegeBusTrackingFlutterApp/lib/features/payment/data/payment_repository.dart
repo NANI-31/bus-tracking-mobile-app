@@ -5,11 +5,17 @@ class PaymentRepository extends BaseRepository {
     int amount,
     String currency, {
     String? plan,
+    String? couponCode,
   }) async {
     try {
       final response = await dio.post(
         '/payments/create-order',
-        data: {'amount': amount, 'currency': currency, 'plan': plan},
+        data: {
+          'amount': amount,
+          'currency': currency,
+          'plan': plan,
+          'couponCode': couponCode,
+        },
       );
       return response.data;
     } catch (e) {
@@ -56,6 +62,30 @@ class PaymentRepository extends BaseRepository {
         '/payments/transactions',
         queryParameters: queryParams,
       );
+      return response.data as List<dynamic>;
+    } catch (e) {
+      throw handleError(e);
+    }
+  }
+
+  Future<Map<String, dynamic>> requestRefund(
+    String transactionId,
+    String reason,
+  ) async {
+    try {
+      final response = await dio.post(
+        '/payments/request-refund',
+        data: {'transactionId': transactionId, 'reason': reason},
+      );
+      return response.data;
+    } catch (e) {
+      throw handleError(e);
+    }
+  }
+
+  Future<List<dynamic>> getPlans() async {
+    try {
+      final response = await dio.get('/plans');
       return response.data as List<dynamic>;
     } catch (e) {
       throw handleError(e);

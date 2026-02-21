@@ -3,14 +3,15 @@ import cors from "cors";
 import dotenv from "dotenv";
 import { createServer } from "http";
 import { Server } from "socket.io";
-import connectDB from "./config/db";
-import { connectRedis } from "./config/redis";
-import { initializeFirebase } from "./utils/firebase";
-import { router } from "./routes";
-import { initializeSocket } from "./socket";
-import logger from "./utils/logger";
-import { errorHandler } from "./middleware/errorMiddleware";
-import { MetricsService } from "./services/MetricsService";
+import connectDB from "@/config/db";
+import { connectRedis } from "@/config/redis";
+import { initializeFirebase } from "@/utils/firebase";
+import { router } from "@/routes";
+import { initializeSocket } from "@/socket";
+import logger from "@/utils/logger";
+import { initPaymentCron } from "@/cron/payment.cron";
+import { errorHandler } from "@/middleware/errorMiddleware";
+import { MetricsService } from "@/services/MetricsService";
 
 dotenv.config();
 
@@ -20,6 +21,7 @@ const startServer = async () => {
     await connectRedis();
     initializeFirebase();
     MetricsService.init();
+    initPaymentCron();
 
     const app = express();
     const httpServer = createServer(app);

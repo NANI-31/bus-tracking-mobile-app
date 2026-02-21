@@ -2,8 +2,8 @@ import React from "react";
 import { motion } from "framer-motion";
 import { ServerIcon, ArrowLeftIcon } from "@heroicons/react/24/outline";
 import { useNavigate } from "react-router-dom";
-import StorageAnalysis from "../components/StorageAnalysis";
-import CollegeStorageAnalysis from "../components/CollegeStorageAnalysis";
+import StorageAnalysis from "@/features/super-admin/components/StorageAnalysis";
+import CollegeStorageAnalysis from "@/features/super-admin/components/CollegeStorageAnalysis";
 
 const SystemAnalysis = () => {
   const navigate = useNavigate();
@@ -34,7 +34,7 @@ const SystemAnalysis = () => {
       <section>
         <div className="mb-6">
           <h2 className="text-xl font-extrabold text-slate-800 flex items-center space-x-2">
-            <span className="w-2 h-6 bg-indigo-600 rounded-full inline-block"></span>
+            <span className="w-2 h-6 bg-[#1E90FF] rounded-full inline-block"></span>
             <span>Tenant Distribution</span>
           </h2>
         </div>
@@ -59,16 +59,16 @@ const SystemAnalysis = () => {
       </section>
 
       {/* Additional Stats / Information */}
-      <div className="p-6 bg-indigo-50 border border-indigo-100 rounded-xl">
+      <div className="p-6 bg-[#1E90FF] border border-[#1E90FF] rounded-xl">
         <div className="flex items-start space-x-4">
-          <div className="p-2 bg-indigo-600 rounded-lg text-white">
+          <div className="p-2 bg-[#1E90FF] rounded-lg text-white">
             <ServerIcon className="w-6 h-6" />
           </div>
           <div>
-            <h3 className="text-lg font-bold text-indigo-900 mb-1">
+            <h3 className="text-lg font-bold text-slate-800 mb-1">
               Infrastructure Insight
             </h3>
-            <p className="text-indigo-700 text-sm leading-relaxed">
+            <p className="text-slate-600 text-sm leading-relaxed">
               These metrics reflect the current load on the primary storage and
               caching layers. Monitor <strong>fragmentation ratio</strong> and{" "}
               <strong>storage size</strong> closely to ensure optimal

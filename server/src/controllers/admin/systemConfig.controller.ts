@@ -1,13 +1,13 @@
 import { Request, Response } from "express";
-import { AuthRequest } from "../../middleware/authMiddleware";
-import SystemConfig from "../../models/SystemConfig.model";
-import logger from "../../utils/logger";
-import { AuditService } from "../../services/AuditService";
+import { IAuthRequest } from "@/types";
+import SystemConfig from "@/models/SystemConfig.model";
+import logger from "@/utils/logger";
+import { AuditService } from "@/services/AuditService";
 
 /**
  * Get all system configurations
  */
-export const getSystemConfig = async (req: AuthRequest, res: Response) => {
+export const getSystemConfig = async (req: IAuthRequest, res: Response) => {
   logger.info("CONFIG: Entering getSystemConfig");
   try {
     const configs = await SystemConfig.find().sort({ category: 1, key: 1 });
@@ -35,7 +35,7 @@ export const getPublicConfig = async (req: Request, res: Response) => {
 /**
  * Update system configuration
  */
-export const updateConfig = async (req: AuthRequest, res: Response) => {
+export const updateConfig = async (req: IAuthRequest, res: Response) => {
   try {
     const { key, value } = req.body;
 
@@ -63,3 +63,4 @@ export const updateConfig = async (req: AuthRequest, res: Response) => {
     res.status(500).json({ message: (error as Error).message });
   }
 };
+

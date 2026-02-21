@@ -1,8 +1,8 @@
 import { Server } from "socket.io";
-import { Bus, IBus } from "../models/Bus.model";
-import logger from "../utils/logger";
-import { getBusAssignmentService } from "./busAssignmentService";
-import { delCache } from "../utils/cache";
+import { Bus, IBus } from "@/models/Bus.model";
+import logger from "@/utils/logger";
+import { getBusAssignmentService } from "@/services/busAssignmentService";
+import { delCache } from "@/utils/cache";
 
 /**
  * BusService - Encapsulates bus update business logic.

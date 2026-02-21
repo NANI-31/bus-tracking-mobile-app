@@ -10,9 +10,9 @@ import {
   getDevUsers,
   verifyEmail,
 } from "../../controllers/core/user.controller";
-import { getDriverHistory } from "../../controllers/transport/history.controller";
+import { getDriverHistory } from "@/controllers/transport/history.controller";
 
-import { protect, authorize } from "../../middleware/authMiddleware";
+import { protect, authorize } from "@/middleware/authMiddleware";
 import multer from "multer";
 
 const router = express.Router();

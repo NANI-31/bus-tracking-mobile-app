@@ -1,18 +1,18 @@
 import { Request, Response } from "express";
-import { AuthRequest } from "../../middleware/authMiddleware";
-import College from "../../models/College.model";
-import User from "../../models/User.model";
+import { IAuthRequest } from "@/types";
+import College from "@/models/College.model";
+import User from "@/models/User.model";
 import mongoose from "mongoose";
-import { AuditService } from "../../services/AuditService";
-import { pubClient } from "../../config/redis";
-import logger from "../../utils/logger";
-import { MetricsService } from "../../services/MetricsService";
-import MetricSnapshot from "../../models/MetricSnapshot.model";
+import { AuditService } from "@/services/AuditService";
+import { pubClient } from "@/config/redis";
+import logger from "@/utils/logger";
+import { MetricsService } from "@/services/MetricsService";
+import MetricSnapshot from "@/models/MetricSnapshot.model";
 
 /**
  * Get storage statistics for Super Admin (MongoDB & Redis)
  */
-export const getStorageStats = async (req: AuthRequest, res: Response) => {
+export const getStorageStats = async (req: IAuthRequest, res: Response) => {
   try {
     // 1. MongoDB Stats
     if (!mongoose.connection.db) {
@@ -67,7 +67,7 @@ export const getStorageStats = async (req: AuthRequest, res: Response) => {
  * Get historical storage metrics for a specific college
  */
 export const getCollegeStorageHistory = async (
-  req: AuthRequest,
+  req: IAuthRequest,
   res: Response,
 ) => {
   try {
@@ -96,7 +96,7 @@ export const getCollegeStorageHistory = async (
 /**
  * Get system-wide statistics for Super Admin
  */
-export const getSystemStats = async (req: AuthRequest, res: Response) => {
+export const getSystemStats = async (req: IAuthRequest, res: Response) => {
   try {
     const [collegeCount, userCount, activeBuses, pendingColleges] =
       await Promise.all([
@@ -121,7 +121,7 @@ export const getSystemStats = async (req: AuthRequest, res: Response) => {
 /**
  * Verify a college
  */
-export const verifyCollege = async (req: AuthRequest, res: Response) => {
+export const verifyCollege = async (req: IAuthRequest, res: Response) => {
   try {
     const { collegeId } = req.params;
     const college = await College.findByIdAndUpdate(
@@ -153,7 +153,7 @@ export const verifyCollege = async (req: AuthRequest, res: Response) => {
 /**
  * Suspend a college
  */
-export const suspendCollege = async (req: AuthRequest, res: Response) => {
+export const suspendCollege = async (req: IAuthRequest, res: Response) => {
   try {
     const { collegeId } = req.params;
     const { reason } = req.body;
@@ -187,3 +187,4 @@ export const suspendCollege = async (req: AuthRequest, res: Response) => {
     res.status(500).json({ message: (error as Error).message });
   }
 };
+

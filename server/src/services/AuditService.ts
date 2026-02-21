@@ -1,9 +1,9 @@
-import { AuthRequest } from "../middleware/authMiddleware";
-import AuditLog from "../models/AuditLog.model";
-import logger from "../utils/logger";
+import { IAuthRequest } from "@/types";
+import AuditLog from "@/models/AuditLog.model";
+import logger from "@/utils/logger";
 
 interface LogParams {
-  req: AuthRequest;
+  req: IAuthRequest;
   action: string;
   resource: string;
   resourceId: any;

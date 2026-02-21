@@ -28,10 +28,17 @@ class PaymentService extends ChangeNotifier {
 
   Future<Map<String, dynamic>> createPaymentOrder(
     int amount,
-    String currency,
-  ) async {
+    String currency, {
+    String? plan,
+    String? couponCode,
+  }) async {
     try {
-      final result = await _apiService.createPaymentOrder(amount, currency);
+      final result = await _apiService.createPaymentOrder(
+        amount,
+        currency,
+        plan: plan,
+        couponCode: couponCode,
+      );
       clearError();
       return result;
     } catch (e) {
@@ -59,8 +66,3 @@ class PaymentService extends ChangeNotifier {
     }
   }
 }
-
-
-
-
-

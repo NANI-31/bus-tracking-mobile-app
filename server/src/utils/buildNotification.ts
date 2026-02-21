@@ -1,6 +1,6 @@
 // src/utils/buildNotification.ts
-import { getTemplatesForLanguage } from "../constants/notificationTemplates";
-import { resolveTemplate } from "./templateResolver";
+import { getTemplatesForLanguage } from "@/constants/notificationTemplates";
+import { resolveTemplate } from "@/utils/templateResolver";
 
 type LanguageCode = "en" | "hi" | "te";
 

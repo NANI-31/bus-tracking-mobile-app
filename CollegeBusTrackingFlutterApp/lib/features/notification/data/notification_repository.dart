@@ -34,6 +34,15 @@ class NotificationRepository extends BaseRepository {
     }
   }
 
+  /// Mark all user notifications as read
+  Future<void> markAllNotificationsAsRead(String userId) async {
+    try {
+      await dio.put('/notifications/user/$userId/read-all');
+    } catch (e) {
+      throw handleError(e);
+    }
+  }
+
   /// Remove FCM token for a user (used on logout)
   Future<void> removeFcmToken(String userId) async {
     try {
@@ -60,8 +69,3 @@ class NotificationRepository extends BaseRepository {
     }
   }
 }
-
-
-
-
-

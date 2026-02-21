@@ -1,5 +1,5 @@
-import { pubClient } from "../config/redis";
-import logger from "./logger";
+import { pubClient } from "@/config/redis";
+import logger from "@/utils/logger";
 
 const DEFAULT_TTL = 3600; // 1 hour
 

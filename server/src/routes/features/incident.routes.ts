@@ -4,7 +4,7 @@ import {
   getIncidentsByCollege,
   updateIncidentStatus,
 } from "../../controllers/features/incident.controller";
-import { protect, authorize } from "../../middleware/authMiddleware";
+import { protect, authorize } from "@/middleware/authMiddleware";
 
 const router = express.Router();
 

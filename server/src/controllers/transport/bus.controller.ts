@@ -1,9 +1,9 @@
 import { Request, Response } from "express";
-import { Bus, BusLocation, IBus } from "../../models/Bus.model";
-import { AuthRequest } from "../../middleware/authMiddleware";
-import { getBusService } from "../../services/busService";
-import logger from "../../utils/logger";
-import { AuditService } from "../../services/AuditService";
+import { Bus, BusLocation, IBus } from "@/models/Bus.model";
+import { IAuthRequest } from "@/types";
+import { getBusService } from "@/services/busService";
+import logger from "@/utils/logger";
+import { AuditService } from "@/services/AuditService";
 import {
   getCache,
   setCache,
@@ -16,7 +16,7 @@ const CACHE_TTL = 3600; // 1 hour
 // Bus Operations
 export const createBus = async (req: Request, res: Response) => {
   try {
-    const authReq = req as AuthRequest;
+    const authReq = req as IAuthRequest;
     const { collegeId } = authReq.user || {};
 
     if (!collegeId) {
@@ -61,7 +61,7 @@ export const getBus = async (req: Request, res: Response) => {
 
 export const getAllBuses = async (req: Request, res: Response) => {
   try {
-    const authReq = req as AuthRequest;
+    const authReq = req as IAuthRequest;
     const { role, collegeId: userCollegeId } = authReq.user || {};
     const { collegeId: queryCollegeId } = req.query;
 
@@ -115,7 +115,7 @@ export const getAllBuses = async (req: Request, res: Response) => {
 /**
  * Update bus - delegates business logic to BusService
  */
-import { AuthenticatedRequest } from "../../types/authenticatedRequest";
+import { AuthenticatedRequest } from "@/types/authenticatedRequest";
 
 export const updateBus = async (req: Request, res: Response) => {
   try {
@@ -132,7 +132,7 @@ export const updateBus = async (req: Request, res: Response) => {
 
     // Audit Log
     await AuditService.log({
-      req: req as AuthRequest,
+      req: req as IAuthRequest,
       action: "BUS_UPDATE",
       resource: "Bus",
       resourceId: updatedBus._id.toString(),
@@ -152,7 +152,7 @@ export const updateBus = async (req: Request, res: Response) => {
 
 export const deleteBus = async (req: Request, res: Response) => {
   try {
-    const authReq = req as AuthRequest;
+    const authReq = req as IAuthRequest;
     const { role, collegeId } = authReq.user || {};
 
     const query: any = { _id: req.params.id };
@@ -272,3 +272,4 @@ export const getCollegeBusLocations = async (req: Request, res: Response) => {
     res.status(500).json({ message: (error as Error).message });
   }
 };
+

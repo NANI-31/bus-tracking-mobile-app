@@ -1,7 +1,7 @@
 import mongoose, { Document, Schema } from "mongoose";
 
 export interface ITransaction extends Document {
-  userId: mongoose.Types.ObjectId;
+  userId: string;
   collegeId: mongoose.Types.ObjectId;
   orderId: string;
   paymentId: string;
@@ -10,6 +10,7 @@ export interface ITransaction extends Document {
   plan: string;
   premiumUntil: Date;
   status: string;
+  paymentMethod?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -17,7 +18,7 @@ export interface ITransaction extends Document {
 const TransactionSchema: Schema = new Schema(
   {
     userId: {
-      type: Schema.Types.ObjectId,
+      type: String,
       ref: "User",
       required: true,
       index: true,
@@ -35,6 +36,7 @@ const TransactionSchema: Schema = new Schema(
     plan: { type: String, required: true },
     premiumUntil: { type: Date, required: true },
     status: { type: String, default: "captured" },
+    paymentMethod: { type: String },
   },
   { timestamps: true },
 );

@@ -7,7 +7,7 @@ import {
   ShieldCheckIcon,
   ExclamationTriangleIcon,
 } from "@heroicons/react/24/outline";
-import { getSystemStats } from "../slices/superAdminSlice";
+import { getSystemStats } from "@/features/super-admin/slices/superAdminSlice";
 
 const StatCard = ({ title, value, icon: Icon, color, delay }) => (
   <motion.div
@@ -49,7 +49,7 @@ const SuperAdminDashboard = () => {
       title: "Registered Colleges",
       value: displayStats.totalColleges,
       icon: AcademicCapIcon,
-      color: "bg-indigo-600",
+      color: "bg-[#1E90FF]",
       delay: 0,
     },
     {
@@ -112,7 +112,7 @@ const SuperAdminDashboard = () => {
           <div className="space-y-4">
             <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
               <div className="flex items-center space-x-3">
-                <div className="h-10 w-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold">
+                <div className="h-10 w-10 rounded-full bg-indigo-100 flex items-center justify-center text-[#1E90FF] font-bold">
                   IT
                 </div>
                 <div>
@@ -141,7 +141,7 @@ const SuperAdminDashboard = () => {
               </span>
             </div>
           </div>
-          <button className="w-full mt-4 py-2 text-sm text-indigo-600 font-medium hover:bg-indigo-50 rounded-lg transition-colors">
+          <button className="w-full mt-4 py-2 text-sm text-[#1E90FF] font-medium hover:bg-indigo-50 rounded-lg transition-colors">
             View All Colleges
           </button>
         </motion.div>
@@ -169,12 +169,12 @@ const SuperAdminDashboard = () => {
               </div>
             </div>
             <div className="flex items-start space-x-3 p-3 bg-blue-50 rounded-lg border border-blue-100">
-              <ShieldCheckIcon className="w-5 h-5 text-blue-600 mt-0.5" />
+              <ShieldCheckIcon className="w-5 h-5 text-[#1E90FF] mt-0.5" />
               <div>
                 <p className="text-sm font-medium text-blue-800">
                   System Update
                 </p>
-                <p className="text-xs text-blue-600">
+                <p className="text-xs text-[#1E90FF]">
                   Patch v2.1.0 deployed successfully.
                 </p>
               </div>

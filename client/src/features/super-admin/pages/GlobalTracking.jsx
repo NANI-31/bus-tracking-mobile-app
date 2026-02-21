@@ -11,7 +11,7 @@ import {
   updateGlobalBusLocation,
   getColleges,
 } from "../slices/superAdminSlice";
-import { initiateSocketConnection } from "../../../services/socket";
+import { initiateSocketConnection, joinRoom } from "@/services/socket";
 import {
   TruckIcon,
   MapPinIcon,
@@ -101,7 +101,7 @@ const GlobalTracking = () => {
 
       // Super Admin joins global room or all individual rooms
       // For now, let's assume server will be updated to support 'global_tracking'
-      socket.emit("join_global_tracking");
+      joinRoom("join_global_tracking");
 
       socket.on("location_updated", (data) => {
         dispatch(updateGlobalBusLocation(data));
@@ -150,7 +150,7 @@ const GlobalTracking = () => {
       <div className="flex justify-between items-center bg-white p-4 rounded-xl shadow-sm border border-slate-200">
         <div>
           <h1 className="text-2xl font-bold text-slate-800 tracking-tight flex items-center">
-            <MapPinIcon className="w-8 h-8 mr-2 text-indigo-600" />
+            <MapPinIcon className="w-8 h-8 mr-2 text-[#1E90FF]" />
             Global Fleet Tracking
           </h1>
           <p className="text-slate-500 text-sm">
@@ -163,7 +163,7 @@ const GlobalTracking = () => {
             <select
               value={selectedCollegeId}
               onChange={(e) => setSelectedCollegeId(e.target.value)}
-              className="border border-slate-200 rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+              className="border border-slate-200 rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-[#1E90FF] outline-none"
             >
               <option value="all">All Colleges</option>
               {colleges.map((c) => (
@@ -174,7 +174,7 @@ const GlobalTracking = () => {
             </select>
           </div>
           <div className="flex items-center px-3 py-1 bg-indigo-100 text-indigo-700 rounded-full text-xs font-semibold animate-pulse border border-indigo-200">
-            <div className="w-2 h-2 bg-indigo-500 rounded-full mr-2"></div>
+            <div className="w-2 h-2 bg-[#1E90FF] rounded-full mr-2"></div>
             Global Sync Active
           </div>
         </div>
@@ -219,7 +219,7 @@ const GlobalTracking = () => {
         <div className="w-80 bg-white rounded-2xl border border-slate-200 shadow-sm flex flex-col overflow-hidden">
           <div className="p-4 border-b border-slate-100 bg-slate-50/50">
             <h2 className="font-bold text-slate-800 flex items-center text-sm">
-              <TruckIcon className="w-4 h-4 mr-2 text-indigo-600" />
+              <TruckIcon className="w-4 h-4 mr-2 text-[#1E90FF]" />
               Active Global Fleet (
               {filteredBuses.filter((b) => b.lastLocation).length})
             </h2>
@@ -231,7 +231,7 @@ const GlobalTracking = () => {
               <input
                 type="text"
                 placeholder="Search bus number..."
-                className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+                className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-[#1E90FF] outline-none transition-all"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
@@ -248,7 +248,7 @@ const GlobalTracking = () => {
                     onClick={() => setSelectedBus(bus)}
                     className={`w-full text-left p-3 rounded-xl border transition-all ${
                       selectedBus?._id === bus._id
-                        ? "border-indigo-500 bg-indigo-50/50 shadow-sm"
+                        ? "border-[#1E90FF] bg-indigo-50/50 shadow-sm"
                         : "border-slate-100 hover:border-slate-300 hover:bg-slate-50"
                     }`}
                   >
@@ -329,7 +329,7 @@ const GlobalTracking = () => {
                     {(selectedBus.speed || 0).toFixed(2)} km/h
                   </span>
                 </div>
-                <button className="w-full mt-2 bg-indigo-600 text-white py-2 rounded-xl text-xs font-bold hover:bg-indigo-700 transition-colors">
+                <button className="w-full mt-2 bg-[#1E90FF] text-white py-2 rounded-xl text-xs font-bold hover:bg-indigo-700 transition-colors">
                   Contact Coordinator
                 </button>
               </div>

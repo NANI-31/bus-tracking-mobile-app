@@ -27,6 +27,8 @@ import 'widgets/location_display.dart';
 import 'widgets/bus_assignment_card.dart';
 import 'widgets/live_tracking_control_panel.dart';
 import 'package:collegebus/widgets/common/common_map_view.dart';
+import 'package:collegebus/shared/widgets/navigation/curved_bottom_nav_bar.dart';
+import 'package:collegebus/shared/widgets/indicators/rive_sos_indicator.dart';
 import 'dart:async';
 import 'package:collegebus/shared/widgets/success_modal.dart';
 import 'package:collegebus/shared/widgets/sos_button.dart';
@@ -54,6 +56,8 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
 
   DateTime? _lastDeviationAlertTime;
   String? _nextStopETA;
+  Timer? _bannerDelayTimer;
+  bool _showDisconnectedBanner = false;
 
   @override
   void initState() {
@@ -79,6 +83,7 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _bannerDelayTimer?.cancel();
     super.dispose();
   }
 
@@ -89,6 +94,15 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
         '[DriverDashboard] App resumed. Ensuring socket connection...',
       );
       ref.read(socketServiceProvider).ensureConnected();
+    } else if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.inactive) {
+      // Cancel any pending banner timer when going to background
+      _bannerDelayTimer?.cancel();
+      if (mounted) {
+        setState(() {
+          _showDisconnectedBanner = false;
+        });
+      }
     }
   }
 
@@ -529,7 +543,33 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
         final isConnected = socketService.isConnected;
         final isConnecting = socketService.isConnecting;
 
-        if (isConnected && !isConnecting) return const SizedBox.shrink();
+        // If connected, hide banner and cancel any pending timer
+        if (isConnected && !isConnecting) {
+          _bannerDelayTimer?.cancel();
+          if (_showDisconnectedBanner) {
+            _showDisconnectedBanner = false;
+          }
+          return const SizedBox.shrink();
+        }
+
+        // If just came back from background or briefly disconnected,
+        // add a 3-second grace period before showing the banner
+        if (!_showDisconnectedBanner && !isConnecting) {
+          _bannerDelayTimer?.cancel();
+          _bannerDelayTimer = Timer(const Duration(seconds: 3), () {
+            if (mounted && !socketService.isConnected) {
+              setState(() {
+                _showDisconnectedBanner = true;
+              });
+            }
+          });
+          return const SizedBox.shrink();
+        }
+
+        // Show "Connecting..." immediately but "Disconnected" after grace period
+        if (!isConnecting && !_showDisconnectedBanner) {
+          return const SizedBox.shrink();
+        }
 
         final color = isConnecting ? Colors.amber : Colors.redAccent;
 
@@ -584,7 +624,7 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const PulsatingDot(),
+                      const RiveSosIndicator(size: 20),
                       const SizedBox(width: 12),
                       Text(
                         isConnecting ? "Connecting..." : "Server Disconnected",
@@ -802,25 +842,24 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
           _buildConnectivityBanner(),
         ],
       ),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _bottomNavIndex,
-        onDestinationSelected: (index) {
+      bottomNavigationBar: CurvedBottomNavBar(
+        currentIndex: _bottomNavIndex,
+        onTap: (index) {
           setState(() => _bottomNavIndex = index);
         },
-        destinations: [
-          NavigationDestination(
-            icon: const Icon(Icons.settings_outlined),
-            selectedIcon: const Icon(Icons.settings),
+        activeColor: _getDriverActiveColor(context),
+        backgroundColor: Theme.of(context).cardColor,
+        items: [
+          CurvedBottomNavItem(
+            icon: Icons.settings_outlined,
             label: DriverLocalizations.of(context)!.busSetupTab,
           ),
-          NavigationDestination(
-            icon: const Icon(Icons.map_outlined),
-            selectedIcon: const Icon(Icons.map),
+          CurvedBottomNavItem(
+            icon: Icons.map_outlined,
             label: DriverLocalizations.of(context)!.liveTrackingTab,
           ),
-          const NavigationDestination(
-            icon: Icon(Icons.person_outline),
-            selectedIcon: Icon(Icons.person),
+          const CurvedBottomNavItem(
+            icon: Icons.person_outline,
             label: 'Profile',
           ),
         ],
@@ -1124,61 +1163,19 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
       ],
     );
   }
-}
 
-class PulsatingDot extends StatefulWidget {
-  const PulsatingDot({super.key});
-
-  @override
-  State<PulsatingDot> createState() => _PulsatingDotState();
-}
-
-class _PulsatingDotState extends State<PulsatingDot>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  late Animation<double> _animation;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1000),
-    )..repeat(reverse: true);
-    _animation = Tween<double>(
-      begin: 0.6,
-      end: 1.0,
-    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _animation,
-      builder: (context, child) {
-        return Transform.scale(scale: _animation.value, child: child);
-      },
-      child: Container(
-        width: 10,
-        height: 10,
-        decoration: BoxDecoration(
-          color: Colors.white,
-          shape: BoxShape.circle,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.white.withValues(alpha: 0.5),
-              blurRadius: 4,
-              spreadRadius: 2,
-            ),
-          ],
-        ),
-      ),
-    );
+  Color _getDriverActiveColor(BuildContext context) {
+    switch (_bottomNavIndex) {
+      case 0:
+        return Theme.of(context).primaryColor;
+      case 1:
+        return AppColors.success;
+      case 2:
+        return Colors.purple.shade400;
+      default:
+        return Theme.of(context).primaryColor;
+    }
   }
 }
+
+// PulsatingDot class removed

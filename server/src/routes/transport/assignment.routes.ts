@@ -4,7 +4,7 @@ import {
   getAssignmentLogsByDriver,
 } from "../../controllers/transport/assignment.controller";
 
-import { protect } from "../../middleware/authMiddleware";
+import { protect } from "@/middleware/authMiddleware";
 
 const router = express.Router();
 

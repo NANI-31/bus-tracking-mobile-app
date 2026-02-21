@@ -1,8 +1,8 @@
-import { buildNotificationMessage } from "./buildNotification";
-import { NOTIFICATION_TYPES } from "../constants/notificationTypes";
-import { sendNotificationToDevice } from "./firebase";
-import User, { IUser } from "../models/User.model";
-import { IBus } from "../models/Bus.model";
+import { buildNotificationMessage } from "@/utils/buildNotification";
+import { NOTIFICATION_TYPES } from "@/constants/notificationTypes";
+import { sendNotificationToDevice } from "@/utils/firebase";
+import User, { IUser } from "@/models/User.model";
+import { IBus } from "@/models/Bus.model";
 
 const NEARBY_RADIUS_METERS = 400; // 400 meters radius
 

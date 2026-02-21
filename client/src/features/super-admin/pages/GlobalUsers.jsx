@@ -7,7 +7,10 @@ import {
   MagnifyingGlassIcon,
   EnvelopeIcon,
 } from "@heroicons/react/24/outline";
-import { getGlobalUsers, removeGlobalUser } from "../slices/superAdminSlice";
+import {
+  getGlobalUsers,
+  removeGlobalUser,
+} from "@/features/super-admin/slices/superAdminSlice";
 
 const GlobalUsers = () => {
   const dispatch = useDispatch();
@@ -46,7 +49,7 @@ const GlobalUsers = () => {
           <input
             type="text"
             placeholder="Search users by name or email..."
-            className="pl-10 pr-4 py-2 w-80 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="pl-10 pr-4 py-2 w-80 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1E90FF]"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
@@ -83,7 +86,7 @@ const GlobalUsers = () => {
                 >
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">
-                      <div className="h-10 w-10 rounded-full bg-cyan-100 flex items-center justify-center text-cyan-600 font-bold">
+                      <div className="h-10 w-10 rounded-full bg-[#00FFD1] flex items-center justify-center text-[#1E90FF] font-bold">
                         {user.fullName.charAt(0)}
                       </div>
                       <div className="ml-4">
@@ -103,17 +106,24 @@ const GlobalUsers = () => {
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <span
-                      className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full uppercase ${
-                        user.role === "admin"
-                          ? "bg-purple-100 text-purple-800"
-                          : user.role === "driver"
-                            ? "bg-orange-100 text-orange-800"
-                            : "bg-slate-100 text-slate-800"
-                      }`}
-                    >
-                      {user.role}
-                    </span>
+                    <div className="flex flex-col space-y-1">
+                      <span
+                        className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full uppercase ${
+                          user.role === "admin"
+                            ? "bg-purple-100 text-purple-800"
+                            : user.role === "driver"
+                              ? "bg-orange-100 text-orange-800"
+                              : "bg-slate-100 text-slate-800"
+                        }`}
+                      >
+                        {user.role}
+                      </span>
+                      {user.isPremium && (
+                        <span className="px-2 inline-flex text-[10px] leading-4 font-bold rounded-full bg-amber-100 text-amber-600 border border-amber-200 uppercase w-fit">
+                          ★ Premium
+                        </span>
+                      )}
+                    </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                     <button

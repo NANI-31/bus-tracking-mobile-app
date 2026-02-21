@@ -9,9 +9,10 @@ import {
   sendCollegeNotification,
   sendTemplatedNotification,
   broadcastNotification,
+  markAllNotificationsAsRead,
 } from "../../controllers/features/notification.controller";
 
-import { protect, authorize } from "../../middleware/authMiddleware";
+import { protect, authorize } from "@/middleware/authMiddleware";
 
 const router = express.Router();
 
@@ -43,6 +44,7 @@ router.post(
   broadcastNotification,
 );
 router.get("/user/:userId", protect, getUserNotifications);
+router.put("/user/:userId/read-all", protect, markAllNotificationsAsRead);
 router.put("/:id/read", protect, markNotificationAsRead);
 
 export default router;

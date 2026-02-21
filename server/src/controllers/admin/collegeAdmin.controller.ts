@@ -1,15 +1,15 @@
 import { Response } from "express";
-import { AuthRequest } from "../../middleware/authMiddleware";
-import User from "../../models/User.model";
-import College from "../../models/College.model";
-import { Bus } from "../../models/Bus.model";
-import Route from "../../models/Route.model";
-import { AuditService } from "../../services/AuditService";
+import { IAuthRequest } from "@/types";
+import User from "@/models/User.model";
+import College from "@/models/College.model";
+import { Bus } from "@/models/Bus.model";
+import Route from "@/models/Route.model";
+import { AuditService } from "@/services/AuditService";
 
 /**
  * Get statistics for the admin's college
  */
-export const getCollegeStats = async (req: AuthRequest, res: Response) => {
+export const getCollegeStats = async (req: IAuthRequest, res: Response) => {
   try {
     const collegeId = req.user?.collegeId;
     if (!collegeId) {
@@ -42,7 +42,7 @@ export const getCollegeStats = async (req: AuthRequest, res: Response) => {
 /**
  * Get all users belonging to the admin's college
  */
-export const getCollegeUsers = async (req: AuthRequest, res: Response) => {
+export const getCollegeUsers = async (req: IAuthRequest, res: Response) => {
   try {
     const collegeId = req.user?.collegeId;
     const { role, approved } = req.query;
@@ -62,7 +62,7 @@ export const getCollegeUsers = async (req: AuthRequest, res: Response) => {
  * Update college settings
  */
 export const updateCollegeSettings = async (
-  req: AuthRequest,
+  req: IAuthRequest,
   res: Response,
 ) => {
   try {
@@ -101,3 +101,4 @@ export const updateCollegeSettings = async (
     res.status(500).json({ message: (error as Error).message });
   }
 };
+

@@ -1,6 +1,6 @@
 import express from "express";
-import { getHistory } from "../../controllers/transport/history.controller";
-import { protect, authorize } from "../../middleware/authMiddleware";
+import { getHistory } from "@/controllers/transport/history.controller";
+import { protect, authorize } from "@/middleware/authMiddleware";
 
 const router = express.Router();
 

@@ -16,6 +16,9 @@ import {
   bulkActivatePremium,
   fetchCollege,
   fetchAuditLogs,
+  fetchRefundRequests,
+  resolveRefundRequest,
+  fetchSubscriptionAnalytics,
 } from "../api/collegeAdminApi";
 
 // Async Thunks
@@ -145,12 +148,45 @@ export const getAuditLogs = createAsyncThunk(
   },
 );
 
+export const getRefundRequests = createAsyncThunk(
+  "collegeAdmin/getRefundRequests",
+  async () => {
+    const response = await fetchRefundRequests();
+    return response;
+  },
+);
+
+export const resolveRefund = createAsyncThunk(
+  "collegeAdmin/resolveRefund",
+  async ({ transactionId, status, adminComment }) => {
+    const response = await resolveRefundRequest(
+      transactionId,
+      status,
+      adminComment,
+    );
+    return { transactionId, status, response };
+  },
+);
+
+export const getSubscriptionAnalytics = createAsyncThunk(
+  "collegeAdmin/getSubscriptionAnalytics",
+  async () => {
+    const response = await fetchSubscriptionAnalytics();
+    return response;
+  },
+);
+
 const initialState = {
   users: [],
   buses: [],
   routes: [],
   transactions: [],
+  refundRequests: [],
+  analytics: [],
   auditLogs: [],
+  logsTotal: 0,
+  logsLimit: 50,
+  logsSkip: 0,
   currentCollege: null,
   loading: false,
   error: null,
@@ -293,11 +329,38 @@ const collegeAdminSlice = createSlice({
       })
       .addCase(getAuditLogs.fulfilled, (state, action) => {
         state.loading = false;
-        state.auditLogs = action.payload;
+        if (Array.isArray(action.payload)) {
+          state.auditLogs = action.payload;
+          state.logsTotal = action.payload.length;
+        } else {
+          state.auditLogs = action.payload.logs || [];
+          state.logsTotal = action.payload.total || 0;
+          state.logsLimit = action.payload.limit || 50;
+          state.logsSkip = action.payload.skip || 0;
+        }
       })
       .addCase(getAuditLogs.rejected, (state, action) => {
         state.loading = false;
         state.error = action.error.message;
+      })
+      .addCase(getRefundRequests.pending, (state) => {
+        state.loading = true;
+      })
+      .addCase(getRefundRequests.fulfilled, (state, action) => {
+        state.loading = false;
+        state.refundRequests = action.payload;
+      })
+      .addCase(getRefundRequests.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.error.message;
+      })
+      .addCase(resolveRefund.fulfilled, (state, action) => {
+        state.refundRequests = state.refundRequests.filter(
+          (req) => req._id !== action.payload.transactionId,
+        );
+      })
+      .addCase(getSubscriptionAnalytics.fulfilled, (state, action) => {
+        state.analytics = action.payload;
       });
   },
 });

@@ -11,12 +11,12 @@ class CurvedNavDemoScreen extends StatefulWidget {
 class _CurvedNavDemoScreenState extends State<CurvedNavDemoScreen> {
   int _currentIndex = 0;
 
-  final List<CurvedBottomNavIcon> _navItems = [
-    CurvedBottomNavIcon(icon: Icons.people_outline, label: 'Community'),
-    CurvedBottomNavIcon(icon: Icons.search, label: 'Explore'),
-    CurvedBottomNavIcon(icon: Icons.fitness_center, label: 'Movement'),
-    CurvedBottomNavIcon(icon: Icons.bookmark_border, label: 'Plan'),
-    CurvedBottomNavIcon(icon: Icons.person_outline, label: 'Mine'),
+  final List<CurvedBottomNavItem> _navItems = [
+    CurvedBottomNavItem(icon: Icons.people_outline, label: 'Community'),
+    CurvedBottomNavItem(icon: Icons.search, label: 'Explore'),
+    CurvedBottomNavItem(icon: Icons.fitness_center, label: 'Movement'),
+    CurvedBottomNavItem(icon: Icons.bookmark_border, label: 'Plan'),
+    CurvedBottomNavItem(icon: Icons.person_outline, label: 'Mine'),
   ];
 
   @override
@@ -62,8 +62,3 @@ class _CurvedNavDemoScreenState extends State<CurvedNavDemoScreen> {
     );
   }
 }
-
-
-
-
-

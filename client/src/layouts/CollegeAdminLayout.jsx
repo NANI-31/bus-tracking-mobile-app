@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Outlet, Link, useLocation, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { motion, AnimatePresence } from "framer-motion";
-import { logout } from "../features/auth/slices/authSlice";
+import { logout } from "@/features/auth/slices/authSlice";
 import {
   HomeIcon,
   UsersIcon,
@@ -15,6 +15,7 @@ import {
   CreditCardIcon,
   BellIcon,
   ClipboardDocumentListIcon,
+  BanknotesIcon,
 } from "@heroicons/react/24/outline";
 import {
   getActiveSos,
@@ -22,28 +23,32 @@ import {
   addSosAlert,
   removeSosAlert,
 } from "../features/common/slices/sosSlice";
-import { initiateSocketConnection, getSocket } from "../services/socket";
-import SosAlertBanner from "../components/common/SosAlertBanner";
-import SosManager from "../components/common/SosManager";
+import {
+  initiateSocketConnection,
+  getSocket,
+  joinRoom,
+} from "../services/socket";
+import SosAlertBanner from "@/components/common/SosAlertBanner";
+import SosManager from "@/components/common/SosManager";
 
 const CollegeAdminLayout = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const location = useLocation();
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  const { user } = useSelector((state) => state.auth);
+  const { userInfo, userToken } = useSelector((state) => state.auth);
   const { activeAlerts, sosLogs } = useSelector((state) => state.sos);
   const [isSosManagerOpen, setIsSosManagerOpen] = useState(false);
   const [isBannerDismissed, setIsBannerDismissed] = useState(false);
 
   React.useEffect(() => {
-    if (user && user.token) {
-      const socket = initiateSocketConnection(user.token);
+    if (userInfo && userToken) {
+      const socket = initiateSocketConnection(userToken);
 
-      if (user.collegeId) {
-        socket.emit("join_college", user.collegeId);
-        dispatch(getActiveSos(user.collegeId));
-        dispatch(getSosLogs(user.collegeId));
+      if (userInfo.collegeId) {
+        joinRoom("join_college", userInfo.collegeId);
+        dispatch(getActiveSos(userInfo.collegeId));
+        dispatch(getSosLogs(userInfo.collegeId));
       }
 
       socket.on("sos_alert", (alert) => {
@@ -60,7 +65,7 @@ const CollegeAdminLayout = () => {
         socket.off("sos_resolved");
       };
     }
-  }, [user, dispatch]);
+  }, [userInfo, userToken, dispatch]);
 
   const handleLogout = () => {
     dispatch(logout());
@@ -74,6 +79,7 @@ const CollegeAdminLayout = () => {
     { name: "Live Map", path: "/college-admin/tracking", icon: MapPinIcon },
     { name: "Routes", path: "/college-admin/routes", icon: MapIcon },
     { name: "Payments", path: "/college-admin/payments", icon: CreditCardIcon },
+    { name: "Refunds", path: "/college-admin/refunds", icon: BanknotesIcon },
     {
       name: "Logs",
       path: "/college-admin/logs",
@@ -82,35 +88,35 @@ const CollegeAdminLayout = () => {
   ];
 
   return (
-    <div className="flex h-screen bg-gray-100 overflow-hidden">
+    <div className="flex h-screen bg-[#F5F5F5] overflow-hidden">
       {/* Sidebar */}
       <motion.aside
-        initial={{ width: isSidebarOpen ? 240 : 80 }}
-        animate={{ width: isSidebarOpen ? 240 : 80 }}
-        transition={{ duration: 0.3, type: "spring", stiffness: 100 }}
-        className="bg-white shadow-xl z-20 flex flex-col"
+        initial={{ width: isSidebarOpen ? 260 : 88 }}
+        animate={{ width: isSidebarOpen ? 260 : 88 }}
+        transition={{ duration: 0.4, cubicBezier: [0.4, 0, 0.2, 1] }}
+        className="bg-[#2E3A59] text-white z-20 flex flex-col shadow-[4px_0_15px_rgba(0,0,0,0.1)]"
       >
-        <div className="flex items-center justify-between h-16 px-4 border-b border-gray-100">
+        <div className="flex items-center justify-between h-20 px-6 border-b border-white/10">
           <AnimatePresence>
             {isSidebarOpen && (
               <motion.span
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="text-xl font-bold text-gray-800"
+                className="text-xl font-black tracking-tight text-white"
               >
-                College Admin
+                CollegeHub
               </motion.span>
             )}
           </AnimatePresence>
           <button
             onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-            className="p-1 rounded-md hover:bg-gray-100 text-gray-500"
+            className="p-2 rounded-xl hover:bg-white/10 text-slate-300 transition-all active:scale-95"
           >
             {isSidebarOpen ? (
-              <XMarkIcon className="w-6 h-6" />
+              <XMarkIcon className="w-5 h-5" />
             ) : (
-              <Bars3Icon className="w-6 h-6" />
+              <Bars3Icon className="w-5 h-5" />
             )}
           </button>
         </div>
@@ -122,20 +128,26 @@ const CollegeAdminLayout = () => {
               <Link
                 key={item.name}
                 to={item.path}
-                className={`flex items-center px-4 py-3 mx-2 rounded-lg transition-colors ${
+                className={`flex items-center px-4 py-3 rounded-2xl transition-all duration-300 group ${
                   isActive
-                    ? "bg-blue-50 text-blue-600"
-                    : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                    ? "bg-[#1E90FF] text-white shadow-lg shadow-blue-500/30"
+                    : "text-slate-300 hover:bg-white/10 hover:text-white"
                 }`}
               >
-                <item.icon className="w-6 h-6 shrink-0" />
+                <item.icon
+                  className={`w-5 h-5 shrink-0 transition-transform group-hover:scale-110 ${
+                    isActive
+                      ? "text-white"
+                      : "text-[#00FFD1] group-hover:text-white"
+                  }`}
+                />
                 <AnimatePresence>
                   {isSidebarOpen && (
                     <motion.span
                       initial={{ opacity: 0, x: -10 }}
                       animate={{ opacity: 1, x: 0 }}
                       exit={{ opacity: 0, x: -10 }}
-                      className="ml-3 font-medium whitespace-nowrap"
+                      className="ml-3 font-bold text-sm tracking-wide whitespace-nowrap"
                     >
                       {item.name}
                     </motion.span>
@@ -146,12 +158,12 @@ const CollegeAdminLayout = () => {
           })}
         </nav>
 
-        <div className="p-4 border-t border-gray-100">
+        <div className="p-6 border-t border-white/10">
           <button
             onClick={handleLogout}
-            className="flex items-center w-full px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+            className="flex items-center w-full px-4 py-3 text-rose-400 hover:bg-white/5 rounded-2xl transition-all font-bold text-sm group"
           >
-            <ArrowLeftOnRectangleIcon className="w-6 h-6 shrink-0" />
+            <ArrowLeftOnRectangleIcon className="w-5 h-5 shrink-0 group-hover:translate-x-1 transition-transform" />
             <AnimatePresence>
               {isSidebarOpen && (
                 <motion.span
@@ -169,7 +181,7 @@ const CollegeAdminLayout = () => {
       </motion.aside>
 
       {/* Main Content */}
-      <main className="flex-1 overflow-y-auto bg-gray-50 p-8">
+      <main className="flex-1 overflow-y-auto p-10">
         <SosAlertBanner
           activeAlerts={activeAlerts}
           onOpenManager={() => setIsSosManagerOpen(true)}

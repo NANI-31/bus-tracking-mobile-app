@@ -4,10 +4,10 @@ import {
   resolveSos,
   getActiveSos,
 } from "../../controllers/features/sos.controller";
-import { protect, authorize } from "../../middleware/authMiddleware";
+import { protect, authorize } from "@/middleware/authMiddleware";
 
-import { validate } from "../../middleware/validate";
-import { triggerSosSchema, resolveSosSchema } from "../../models/sos.schema";
+import { validate } from "@/middleware/validate";
+import { triggerSosSchema, resolveSosSchema } from "@/models/sos.schema";
 
 const router = express.Router();
 

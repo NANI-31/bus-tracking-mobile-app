@@ -34,7 +34,16 @@ class UserModel {
   final String language;
   @JsonKey(defaultValue: false)
   final bool isPremium;
+  final String? subscriptionPlan;
   final DateTime? premiumUntil;
+  final String? referralCode;
+
+  // --- Dynamic Expiry Getters ---
+  bool get hasActivePremium {
+    if (!isPremium) return false;
+    if (premiumUntil == null) return false;
+    return premiumUntil!.isAfter(DateTime.now());
+  }
 
   UserModel({
     required this.id,
@@ -58,7 +67,9 @@ class UserModel {
     this.fcmToken,
     this.language = 'en',
     this.isPremium = false,
+    this.subscriptionPlan,
     this.premiumUntil,
+    this.referralCode,
   });
 
   factory UserModel.fromJson(Map<String, dynamic> json) =>
@@ -109,7 +120,9 @@ class UserModel {
     String? fcmToken,
     String? language,
     bool? isPremium,
+    String? subscriptionPlan,
     DateTime? premiumUntil,
+    String? referralCode,
   }) {
     return UserModel(
       id: id ?? this.id,
@@ -133,7 +146,9 @@ class UserModel {
       fcmToken: fcmToken ?? this.fcmToken,
       language: language ?? this.language,
       isPremium: isPremium ?? this.isPremium,
+      subscriptionPlan: subscriptionPlan ?? this.subscriptionPlan,
       premiumUntil: premiumUntil ?? this.premiumUntil,
+      referralCode: referralCode ?? this.referralCode,
     );
   }
 }

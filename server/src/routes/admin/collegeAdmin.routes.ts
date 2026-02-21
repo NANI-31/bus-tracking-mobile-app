@@ -1,6 +1,6 @@
 import { Router } from "express";
-import * as CollegeAdminController from "../../controllers/admin/collegeAdmin.controller";
-import { protect, collegeAdminOnly } from "../../middleware/authMiddleware";
+import * as CollegeAdminController from "@/controllers/admin/collegeAdmin.controller";
+import { protect, collegeAdminOnly } from "@/middleware/authMiddleware";
 
 const router = Router();
 

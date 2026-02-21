@@ -1,12 +1,12 @@
 import { Request, Response } from "express";
-import User from "../../models/User.model";
-import { AuthRequest } from "../../middleware/authMiddleware";
-import logger from "../../utils/logger";
-import { AuditService } from "../../services/AuditService";
+import User from "@/models/User.model";
+import { IAuthRequest } from "@/types";
+import logger from "@/utils/logger";
+import { AuditService } from "@/services/AuditService";
 
 export const logout = async (req: Request, res: Response) => {
   try {
-    const authReq = req as AuthRequest;
+    const authReq = req as IAuthRequest;
 
     // Check if user is authenticated (should be handled by middleware, but good to double check)
     if (!authReq.user) {
@@ -45,3 +45,4 @@ export const logout = async (req: Request, res: Response) => {
     res.status(500).json({ message: "Server error during logout" });
   }
 };
+

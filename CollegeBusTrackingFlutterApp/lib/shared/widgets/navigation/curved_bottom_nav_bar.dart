@@ -1,19 +1,106 @@
 import 'package:flutter/material.dart';
+import 'package:rive/rive.dart';
+import 'package:flutter/services.dart';
 
-class CurvedBottomNavIcon {
+class CurvedBottomNavItem {
   final IconData icon;
   final String label;
   final int? badgeCount;
+  final String? riveAsset;
+  final String? artboard;
+  final String? stateMachineName;
+  final String? inputName;
 
-  CurvedBottomNavIcon({
+  const CurvedBottomNavItem({
     required this.icon,
     required this.label,
     this.badgeCount,
+    this.riveAsset,
+    this.artboard,
+    this.stateMachineName,
+    this.inputName,
   });
 }
 
+class RiveNavIcon extends StatefulWidget {
+  final CurvedBottomNavItem item;
+  final bool isSelected;
+  final Color activeColor;
+  final Color inactiveColor;
+
+  const RiveNavIcon({
+    super.key,
+    required this.item,
+    required this.isSelected,
+    required this.activeColor,
+    required this.inactiveColor,
+  });
+
+  @override
+  State<RiveNavIcon> createState() => _RiveNavIconState();
+}
+
+class _RiveNavIconState extends State<RiveNavIcon> {
+  StateMachineController? _controller;
+  SMIInput<bool>? _activeInput;
+
+  @override
+  void didUpdateWidget(RiveNavIcon oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.isSelected != widget.isSelected) {
+      _activeInput?.value = widget.isSelected;
+    }
+  }
+
+  void _onRiveInit(Artboard artboard) {
+    _controller = StateMachineController.fromArtboard(
+      artboard,
+      widget.item.stateMachineName ?? 'State Machine 1',
+    );
+    if (_controller != null) {
+      artboard.addController(_controller!);
+      _activeInput = _controller!.findInput<bool>(
+        widget.item.inputName ?? 'active',
+      );
+      _activeInput?.value = widget.isSelected;
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller?.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final board =
+        widget.item.artboard ??
+        (isDark ? '${widget.item.label}_Dark' : widget.item.artboard);
+
+    return SizedBox(
+      height: 32,
+      width: 32,
+      child: widget.item.riveAsset!.startsWith('http')
+          ? RiveAnimation.network(
+              widget.item.riveAsset!,
+              artboard: board,
+              fit: BoxFit.contain,
+              onInit: _onRiveInit,
+            )
+          : RiveAnimation.asset(
+              widget.item.riveAsset!,
+              artboard: board,
+              fit: BoxFit.contain,
+              onInit: _onRiveInit,
+            ),
+    );
+  }
+}
+
 class CurvedBottomNavBar extends StatefulWidget {
-  final List<CurvedBottomNavIcon> items;
+  final List<CurvedBottomNavItem> items;
   final int currentIndex;
   final Function(int) onTap;
   final Color backgroundColor;
@@ -29,9 +116,7 @@ class CurvedBottomNavBar extends StatefulWidget {
     this.activeColor = const Color(
       0xFF00C6E6,
     ), // Updated to match primary color
-    this.inactiveColor = const Color(
-      0xFFBFC0D1,
-    ), // Updated to match secondary color
+    this.inactiveColor = Colors.black,
   });
 
   @override
@@ -116,29 +201,38 @@ class _CurvedBottomNavBarState extends State<CurvedBottomNavBar>
           ),
 
           // Floating Circle Highlight
-          AnimatedBuilder(
-            animation: _animation,
-            builder: (context, child) {
-              final double centerX =
-                  (itemWidth * _animation.value) + (itemWidth / 2);
-              return Positioned(
-                left: centerX - 30, // 30 is half of circle width
-                top: -5, // Lift above the bar
-                child: Container(
-                  width: 60,
-                  height: 60,
-                  decoration: BoxDecoration(
-                    color: widget.activeColor,
-                    shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(
-                        color: widget.activeColor.withValues(alpha: 0.2),
-                        blurRadius: 15,
-                        offset: const Offset(0, 8),
+          TweenAnimationBuilder<Color?>(
+            tween: ColorTween(
+              begin: widget.activeColor,
+              end: widget.activeColor,
+            ),
+            duration: const Duration(milliseconds: 300),
+            builder: (context, activeColor, child) {
+              return AnimatedBuilder(
+                animation: _animation,
+                builder: (context, child) {
+                  final double centerX =
+                      (itemWidth * _animation.value) + (itemWidth / 2);
+                  return Positioned(
+                    left: centerX - 30, // 30 is half of circle width
+                    top: -5, // Lift above the bar
+                    child: Container(
+                      width: 60,
+                      height: 60,
+                      decoration: BoxDecoration(
+                        color: activeColor,
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: activeColor!.withValues(alpha: 0.2),
+                            blurRadius: 15,
+                            offset: const Offset(0, 8),
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
-                ),
+                    ),
+                  );
+                },
               );
             },
           ),
@@ -152,7 +246,10 @@ class _CurvedBottomNavBarState extends State<CurvedBottomNavBar>
 
               return Expanded(
                 child: GestureDetector(
-                  onTap: () => widget.onTap(index),
+                  onTap: () {
+                    HapticFeedback.lightImpact();
+                    widget.onTap(index);
+                  },
                   behavior: HitTestBehavior.opaque,
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -164,47 +261,33 @@ class _CurvedBottomNavBarState extends State<CurvedBottomNavBar>
                         builder: (context, value, child) {
                           return Transform.translate(
                             offset: Offset(0, -10 * value),
-                            child:
-                                item.badgeCount != null && item.badgeCount! > 0
-                                ? Badge(
-                                    label: Text(
-                                      item.badgeCount.toString(),
-                                      style: const TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 10,
-                                      ),
-                                    ),
-                                    backgroundColor: Colors.red,
-                                    child: Icon(
-                                      item.icon,
-                                      color: isSelected
-                                          ? Colors.white
-                                          : widget.inactiveColor,
-                                      size: 28,
-                                    ),
-                                  )
-                                : Icon(
-                                    item.icon,
-                                    color: isSelected
-                                        ? Colors.white
-                                        : widget.inactiveColor,
-                                    size: 28,
-                                  ),
+                            child: _buildNavItemIcon(item, isSelected, value),
                           );
                         },
                       ),
                       const SizedBox(height: 8),
-                      Text(
-                        item.label,
-                        style: TextStyle(
-                          color: isSelected
+                      TweenAnimationBuilder<Color?>(
+                        tween: ColorTween(
+                          begin: isSelected
                               ? widget.activeColor
                               : widget.inactiveColor,
-                          fontWeight: isSelected
-                              ? FontWeight.bold
-                              : FontWeight.normal,
-                          fontSize: 12,
+                          end: isSelected
+                              ? widget.activeColor
+                              : widget.inactiveColor,
                         ),
+                        duration: const Duration(milliseconds: 300),
+                        builder: (context, color, child) {
+                          return Text(
+                            item.label,
+                            style: TextStyle(
+                              color: color,
+                              fontWeight: isSelected
+                                  ? FontWeight.bold
+                                  : FontWeight.normal,
+                              fontSize: 12,
+                            ),
+                          );
+                        },
                       ),
                     ],
                   ),
@@ -215,6 +298,42 @@ class _CurvedBottomNavBarState extends State<CurvedBottomNavBar>
         ],
       ),
     );
+  }
+
+  Widget _buildNavItemIcon(
+    CurvedBottomNavItem item,
+    bool isSelected,
+    double animationValue,
+  ) {
+    Widget iconWidget;
+
+    if (item.riveAsset != null) {
+      iconWidget = RiveNavIcon(
+        item: item,
+        isSelected: isSelected,
+        activeColor: widget.activeColor,
+        inactiveColor: widget.inactiveColor,
+      );
+    } else {
+      iconWidget = Icon(
+        item.icon,
+        color: isSelected ? Colors.white : widget.inactiveColor,
+        size: 28,
+      );
+    }
+
+    if (item.badgeCount != null && item.badgeCount! > 0) {
+      return Badge(
+        label: Text(
+          item.badgeCount.toString(),
+          style: const TextStyle(color: Colors.white, fontSize: 10),
+        ),
+        backgroundColor: Colors.red,
+        child: iconWidget,
+      );
+    }
+
+    return iconWidget;
   }
 }
 

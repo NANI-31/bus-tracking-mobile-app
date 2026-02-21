@@ -1,7 +1,7 @@
 // src/utils/firebase.ts
 import admin from "firebase-admin";
 // import path from "path";
-import logger from "./logger";
+import logger from "@/utils/logger";
 
 // Initialize Firebase Admin SDK
 // You need to download service account JSON from Firebase Console

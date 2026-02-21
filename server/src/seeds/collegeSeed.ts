@@ -1,4 +1,4 @@
-import College from "../models/College.model";
+import College from "@/models/College.model";
 
 export const seedColleges = async (collegeData: {
   name: string;

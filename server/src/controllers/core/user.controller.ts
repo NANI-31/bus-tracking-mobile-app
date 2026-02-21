@@ -1,8 +1,8 @@
 import { Request, Response } from "express";
-import User from "../../models/User.model";
-import { AuthRequest } from "../../middleware/authMiddleware";
-import College from "../../models/College.model";
-import { AuditService } from "../../services/AuditService";
+import User from "@/models/User.model";
+import { IAuthRequest } from "@/types";
+import College from "@/models/College.model";
+import { AuditService } from "@/services/AuditService";
 import * as xlsx from "xlsx";
 import path from "path";
 import fs from "fs";
@@ -14,9 +14,9 @@ export const createUser = async (req: Request, res: Response) => {
     const savedUser = await newUser.save();
 
     // Audit Log (if performed by an admin, though usually self-reg)
-    if ((req as AuthRequest).user) {
+    if ((req as IAuthRequest).user) {
       await AuditService.log({
-        req: req as AuthRequest,
+        req: req as IAuthRequest,
         action: "USER_CREATE",
         resource: "User",
         resourceId: savedUser._id.toString(),
@@ -49,7 +49,7 @@ export const getUser = async (req: Request, res: Response) => {
   }
 };
 
-export const getAllUsers = async (req: AuthRequest, res: Response) => {
+export const getAllUsers = async (req: IAuthRequest, res: Response) => {
   try {
     let query = {};
 
@@ -79,18 +79,6 @@ export const updateUser = async (req: Request, res: Response) => {
     if (!updatedUser)
       return res.status(404).json({ message: "User not found" });
 
-    // Audit Log
-    if ((req as AuthRequest).user) {
-      await AuditService.log({
-        req: req as AuthRequest,
-        action: "USER_UPDATE",
-        resource: "User",
-        resourceId: updatedUser._id.toString(),
-        resourceName: updatedUser.fullName,
-        newState: updatedUser.toObject(),
-      });
-    }
-
     // Emit socket event for real-time updates
     const io = req.app.get("io");
     if (updatedUser.collegeId) {
@@ -103,7 +91,7 @@ export const updateUser = async (req: Request, res: Response) => {
   }
 };
 
-export const deleteUser = async (req: AuthRequest, res: Response) => {
+export const deleteUser = async (req: IAuthRequest, res: Response) => {
   try {
     const userToDelete = await User.findById(req.params.id);
     if (!userToDelete)
@@ -175,7 +163,7 @@ export const verifyEmail = async (req: Request, res: Response) => {
 };
 
 export const activateManualPremium = async (
-  req: AuthRequest,
+  req: IAuthRequest,
   res: Response,
 ) => {
   try {
@@ -203,9 +191,9 @@ export const activateManualPremium = async (
     if (expiry < now) expiry = now;
 
     if (planType === "monthly") {
-      expiry.setDate(expiry.getDate() + 30);
+      expiry = new Date(now.getTime() + 1 * 60 * 1000); // 1 minute for testing
     } else if (planType === "semesterly") {
-      expiry.setDate(expiry.getDate() + 120);
+      expiry = new Date(now.getTime() + 1.5 * 60 * 1000); // 1.5 minutes for testing
     } else {
       return res.status(400).json({ message: "Invalid planType" });
     }
@@ -233,7 +221,7 @@ export const activateManualPremium = async (
   }
 };
 
-export const bulkActivatePremium = async (req: AuthRequest, res: Response) => {
+export const bulkActivatePremium = async (req: IAuthRequest, res: Response) => {
   try {
     if (!req.file) {
       return res.status(400).json({ message: "Excel file required" });
@@ -263,7 +251,7 @@ export const bulkActivatePremium = async (req: AuthRequest, res: Response) => {
     };
 
     const now = new Date();
-    const daysToAdd = planType === "semesterly" ? 120 : 30;
+    const msToAdd = planType === "semesterly" ? 1.5 * 60 * 1000 : 1 * 60 * 1000;
 
     for (const row of data) {
       try {
@@ -285,9 +273,7 @@ export const bulkActivatePremium = async (req: AuthRequest, res: Response) => {
         });
 
         if (targetUser) {
-          let expiry = new Date(targetUser.premiumUntil || now);
-          if (expiry < now) expiry = now;
-          expiry.setDate(expiry.getDate() + daysToAdd);
+          let expiry = new Date(now.getTime() + msToAdd);
 
           targetUser.isPremium = true;
           targetUser.premiumUntil = expiry;

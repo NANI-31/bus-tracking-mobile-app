@@ -10,7 +10,7 @@ import {
   TruckIcon,
 } from "@heroicons/react/24/outline";
 import { useDispatch } from "react-redux";
-import { resolveActiveSos } from "../../features/common/slices/sosSlice";
+import { resolveActiveSos } from "@/features/common/slices/sosSlice";
 
 const SosManager = ({ isOpen, onClose, activeAlerts, sosLogs }) => {
   const [tab, setTab] = useState("active");

@@ -8,7 +8,7 @@ import {
   deleteRoute,
 } from "../../controllers/transport/route.controller";
 
-import { protect, authorize } from "../../middleware/authMiddleware";
+import { protect, authorize } from "@/middleware/authMiddleware";
 
 const router = express.Router();
 

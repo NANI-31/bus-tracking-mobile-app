@@ -9,6 +9,7 @@ class NotificationCard extends StatelessWidget {
   final Color iconColor;
   final Color iconBgColor;
   final bool isUnread;
+  final VoidCallback? onTap;
 
   const NotificationCard({
     super.key,
@@ -19,74 +20,81 @@ class NotificationCard extends StatelessWidget {
     required this.iconColor,
     required this.iconBgColor,
     required this.isUnread,
+    this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: colorScheme.surface,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-        border: isUnread
-            ? Border.all(color: iconColor.withValues(alpha: 0.3), width: 1.5)
-            : null,
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Icon
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: iconBgColor,
-              shape: BoxShape.circle,
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 16),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: colorScheme.surface,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.05),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
             ),
-            child: Icon(icon, color: iconColor, size: 24),
-          ),
-          16.widthBox,
-          // Content
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  title.text.bold.size(16).color(colorScheme.onSurface).make(),
-                  time.text
-                      .size(12)
-                      .color(colorScheme.onSurface.withValues(alpha: 0.5))
-                      .make(),
-                ],
-              ),
-              4.heightBox,
-              description.text
-                  .size(14)
-                  .color(colorScheme.onSurface.withValues(alpha: 0.7))
-                  .make(),
-            ],
-          ).expand(),
-          if (isUnread)
+          ],
+          border: isUnread
+              ? Border.all(color: iconColor.withValues(alpha: 0.3), width: 1.5)
+              : null,
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Icon
             Container(
-              width: 8.0,
-              height: 8,
-              margin: const EdgeInsets.only(left: 8, top: 8),
+              padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: iconColor,
+                color: iconBgColor,
                 shape: BoxShape.circle,
               ),
+              child: Icon(icon, color: iconColor, size: 24),
             ),
-        ],
+            16.widthBox,
+            // Content
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    title.text.bold
+                        .size(16)
+                        .color(colorScheme.onSurface)
+                        .make(),
+                    time.text
+                        .size(12)
+                        .color(colorScheme.onSurface.withValues(alpha: 0.5))
+                        .make(),
+                  ],
+                ),
+                4.heightBox,
+                description.text
+                    .size(14)
+                    .color(colorScheme.onSurface.withValues(alpha: 0.7))
+                    .make(),
+              ],
+            ).expand(),
+            if (isUnread)
+              Container(
+                width: 8.0,
+                height: 8,
+                margin: const EdgeInsets.only(left: 8, top: 8),
+                decoration: BoxDecoration(
+                  color: iconColor,
+                  shape: BoxShape.circle,
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }

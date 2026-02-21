@@ -1,15 +1,15 @@
 import { Request, Response } from "express";
-import Route from "../../models/Route.model";
-import { getCache, setCache, delCache } from "../../utils/cache";
-import { AuthRequest } from "../../middleware/authMiddleware";
-import logger from "../../utils/logger";
-import { AuditService } from "../../services/AuditService";
+import Route from "@/models/Route.model";
+import { getCache, setCache, delCache } from "@/utils/cache";
+import { IAuthRequest } from "@/types";
+import logger from "@/utils/logger";
+import { AuditService } from "@/services/AuditService";
 
 const CACHE_TTL = 3600; // 1 hour
 
 export const createRoute = async (req: Request, res: Response) => {
   try {
-    const authReq = req as AuthRequest;
+    const authReq = req as IAuthRequest;
     const { collegeId, id: userId } = authReq.user || {};
 
     if (!collegeId) {
@@ -95,7 +95,7 @@ export const getAllRoutes = async (req: Request, res: Response) => {
 
 export const updateRoute = async (req: Request, res: Response) => {
   try {
-    const authReq = req as AuthRequest;
+    const authReq = req as IAuthRequest;
     const { role, collegeId } = authReq.user || {};
 
     const query: any = { _id: req.params.id };
@@ -133,7 +133,7 @@ export const updateRoute = async (req: Request, res: Response) => {
 
 export const deleteRoute = async (req: Request, res: Response) => {
   try {
-    const authReq = req as AuthRequest;
+    const authReq = req as IAuthRequest;
     const { role, collegeId } = authReq.user || {};
 
     const query: any = { _id: req.params.id };
@@ -166,3 +166,4 @@ export const deleteRoute = async (req: Request, res: Response) => {
     res.status(500).json({ message: (error as Error).message });
   }
 };
+

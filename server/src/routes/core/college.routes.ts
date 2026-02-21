@@ -11,9 +11,9 @@ import {
   toggleManualPremium,
 } from "../../controllers/core/college.controller";
 
-import { protect, authorize } from "../../middleware/authMiddleware";
+import { protect, authorize } from "@/middleware/authMiddleware";
 
-import { validate } from "../../middleware/validate";
+import { validate } from "@/middleware/validate";
 import {
   addBusNumberSchema,
   removeBusNumberSchema,

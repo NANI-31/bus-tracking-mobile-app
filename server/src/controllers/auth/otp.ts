@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
-import User from "../../models/User.model";
-import { sendEmail } from "../../utils/emailService";
-import { getOtpEmailTemplate } from "../../utils/emailTemplates";
+import User from "@/models/User.model";
+import { sendEmail } from "@/utils/emailService";
+import { getOtpEmailTemplate } from "@/utils/emailTemplates";
 
 export const sendOtp = async (req: Request, res: Response) => {
   try {

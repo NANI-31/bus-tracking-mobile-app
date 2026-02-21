@@ -1,8 +1,8 @@
 import { Server } from "socket.io";
-import College from "../models/College.model";
-import { Bus } from "../models/Bus.model";
-import logger from "../utils/logger";
-import { delCache } from "../utils/cache";
+import College from "@/models/College.model";
+import { Bus } from "@/models/Bus.model";
+import logger from "@/utils/logger";
+import { delCache } from "@/utils/cache";
 
 export class CollegeService {
   private io: Server;

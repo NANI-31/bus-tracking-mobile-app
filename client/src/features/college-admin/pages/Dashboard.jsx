@@ -7,24 +7,13 @@ import {
   MapIcon,
   CheckCircleIcon,
 } from "@heroicons/react/24/outline";
-import { getUsers, getBuses, getRoutes } from "../slices/collegeAdminSlice";
+import {
+  getUsers,
+  getBuses,
+  getRoutes,
+} from "@/features/college-admin/slices/collegeAdminSlice";
 
-const StatCard = ({ title, value, icon: Icon, color, delay }) => (
-  <motion.div
-    initial={{ opacity: 0, y: 20 }}
-    animate={{ opacity: 1, y: 0 }}
-    transition={{ duration: 0.5, delay }}
-    className="bg-white rounded-xl shadow-sm p-6 flex items-center space-x-4"
-  >
-    <div className={`p-3 rounded-lg ${color}`}>
-      <Icon className="w-8 h-8 text-white" />
-    </div>
-    <div>
-      <p className="text-gray-500 text-sm font-medium">{title}</p>
-      <h3 className="text-2xl font-bold text-gray-800">{value}</h3>
-    </div>
-  </motion.div>
-);
+import StatCard from "../components/Dashboard/StatCard";
 
 const Dashboard = () => {
   const dispatch = useDispatch();
@@ -43,28 +32,28 @@ const Dashboard = () => {
       title: "Total Users",
       value: users.length,
       icon: UsersIcon,
-      color: "bg-blue-500",
+      color: "bg-gradient-to-br from-[#1E90FF] to-[#1C64F2]",
       delay: 0,
     },
     {
       title: "Active Buses",
       value: buses.length,
       icon: TruckIcon,
-      color: "bg-green-500",
+      color: "bg-gradient-to-br from-[#4ADE80] to-[#22C55E]",
       delay: 0.1,
     },
     {
       title: "Total Routes",
       value: routes.length,
       icon: MapIcon,
-      color: "bg-purple-500",
+      color: "bg-gradient-to-br from-[#A78BFA] to-[#8B5CF6]",
       delay: 0.2,
     },
     {
       title: "System Status",
       value: "Online",
       icon: CheckCircleIcon,
-      color: "bg-teal-500",
+      color: "bg-gradient-to-br from-[#00FFD1] to-[#0D9488]",
       delay: 0.3,
     },
   ];

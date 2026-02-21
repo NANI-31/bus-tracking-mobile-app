@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:audioplayers/audioplayers.dart';
-import 'package:collegebus/core/utils/app_logger.dart';
+import 'package:collegebus/features/sos/application/sos_sound_provider.dart';
 
 class SosSettingsService {
   static const String keySoundEnabled = 'sos_sound_enabled';
   static const String keySoundFile = 'sos_sound_file';
+  static const String keyVolume = 'sos_sound_volume';
 
   static Future<bool> isSoundEnabled() async {
     final prefs = await SharedPreferences.getInstance();
@@ -26,19 +28,29 @@ class SosSettingsService {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(keySoundFile, filename);
   }
+
+  static Future<double> getVolume() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getDouble(keyVolume) ?? 1.0;
+  }
+
+  static Future<void> setVolume(double volume) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setDouble(keyVolume, volume);
+  }
 }
 
-class SosSoundSettings extends StatefulWidget {
+class SosSoundSettings extends ConsumerStatefulWidget {
   const SosSoundSettings({super.key});
 
   @override
-  State<SosSoundSettings> createState() => _SosSoundSettingsState();
+  ConsumerState<SosSoundSettings> createState() => _SosSoundSettingsState();
 }
 
-class _SosSoundSettingsState extends State<SosSoundSettings> {
+class _SosSoundSettingsState extends ConsumerState<SosSoundSettings> {
   bool _soundEnabled = true;
   String _selectedSound = 'sos_alarm_1.mp3';
-  final AudioPlayer _audioPlayer = AudioPlayer();
+  double _volume = 1.0;
 
   @override
   void initState() {
@@ -49,11 +61,15 @@ class _SosSoundSettingsState extends State<SosSoundSettings> {
   Future<void> _loadSettings() async {
     final enabled = await SosSettingsService.isSoundEnabled();
     final sound = await SosSettingsService.getSoundFile();
+    final volume = await SosSettingsService.getVolume();
     if (mounted) {
       setState(() {
         _soundEnabled = enabled;
         _selectedSound = sound;
+        _volume = volume;
       });
+      // Sync initial volume to service
+      ref.read(sosSoundPlayerProvider).setVolume(volume);
     }
   }
 
@@ -66,32 +82,45 @@ class _SosSoundSettingsState extends State<SosSoundSettings> {
     if (filename == null) return;
     await SosSettingsService.setSoundFile(filename);
     setState(() => _selectedSound = filename);
-    _previewSound(filename);
+    // Stop any current playback when switching sounds
+    await ref.read(sosSoundPlayerProvider).stop();
   }
 
-  Future<void> _previewSound(String filename) async {
-    try {
-      await _audioPlayer.stop();
-      await _audioPlayer.play(AssetSource('sounds/$filename'));
-    } catch (e) {
-      AppLogger.e('Error previewing sound: $e');
+  Future<void> _togglePlayback() async {
+    final player = ref.read(sosSoundPlayerProvider);
+    if (player.state == PlayerState.playing) {
+      await player.stop();
+    } else {
+      await player.play('sounds/$_selectedSound');
     }
   }
 
   @override
-  void dispose() {
-    _audioPlayer.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
+    final playerState =
+        ref.watch(sosPlayerStateProvider).value ?? PlayerState.stopped;
+    final isPlaying = playerState == PlayerState.playing;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'SOS Alert Settings',
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Text(
+              'SOS Alert Settings',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            if (_soundEnabled)
+              IconButton.filledTonal(
+                onPressed: _togglePlayback,
+                iconSize: 32,
+                icon: Icon(
+                  isPlaying ? Icons.stop_rounded : Icons.play_arrow_rounded,
+                  color: isPlaying ? Colors.red : Colors.green,
+                ),
+              ),
+          ],
         ),
         const SizedBox(height: 16),
         SwitchListTile(
@@ -124,6 +153,42 @@ class _SosSoundSettingsState extends State<SosSoundSettings> {
               ],
             ),
           ),
+          const SizedBox(height: 8),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Row(
+              children: [
+                const Icon(Icons.volume_down, size: 20),
+                Expanded(
+                  child: Slider(
+                    value: _volume,
+                    onChanged: (val) {
+                      setState(() => _volume = val);
+                      ref.read(sosSoundPlayerProvider).setVolume(val);
+                    },
+                    onChangeEnd: (val) {
+                      SosSettingsService.setVolume(val);
+                    },
+                  ),
+                ),
+                const Icon(Icons.volume_up, size: 20),
+              ],
+            ),
+          ),
+          if (isPlaying)
+            const Center(
+              child: Padding(
+                padding: EdgeInsets.only(top: 8),
+                child: Text(
+                  'Alarm Playing...',
+                  style: TextStyle(
+                    color: Colors.red,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 12,
+                  ),
+                ),
+              ),
+            ),
         ],
       ],
     );

@@ -9,7 +9,10 @@ import {
   CalendarIcon,
   BuildingLibraryIcon,
 } from "@heroicons/react/24/outline";
-import { getTransactions, getColleges } from "../slices/superAdminSlice";
+import {
+  getTransactions,
+  getColleges,
+} from "@/features/super-admin/slices/superAdminSlice";
 
 const GlobalPayments = () => {
   const dispatch = useDispatch();
@@ -53,7 +56,7 @@ const GlobalPayments = () => {
       <div className="flex justify-between items-center bg-white p-6 rounded-xl shadow-sm border border-slate-200">
         <div>
           <h1 className="text-2xl font-bold text-slate-800 flex items-center">
-            <GlobeAltIcon className="w-8 h-8 mr-2 text-indigo-600" />
+            <GlobeAltIcon className="w-8 h-8 mr-2 text-[#1E90FF]" />
             Global Revenue & Subscriptions
           </h1>
           <p className="text-slate-500 mt-1">
@@ -63,12 +66,12 @@ const GlobalPayments = () => {
         <div className="flex items-center space-x-3">
           <button
             onClick={() => setShowFilters(!showFilters)}
-            className={`flex items-center px-4 py-2 rounded-lg border transition-all ${showFilters ? "bg-indigo-50 border-indigo-200 text-indigo-600 shadow-inner" : "bg-white border-slate-300 text-slate-700 hover:bg-slate-50 shadow-sm"}`}
+            className={`flex items-center px-4 py-2 rounded-lg border transition-all ${showFilters ? "bg-indigo-50 border-indigo-200 text-[#1E90FF] shadow-inner" : "bg-white border-slate-300 text-slate-700 hover:bg-slate-50 shadow-sm"}`}
           >
             <FunnelIcon className="w-5 h-5 mr-2" />
             Filters
             {(plan || collegeId || startDate || endDate) && (
-              <span className="ml-2 w-2 h-2 bg-indigo-600 rounded-full"></span>
+              <span className="ml-2 w-2 h-2 bg-[#1E90FF] rounded-full"></span>
             )}
           </button>
           <div className="relative">
@@ -76,7 +79,7 @@ const GlobalPayments = () => {
             <input
               type="text"
               placeholder="Search user, order..."
-              className="pl-10 pr-4 py-2 w-64 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm transition-all"
+              className="pl-10 pr-4 py-2 w-64 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1E90FF] shadow-sm transition-all"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
@@ -102,7 +105,7 @@ const GlobalPayments = () => {
                 <div className="relative">
                   <CreditCardIcon className="w-5 h-5 absolute left-3 top-2.5 text-slate-400" />
                   <select
-                    className="pl-10 pr-4 py-2 w-full border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 bg-slate-50/50 appearance-none"
+                    className="pl-10 pr-4 py-2 w-full border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#1E90FF] bg-slate-50/50 appearance-none"
                     value={plan}
                     onChange={(e) => setPlan(e.target.value)}
                   >
@@ -121,7 +124,7 @@ const GlobalPayments = () => {
                 <div className="relative">
                   <BuildingLibraryIcon className="w-5 h-5 absolute left-3 top-2.5 text-slate-400" />
                   <select
-                    className="pl-10 pr-4 py-2 w-full border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 bg-slate-50/50 appearance-none"
+                    className="pl-10 pr-4 py-2 w-full border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#1E90FF] bg-slate-50/50 appearance-none"
                     value={collegeId}
                     onChange={(e) => setCollegeId(e.target.value)}
                   >
@@ -144,7 +147,7 @@ const GlobalPayments = () => {
                   <CalendarIcon className="w-5 h-5 absolute left-3 top-2.5 text-slate-400" />
                   <input
                     type="date"
-                    className="pl-10 pr-4 py-2 w-full border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 bg-slate-50/50"
+                    className="pl-10 pr-4 py-2 w-full border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#1E90FF] bg-slate-50/50"
                     value={startDate}
                     onChange={(e) => setStartDate(e.target.value)}
                   />
@@ -161,14 +164,14 @@ const GlobalPayments = () => {
                     <CalendarIcon className="w-5 h-5 absolute left-3 top-2.5 text-slate-400" />
                     <input
                       type="date"
-                      className="pl-10 pr-4 py-2 w-full border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 bg-slate-50/50"
+                      className="pl-10 pr-4 py-2 w-full border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#1E90FF] bg-slate-50/50"
                       value={endDate}
                       onChange={(e) => setEndDate(e.target.value)}
                     />
                   </div>
                   <button
                     onClick={resetFilters}
-                    className="px-4 py-2 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors border border-slate-200"
+                    className="px-4 py-2 text-slate-500 hover:text-[#1E90FF] hover:bg-indigo-50 rounded-lg transition-colors border border-slate-200"
                   >
                     Reset
                   </button>
@@ -291,7 +294,7 @@ const GlobalPayments = () => {
                 <tr>
                   <td colSpan="5" className="px-6 py-20 text-center">
                     <div className="flex flex-col items-center justify-center">
-                      <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-600"></div>
+                      <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#1E90FF]"></div>
                       <p className="mt-4 text-slate-500 font-medium">
                         Loading transactions...
                       </p>

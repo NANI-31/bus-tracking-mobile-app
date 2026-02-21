@@ -32,9 +32,11 @@ UserModel _$UserModelFromJson(Map<String, dynamic> json) => UserModel(
   fcmToken: json['fcmToken'] as String?,
   language: json['language'] as String? ?? 'en',
   isPremium: json['isPremium'] as bool? ?? false,
+  subscriptionPlan: json['subscriptionPlan'] as String?,
   premiumUntil: json['premiumUntil'] == null
       ? null
       : DateTime.parse(json['premiumUntil'] as String),
+  referralCode: json['referralCode'] as String?,
 );
 
 Map<String, dynamic> _$UserModelToJson(UserModel instance) => <String, dynamic>{
@@ -59,5 +61,7 @@ Map<String, dynamic> _$UserModelToJson(UserModel instance) => <String, dynamic>{
   'fcmToken': instance.fcmToken,
   'language': instance.language,
   'isPremium': instance.isPremium,
+  'subscriptionPlan': instance.subscriptionPlan,
   'premiumUntil': instance.premiumUntil?.toIso8601String(),
+  'referralCode': instance.referralCode,
 };

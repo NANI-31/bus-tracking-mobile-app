@@ -1,9 +1,9 @@
 import mongoose from "mongoose";
 import dotenv from "dotenv";
-import User from "../models/User.model";
-import College from "../models/College.model";
-import { Bus } from "../models/Bus.model";
-import logger from "../utils/logger";
+import User from "@/models/User.model";
+import College from "@/models/College.model";
+import { Bus } from "@/models/Bus.model";
+import logger from "@/utils/logger";
 
 dotenv.config();
 

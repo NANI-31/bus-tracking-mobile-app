@@ -1,12 +1,12 @@
 import { Request, Response } from "express";
-import { AuthRequest } from "../../middleware/authMiddleware";
-import AuditLog from "../../models/AuditLog.model";
-import logger from "../../utils/logger";
+import { IAuthRequest } from "@/types";
+import AuditLog from "@/models/AuditLog.model";
+import logger from "@/utils/logger";
 
 /**
  * Get audit logs with filtering and pagination
  */
-export const getAuditLogs = async (req: AuthRequest, res: Response) => {
+export const getAuditLogs = async (req: IAuthRequest, res: Response) => {
   logger.info("AUDIT: Entering getAuditLogs");
   try {
     const {
@@ -34,8 +34,21 @@ export const getAuditLogs = async (req: AuthRequest, res: Response) => {
     }
 
     if (adminId) query.userId = adminId;
-    if (action) query.action = action;
-    if (resource) query.resource = resource;
+
+    // Support multi-select for action and resource
+    if (action) {
+      const actionArray =
+        typeof action === "string" ? action.split(",") : action;
+      query.action = Array.isArray(actionArray) ? { $in: actionArray } : action;
+    }
+
+    if (resource) {
+      const resourceArray =
+        typeof resource === "string" ? resource.split(",") : resource;
+      query.resource = Array.isArray(resourceArray)
+        ? { $in: resourceArray }
+        : resource;
+    }
 
     if (date) {
       const selectedDate = new Date(date as string);
@@ -71,7 +84,7 @@ export const getAuditLogs = async (req: AuthRequest, res: Response) => {
 /**
  * Create a manual audit log entry (internal/admin)
  */
-export const createManualAuditLog = async (req: AuthRequest, res: Response) => {
+export const createManualAuditLog = async (req: IAuthRequest, res: Response) => {
   try {
     const logData = {
       ...req.body,
@@ -87,3 +100,4 @@ export const createManualAuditLog = async (req: AuthRequest, res: Response) => {
     res.status(500).json({ message: (error as Error).message });
   }
 };
+

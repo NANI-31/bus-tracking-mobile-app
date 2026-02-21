@@ -1,14 +1,14 @@
-import User, { UserRole } from "../models/User.model";
-import Notification from "../models/Notification.model";
-import { logHistoryHelper } from "../controllers/transport/history.controller";
+import User, { UserRole } from "@/models/User.model";
+import Notification from "@/models/Notification.model";
+import { logHistoryHelper } from "@/controllers/transport/history.controller";
 import {
   sendNotificationToDevice,
   sendNotificationToDevices,
   sendNotificationToTopic,
 } from "../utils/firebase";
-import { buildNotificationMessage } from "../utils/buildNotification";
-import { NOTIFICATION_TYPES } from "../constants/notificationTypes";
-import logger from "../utils/logger";
+import { buildNotificationMessage } from "@/utils/buildNotification";
+import { NOTIFICATION_TYPES } from "@/constants/notificationTypes";
+import logger from "@/utils/logger";
 
 /**
  * NotificationService - Encapsulates notification business logic.
@@ -67,6 +67,24 @@ export class NotificationService {
       type,
       notificationId: newNotification._id.toString(),
     });
+
+    // Send Socket Notification
+    try {
+      const { getIO } = require("../socket");
+      const io = getIO();
+      io.to(userId).emit("notification_received", {
+        id: newNotification._id.toString(),
+        title,
+        message,
+        type,
+        timestamp: newNotification.timestamp,
+      });
+      logger.info(
+        `[Socket] Emitted notification_received to user room: ${userId}`,
+      );
+    } catch (socketErr) {
+      logger.warn("Notification saved but socket emit failed", socketErr);
+    }
 
     return { success: true, notification: { title, message, type } };
   }
@@ -175,7 +193,7 @@ export class NotificationService {
     const title = "College Announcement";
     const type = NOTIFICATION_TYPES.GENERAL_ANNOUNCEMENT;
 
-    // 1. Find target users
+    // 1. Find target users (ALL users in these roles for the college)
     const users = await User.find({
       collegeId,
       role: {
@@ -187,20 +205,25 @@ export class NotificationService {
           UserRole.Admin,
         ],
       },
-      fcmToken: { $exists: true, $ne: null },
     });
 
     logger.info(
-      `[NotificationService] Found ${users.length} users with FCM tokens for broadcast in college ${collegeId}`,
+      `[NotificationService] Found ${users.length} users for broadcast in college ${collegeId}`,
     );
 
     if (users.length === 0) {
       return { success: true, count: 0 };
     }
 
-    const fcmTokens = users
+    // Filter users with FCM tokens for push notifications
+    const usersWithTokens = users.filter((u) => !!u.fcmToken);
+    const fcmTokens = usersWithTokens
       .map((u) => u.fcmToken)
       .filter((t): t is string => !!t);
+
+    logger.info(
+      `[NotificationService] Found ${fcmTokens.length} users with FCM tokens for push broadcast.`,
+    );
 
     // 2. Save notifications to DB for each user
     const notificationDocs = users.map((u) => ({
@@ -224,7 +247,24 @@ export class NotificationService {
       successCount += result.success;
     }
 
-    // 4. Log to college history
+    // 4. Send Socket Notification to College Room
+    try {
+      const { getIO } = require("../socket");
+      const io = getIO();
+      io.to(collegeId).emit("notification_received", {
+        title,
+        message,
+        type,
+        timestamp: new Date(),
+      });
+      logger.info(
+        `[Socket] Emitted notification_received to college room: ${collegeId}`,
+      );
+    } catch (socketErr) {
+      logger.warn("Broadcast saved but socket emit failed", socketErr);
+    }
+
+    // 5. Log to college history
     await logHistoryHelper(
       collegeId,
       "broadcast_announcement",

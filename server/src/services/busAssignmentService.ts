@@ -1,10 +1,10 @@
-import { Bus, IBus } from "../models/Bus.model";
-import { BusAssignmentLog } from "../models/BusAssignmentLog.model";
-import User, { UserRole } from "../models/User.model";
-import { sendTemplatedNotificationHelper } from "../controllers/features/notification.controller";
-import { logHistoryHelper } from "../controllers/transport/history.controller";
-import { NOTIFICATION_TYPES } from "../constants/notificationTypes";
-import logger from "../utils/logger";
+import { Bus, IBus } from "@/models/Bus.model";
+import { BusAssignmentLog } from "@/models/BusAssignmentLog.model";
+import User, { UserRole } from "@/models/User.model";
+import { sendTemplatedNotificationHelper } from "@/controllers/features/notification.controller";
+import { logHistoryHelper } from "@/controllers/transport/history.controller";
+import { NOTIFICATION_TYPES } from "@/constants/notificationTypes";
+import logger from "@/utils/logger";
 
 /**
  * BusAssignmentService - Encapsulates logic for bus assignments and route changes.

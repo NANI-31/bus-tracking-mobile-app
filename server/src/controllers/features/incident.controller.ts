@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
-import { Incident } from "../../models/Incident.model";
-import { logHistoryHelper } from "../transport/history.controller";
+import { Incident } from "@/models/Incident.model";
+import { logHistoryHelper } from "@/controllers/transport/history.controller";
 
 export const createIncident = async (req: Request, res: Response) => {
   try {

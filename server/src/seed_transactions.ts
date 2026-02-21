@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
 import dotenv from "dotenv";
-import Transaction from "./models/Transaction.model";
+import Transaction from "@/models/Transaction.model";
 
 dotenv.config({ path: "./.env" }); // Running from server root
 

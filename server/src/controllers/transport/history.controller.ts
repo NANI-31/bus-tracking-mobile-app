@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
-import { History } from "../../models/History.model";
+import { History } from "@/models/History.model";
 
-import { AuthenticatedRequest } from "../../types/authenticatedRequest";
+import { AuthenticatedRequest } from "@/types/authenticatedRequest";
 
 export const getHistory = async (req: Request, res: Response) => {
   try {

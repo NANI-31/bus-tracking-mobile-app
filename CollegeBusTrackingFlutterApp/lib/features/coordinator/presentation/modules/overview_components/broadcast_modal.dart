@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:collegebus/core/providers/api_provider.dart';
 import 'package:collegebus/core/constants/constants.dart';
+import 'package:collegebus/features/notification/application/notification_provider.dart';
 import 'package:collegebus/shared/widgets/success_modal.dart';
 import 'package:collegebus/shared/widgets/api_error_modal.dart';
 import 'package:velocity_x/velocity_x.dart';
@@ -32,6 +33,11 @@ class _BroadcastModalState extends ConsumerState<BroadcastModal> {
     try {
       final api = ref.read(apiServiceProvider);
       await api.broadcastToCollege(message);
+
+      // Refresh own notifications instantly
+      ref
+          .read(notificationsProvider.notifier)
+          .refreshNotifications(silent: true);
 
       if (mounted) {
         Navigator.pop(context);

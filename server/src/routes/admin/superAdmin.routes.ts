@@ -1,6 +1,6 @@
 import { Router } from "express";
-import * as SuperAdminController from "../../controllers/admin/superAdmin.controller";
-import { protect, superAdminOnly } from "../../middleware/authMiddleware";
+import * as SuperAdminController from "@/controllers/admin/superAdmin.controller";
+import { protect, superAdminOnly } from "@/middleware/authMiddleware";
 
 const router = Router();
 

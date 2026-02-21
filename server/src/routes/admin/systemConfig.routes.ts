@@ -1,6 +1,6 @@
 import { Router } from "express";
-import * as ConfigController from "../../controllers/admin/systemConfig.controller";
-import { protect, superAdminOnly } from "../../middleware/authMiddleware";
+import * as ConfigController from "@/controllers/admin/systemConfig.controller";
+import { protect, superAdminOnly } from "@/middleware/authMiddleware";
 
 const router = Router();
 

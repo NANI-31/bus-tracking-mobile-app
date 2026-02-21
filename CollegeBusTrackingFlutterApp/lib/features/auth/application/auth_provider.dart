@@ -73,8 +73,8 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
           debugPrint(
             'AUTH NOTIFIER: User loaded ${user.fullName}, registering FCM',
           );
-          await _registerFCMToken(user.id);
           debugPrint('AUTH NOTIFIER: returning Authenticated State');
+          _setupPremiumExpiryTimer(user);
           return AuthState(currentUser: user, token: token);
         }
       } catch (e) {
@@ -151,6 +151,7 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
           final user = await _userRepo.getUser(userId);
           if (user != null) {
             await _registerFCMToken(user.id);
+            _setupPremiumExpiryTimer(user);
             state = AsyncValue.data(AuthState(currentUser: user, token: token));
             return {'success': true, 'message': 'Login successful'};
           }
@@ -208,12 +209,14 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
     await PersistenceService.setBottomNavIndex(0);
     await PersistenceService.removeSelectedBusId();
 
+    _premiumExpiryTimer?.cancel();
     state = AsyncValue.data(const AuthState());
   }
 
   void updateCurrentUser(UserModel user) {
     if (state.hasValue) {
       state = AsyncValue.data(state.value!.copyWith(currentUser: user));
+      _setupPremiumExpiryTimer(user);
     }
   }
 
@@ -257,9 +260,39 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
 
       ref.onDispose(() {
         _tokenSubscription?.cancel();
+        _premiumExpiryTimer?.cancel();
       });
     } catch (e) {
       debugPrint('\x1B[31mError registering FCM token: $e\x1B[0m');
+    }
+  }
+
+  // --- Real-Time Expiration Management ---
+  Timer? _premiumExpiryTimer;
+
+  void _setupPremiumExpiryTimer(UserModel user) {
+    _premiumExpiryTimer?.cancel();
+
+    if (user.isPremium && user.premiumUntil != null) {
+      final now = DateTime.now();
+      if (user.premiumUntil!.isAfter(now)) {
+        final delay = user.premiumUntil!.difference(now);
+        debugPrint(
+          'AUTH NOTIFIER: Setting premium expiration timer for $delay',
+        );
+        _premiumExpiryTimer = Timer(delay, () {
+          debugPrint(
+            'AUTH NOTIFIER: Premium expired naturally, refreshing user...',
+          );
+          refreshUser();
+        });
+      } else {
+        // Technically already expired, trigger immediate refresh if frontend stale
+        debugPrint(
+          'AUTH NOTIFIER: Premium is already expired, forcing refresh...',
+        );
+        refreshUser();
+      }
     }
   }
 }

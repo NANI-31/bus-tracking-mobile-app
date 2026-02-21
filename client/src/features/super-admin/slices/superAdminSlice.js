@@ -11,6 +11,11 @@ import {
   toggleCollegeManualPremium,
   fetchStorageStats,
   fetchCollegeStorageHistory,
+  fetchCoupons,
+  createCoupon,
+  updateCoupon,
+  deleteCoupon,
+  fetchAdvancedAnalytics,
 } from "../api/superAdminApi";
 
 // Thunks
@@ -113,15 +118,61 @@ export const getCollegeStorageHistory = createAsyncThunk(
   },
 );
 
+export const getCoupons = createAsyncThunk(
+  "superAdmin/getCoupons",
+  async () => {
+    const response = await fetchCoupons();
+    return response;
+  },
+);
+
+export const addCoupon = createAsyncThunk(
+  "superAdmin/addCoupon",
+  async (couponData) => {
+    const response = await createCoupon(couponData);
+    return response;
+  },
+);
+
+export const editCoupon = createAsyncThunk(
+  "superAdmin/editCoupon",
+  async ({ id, couponData }) => {
+    const response = await updateCoupon(id, couponData);
+    return response;
+  },
+);
+
+export const removeCoupon = createAsyncThunk(
+  "superAdmin/removeCoupon",
+  async (id) => {
+    await deleteCoupon(id);
+    return id;
+  },
+);
+
+export const getAdvancedAnalytics = createAsyncThunk(
+  "superAdmin/getAdvancedAnalytics",
+  async (params) => {
+    const response = await fetchAdvancedAnalytics(params);
+    return response;
+  },
+);
+
 const initialState = {
   stats: null,
   colleges: [],
   users: [],
   auditLogs: [],
+  logsTotal: 0,
+  logsLimit: 50,
+  logsSkip: 0,
   transactions: [],
   buses: [],
   storageStats: null,
   collegeStorageHistory: [],
+  coupons: [],
+  advancedAnalytics: null,
+  analyticsLoading: false,
   loading: false,
   error: null,
 };
@@ -201,9 +252,15 @@ const superAdminSlice = createSlice({
       })
       .addCase(getAuditLogs.fulfilled, (state, action) => {
         state.loading = false;
-        state.auditLogs = Array.isArray(action.payload)
-          ? action.payload
-          : action.payload.logs || [];
+        if (Array.isArray(action.payload)) {
+          state.auditLogs = action.payload;
+          state.logsTotal = action.payload.length;
+        } else {
+          state.auditLogs = action.payload.logs || [];
+          state.logsTotal = action.payload.total || 0;
+          state.logsLimit = action.payload.limit || 50;
+          state.logsSkip = action.payload.skip || 0;
+        }
       })
       .addCase(getAuditLogs.rejected, (state, action) => {
         state.loading = false;
@@ -251,6 +308,36 @@ const superAdminSlice = createSlice({
       })
       .addCase(getCollegeStorageHistory.rejected, (state, action) => {
         state.loading = false;
+        state.error = action.error.message;
+      })
+
+      // Coupons
+      .addCase(getCoupons.fulfilled, (state, action) => {
+        state.coupons = action.payload;
+      })
+      .addCase(addCoupon.fulfilled, (state, action) => {
+        state.coupons.unshift(action.payload);
+      })
+      .addCase(editCoupon.fulfilled, (state, action) => {
+        const index = state.coupons.findIndex(
+          (c) => c._id === action.payload._id,
+        );
+        if (index !== -1) state.coupons[index] = action.payload;
+      })
+      .addCase(removeCoupon.fulfilled, (state, action) => {
+        state.coupons = state.coupons.filter((c) => c._id !== action.payload);
+      })
+
+      // Advanced Analytics
+      .addCase(getAdvancedAnalytics.pending, (state) => {
+        state.analyticsLoading = true;
+      })
+      .addCase(getAdvancedAnalytics.fulfilled, (state, action) => {
+        state.analyticsLoading = false;
+        state.advancedAnalytics = action.payload;
+      })
+      .addCase(getAdvancedAnalytics.rejected, (state, action) => {
+        state.analyticsLoading = false;
         state.error = action.error.message;
       });
   },

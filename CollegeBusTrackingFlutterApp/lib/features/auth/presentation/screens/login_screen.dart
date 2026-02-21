@@ -11,6 +11,7 @@ import 'package:collegebus/shared/widgets/api_error_modal.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:collegebus/l10n/auth/login/auth_login_localizations.dart';
 import 'package:collegebus/shared/widgets/language_selector.dart';
+import 'package:collegebus/shared/widgets/buttons/rive_loading_button.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -73,6 +74,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
       );
 
       if (result['success']) {
+        setState(() {
+          _isLoading = false;
+        });
+
         // Log the success and check provider state
         debugPrint('LOGIN SUCCESS: ${result['message']}');
 
@@ -326,29 +331,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                     16.heightBox,
 
                     // Login Button
-                    ElevatedButton(
-                      onPressed: _handleLogin,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Theme.of(context).colorScheme.primary,
-                        foregroundColor: Theme.of(
-                          context,
-                        ).colorScheme.onPrimary,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        elevation: 2,
-                      ),
-                      child: _isLoading
-                          ? const CircularProgressIndicator(
-                              color: Colors.white,
-                              strokeWidth: 2.0,
-                            ).box.size(24, 24).make()
-                          : HStack([
-                              l10n.login.text.size(16).bold.make(),
-                              8.widthBox,
-                              const Icon(Icons.arrow_forward_rounded),
-                            ], alignment: MainAxisAlignment.center),
-                    ).h(56).wFull(context),
+                    RiveLoadingButton(
+                      onTap: _handleLogin,
+                      isLoading: _isLoading,
+                      label: l10n.login,
+                    ).wFull(context),
 
                     32.heightBox,
 

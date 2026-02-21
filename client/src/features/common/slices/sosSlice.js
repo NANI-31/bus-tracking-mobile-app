@@ -1,5 +1,5 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
-import * as sosApi from "../api/sosApi";
+import * as sosApi from "@/features/common/api/sosApi";
 
 export const getActiveSos = createAsyncThunk(
   "sos/getActiveSos",

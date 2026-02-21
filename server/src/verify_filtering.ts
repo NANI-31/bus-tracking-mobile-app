@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
 import dotenv from "dotenv";
-import Transaction from "./models/Transaction.model";
-import { getTransactions } from "./controllers/features/payment.controller";
+import Transaction from "@/models/Transaction.model";
+import { getTransactions } from "@/controllers/features/payment.controller";
 
 dotenv.config({ path: "../.env" });
 

@@ -23,10 +23,12 @@ import 'package:collegebus/features/coordinator/presentation/modules/overview_ta
 import 'package:collegebus/features/coordinator/presentation/modules/driver_management_tab.dart';
 import 'package:collegebus/features/coordinator/presentation/modules/routes_tab.dart';
 import 'package:collegebus/features/coordinator/presentation/modules/bus_numbers_tab.dart';
+import 'package:collegebus/shared/widgets/navigation/curved_bottom_nav_bar.dart';
+import 'package:collegebus/features/notification/application/notification_provider.dart';
 
 import 'package:collegebus/features/coordinator/presentation/modules/live_map_tab.dart';
-import 'package:audioplayers/audioplayers.dart';
 import 'package:collegebus/features/settings/presentation/sos_sound_settings.dart';
+import 'package:collegebus/features/sos/application/sos_sound_provider.dart';
 import 'package:collegebus/l10n/coordinator/app_localizations.dart'
     as coord_l10n;
 
@@ -110,17 +112,17 @@ class _CoordinatorDashboardState extends ConsumerState<CoordinatorDashboard>
   void _handleTrackBus(BusModel bus) {
     setState(() {
       _selectedBus = bus;
+      if (_bottomNavIndex != 0) {
+        _stopSosSound(); // Stop preview if switching from profile
+      }
       _bottomNavIndex = 0; // Go to Dashboard
       _tabController.animateTo(1); // Switch to Live Map tab
     });
   }
 
-  final AudioPlayer _sosAudioPlayer = AudioPlayer();
-
   @override
   void dispose() {
     _tabController.dispose();
-    _sosAudioPlayer.dispose();
     _fcmTapSubscription?.cancel();
     _sosAlertSubscription?.cancel();
     super.dispose();
@@ -131,20 +133,15 @@ class _CoordinatorDashboardState extends ConsumerState<CoordinatorDashboard>
     if (!enabled) return;
 
     final soundFile = await SosSettingsService.getSoundFile();
-    try {
-      await _sosAudioPlayer.setReleaseMode(ReleaseMode.loop);
-      await _sosAudioPlayer.play(AssetSource('sounds/$soundFile'));
-    } catch (e) {
-      AppLogger.e('Error playing SOS sound: $e');
-    }
+    final volume = await SosSettingsService.getVolume();
+    final player = ref.read(sosSoundPlayerProvider);
+
+    await player.setVolume(volume);
+    await player.play('sounds/$soundFile', loop: true);
   }
 
   Future<void> _stopSosSound() async {
-    try {
-      await _sosAudioPlayer.stop();
-    } catch (e) {
-      AppLogger.e('Error stopping SOS sound: $e');
-    }
+    await ref.read(sosSoundPlayerProvider).stop();
   }
 
   void _showSOSAlert(SosModel sos) {
@@ -512,32 +509,34 @@ class _CoordinatorDashboardState extends ConsumerState<CoordinatorDashboard>
           const ProfileScreen(),
         ],
       ),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _bottomNavIndex,
-        onDestinationSelected: (index) {
+      bottomNavigationBar: CurvedBottomNavBar(
+        currentIndex: _bottomNavIndex,
+        onTap: (index) {
+          if (_bottomNavIndex != index) {
+            _stopSosSound(); // Stop sound when switching tabs
+          }
           setState(() {
             _bottomNavIndex = index;
           });
         },
-        destinations: const [
-          NavigationDestination(
-            icon: Icon(Icons.dashboard_outlined),
-            selectedIcon: Icon(Icons.dashboard),
+        activeColor: _getCoordinatorActiveColor(context),
+        backgroundColor: Theme.of(context).cardColor,
+        items: [
+          const CurvedBottomNavItem(
+            icon: Icons.dashboard_outlined,
             label: 'Dashboard',
           ),
-          NavigationDestination(
-            icon: Icon(Icons.notifications_outlined),
-            selectedIcon: Icon(Icons.notifications),
+          CurvedBottomNavItem(
+            icon: Icons.notifications_none_outlined,
             label: 'Notifications',
+            badgeCount: ref.watch(unreadNotificationsCountProvider),
           ),
-          NavigationDestination(
-            icon: Icon(Icons.edit_calendar_outlined),
-            selectedIcon: Icon(Icons.edit_calendar),
+          const CurvedBottomNavItem(
+            icon: Icons.edit_calendar_outlined,
             label: 'Schedule',
           ),
-          NavigationDestination(
-            icon: Icon(Icons.person_outline),
-            selectedIcon: Icon(Icons.person),
+          const CurvedBottomNavItem(
+            icon: Icons.person_outline,
             label: 'Profile',
           ),
         ],
@@ -565,5 +564,20 @@ class _CoordinatorDashboardState extends ConsumerState<CoordinatorDashboard>
             )
           : null,
     );
+  }
+
+  Color _getCoordinatorActiveColor(BuildContext context) {
+    switch (_bottomNavIndex) {
+      case 0:
+        return Theme.of(context).primaryColor;
+      case 1:
+        return Colors.amber.shade700;
+      case 2:
+        return Colors.teal.shade600;
+      case 3:
+        return Colors.indigo.shade600;
+      default:
+        return Theme.of(context).primaryColor;
+    }
   }
 }

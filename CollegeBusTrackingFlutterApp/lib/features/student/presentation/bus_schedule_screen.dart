@@ -152,6 +152,7 @@ class _BusScheduleScreenState extends ConsumerState<BusScheduleScreen> {
           child: _buildMainScheduleUI(
             context,
             ref,
+            user!,
             collegeId,
             college,
             busesAsync,
@@ -167,6 +168,7 @@ class _BusScheduleScreenState extends ConsumerState<BusScheduleScreen> {
   Widget _buildMainScheduleUI(
     BuildContext context,
     WidgetRef ref,
+    dynamic user,
     String collegeId,
     CollegeModel college,
     AsyncValue<List<BusModel>> busesAsync,
@@ -417,6 +419,7 @@ class _BusScheduleScreenState extends ConsumerState<BusScheduleScreen> {
                               shift.name,
                               buses,
                               routes,
+                              user,
                             );
                           }).toList(),
                         ),
@@ -431,6 +434,7 @@ class _BusScheduleScreenState extends ConsumerState<BusScheduleScreen> {
                         'Current',
                         buses,
                         routes,
+                        user,
                       );
                     }
                   },
@@ -454,6 +458,7 @@ class _BusScheduleScreenState extends ConsumerState<BusScheduleScreen> {
     String shift,
     List<BusModel> buses,
     List<RouteModel> routes,
+    dynamic user,
   ) {
     if (schedules.isEmpty) {
       return Center(
@@ -649,20 +654,26 @@ class _BusScheduleScreenState extends ConsumerState<BusScheduleScreen> {
                                   ).primaryColor.withValues(alpha: 0.05),
                             borderRadius: BorderRadius.circular(24),
                           ),
-                          child: const Row(
+                          child: Row(
                             children: [
                               Icon(
-                                Icons.location_on_rounded,
+                                user.isPremium
+                                    ? Icons.location_on_rounded
+                                    : Icons.lock_rounded,
                                 size: 14,
-                                color: Color(0xFF00BCD4),
+                                color: user.isPremium
+                                    ? const Color(0xFF00BCD4)
+                                    : Colors.grey,
                               ),
-                              SizedBox(width: 4),
+                              const SizedBox(width: 4),
                               Text(
-                                "Track",
+                                user.isPremium ? "Track" : "Premium",
                                 style: TextStyle(
                                   fontSize: 13,
                                   fontWeight: FontWeight.bold,
-                                  color: Color(0xFF00BCD4),
+                                  color: user.isPremium
+                                      ? const Color(0xFF00BCD4)
+                                      : Colors.grey,
                                 ),
                               ),
                             ],

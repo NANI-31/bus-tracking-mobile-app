@@ -1,10 +1,10 @@
 // src/controllers/notificationController.ts
 import { Request, Response } from "express";
-import Notification from "../../models/Notification.model";
-import User from "../../models/User.model";
-import { sendNotificationToDevice } from "../../utils/firebase";
-import { getNotificationService } from "../../services/notificationService";
-import logger from "../../utils/logger";
+import Notification from "@/models/Notification.model";
+import User from "@/models/User.model";
+import { sendNotificationToDevice } from "@/utils/firebase";
+import { getNotificationService } from "@/services/notificationService";
+import logger from "@/utils/logger";
 
 /**
  * Create and send a notification
@@ -58,6 +58,33 @@ export const markNotificationAsRead = async (req: Request, res: Response) => {
     res.json(notification);
   } catch (error) {
     res.status(500).json({ message: "Error updating notification", error });
+  }
+};
+
+/**
+ * Mark all notifications as read for a specific user
+ */
+export const markAllNotificationsAsRead = async (
+  req: Request,
+  res: Response,
+) => {
+  try {
+    const { userId } = req.params;
+    if (!userId) {
+      return res.status(400).json({ message: "userId is required" });
+    }
+
+    const result = await Notification.updateMany(
+      { receiverId: userId, isRead: false },
+      { $set: { isRead: true } },
+    );
+
+    res.status(200).json({
+      success: true,
+      message: `${result.modifiedCount} notifications marked as read`,
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Error updating notifications", error });
   }
 };
 
@@ -204,7 +231,7 @@ export const sendCollegeNotification = async (req: Request, res: Response) => {
 /**
  * Broadcast notification to Students, Teachers, and Parents
  */
-import { AuthenticatedRequest } from "../../types/authenticatedRequest";
+import { AuthenticatedRequest } from "@/types/authenticatedRequest";
 
 export const broadcastNotification = async (req: Request, res: Response) => {
   try {

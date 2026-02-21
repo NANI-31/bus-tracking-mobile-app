@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:velocity_x/velocity_x.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:collegebus/features/auth/application/auth_provider.dart';
 import 'package:collegebus/features/bus/application/bus_provider.dart';
@@ -98,6 +99,11 @@ class StudentHomeScreen extends ConsumerWidget {
           child: Column(
             children: [
               const SizedBox(height: 16),
+              if (!user.hasActivePremium)
+                _buildPremiumUpsell(context)
+              else if (user.premiumUntil != null)
+                _buildPremiumStatus(context, user.premiumUntil!),
+              const SizedBox(height: 16),
               WelcomeSection(userName: userName),
               const SizedBox(height: 16),
               BusStatusCard(
@@ -111,6 +117,8 @@ class StudentHomeScreen extends ConsumerWidget {
                 userStop: user.preferredStop ?? user.stopName,
               ),
               const SizedBox(height: 16),
+              _buildPremiumInsights(context, user.hasActivePremium),
+              const SizedBox(height: 20),
               TrackBusButton(
                 onTap: () {
                   if (onTrackLive != null) {
@@ -143,5 +151,88 @@ class StudentHomeScreen extends ConsumerWidget {
         ),
       ),
     );
+  }
+
+  Widget _buildPremiumUpsell(BuildContext context) {
+    return VxBox(
+      child: HStack([
+        const Icon(
+          Icons.workspace_premium_rounded,
+          color: Colors.amber,
+          size: 32,
+        ),
+        16.widthBox,
+        VStack([
+          "Upgrade to Premium".text.white.bold.size(16).make(),
+          "Live alerts & advanced bus insights".text.white.size(12).make(),
+        ]).expand(),
+        ElevatedButton(
+          onPressed: () => context.push('/referral'), // Or payment screen
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.white,
+            foregroundColor: Colors.indigo,
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            minimumSize: const Size(0, 32),
+          ),
+          child: "Get Now".text.bold.make(),
+        ),
+      ]),
+    ).indigo600.roundedLg.p16.shadowLg.make();
+  }
+
+  Widget _buildPremiumStatus(BuildContext context, DateTime expiry) {
+    final daysLeft = expiry.difference(DateTime.now()).inDays;
+    return VxBox(
+      child: HStack([
+        const Icon(Icons.verified_rounded, color: Colors.greenAccent, size: 24),
+        12.widthBox,
+        "Premium Active • $daysLeft days left".text.white.bold.size(12).make(),
+      ]),
+    ).roundedFull.px16.py8.make();
+  }
+
+  Widget _buildPremiumInsights(BuildContext context, bool isPremium) {
+    // Only full premium users get full insights. Trial users see locked message.
+    return VxBox(
+          child: VStack([
+            HStack([
+              const Icon(Icons.bolt_rounded, color: Colors.amber, size: 20),
+              8.widthBox,
+              "Trip Insights".text.bold.size(16).make(),
+              const Spacer(),
+              if (!isPremium)
+                const Icon(Icons.lock_rounded, color: Colors.grey, size: 16),
+            ]),
+            12.heightBox,
+            if (isPremium)
+              HStack([
+                _buildInsightItem("Bus Load", "Low", Icons.people_outline),
+                16.widthBox,
+                _buildInsightItem("ETA Sync", "98%", Icons.speed),
+              ])
+            else
+              "Upgrade to Premium to see live load and speed insights".text
+                  .color(Colors.grey)
+                  .italic
+                  .make(),
+          ]),
+        )
+        .color(Colors.white.withValues(alpha: 0.05))
+        .roundedLg
+        .p16
+        .border(color: Colors.white.withValues(alpha: 0.1))
+        .make();
+  }
+
+  Widget _buildInsightItem(String label, String value, IconData icon) {
+    return VStack([
+      HStack([
+        Icon(icon, size: 14, color: Colors.amber),
+        4.widthBox,
+        label.text.size(12).color(Colors.grey).make(),
+      ]),
+      4.heightBox,
+      value.text.bold.size(14).make(),
+    ]);
   }
 }

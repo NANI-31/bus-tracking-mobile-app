@@ -10,7 +10,7 @@ import {
   deleteBus,
 } from "../../controllers/transport/bus.controller";
 
-import { protect, authorize } from "../../middleware/authMiddleware";
+import { protect, authorize } from "@/middleware/authMiddleware";
 
 const router = express.Router();
 

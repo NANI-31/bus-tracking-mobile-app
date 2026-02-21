@@ -22,7 +22,7 @@ import {
   Area,
   CartesianGrid,
 } from "recharts";
-import { getStorageStats } from "../slices/superAdminSlice";
+import { getStorageStats } from "@/features/super-admin/slices/superAdminSlice";
 
 const MetricRow = ({ label, value, subtext }) => (
   <div className="flex justify-between items-center py-2 border-b border-slate-50 last:border-0">
@@ -69,7 +69,7 @@ const StorageAnalysis = () => {
 
   // MongoDB Data for Donut Chart
   const mongoChartData = [
-    { name: "Data", value: parseSize(mongodb.dataSize), color: "#6366f1" },
+    { name: "Data", value: parseSize(mongodb.dataSize), color: "#1E90FF" },
     { name: "Index", value: parseSize(mongodb.indexSize), color: "#8b5cf6" },
     {
       name: "Overhead",
@@ -111,7 +111,7 @@ const StorageAnalysis = () => {
           animate={{ opacity: 1, y: 0 }}
           className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden flex flex-col"
         >
-          <div className="bg-indigo-600 p-4 flex justify-between items-center text-white">
+          <div className="bg-[#1E90FF] p-4 flex justify-between items-center text-white">
             <div className="flex items-center space-x-2">
               <CircleStackIcon className="w-5 h-5" />
               <h2 className="font-bold">MongoDB Analysis</h2>
@@ -251,8 +251,8 @@ const StorageAnalysis = () => {
             <AreaChart data={trendData}>
               <defs>
                 <linearGradient id="colorMongo" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#6366f1" stopOpacity={0.1} />
-                  <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
+                  <stop offset="5%" stopColor="#1E90FF" stopOpacity={0.1} />
+                  <stop offset="95%" stopColor="#1E90FF" stopOpacity={0} />
                 </linearGradient>
                 <linearGradient id="colorRedis" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="5%" stopColor="#f43f5e" stopOpacity={0.1} />
@@ -298,7 +298,7 @@ const StorageAnalysis = () => {
               <Area
                 type="monotone"
                 dataKey="mongo"
-                stroke="#6366f1"
+                stroke="#1E90FF"
                 strokeWidth={2}
                 fillOpacity={1}
                 fill="url(#colorMongo)"
