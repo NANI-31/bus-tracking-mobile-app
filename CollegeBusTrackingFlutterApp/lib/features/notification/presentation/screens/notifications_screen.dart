@@ -2,7 +2,6 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter/material.dart';
 import 'package:collegebus/core/constants/constants.dart';
 import 'package:velocity_x/velocity_x.dart';
-import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:collegebus/features/notification/application/notification_provider.dart';
 import 'package:collegebus/features/notification/domain/notification_model.dart';
@@ -10,7 +9,6 @@ import '../widgets/notification_card.dart';
 import '../widgets/filter_tabs.dart';
 import '../widgets/notification_skeleton.dart';
 import 'package:flutter/services.dart';
-import '../widgets/test_notification_button.dart';
 
 class NotificationsScreen extends ConsumerStatefulWidget {
   const NotificationsScreen({super.key});
@@ -23,15 +21,15 @@ class NotificationsScreen extends ConsumerStatefulWidget {
 class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
   int _selectedFilterIndex = 0;
   final List<String> _filters = ["All", "Important", "Updates"];
-  bool _isTestingNotification = false;
-  final Dio _dio = Dio(
-    BaseOptions(
-      // baseUrl: 'http://192.168.29.27:5000/api',
-      baseUrl: AppConstants.apiBaseUrl,
-      connectTimeout: const Duration(seconds: 10),
-      receiveTimeout: const Duration(seconds: 10),
-    ),
-  );
+  // bool _isTestingNotification = false;
+  // final Dio _dio = Dio(
+  //   BaseOptions(
+  //     // baseUrl: 'http://192.168.29.27:5000/api',
+  //     baseUrl: AppConstants.apiBaseUrl,
+  //     connectTimeout: const Duration(seconds: 10),
+  //     receiveTimeout: const Duration(seconds: 10),
+  //   ),
+  // );
 
   final FlutterLocalNotificationsPlugin _notificationsPlugin =
       FlutterLocalNotificationsPlugin();
@@ -79,12 +77,6 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
         ),
         body: VStack([
           8.heightBox,
-
-          // Test Notification Button
-          TestNotificationButton(
-            isLoading: _isTestingNotification,
-            onPressed: _sendTestNotification,
-          ),
 
           16.heightBox,
 
@@ -265,69 +257,5 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
     } else {
       return "${timestamp.day}/${timestamp.month}/${timestamp.year}";
     }
-  }
-
-  Future<void> _sendTestNotification() async {
-    setState(() {
-      _isTestingNotification = true;
-    });
-
-    try {
-      // Wait 2 seconds before making the API call
-      await Future.delayed(const Duration(seconds: 2));
-
-      final response = await _dio.post('/notifications/test');
-
-      if (response.statusCode == 200) {
-        final message = response.data['message'] as String;
-
-        // Show real notification
-        await _showNotification('College Bus Tracking', message);
-
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Notification sent: $message'),
-              backgroundColor: AppColors.success,
-            ),
-          );
-        }
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to send test notification: $e'),
-            backgroundColor: AppColors.error,
-          ),
-        );
-      }
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isTestingNotification = false;
-        });
-      }
-    }
-  }
-
-  Future<void> _showNotification(String title, String body) async {
-    const androidDetails = AndroidNotificationDetails(
-      'bus_tracking_channel',
-      'Bus Tracking Notifications',
-      channelDescription: 'Notifications for bus tracking updates',
-      importance: Importance.high,
-      priority: Priority.high,
-      showWhen: true,
-    );
-
-    const notificationDetails = NotificationDetails(android: androidDetails);
-
-    await _notificationsPlugin.show(
-      DateTime.now().millisecondsSinceEpoch.remainder(100000),
-      title,
-      body,
-      notificationDetails,
-    );
   }
 }

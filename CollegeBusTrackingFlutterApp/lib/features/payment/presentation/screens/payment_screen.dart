@@ -367,6 +367,9 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
                       else
                         Row(
                           children: _plans.map((plan) {
+                            final bool isCurrent =
+                                (user?.isPremium ?? false) &&
+                                user?.subscriptionPlan == plan['alias'];
                             return Expanded(
                               child: Padding(
                                 padding: const EdgeInsets.symmetric(
@@ -377,6 +380,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
                                   price: "₹${plan['price']}",
                                   duration: "${plan['durationDays']} Days",
                                   isSelected: _selectedPlan == plan['alias'],
+                                  isCurrentPlan: isCurrent,
                                   onTap: () => setState(
                                     () => _selectedPlan = plan['alias'],
                                   ),
@@ -425,23 +429,40 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
                       SizedBox(
                         width: double.infinity,
                         height: 56,
-                        child: ElevatedButton(
-                          onPressed: _initiatePayment,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: theme.colorScheme.primary,
-                            foregroundColor: theme.colorScheme.onPrimary,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(30),
-                            ),
-                            elevation: 0,
-                          ),
-                          child: Text(
-                            "Pay ₹$_currentAmount",
-                            style: const TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
+                        child: Consumer(
+                          builder: (context, ref, child) {
+                            final user = ref.watch(currentUserProvider);
+                            final bool isCurrentPlanSelected =
+                                (user?.isPremium ?? false) &&
+                                user?.subscriptionPlan == _selectedPlan;
+
+                            return ElevatedButton(
+                              onPressed: isCurrentPlanSelected
+                                  ? null
+                                  : _initiatePayment,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: isCurrentPlanSelected
+                                    ? theme.disabledColor.withValues(alpha: 0.1)
+                                    : theme.colorScheme.primary,
+                                foregroundColor: isCurrentPlanSelected
+                                    ? theme.disabledColor
+                                    : theme.colorScheme.onPrimary,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(30),
+                                ),
+                                elevation: 0,
+                              ),
+                              child: Text(
+                                isCurrentPlanSelected
+                                    ? "Current Plan"
+                                    : "Pay ₹$_currentAmount",
+                                style: const TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            );
+                          },
                         ),
                       ),
                     const SizedBox(height: 16),
@@ -486,6 +507,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
     required ThemeData theme,
     List<String> benefits = const [],
     bool isBestValue = false,
+    bool isCurrentPlan = false,
   }) {
     return GestureDetector(
       onTap: onTap,
@@ -534,6 +556,30 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
                               ),
                       ),
                     ),
+                    if (isCurrentPlan) ...[
+                      const SizedBox(width: 4),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 4,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.green.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(4),
+                          border: Border.all(
+                            color: Colors.green.withValues(alpha: 0.3),
+                          ),
+                        ),
+                        child: const Text(
+                          "CURRENT",
+                          style: TextStyle(
+                            color: Colors.green,
+                            fontSize: 7,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
                   ],
                 ),
                 const SizedBox(height: 8),

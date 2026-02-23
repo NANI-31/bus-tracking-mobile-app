@@ -319,27 +319,36 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   onTap: () => context.push('/student/terms-conditions'),
                   showDivider: true,
                 ),
-                ProfileListItem(
-                  leadingIcon: Icons.card_giftcard_rounded,
-                  iconColor: TwColors.pink.i400,
-                  title: "Refer & Earn",
-                  subtitle: "Get free Premium by inviting friends",
-                  onTap: () => context.push('/referral'),
-                  showDivider: true,
-                ),
-                // Payment Option
-                ProfileListItem(
-                  leadingIcon: Icons.payment_rounded,
-                  iconColor: TwColors.green.i400, // Green for money
-                  title: "Payments",
-                  subtitle: user.isPremium && user.premiumUntil != null
-                      ? "Premium active until ${user.premiumUntil!.day}/${user.premiumUntil!.month}/${user.premiumUntil!.year}"
-                      : "Pay fees & dues",
-                  onTap: () => Navigator.of(context).push(
-                    MaterialPageRoute(builder: (_) => const PaymentScreen()),
+                if ([
+                  UserRole.student,
+                  UserRole.parent,
+                  UserRole.teacher,
+                ].contains(user.role))
+                  ProfileListItem(
+                    leadingIcon: Icons.card_giftcard_rounded,
+                    iconColor: TwColors.pink.i400,
+                    title: "Refer & Earn",
+                    subtitle: "Get free Premium by inviting friends",
+                    onTap: () => context.push('/referral'),
+                    showDivider: true,
                   ),
-                  showDivider: false,
-                ),
+                if ([
+                  UserRole.student,
+                  UserRole.parent,
+                  UserRole.teacher,
+                ].contains(user.role))
+                  ProfileListItem(
+                    leadingIcon: Icons.payment_rounded,
+                    iconColor: TwColors.green.i400, // Green for money
+                    title: "Payments",
+                    subtitle: user.isPremium && user.premiumUntil != null
+                        ? "Premium active until ${user.premiumUntil!.day}/${user.premiumUntil!.month}/${user.premiumUntil!.year}"
+                        : "Pay fees & dues",
+                    onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const PaymentScreen()),
+                    ),
+                    showDivider: false,
+                  ),
               ],
             ),
 
