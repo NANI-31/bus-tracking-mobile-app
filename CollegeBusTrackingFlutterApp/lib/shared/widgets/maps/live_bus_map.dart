@@ -10,7 +10,6 @@ import 'package:collegebus/features/bus/application/bus_provider.dart';
 import 'package:collegebus/widgets/common/common_map_view.dart';
 import 'package:collegebus/core/utils/map_marker_helper.dart';
 import 'package:collegebus/core/providers/socket_provider.dart';
-import 'package:collegebus/shared/widgets/maps/rive_bus_marker.dart';
 
 class LiveBusMap extends ConsumerStatefulWidget {
   final List<BusModel> buses;
@@ -46,9 +45,6 @@ class LiveBusMapState extends ConsumerState<LiveBusMap>
   final Map<String, LatLng> _animatedLocations = {};
   final Map<String, double> _animatedRotations = {};
 
-  // For Rive Overlay
-  final Map<String, Offset> _screenPositions = {};
-
   LatLng? _centerLocation;
   GoogleMapController? _mapController;
 
@@ -72,6 +68,21 @@ class LiveBusMapState extends ConsumerState<LiveBusMap>
     super.initState();
     _initLocation();
     _loadCustomMarker();
+
+    // Catch current location state immediately after first build
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final user = ref.read(currentUserProvider);
+      if (user?.collegeId != null) {
+        final currentLocs = ref
+            .read(collegeBusLocationsProvider(user!.collegeId))
+            .value;
+        if (currentLocs != null && currentLocs.isNotEmpty) {
+          for (var loc in currentLocs) {
+            _handleLocationUpdate(loc);
+          }
+        }
+      }
+    });
   }
 
   Future<void> _loadCustomMarker() async {
@@ -84,7 +95,7 @@ class LiveBusMapState extends ConsumerState<LiveBusMap>
         _rebuildMarkers();
       }
     } catch (e) {
-      debugPrint('Error creating custom marker: $e');
+      debugPrint('[LiveBusMap] Error creating custom marker: $e');
     }
   }
 
@@ -173,7 +184,6 @@ class LiveBusMapState extends ConsumerState<LiveBusMap>
             );
             _animatedRotations[busId] = lerpDouble(startRot, endRot, t)!;
             _rebuildMarkers();
-            _updateScreenPositions();
           });
         }
       });
@@ -200,7 +210,6 @@ class LiveBusMapState extends ConsumerState<LiveBusMap>
             );
             _animatedRotations[busId] = lerpDouble(startRot, endRot, t)!;
             _rebuildMarkers();
-            _updateScreenPositions();
           });
         }
       });
@@ -234,29 +243,7 @@ class LiveBusMapState extends ConsumerState<LiveBusMap>
     _markers.addAll(newMarkers);
   }
 
-  Future<void> _updateScreenPositions() async {
-    if (_mapController == null) return;
-
-    final Map<String, Offset> newPositions = {};
-    for (var bus in widget.buses) {
-      final pos =
-          _animatedLocations[bus.id] ?? _liveLocations[bus.id]?.currentLocation;
-      if (pos != null) {
-        final screenCoord = await _mapController!.getScreenCoordinate(pos);
-        newPositions[bus.id] = Offset(
-          screenCoord.x.toDouble(),
-          screenCoord.y.toDouble(),
-        );
-      }
-    }
-
-    if (mounted) {
-      setState(() {
-        _screenPositions.clear();
-        _screenPositions.addAll(newPositions);
-      });
-    }
-  }
+  // Removed _updateScreenPositions for Rive
 
   Marker _createMarker(BusModel bus, LatLng pos, double rotation) {
     return Marker(
@@ -275,12 +262,7 @@ class LiveBusMapState extends ConsumerState<LiveBusMap>
     );
   }
 
-  RiveTripStatus _deriveTripStatus(BusModel bus) {
-    if (bus.status == 'delayed') return RiveTripStatus.alert;
-    if ((_liveLocations[bus.id]?.speed ?? 0) > 2.0)
-      return RiveTripStatus.active;
-    return RiveTripStatus.idle;
-  }
+  // Removed _deriveTripStatus for Rive
 
   void _animateToBus(BusModel bus) {
     final pos =
@@ -337,24 +319,17 @@ class LiveBusMapState extends ConsumerState<LiveBusMap>
       children: [
         CommonMapView(
           currentLocation: _centerLocation!,
-          markers: _markers.values
-              .map(
-                (m) => m.copyWith(
-                  alphaParam: 0.0, // Hide original markers to show Rive
-                ),
-              )
-              .toSet(),
+          markers: _markers.values.toSet(),
           polylines: const {},
           onMapCreated: (controller) {
             _mapController = controller;
             widget.onMapCreated?.call(controller);
-            _updateScreenPositions();
           },
           onCameraMove: (position) {
-            _updateScreenPositions();
+            // No longer updating screen positions
           },
           onCameraIdle: () {
-            _updateScreenPositions();
+            // No longer updating screen positions
           },
           onCameraMoveStarted: () {
             if (!_isProgrammaticMove) {
@@ -370,28 +345,7 @@ class LiveBusMapState extends ConsumerState<LiveBusMap>
           bottomPadding: widget.bottomPadding,
         ),
 
-        // Rive Marker Overlay
-        ...widget.buses.map((bus) {
-          final screenPos = _screenPositions[bus.id];
-          if (screenPos == null) return const SizedBox.shrink();
-
-          return Positioned(
-            left: screenPos.dx - 30, // Half of RiveBusMarker size
-            top: screenPos.dy - 30,
-            child: IgnorePointer(
-              ignoring: false,
-              child: GestureDetector(
-                onTap: () => widget.onBusTap?.call(bus),
-                child: RiveBusMarker(
-                  rotation: _animatedRotations[bus.id] ?? 0,
-                  isMoving: (_liveLocations[bus.id]?.speed ?? 0) > 2.0,
-                  speed: _liveLocations[bus.id]?.speed ?? 0.0,
-                  status: _deriveTripStatus(bus),
-                ),
-              ),
-            ),
-          );
-        }),
+        // Rive Marker Overlay Removed
 
         // Connection Status Indicator
         if (!isConnected)

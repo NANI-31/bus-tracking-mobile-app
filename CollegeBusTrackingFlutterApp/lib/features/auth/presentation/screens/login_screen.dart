@@ -25,8 +25,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
   final _formKey = GlobalKey<FormState>();
   late AnimationController _animationController;
   late Animation<double> _bounceAnimation;
-  final _emailController = TextEditingController(text: 'c@kkr.ac.in');
-  final _passwordController = TextEditingController(text: 'a');
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
   bool _isLoading = false;
 
   @override

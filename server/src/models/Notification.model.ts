@@ -8,6 +8,7 @@ export interface INotification extends Document {
   timestamp: Date;
   isRead: boolean;
   data?: any;
+  audioUrl?: string;
 }
 
 const NotificationSchema: Schema = new Schema({
@@ -22,5 +23,5 @@ const NotificationSchema: Schema = new Schema({
 
 export default mongoose.model<INotification>(
   "Notification",
-  NotificationSchema
+  NotificationSchema,
 );

@@ -20,6 +20,7 @@ class StudentMapHelper {
     required LatLng? currentLocation,
     required bool isSelected,
     required VoidCallback onTap,
+    BitmapDescriptor? busIcon,
   }) {
     final position =
         location?.currentLocation ??
@@ -34,13 +35,15 @@ class StudentMapHelper {
         snippet:
             '${route.startPoint.name} → ${route.endPoint.name}\n${location != null ? 'Last updated: ${location.timestamp.toString().substring(11, 16)}' : 'Status: Offline'}',
       ),
-      icon: BitmapDescriptor.defaultMarkerWithHue(
-        isSelected
-            ? BitmapDescriptor.hueRed
-            : location != null
-            ? BitmapDescriptor.hueYellow
-            : BitmapDescriptor.hueRed,
-      ),
+      icon:
+          busIcon ??
+          BitmapDescriptor.defaultMarkerWithHue(
+            isSelected
+                ? BitmapDescriptor.hueRed
+                : location != null
+                ? BitmapDescriptor.hueYellow
+                : BitmapDescriptor.hueRed,
+          ),
       onTap: onTap,
     );
   }

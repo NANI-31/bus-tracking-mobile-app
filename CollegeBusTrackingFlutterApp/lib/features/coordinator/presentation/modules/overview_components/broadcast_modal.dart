@@ -5,6 +5,7 @@ import 'package:collegebus/core/constants/constants.dart';
 import 'package:collegebus/features/notification/application/notification_provider.dart';
 import 'package:collegebus/shared/widgets/success_modal.dart';
 import 'package:collegebus/shared/widgets/api_error_modal.dart';
+import 'package:collegebus/features/driver/presentation/widgets/voice_message_button.dart';
 import 'package:velocity_x/velocity_x.dart';
 
 class BroadcastModal extends ConsumerStatefulWidget {
@@ -81,7 +82,7 @@ class _BroadcastModalState extends ConsumerState<BroadcastModal> {
                 ],
               ),
               const SizedBox(height: 8),
-              'Send an announcement to all students, teachers, and parents.'
+              'Send an announcement to all students, teachers, and parents via text or voice recording.'
                   .text
                   .color(context.colorScheme.onSurface.withValues(alpha: 0.6))
                   .make(),
@@ -100,8 +101,13 @@ class _BroadcastModalState extends ConsumerState<BroadcastModal> {
               ),
               const SizedBox(height: 24),
               Row(
-                mainAxisAlignment: MainAxisAlignment.end,
                 children: [
+                  VoiceMessageButton(
+                    receiverId: 'broadcast',
+                    label: 'Record Voice Broadcast',
+                    defaultMessage: 'New voice broadcast from administration',
+                  ),
+                  const Spacer(),
                   TextButton(
                     onPressed: _isLoading ? null : () => Navigator.pop(context),
                     child: const Text('Cancel'),
@@ -129,7 +135,7 @@ class _BroadcastModalState extends ConsumerState<BroadcastModal> {
                               color: Colors.white,
                             ),
                           )
-                        : const Text('Send Broadcast'),
+                        : const Text('Send Text'),
                   ),
                 ],
               ),

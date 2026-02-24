@@ -11,10 +11,13 @@ import {
   broadcastNotification,
   markAllNotificationsAsRead,
 } from "../../controllers/features/notification.controller";
+import { sendVoiceNotification } from "../../controllers/features/voiceNotification.controller";
 
 import { protect, authorize } from "@/middleware/authMiddleware";
+import multer from "multer";
 
 const router = express.Router();
+const upload = multer({ dest: "uploads/" });
 
 router.post(
   "/",
@@ -45,6 +48,7 @@ router.post(
 );
 router.get("/user/:userId", protect, getUserNotifications);
 router.put("/user/:userId/read-all", protect, markAllNotificationsAsRead);
+router.post("/voice", protect, upload.single("audio"), sendVoiceNotification);
 router.put("/:id/read", protect, markNotificationAsRead);
 
 export default router;

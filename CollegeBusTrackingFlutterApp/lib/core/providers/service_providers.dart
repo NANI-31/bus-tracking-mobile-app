@@ -10,57 +10,63 @@ import 'package:collegebus/features/payment/services/payment_service.dart';
 import 'package:collegebus/core/services/data_service.dart';
 import 'package:collegebus/core/services/theme_service.dart';
 import 'package:collegebus/features/bus/services/location_service.dart';
+import 'package:collegebus/features/auth/application/auth_provider.dart';
+import 'package:collegebus/core/services/voice_recording_service.dart';
 import 'api_provider.dart';
 import 'socket_provider.dart';
 import 'package:collegebus/core/utils/map_style_helper.dart';
 
-/// BusService provider
-final busServiceProvider = Provider<BusService>((ref) {
-  final api = ref.read(apiServiceProvider);
-  final socket = ref.read(socketServiceProvider);
-  return BusService(api, socket);
+/// VoiceRecordingService provider
+final voiceRecordingServiceProvider = Provider<VoiceRecordingService>((ref) {
+  final notificationRepo = ref.watch(notificationRepositoryProvider);
+  return VoiceRecordingService(notificationRepo);
 });
+
+/// BusService provider
+final busServiceProvider = Provider<BusService>(
+  (ref) => BusService(
+    ref.watch(apiServiceProvider),
+    ref.watch(socketServiceProvider),
+  ),
+);
 
 /// UserService provider
-final userServiceProvider = Provider<UserService>((ref) {
-  final api = ref.read(apiServiceProvider);
-  return UserService(api);
-});
+final userServiceProvider = Provider<UserService>(
+  (ref) => UserService(ref.watch(apiServiceProvider)),
+);
 
 /// RouteService provider
-final routeServiceProvider = Provider<RouteService>((ref) {
-  final api = ref.read(apiServiceProvider);
-  final socket = ref.read(socketServiceProvider);
-  return RouteService(api, socket);
-});
+final routeServiceProvider = Provider<RouteService>(
+  (ref) => RouteService(
+    ref.watch(apiServiceProvider),
+    ref.watch(socketServiceProvider),
+  ),
+);
 
 /// IncidentService provider
-final incidentServiceProvider = ChangeNotifierProvider<IncidentService>((ref) {
-  final api = ref.read(apiServiceProvider);
-  return IncidentService(api);
-});
+final incidentServiceProvider = ChangeNotifierProvider<IncidentService>(
+  (ref) => IncidentService(ref.watch(apiServiceProvider)),
+);
 
 /// NotificationDataService provider
 final notificationDataServiceProvider =
-    ChangeNotifierProvider<NotificationDataService>((ref) {
-      final api = ref.read(apiServiceProvider);
-      return NotificationDataService(api);
-    });
+    ChangeNotifierProvider<NotificationDataService>(
+      (ref) => NotificationDataService(ref.watch(apiServiceProvider)),
+    );
 
 /// PaymentService provider
-final paymentServiceProvider = ChangeNotifierProvider<PaymentService>((ref) {
-  final api = ref.read(apiServiceProvider);
-  return PaymentService(api);
-});
+final paymentServiceProvider = ChangeNotifierProvider<PaymentService>(
+  (ref) => PaymentService(ref.watch(apiServiceProvider)),
+);
 
 /// DataService (Facade) provider
 final dataServiceProvider = ChangeNotifierProvider<DataService>((ref) {
-  final bus = ref.read(busServiceProvider);
-  final user = ref.read(userServiceProvider);
-  final route = ref.read(routeServiceProvider);
-  final incident = ref.read(incidentServiceProvider);
-  final notification = ref.read(notificationDataServiceProvider);
-  final payment = ref.read(paymentServiceProvider);
+  final bus = ref.watch(busServiceProvider);
+  final user = ref.watch(userServiceProvider);
+  final route = ref.watch(routeServiceProvider);
+  final incident = ref.watch(incidentServiceProvider);
+  final notification = ref.watch(notificationDataServiceProvider);
+  final payment = ref.watch(paymentServiceProvider);
 
   return DataService(
     bus,

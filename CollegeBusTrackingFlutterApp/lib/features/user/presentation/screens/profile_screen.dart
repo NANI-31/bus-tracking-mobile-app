@@ -319,6 +319,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   onTap: () => context.push('/student/terms-conditions'),
                   showDivider: true,
                 ),
+                /*
                 if ([
                   UserRole.student,
                   UserRole.parent,
@@ -332,6 +333,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     onTap: () => context.push('/referral'),
                     showDivider: true,
                   ),
+                */
                 if ([
                   UserRole.student,
                   UserRole.parent,

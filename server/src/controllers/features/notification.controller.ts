@@ -5,6 +5,8 @@ import User from "@/models/User.model";
 import { sendNotificationToDevice } from "@/utils/firebase";
 import { getNotificationService } from "@/services/notificationService";
 import logger from "@/utils/logger";
+import { s3Service } from "@/services/s3.service";
+import { NOTIFICATION_TYPES } from "@/constants/notificationTypes";
 
 /**
  * Create and send a notification
@@ -36,10 +38,34 @@ export const sendNotification = async (req: Request, res: Response) => {
  */
 export const getUserNotifications = async (req: Request, res: Response) => {
   try {
-    const notifications = await Notification.find({
+    const rawNotifications = await Notification.find({
       receiverId: req.params.userId,
     }).sort({ timestamp: -1 });
-    res.status(200).json(notifications);
+
+    // Enhance voice notifications with pre-signed URLs
+    const enhancedNotifications = await Promise.all(
+      rawNotifications.map(async (notif) => {
+        const doc = notif.toObject();
+        if (
+          doc.type === NOTIFICATION_TYPES.VOICE_NOTIFICATION &&
+          doc.data?.voiceKey
+        ) {
+          try {
+            doc.audioUrl = await s3Service.generatePresignedUrl(
+              doc.data.voiceKey,
+            );
+          } catch (err) {
+            logger.error(
+              `Error generating pre-signed URL for ${doc._id}:`,
+              err,
+            );
+          }
+        }
+        return doc;
+      }),
+    );
+
+    res.status(200).json(enhancedNotifications);
   } catch (error) {
     res.status(500).json({ message: (error as Error).message });
   }

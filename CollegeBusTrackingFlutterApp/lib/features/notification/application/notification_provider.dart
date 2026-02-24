@@ -49,16 +49,7 @@ class NotificationsNotifier extends AsyncNotifier<List<NotificationModel>> {
       state = AsyncValue.data(
         state.value!.map((n) {
           if (n.id == notificationId) {
-            return NotificationModel(
-              id: n.id,
-              senderId: n.senderId,
-              receiverId: n.receiverId,
-              message: n.message,
-              type: n.type,
-              timestamp: n.timestamp,
-              isRead: true,
-              data: n.data,
-            );
+            return n.copyWith(isRead: true);
           }
           return n;
         }).toList(),
@@ -84,16 +75,7 @@ class NotificationsNotifier extends AsyncNotifier<List<NotificationModel>> {
     if (state.hasValue) {
       state = AsyncValue.data(
         state.value!.map((n) {
-          return NotificationModel(
-            id: n.id,
-            senderId: n.senderId,
-            receiverId: n.receiverId,
-            message: n.message,
-            type: n.type,
-            timestamp: n.timestamp,
-            isRead: true,
-            data: n.data,
-          );
+          return n.copyWith(isRead: true);
         }).toList(),
       );
     }

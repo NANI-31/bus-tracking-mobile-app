@@ -34,6 +34,7 @@ import 'package:collegebus/shared/widgets/success_modal.dart';
 import 'package:collegebus/shared/widgets/sos_button.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:collegebus/features/user/presentation/screens/profile_screen.dart';
+import 'widgets/voice_message_button.dart';
 
 class DriverDashboard extends ConsumerStatefulWidget {
   const DriverDashboard({super.key});
@@ -1133,10 +1134,16 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
         Positioned(
           top: 16,
           left: 16,
-          child: SOSButton(
-            currentLocation: _currentLocation,
-            busId: myBus?.id,
-            routeId: _selectedRoute?.id,
+          child: Column(
+            children: [
+              SOSButton(
+                currentLocation: _currentLocation,
+                busId: myBus?.id,
+                routeId: _selectedRoute?.id,
+              ),
+              16.heightBox,
+              const VoiceMessageButton(),
+            ],
           ),
         ),
         if (_nextStopETA != null && _isSharing)

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:collegebus/features/notification/application/notification_provider.dart';
 import 'package:collegebus/features/notification/domain/notification_model.dart';
 import 'package:collegebus/features/notification/presentation/widgets/notification_skeleton.dart';
+import 'package:collegebus/features/notification/presentation/widgets/voice_notification_card.dart';
 import 'package:collegebus/core/constants/constants.dart';
 import 'package:velocity_x/velocity_x.dart';
 import 'package:flutter/services.dart';
@@ -118,6 +119,23 @@ class _StudentNotificationsScreenState
                     itemCount: filtered.length,
                     itemBuilder: (context, index) {
                       final notif = filtered[index];
+
+                      if (notif.isVoice) {
+                        return GestureDetector(
+                          onTap: () {
+                            if (!notif.isRead) {
+                              ref
+                                  .read(notificationsProvider.notifier)
+                                  .markAsRead(notif.id);
+                            }
+                          },
+                          child: VoiceNotificationCard(
+                            notification: notif,
+                            isUnread: !notif.isRead,
+                          ),
+                        );
+                      }
+
                       // Infer styling from type
                       Color iconColor = AppColors.primary;
                       Color iconBgColor = AppColors.primary.withValues(

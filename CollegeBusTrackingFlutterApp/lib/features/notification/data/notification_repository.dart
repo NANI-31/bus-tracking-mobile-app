@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:collegebus/features/notification/domain/notification_model.dart';
 import 'package:collegebus/core/data/base_repository.dart';
+import 'package:dio/dio.dart' as dio_lib;
 
 /// Repository for notification operations
 class NotificationRepository extends BaseRepository {
@@ -62,6 +63,33 @@ class NotificationRepository extends BaseRepository {
       final response = await dio.post(
         '/notifications/broadcast',
         data: {'message': message},
+      );
+      return response.data;
+    } catch (e) {
+      throw handleError(e);
+    }
+  }
+
+  /// Send a voice notification
+  Future<Map<String, dynamic>> sendVoiceNotification({
+    required String receiverId,
+    required String filePath,
+    String? message,
+  }) async {
+    try {
+      final formData = dio_lib.FormData.fromMap({
+        'receiverId': receiverId,
+        'message': message ?? 'New voice message',
+        'audio': await dio_lib.MultipartFile.fromFile(
+          filePath,
+          filename: 'voice_message.mp3',
+        ),
+      });
+
+      final response = await dio.post(
+        '/notifications/voice',
+        data: formData,
+        options: dio_lib.Options(contentType: 'multipart/form-data'),
       );
       return response.data;
     } catch (e) {

@@ -4,6 +4,7 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:collegebus/features/sos/domain/sos_model.dart';
 import 'package:collegebus/features/admin/application/admin_provider.dart';
 import 'package:collegebus/features/college_admin/services/college_admin_service.dart';
+import 'package:collegebus/core/utils/map_marker_helper.dart';
 import 'package:intl/intl.dart';
 
 class SosDashboard extends ConsumerStatefulWidget {
@@ -18,6 +19,22 @@ class _SosDashboardState extends ConsumerState<SosDashboard> {
   Set<Marker> _markers = {};
   SosModel? _selectedSos;
   final _notesController = TextEditingController();
+  BitmapDescriptor? _busIcon;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadMarker();
+  }
+
+  Future<void> _loadMarker() async {
+    final icon = await MapMarkerHelper.createBusMarker();
+    if (mounted) {
+      setState(() {
+        _busIcon = icon;
+      });
+    }
+  }
 
   @override
   void dispose() {
@@ -174,7 +191,9 @@ class _SosDashboardState extends ConsumerState<SosDashboard> {
       newMarkers[sos.sosId] = Marker(
         markerId: MarkerId(sos.sosId),
         position: LatLng(sos.latitude, sos.longitude),
-        icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
+        icon:
+            _busIcon ??
+            BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
         infoWindow: InfoWindow(
           title: 'Bus ${sos.busNumber}',
           snippet: 'Type: ${sos.userRole}',

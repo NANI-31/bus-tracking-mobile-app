@@ -11,10 +11,9 @@ class MapMarkerHelper {
       return _cachedBusMarker!;
     }
 
-    _cachedBusMarker = await BitmapDescriptor.asset(
-      const ImageConfiguration(devicePixelRatio: 2.5),
-      'assets/images/bus_icon.png',
-      width: 40, // Correct size for the map
+    _cachedBusMarker = await BitmapDescriptor.fromAssetImage(
+      const ImageConfiguration(size: Size(32, 32), devicePixelRatio: 2.5),
+      'assets/bus_icon.png',
     );
 
     return _cachedBusMarker!;

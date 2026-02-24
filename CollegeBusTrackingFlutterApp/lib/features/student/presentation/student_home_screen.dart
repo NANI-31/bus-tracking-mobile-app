@@ -7,6 +7,7 @@ import 'package:collegebus/features/route/application/route_provider.dart';
 import 'package:collegebus/features/bus/domain/bus_model.dart';
 import 'package:collegebus/features/route/domain/route_model.dart';
 import 'package:go_router/go_router.dart';
+import 'package:collegebus/features/payment/presentation/screens/payment_screen.dart';
 
 // New standalone widgets
 import 'widgets/home/welcome_section.dart';
@@ -167,7 +168,9 @@ class StudentHomeScreen extends ConsumerWidget {
           "Live alerts & advanced bus insights".text.white.size(12).make(),
         ]).expand(),
         ElevatedButton(
-          onPressed: () => context.push('/referral'), // Or payment screen
+          onPressed: () => Navigator.of(
+            context,
+          ).push(MaterialPageRoute(builder: (_) => const PaymentScreen())),
           style: ElevatedButton.styleFrom(
             backgroundColor: Colors.white,
             foregroundColor: Colors.indigo,

@@ -30,15 +30,13 @@ class RegisterScreen extends ConsumerStatefulWidget {
 
 class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _nameController = TextEditingController(text: 'nani');
-  final _emailController = TextEditingController(
-    text: 'chundu.siva2k03@gmail.com',
-  );
-  final _passwordController = TextEditingController(text: 'nanini');
-  final _confirmPasswordController = TextEditingController(text: 'nanini');
+  final _nameController = TextEditingController();
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+  final _confirmPasswordController = TextEditingController();
   final _collegeController = TextEditingController();
-  final _phoneController = TextEditingController(text: '9701330350');
-  final _rollNumberController = TextEditingController(text: '181ijwn2n2');
+  final _phoneController = TextEditingController();
+  final _rollNumberController = TextEditingController();
 
   UserRole _selectedRole = UserRole.student;
   bool _isLoading = false;

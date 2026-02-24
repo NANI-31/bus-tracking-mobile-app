@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:collegebus/features/notification/application/notification_provider.dart';
 import 'package:collegebus/features/notification/domain/notification_model.dart';
 import '../widgets/notification_card.dart';
+import '../widgets/voice_notification_card.dart';
 import '../widgets/filter_tabs.dart';
 import '../widgets/notification_skeleton.dart';
 import 'package:flutter/services.dart';
@@ -160,6 +161,23 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                         itemCount: filtered.length,
                         itemBuilder: (context, index) {
                           final notif = filtered[index];
+
+                          if (notif.isVoice) {
+                            return GestureDetector(
+                              onTap: () {
+                                if (!notif.isRead) {
+                                  ref
+                                      .read(notificationsProvider.notifier)
+                                      .markAsRead(notif.id);
+                                }
+                              },
+                              child: VoiceNotificationCard(
+                                notification: notif,
+                                isUnread: !notif.isRead,
+                              ),
+                            );
+                          }
+
                           // Infer styling from type
                           Color iconColor = AppColors.primary;
                           Color iconBgColor = AppColors.primary.withValues(

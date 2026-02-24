@@ -9,6 +9,7 @@ import {
 import { buildNotificationMessage } from "@/utils/buildNotification";
 import { NOTIFICATION_TYPES } from "@/constants/notificationTypes";
 import logger from "@/utils/logger";
+import { s3Service } from "@/services/s3.service";
 
 /**
  * NotificationService - Encapsulates notification business logic.
@@ -87,6 +88,234 @@ export class NotificationService {
     }
 
     return { success: true, notification: { title, message, type } };
+  }
+
+  /**
+   * Send a voice notification to a user
+   */
+  async sendVoiceNotification(
+    receiverId: string,
+    voiceKey: string,
+    senderId?: string,
+    message: string = "New voice message",
+  ): Promise<{ success: boolean; notificationId: string }> {
+    const title = "Voice Message";
+    const type = NOTIFICATION_TYPES.VOICE_NOTIFICATION;
+
+    // Save to database
+    const newNotification = new Notification({
+      senderId,
+      receiverId,
+      message,
+      type,
+      data: {
+        voiceKey,
+      },
+    });
+    await newNotification.save();
+
+    // Generate pre-signed URL for real-time playability
+    let audioUrl: string | undefined;
+    try {
+      audioUrl = await s3Service.generatePresignedUrl(voiceKey);
+    } catch (err) {
+      logger.error(`Error generating pre-signed URL for socket emit:`, err);
+    }
+
+    // Send Socket Notification
+    try {
+      const { getIO } = require("../socket");
+      const io = getIO();
+      io.to(receiverId).emit("notification_received", {
+        id: newNotification._id.toString(),
+        title,
+        message,
+        type,
+        data: { voiceKey },
+        audioUrl,
+        timestamp: newNotification.timestamp,
+      });
+    } catch (socketErr) {
+      logger.warn("Voice notification saved but socket emit failed", socketErr);
+    }
+
+    // Also send Push if tokens exist
+    const receiver = await User.findById(receiverId);
+    if (receiver) {
+      await this.sendPushNotification(receiver, title, message, {
+        type,
+        notificationId: newNotification._id.toString(),
+        voiceKey,
+        audioUrl: audioUrl || "",
+      });
+    }
+
+    return { success: true, notificationId: newNotification._id.toString() };
+  }
+
+  /**
+   * Send a voice notification to all coordinators of a college
+   */
+  async sendVoiceNotificationToCoordinators(
+    collegeId: string,
+    voiceKey: string,
+    senderId?: string,
+    message: string = "New voice message from driver",
+  ): Promise<{ success: boolean; count: number }> {
+    const title = "Voice Message";
+    const type = NOTIFICATION_TYPES.VOICE_NOTIFICATION;
+
+    // 1. Find all coordinators and admins for this college
+    const targets = await User.find({
+      collegeId,
+      role: { $in: [UserRole.BusCoordinator, UserRole.Admin] },
+    });
+
+    if (targets.length === 0) {
+      return { success: true, count: 0 };
+    }
+
+    // 2. Save notifications to DB
+    const notificationDocs = targets.map((u) => ({
+      senderId,
+      receiverId: u._id,
+      message,
+      type,
+      data: { voiceKey },
+    }));
+    await Notification.insertMany(notificationDocs);
+
+    // Generate pre-signed URL for real-time playability
+    let audioUrl: string | undefined;
+    try {
+      audioUrl = await s3Service.generatePresignedUrl(voiceKey);
+    } catch (err) {
+      logger.error(`Error generating pre-signed URL for broadast emit:`, err);
+    }
+
+    // 3. Emit Socket Notifications
+    try {
+      const { getIO } = require("../socket");
+      const io = getIO();
+      // To individual rooms
+      targets.forEach((u) => {
+        io.to(u._id.toString()).emit("notification_received", {
+          title,
+          message,
+          type,
+          data: { voiceKey },
+          audioUrl,
+          timestamp: new Date(),
+        });
+      });
+      // Also to the general college room if needed
+      io.to(collegeId).emit("notification_received", {
+        title,
+        message,
+        type,
+        data: { voiceKey },
+        audioUrl,
+        timestamp: new Date(),
+      });
+    } catch (socketErr) {
+      logger.warn("Voice broadcast saved but socket emit failed", socketErr);
+    }
+
+    // 4. Send Push Notifications (Exclude sender from push/status bar)
+    for (const target of targets) {
+      if (target.fcmToken && target._id.toString() !== senderId) {
+        await this.sendPushNotification(target, title, message, {
+          type,
+          voiceKey,
+          audioUrl: audioUrl || "",
+        });
+      }
+    }
+
+    return { success: true, count: targets.length };
+  }
+
+  /**
+   * Broadcast voice message to all users in the college
+   */
+  async broadcastVoiceNotification(
+    collegeId: string,
+    senderId: string,
+    voiceKey: string,
+    message: string = "New voice broadcast",
+  ): Promise<{ success: boolean; count: number }> {
+    const title = "Voice Broadcast";
+    const type = NOTIFICATION_TYPES.VOICE_NOTIFICATION;
+
+    // 1. Find target users (ALL users in the college)
+    const users = await User.find({
+      collegeId,
+      role: {
+        $in: [
+          UserRole.Student,
+          UserRole.Teacher,
+          UserRole.Parent,
+          UserRole.BusCoordinator,
+          UserRole.Admin,
+        ],
+      },
+    });
+
+    if (users.length === 0) {
+      return { success: true, count: 0 };
+    }
+
+    // 2. Save notifications to DB
+    const notificationDocs = users.map((u) => ({
+      senderId,
+      receiverId: u._id,
+      message,
+      type,
+      data: { voiceKey },
+    }));
+    await Notification.insertMany(notificationDocs);
+
+    // Generate pre-signed URL for real-time playability
+    let audioUrl: string | undefined;
+    try {
+      audioUrl = await s3Service.generatePresignedUrl(voiceKey);
+    } catch (err) {
+      logger.error(`Error generating pre-signed URL for broadcast emit:`, err);
+    }
+
+    // 3. Send Socket Notifications
+    try {
+      const { getIO } = require("../socket");
+      const io = getIO();
+      io.to(collegeId).emit("notification_received", {
+        title,
+        message,
+        type,
+        data: { voiceKey },
+        audioUrl,
+        timestamp: new Date(),
+      });
+    } catch (socketErr) {
+      logger.warn("Voice broadcast saved but socket emit failed", socketErr);
+    }
+
+    // 4. Send Push Notifications (Batched, excluding sender from push/status bar)
+    const fcmTokens = users
+      .filter((u) => u._id.toString() !== senderId)
+      .map((u) => u.fcmToken)
+      .filter((t): t is string => !!t);
+
+    const batchSize = 500;
+    for (let i = 0; i < fcmTokens.length; i += batchSize) {
+      const batch = fcmTokens.slice(i, i + batchSize);
+      await sendNotificationToDevices(batch, title, message, {
+        type,
+        voiceKey,
+        audioUrl: audioUrl || "",
+      });
+    }
+
+    return { success: true, count: users.length };
   }
 
   /**
@@ -215,8 +444,10 @@ export class NotificationService {
       return { success: true, count: 0 };
     }
 
-    // Filter users with FCM tokens for push notifications
-    const usersWithTokens = users.filter((u) => !!u.fcmToken);
+    // Filter users with FCM tokens for push notifications (Exclude sender)
+    const usersWithTokens = users.filter(
+      (u) => !!u.fcmToken && u._id.toString() !== senderId,
+    );
     const fcmTokens = usersWithTokens
       .map((u) => u.fcmToken)
       .filter((t): t is string => !!t);
