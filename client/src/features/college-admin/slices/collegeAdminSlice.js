@@ -19,9 +19,27 @@ import {
   fetchRefundRequests,
   resolveRefundRequest,
   fetchSubscriptionAnalytics,
+  fetchCollegeStats,
+  fetchStorageHistory,
 } from "../api/collegeAdminApi";
 
 // Async Thunks
+
+export const getStorageHistory = createAsyncThunk(
+  "collegeAdmin/getStorageHistory",
+  async (params = {}) => {
+    const response = await fetchStorageHistory(params);
+    return response;
+  },
+);
+
+export const getCollegeStats = createAsyncThunk(
+  "collegeAdmin/getCollegeStats",
+  async () => {
+    const response = await fetchCollegeStats();
+    return response;
+  },
+);
 
 // Users
 export const getUsers = createAsyncThunk("collegeAdmin/getUsers", async () => {
@@ -184,6 +202,8 @@ const initialState = {
   refundRequests: [],
   analytics: [],
   auditLogs: [],
+  collegeStats: null,
+  storageHistory: [],
   logsTotal: 0,
   logsLimit: 50,
   logsSkip: 0,
@@ -361,6 +381,12 @@ const collegeAdminSlice = createSlice({
       })
       .addCase(getSubscriptionAnalytics.fulfilled, (state, action) => {
         state.analytics = action.payload;
+      })
+      .addCase(getCollegeStats.fulfilled, (state, action) => {
+        state.collegeStats = action.payload;
+      })
+      .addCase(getStorageHistory.fulfilled, (state, action) => {
+        state.storageHistory = action.payload;
       });
   },
 });

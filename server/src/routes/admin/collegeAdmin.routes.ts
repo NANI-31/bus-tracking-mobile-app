@@ -9,6 +9,7 @@ router.use(protect, collegeAdminOnly);
 
 router.get("/stats", CollegeAdminController.getCollegeStats);
 router.get("/users", CollegeAdminController.getCollegeUsers);
+router.get("/storage-history", CollegeAdminController.getCollegeStorageHistory);
 router.put("/settings", CollegeAdminController.updateCollegeSettings);
 
 export default router;

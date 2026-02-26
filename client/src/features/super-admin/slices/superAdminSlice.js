@@ -2,6 +2,7 @@ import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import {
   fetchSystemStats,
   fetchColleges,
+  fetchCollegeById,
   verifyCollege,
   fetchGlobalUsers,
   deleteGlobalUser,
@@ -16,6 +17,7 @@ import {
   updateCoupon,
   deleteCoupon,
   fetchAdvancedAnalytics,
+  wipeCollegeData,
 } from "../api/superAdminApi";
 
 // Thunks
@@ -40,6 +42,18 @@ export const verifyCollegeAction = createAsyncThunk(
   async (collegeId) => {
     const response = await verifyCollege(collegeId);
     return response; // Updated college object
+  },
+);
+
+export const getCollegeDetailsAction = createAsyncThunk(
+  "superAdmin/getCollegeDetails",
+  async (collegeId, { rejectWithValue }) => {
+    try {
+      const response = await fetchCollegeById(collegeId);
+      return response;
+    } catch (error) {
+      return rejectWithValue(error);
+    }
   },
 );
 
@@ -158,9 +172,22 @@ export const getAdvancedAnalytics = createAsyncThunk(
   },
 );
 
+export const wipeCollegeDataAction = createAsyncThunk(
+  "superAdmin/wipeCollegeData",
+  async ({ collegeId, deleteCollegeRecord }, { rejectWithValue }) => {
+    try {
+      const response = await wipeCollegeData(collegeId, deleteCollegeRecord);
+      return { collegeId, deleteCollegeRecord, response };
+    } catch (error) {
+      return rejectWithValue(error);
+    }
+  },
+);
+
 const initialState = {
   stats: null,
   colleges: [],
+  selectedCollege: null,
   users: [],
   auditLogs: [],
   logsTotal: 0,
@@ -228,12 +255,38 @@ const superAdminSlice = createSlice({
           (c) => c._id === action.payload._id,
         );
         if (index !== -1) state.colleges[index] = action.payload;
+        if (state.selectedCollege?._id === action.payload._id) {
+          state.selectedCollege = action.payload;
+        }
       })
       .addCase(toggleManualPremiumAction.fulfilled, (state, action) => {
         const index = state.colleges.findIndex(
           (c) => c._id === action.payload._id,
         );
         if (index !== -1) state.colleges[index] = action.payload;
+        if (state.selectedCollege?._id === action.payload._id) {
+          state.selectedCollege = action.payload;
+        }
+      })
+      .addCase(getCollegeDetailsAction.pending, (state) => {
+        state.loading = true;
+        state.selectedCollege = null;
+      })
+      .addCase(getCollegeDetailsAction.fulfilled, (state, action) => {
+        state.loading = false;
+        state.selectedCollege = action.payload;
+      })
+      .addCase(getCollegeDetailsAction.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload || action.error.message;
+      })
+      .addCase(wipeCollegeDataAction.fulfilled, (state, action) => {
+        if (action.payload.deleteCollegeRecord) {
+          state.colleges = state.colleges.filter(
+            (c) => c._id !== action.payload.collegeId,
+          );
+        }
+        // If not deleted, we might want to refresh its stats but usually wipe is destructive enough to just remove it or keep it empty.
       })
 
       // Users

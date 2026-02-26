@@ -119,8 +119,8 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
             final isPremium = true;
 
             final Duration duration = _selectedPlan == 'semester'
-                ? const Duration(seconds: 90)
-                : const Duration(seconds: 60);
+                ? const Duration(days: 120)
+                : const Duration(days: 30);
 
             final updatedUser = user.copyWith(
               isPremium: isPremium,

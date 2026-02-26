@@ -6,6 +6,8 @@ import { AuditService } from "@/services/AuditService";
 import * as xlsx from "xlsx";
 import path from "path";
 import fs from "fs";
+import { sendEmail } from "@/utils/emailService";
+import { getOtpEmailTemplate } from "@/utils/emailTemplates";
 
 export const createUser = async (req: Request, res: Response) => {
   try {
@@ -73,19 +75,56 @@ export const getAllUsers = async (req: IAuthRequest, res: Response) => {
 
 export const updateUser = async (req: Request, res: Response) => {
   try {
-    const updatedUser = await User.findByIdAndUpdate(req.params.id, req.body, {
-      new: true,
-    });
-    if (!updatedUser)
-      return res.status(404).json({ message: "User not found" });
+    const user = await User.findById(req.params.id);
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    const { email, ...otherData } = req.body;
+    let verificationRequired = false;
+
+    // Handle email change logic
+    if (email && email !== user.email) {
+      // Check if email is already taken
+      const existingUser = await User.findOne({ email });
+      if (existingUser) {
+        return res.status(400).json({ message: "Email already in use" });
+      }
+
+      // Generate OTP for email change
+      const otp = Math.floor(100000 + Math.random() * 900000).toString();
+      user.otp = otp;
+      user.otpExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+      user.pendingEmail = email;
+      verificationRequired = true;
+
+      // Send OTP to NEW email
+      await sendEmail(
+        email,
+        "Verify your new email address",
+        `Your verification code is: ${otp}. It expires in 10 minutes.`,
+        getOtpEmailTemplate(user.fullName, otp),
+      ).catch((err) =>
+        console.error("[UserController] Email change verification error:", err),
+      );
+    }
+
+    // Update other fields
+    Object.assign(user, otherData);
+    await user.save();
 
     // Emit socket event for real-time updates
     const io = req.app.get("io");
-    if (updatedUser.collegeId) {
-      io.to(updatedUser.collegeId.toString()).emit("user_list_updated");
+    if (user.collegeId) {
+      io.to(user.collegeId.toString()).emit("user_list_updated");
     }
 
-    res.status(200).json(updatedUser);
+    res.status(200).json({
+      success: true,
+      user,
+      verificationRequired,
+      message: verificationRequired
+        ? "Verification OTP sent to your new email."
+        : "Profile updated successfully",
+    });
   } catch (error) {
     res.status(500).json({ message: (error as Error).message });
   }

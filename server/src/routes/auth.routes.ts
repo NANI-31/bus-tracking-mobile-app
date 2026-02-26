@@ -4,6 +4,7 @@ import {
   login,
   sendOtp,
   verifyOtp,
+  verifyEmailChange,
   resetPassword,
   logout,
 } from "../controllers/auth";
@@ -19,6 +20,7 @@ router.post("/login", login);
 router.post("/logout", protect, logout);
 router.post("/send-otp", sendOtp);
 router.post("/verify-otp", verifyOtp);
+router.post("/verify-email-change", verifyEmailChange);
 router.post("/reset-password", resetPassword);
 
 export default router;

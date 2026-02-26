@@ -138,9 +138,29 @@ export const bulkActivatePremium = async (formData) => {
   }
 };
 
+export const fetchCollegeStats = async () => {
+  try {
+    const response = await axios.get("/admin/college/stats");
+    return response.data;
+  } catch (error) {
+    throw error.response ? error.response.data : error.message;
+  }
+};
+
 export const fetchCollege = async (collegeId) => {
   try {
     const response = await axios.get(`/colleges/${collegeId}`);
+    return response.data;
+  } catch (error) {
+    throw error.response ? error.response.data : error.message;
+  }
+};
+
+export const fetchStorageHistory = async (params = {}) => {
+  try {
+    const response = await axios.get("/admin/college/storage-history", {
+      params,
+    });
     return response.data;
   } catch (error) {
     throw error.response ? error.response.data : error.message;

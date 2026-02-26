@@ -59,7 +59,7 @@ class SosLogsTab extends ConsumerWidget {
                           'Bus ${sos.busNumber} - ${college?.name ?? 'Unknown College'}',
                         ),
                         subtitle: Text(
-                          'Resolved ${DateFormat('MMM dd, HH:mm').format(sos.resolvedAt ?? sos.timestamp)}',
+                          'Resolved ${DateFormat('MMM dd, HH:mm').format((sos.resolvedAt ?? sos.timestamp).toLocal())}',
                         ),
                         children: [
                           Padding(
@@ -69,7 +69,7 @@ class SosLogsTab extends ConsumerWidget {
                               children: [
                                 _buildDetailRow(
                                   'Reported By',
-                                  '${sos.userRole} (${DateFormat('HH:mm').format(sos.timestamp)})',
+                                  '${sos.userRole} (${DateFormat('HH:mm').format(sos.timestamp.toLocal())})',
                                 ),
                                 _buildDetailRow(
                                   'Resolved By',
@@ -116,8 +116,3 @@ class SosLogsTab extends ConsumerWidget {
     );
   }
 }
-
-
-
-
-

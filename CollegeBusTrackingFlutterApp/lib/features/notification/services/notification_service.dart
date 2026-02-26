@@ -91,9 +91,16 @@ class NotificationService {
       details,
     );
   }
+
+  /// Cancel a specific local notification by ID
+  static Future<void> cancel(int id) async {
+    await _localNotifications.cancel(id);
+    AppLogger.d('Canceled local notification: $id');
+  }
+
+  /// Cancel all local notifications
+  static Future<void> cancelAll() async {
+    await _localNotifications.cancelAll();
+    AppLogger.d('Canceled all local notifications');
+  }
 }
-
-
-
-
-

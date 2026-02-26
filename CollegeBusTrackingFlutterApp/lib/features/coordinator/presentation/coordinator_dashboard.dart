@@ -472,13 +472,13 @@ class _CoordinatorDashboardState extends ConsumerState<CoordinatorDashboard>
                 labelColor: Colors.white,
                 unselectedLabelColor: Colors.white.withValues(alpha: 0.7),
                 indicatorColor: Colors.white,
-                isScrollable: true,
+                isScrollable: false,
                 tabs: [
                   Tab(text: l10n.overview, icon: const Icon(Icons.dashboard)),
                   const Tab(text: 'Live Map', icon: Icon(Icons.map)),
                   Tab(text: l10n.drivers, icon: const Icon(Icons.approval)),
-                  Tab(text: l10n.routes, icon: const Icon(Icons.route)),
                   Tab(text: l10n.buses, icon: const Icon(Icons.directions_bus)),
+                  Tab(text: l10n.routes, icon: const Icon(Icons.route)),
                 ],
               ),
             )
@@ -497,8 +497,8 @@ class _CoordinatorDashboardState extends ConsumerState<CoordinatorDashboard>
               ),
               LiveMapTab(selectedBus: _selectedBus),
               DriverManagementTab(onTrack: _handleTrackBus),
-              const RoutesTab(),
               const BusNumbersTab(),
+              const RoutesTab(),
             ],
           ),
           // 1: Notifications

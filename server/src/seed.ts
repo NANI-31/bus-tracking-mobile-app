@@ -10,10 +10,22 @@ import { seedTransport } from "@/seeds/transportSeed";
 import { UserRole } from "@/models/User.model";
 
 import Route from "@/models/Route.model";
-import { Bus } from "@/models/Bus.model";
+import { Bus, BusLocation } from "@/models/Bus.model";
 import Schedule from "@/models/Schedule.model";
 import College from "@/models/College.model";
 import User from "@/models/User.model";
+import AuditLog from "@/models/AuditLog.model";
+import { Sos } from "@/models/Sos.model";
+import { Incident } from "@/models/Incident.model";
+import MetricSnapshot from "@/models/MetricSnapshot.model";
+import Notification from "@/models/Notification.model";
+import { History } from "@/models/History.model";
+import Transaction from "@/models/Transaction.model";
+import { BusAssignmentLog } from "@/models/BusAssignmentLog.model";
+import Coupon from "@/models/Coupon.model";
+import Plan from "@/models/Plan.model";
+import SystemConfig from "@/models/SystemConfig.model";
+import { s3Service } from "@/services/s3.service";
 import { collegesData } from "@/seeds/seedData/collegesData";
 
 dotenv.config();
@@ -36,12 +48,31 @@ const runSeed = async () => {
     await pubClient.flushAll();
     console.log("Redis cache cleared.");
 
-    console.log("Clearing all existing data...");
-    await College.deleteMany({});
-    await User.deleteMany({});
-    await Route.deleteMany({});
-    await Bus.deleteMany({});
-    await Schedule.deleteMany({});
+    console.log("Clearing S3 bucket...");
+    await s3Service.clearBucket();
+    console.log("S3 bucket cleared.");
+
+    console.log("Clearing all existing MongoDB data...");
+    await Promise.all([
+      College.deleteMany({}),
+      User.deleteMany({}),
+      Route.deleteMany({}),
+      Bus.deleteMany({}),
+      Schedule.deleteMany({}),
+      AuditLog.deleteMany({}),
+      Sos.deleteMany({}),
+      Incident.deleteMany({}),
+      MetricSnapshot.deleteMany({}),
+      Notification.deleteMany({}),
+      History.deleteMany({}),
+      Transaction.deleteMany({}),
+      BusAssignmentLog.deleteMany({}),
+      BusLocation.deleteMany({}),
+      Coupon.deleteMany({}),
+      Plan.deleteMany({}),
+      SystemConfig.deleteMany({}),
+    ]);
+    console.log("MongoDB cleared.");
 
     for (const collegeData of collegesData) {
       console.log(`\n--- Seeding ${collegeData.name} ---`);

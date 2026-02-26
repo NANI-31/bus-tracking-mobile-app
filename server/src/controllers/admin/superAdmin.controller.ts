@@ -1,3 +1,4 @@
+// Force trigger nodemon restart
 import { Request, Response } from "express";
 import { IAuthRequest } from "@/types";
 import College from "@/models/College.model";
@@ -8,6 +9,17 @@ import { pubClient } from "@/config/redis";
 import logger from "@/utils/logger";
 import { MetricsService } from "@/services/MetricsService";
 import MetricSnapshot from "@/models/MetricSnapshot.model";
+import { s3Service } from "@/services/s3.service";
+import { Bus, BusLocation } from "@/models/Bus.model";
+import Route from "@/models/Route.model";
+import Schedule from "@/models/Schedule.model";
+import Notification from "@/models/Notification.model";
+import { Sos } from "@/models/Sos.model";
+import { Incident } from "@/models/Incident.model";
+import { History } from "@/models/History.model";
+import AuditLog from "@/models/AuditLog.model";
+import Transaction from "@/models/Transaction.model";
+import { BusAssignmentLog } from "@/models/BusAssignmentLog.model";
 
 /**
  * Get storage statistics for Super Admin (MongoDB & Redis)
@@ -18,9 +30,10 @@ export const getStorageStats = async (req: IAuthRequest, res: Response) => {
     if (!mongoose.connection.db) {
       return res.status(503).json({ message: "Database connection not ready" });
     }
-    const [dbStats, history] = await Promise.all([
+    const [dbStats, history, s3Stats] = await Promise.all([
       mongoose.connection.db.stats(),
       MetricsService.getHistory(),
+      s3Service.getBucketStats(),
     ]);
 
     // 2. Redis Memory Stats
@@ -55,6 +68,10 @@ export const getStorageStats = async (req: IAuthRequest, res: Response) => {
         indexSize: (dbStats.indexSize / (1024 * 1024)).toFixed(2) + " MB",
       },
       redis: redisStats,
+      s3: {
+        totalSize: (s3Stats.totalSize / (1024 * 1024)).toFixed(2) + " MB",
+        objectCount: s3Stats.objectCount,
+      },
       history,
     });
   } catch (error) {
@@ -119,6 +136,27 @@ export const getSystemStats = async (req: IAuthRequest, res: Response) => {
 };
 
 /**
+ * Get full details of a specific college
+ */
+export const getCollegeDetails = async (req: IAuthRequest, res: Response) => {
+  try {
+    const { collegeId } = req.params;
+    const college = await College.findById(collegeId).populate(
+      "adminId",
+      "name email phone role",
+    );
+
+    if (!college) {
+      return res.status(404).json({ message: "College not found" });
+    }
+
+    res.json(college);
+  } catch (error) {
+    res.status(500).json({ message: (error as Error).message });
+  }
+};
+
+/**
  * Verify a college
  */
 export const verifyCollege = async (req: IAuthRequest, res: Response) => {
@@ -172,19 +210,108 @@ export const suspendCollege = async (req: IAuthRequest, res: Response) => {
       return res.status(404).json({ message: "College not found" });
     }
 
-    // Audit Log
-    await AuditService.log({
-      req,
-      action: "COLLEGE_SUSPEND",
-      resource: "College",
-      resourceId: collegeId,
-      resourceName: college.name,
-      newState: { suspended: true, suspensionReason: reason },
-    });
-
     res.json(college);
   } catch (error) {
     res.status(500).json({ message: (error as Error).message });
   }
 };
 
+/**
+ * Wipe out all data for a specific college or all colleges (Super Admin only)
+ */
+export const wipeCollegeData = async (req: IAuthRequest, res: Response) => {
+  try {
+    const { collegeId } = req.params; // "all" or specific ID
+    const { deleteCollegeRecord } = req.body; // Flag to delete the College entry itself
+
+    logger.info(
+      `[SuperAdmin] Wipe request started for collegeId: ${collegeId}`,
+    );
+
+    const isGlobalWipe = collegeId === "all";
+    const filter = isGlobalWipe ? {} : { collegeId };
+
+    // 1. Fetch relevant users and buses if specific wipe
+    let userIds: string[] = [];
+    let busIds: string[] = [];
+    if (!isGlobalWipe) {
+      const [users, buses] = await Promise.all([
+        User.find({ collegeId }, "_id"),
+        Bus.find({ collegeId }, "_id"),
+      ]);
+      userIds = users.map((u) => u._id.toString());
+      busIds = buses.map((b) => b._id.toString());
+    }
+
+    // 2. Systematic Deletion
+    await Promise.all([
+      // Data with direct collegeId
+      Bus.deleteMany(filter),
+      Route.deleteMany(filter),
+      Schedule.deleteMany(filter),
+      Sos.deleteMany(filter),
+      Incident.deleteMany(filter),
+      MetricSnapshot.deleteMany(filter),
+      AuditLog.deleteMany(filter),
+      BusAssignmentLog.deleteMany(filter),
+
+      // Indirect data (linked to users or buses)
+      isGlobalWipe
+        ? BusLocation.deleteMany({})
+        : BusLocation.deleteMany({ busId: { $in: busIds } }),
+
+      isGlobalWipe
+        ? Notification.deleteMany({}) // Wipe all notifications globally
+        : Notification.deleteMany({
+            $or: [
+              { senderId: { $in: userIds } },
+              { receiverId: { $in: userIds } },
+              { "data.collegeId": collegeId },
+            ],
+          }),
+
+      isGlobalWipe ? History.deleteMany({}) : History.deleteMany(filter),
+
+      isGlobalWipe
+        ? Transaction.deleteMany({})
+        : Transaction.deleteMany({ userId: { $in: userIds } }),
+
+      // Users - BE CAREFUL NOT TO DELETE THE SUPER ADMIN
+      isGlobalWipe
+        ? User.deleteMany({ role: { $ne: "superAdmin" } })
+        : User.deleteMany({ collegeId }),
+    ]);
+
+    // 3. Optional: Delete the College record itself
+    if (deleteCollegeRecord === true && !isGlobalWipe) {
+      await College.findByIdAndDelete(collegeId);
+    } else if (isGlobalWipe && deleteCollegeRecord === true) {
+      await College.deleteMany({});
+    }
+
+    // Audit Log the wipe
+    await AuditLog.create({
+      action: "DATA_WIPE",
+      resource: "System",
+      resourceId: collegeId,
+      performedBy: req.user?.id,
+      details: {
+        collegeId,
+        isGlobal: isGlobalWipe,
+        deletedCollegeRecord: deleteCollegeRecord,
+      },
+      timestamp: new Date(),
+    });
+
+    res.status(200).json({
+      success: true,
+      message: `Data wipe ${isGlobalWipe ? "global" : "for college " + collegeId} completed successfully.`,
+    });
+  } catch (error) {
+    logger.error(`[SuperAdmin] Wipe error: ${error}`);
+    res.status(500).json({
+      message: "Error wiping college data",
+      error: (error as Error).message,
+    });
+  }
+};

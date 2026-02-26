@@ -271,7 +271,7 @@ class _SosDashboardState extends ConsumerState<SosDashboard> {
               style: const TextStyle(fontWeight: FontWeight.bold),
             ),
             subtitle: Text(
-              '${sos.userRole.toUpperCase()} • ${DateFormat('HH:mm:ss').format(sos.timestamp)}',
+              '${sos.userRole.toUpperCase()} • ${DateFormat('HH:mm:ss').format(sos.timestamp.toLocal())}',
             ),
             trailing: isSelected ? null : const Icon(Icons.chevron_right),
           ),
@@ -325,7 +325,7 @@ class _SosDashboardState extends ConsumerState<SosDashboard> {
         ),
         title: Text('Bus ${sos.busNumber} Incident'),
         subtitle: Text(
-          'Resolved at ${DateFormat('MMM dd, HH:mm').format(sos.resolvedAt ?? sos.timestamp)}',
+          'Resolved at ${DateFormat('MMM dd, HH:mm').format((sos.resolvedAt ?? sos.timestamp).toLocal())}',
         ),
         children: [
           Padding(
@@ -335,7 +335,7 @@ class _SosDashboardState extends ConsumerState<SosDashboard> {
               children: [
                 _buildLogDetail(
                   'Reported By',
-                  '${sos.userRole} (${DateFormat('HH:mm:ss').format(sos.timestamp)})',
+                  '${sos.userRole} (${DateFormat('HH:mm:ss').format(sos.timestamp.toLocal())})',
                 ),
                 _buildLogDetail('Resolved By', sos.resolvedBy ?? 'System'),
                 _buildLogDetail('Incident ID', sos.sosId),

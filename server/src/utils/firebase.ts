@@ -211,4 +211,70 @@ export const sendNotificationToTopic = async (
   }
 };
 
+/**
+ * Send a data-only (silent) notification to multiple devices.
+ * Used for dismissing local notifications or marking as read across devices.
+ */
+export const sendDataOnlyNotificationToDevices = async (
+  fcmTokens: string[],
+  data: Record<string, string>,
+): Promise<{ success: number; failure: number }> => {
+  try {
+    const message: admin.messaging.MulticastMessage = {
+      tokens: fcmTokens,
+      data: data,
+      android: {
+        priority: "high",
+      },
+      apns: {
+        payload: {
+          aps: {
+            "content-available": 1,
+          },
+        },
+      },
+    };
+
+    const response = await admin.messaging().sendEachForMulticast(message);
+    logger.info(`Silent notifications sent: ${response.successCount} success`);
+    return { success: response.successCount, failure: response.failureCount };
+  } catch (error) {
+    logger.error(`Error sending silent multicast notification: ${error}`);
+    return { success: 0, failure: fcmTokens.length };
+  }
+};
+
+/**
+ * Send a data-only (silent) notification to a topic.
+ * Used for dismissing voice broadcasts across all students.
+ */
+export const sendDataOnlyNotificationToTopic = async (
+  topic: string,
+  data: Record<string, string>,
+): Promise<boolean> => {
+  try {
+    const message: admin.messaging.Message = {
+      topic,
+      data: data,
+      android: {
+        priority: "high",
+      },
+      apns: {
+        payload: {
+          aps: {
+            "content-available": 1,
+          },
+        },
+      },
+    };
+
+    const response = await admin.messaging().send(message);
+    logger.info(`Silent topic notification sent: ${JSON.stringify(response)}`);
+    return true;
+  } catch (error) {
+    logger.error(`Error sending silent topic notification: ${error}`);
+    return false;
+  }
+};
+
 export default admin;

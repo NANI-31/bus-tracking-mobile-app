@@ -96,4 +96,13 @@ class NotificationRepository extends BaseRepository {
       throw handleError(e);
     }
   }
+
+  /// Delete a notification
+  Future<void> deleteNotification(String notificationId) async {
+    try {
+      await dio.delete('/notifications/$notificationId');
+    } catch (e) {
+      throw handleError(e);
+    }
+  }
 }

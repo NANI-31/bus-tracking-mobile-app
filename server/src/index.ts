@@ -10,6 +10,7 @@ import { router } from "@/routes";
 import { initializeSocket } from "@/socket";
 import logger from "@/utils/logger";
 import { initPaymentCron } from "@/cron/payment.cron";
+import { initNotificationCron } from "@/cron/notification.cron";
 import { errorHandler } from "@/middleware/errorMiddleware";
 import { MetricsService } from "@/services/MetricsService";
 
@@ -22,6 +23,7 @@ const startServer = async () => {
     initializeFirebase();
     MetricsService.init();
     initPaymentCron();
+    initNotificationCron();
 
     const app = express();
     const httpServer = createServer(app);

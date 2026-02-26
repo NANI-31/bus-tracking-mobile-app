@@ -6,6 +6,7 @@ import {
   ServerIcon,
   ArrowPathIcon,
   ChartBarIcon,
+  CloudIcon,
 } from "@heroicons/react/24/outline";
 import {
   PieChart,
@@ -100,6 +101,7 @@ const StorageAnalysis = () => {
     }),
     mongo: parseSize(entry.mongodb.storageSize),
     redis: parseSize(entry.redis.usedMemoryBytes) / (1024 * 1024), // MB
+    s3: parseSize(entry.s3?.totalSize || 0),
   }));
 
   return (
@@ -231,6 +233,55 @@ const StorageAnalysis = () => {
             </div>
           </div>
         </motion.div>
+
+        {/* S3 Storage Analysis */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden flex flex-col"
+        >
+          <div className="bg-[#FF9900] p-4 flex justify-between items-center text-white">
+            <div className="flex items-center space-x-2">
+              <CloudIcon className="w-5 h-5" />
+              <h2 className="font-bold">AWS S3 Assets</h2>
+            </div>
+            <button
+              onClick={refreshStats}
+              className="p-1 hover:bg-white/20 rounded-full transition-colors"
+              title="Refresh"
+            >
+              <ArrowPathIcon
+                className={`w-4 h-4 ${loading ? "animate-spin" : ""}`}
+              />
+            </button>
+          </div>
+
+          <div className="p-5 flex-1 flex flex-col justify-center">
+            <div className="flex items-center justify-center mb-6">
+              <div className="text-center">
+                <span className="text-4xl font-black text-slate-800">
+                  {storageStats.s3?.totalSize || "0 MB"}
+                </span>
+                <p className="text-slate-500 text-xs mt-1 uppercase tracking-widest font-bold">
+                  Total Audio Storage
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-1">
+              <MetricRow
+                label="Voice Notes"
+                value={storageStats.s3?.objectCount || 0}
+              />
+              <MetricRow label="Retention" value="5 Days" />
+              <div className="mt-4 p-3 bg-slate-50 rounded-lg border border-slate-100 italic text-[11px] text-slate-500 ring-1 ring-slate-200 ring-inset">
+                Managed storage for all broadcast and directed voice messages
+                across the platform.
+              </div>
+            </div>
+          </div>
+        </motion.div>
       </div>
 
       {/* 24-Hour Trends */}
@@ -257,6 +308,10 @@ const StorageAnalysis = () => {
                 <linearGradient id="colorRedis" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="5%" stopColor="#f43f5e" stopOpacity={0.1} />
                   <stop offset="95%" stopColor="#f43f5e" stopOpacity={0} />
+                </linearGradient>
+                <linearGradient id="colorS3" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#FF9900" stopOpacity={0.1} />
+                  <stop offset="95%" stopColor="#FF9900" stopOpacity={0} />
                 </linearGradient>
               </defs>
               <CartesianGrid
@@ -312,6 +367,15 @@ const StorageAnalysis = () => {
                 fillOpacity={1}
                 fill="url(#colorRedis)"
                 name="Redis Usage"
+              />
+              <Area
+                type="monotone"
+                dataKey="s3"
+                stroke="#FF9900"
+                strokeWidth={2}
+                fillOpacity={1}
+                fill="url(#colorS3)"
+                name="S3 Assets"
               />
             </AreaChart>
           </ResponsiveContainer>

@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import { getNotificationService } from "@/services/notificationService";
+import { UserRole } from "@/models/User.model";
 import { AuthenticatedRequest } from "@/types/authenticatedRequest";
 import logger from "@/utils/logger";
 import { s3Service } from "@/services/s3.service";
@@ -22,10 +23,21 @@ export const sendVoiceNotification = async (req: Request, res: Response) => {
     const senderId = user?.id;
     const role = user?.role || "unknown";
 
-    // Setup folder structure: /voice-messages/{role}/{userId}/{timestamp}.mp3
+    let targetReceiverId = receiverId;
+
+    // SECURITY: Drivers can ONLY send to coordinator
+    if (role === UserRole.Driver) {
+      logger.info(
+        `[VoiceNotificationController] Forcing receiverId to coordinator for driver ${senderId}`,
+      );
+      targetReceiverId = "coordinator";
+    }
+
+    // Setup folder structure: /voice-messages/{collegeId}/{role}/{userId}/{timestamp}.mp3
     const timestamp = Date.now();
+    const collegeId = user?.collegeId || "global";
     const extension = path.extname(file.originalname) || ".mp3";
-    const s3Key = `voice-messages/${role}/${senderId}/${timestamp}${extension}`;
+    const s3Key = `voice-messages/${collegeId}/${role}/${senderId}/${timestamp}${extension}`;
 
     // Upload to AWS S3
     await s3Service.uploadFile(file.path, s3Key, file.mimetype || "audio/mpeg");
@@ -44,7 +56,7 @@ export const sendVoiceNotification = async (req: Request, res: Response) => {
     const notificationService = getNotificationService();
     let result;
 
-    if (!receiverId || receiverId === "coordinator") {
+    if (!targetReceiverId || targetReceiverId === "coordinator") {
       const collegeId = user?.collegeId;
       if (!collegeId) {
         return res
@@ -57,7 +69,7 @@ export const sendVoiceNotification = async (req: Request, res: Response) => {
         senderId,
         message || "New voice message from driver",
       );
-    } else if (receiverId === "all" || receiverId === "broadcast") {
+    } else if (targetReceiverId === "all" || targetReceiverId === "broadcast") {
       const collegeId = user?.collegeId;
       if (!collegeId) {
         return res
@@ -72,7 +84,7 @@ export const sendVoiceNotification = async (req: Request, res: Response) => {
       );
     } else {
       result = await notificationService.sendVoiceNotification(
-        receiverId,
+        targetReceiverId,
         s3Key,
         senderId,
         message || "New voice message",

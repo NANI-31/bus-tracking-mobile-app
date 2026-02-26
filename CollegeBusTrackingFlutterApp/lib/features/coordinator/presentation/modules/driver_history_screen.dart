@@ -461,11 +461,11 @@ class _DriverHistoryScreenState extends ConsumerState<DriverHistoryScreen> {
     final dateDay = DateTime(date.year, date.month, date.day);
 
     if (dateDay == today) {
-      return 'Today, ${DateFormat.jm().format(date)}';
+      return 'Today, ${DateFormat.jm().format(date.toLocal())}';
     } else if (dateDay == yesterday) {
-      return 'Yesterday, ${DateFormat.jm().format(date)}';
+      return 'Yesterday, ${DateFormat.jm().format(date.toLocal())}';
     } else {
-      return DateFormat('MMM d, y • h:mm a').format(date);
+      return DateFormat('MMM d, y • h:mm a').format(date.toLocal());
     }
   }
 }

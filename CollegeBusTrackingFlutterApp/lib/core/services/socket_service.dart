@@ -37,6 +37,12 @@ class SocketService extends ChangeNotifier {
       _sosResolvedController.stream;
   Stream<Map<String, dynamic>> get notificationStream =>
       _notificationController.stream;
+  Stream<Map<String, dynamic>> get notificationDeletedStream =>
+      _notificationDeletedController.stream;
+  Stream<Map<String, dynamic>> get notificationReadStream =>
+      _notificationReadController.stream;
+  Stream<Map<String, dynamic>> get notificationReadAllStream =>
+      _notificationReadAllController.stream;
   Stream<String?> get errorStream => _errorController.stream;
 
   SocketService() {
@@ -52,6 +58,12 @@ class SocketService extends ChangeNotifier {
     _sosResolvedController = StreamController<Map<String, dynamic>>.broadcast();
     _notificationController =
         StreamController<Map<String, dynamic>>.broadcast();
+    _notificationDeletedController =
+        StreamController<Map<String, dynamic>>.broadcast();
+    _notificationReadController =
+        StreamController<Map<String, dynamic>>.broadcast();
+    _notificationReadAllController =
+        StreamController<Map<String, dynamic>>.broadcast();
     _errorController = StreamController<String?>.broadcast();
   }
 
@@ -64,6 +76,11 @@ class SocketService extends ChangeNotifier {
   late final StreamController<Map<String, dynamic>> _sosAlertController;
   late final StreamController<Map<String, dynamic>> _sosResolvedController;
   late final StreamController<Map<String, dynamic>> _notificationController;
+  late final StreamController<Map<String, dynamic>>
+  _notificationDeletedController;
+  late final StreamController<Map<String, dynamic>> _notificationReadController;
+  late final StreamController<Map<String, dynamic>>
+  _notificationReadAllController;
   late final StreamController<String?> _errorController;
 
   Future<void> init(String url, {String? token}) async {
@@ -279,6 +296,21 @@ class SocketService extends ChangeNotifier {
     _socket!.on('notification_received', (data) {
       AppLogger.i('[SocketService] Received notification_received: $data');
       _notificationController.add(Map<String, dynamic>.from(data));
+    });
+
+    _socket!.on('notification_deleted', (data) {
+      AppLogger.i('[SocketService] Received notification_deleted: $data');
+      _notificationDeletedController.add(Map<String, dynamic>.from(data));
+    });
+
+    _socket!.on('notification_read', (data) {
+      AppLogger.i('[SocketService] Received notification_read: $data');
+      _notificationReadController.add(Map<String, dynamic>.from(data));
+    });
+
+    _socket!.on('notifications_read_all', (data) {
+      AppLogger.i('[SocketService] Received notifications_read_all: $data');
+      _notificationReadAllController.add(Map<String, dynamic>.from(data));
     });
   }
 

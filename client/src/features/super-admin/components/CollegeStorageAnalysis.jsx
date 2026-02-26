@@ -69,6 +69,7 @@ const CollegeStorageAnalysis = () => {
       day: "numeric",
     }),
     storage: entry.estimatedStorageMB,
+    s3: entry.s3StorageMB || 0,
     users: entry.counts?.users || 0,
     buses: entry.counts?.buses || 0,
     docs:
@@ -188,6 +189,18 @@ const CollegeStorageAnalysis = () => {
                           stopOpacity={0}
                         />
                       </linearGradient>
+                      <linearGradient id="colorS3" x1="0" y1="0" x2="0" y2="1">
+                        <stop
+                          offset="5%"
+                          stopColor="#FF9900"
+                          stopOpacity={0.1}
+                        />
+                        <stop
+                          offset="95%"
+                          stopColor="#FF9900"
+                          stopOpacity={0}
+                        />
+                      </linearGradient>
                     </defs>
                     <CartesianGrid
                       strokeDasharray="3 3"
@@ -225,7 +238,16 @@ const CollegeStorageAnalysis = () => {
                       strokeWidth={3}
                       fillOpacity={1}
                       fill="url(#colorStore)"
-                      name="Estimated Storage (MB)"
+                      name="DB Storage (MB)"
+                    />
+                    <Area
+                      type="monotone"
+                      dataKey="s3"
+                      stroke="#FF9900"
+                      strokeWidth={3}
+                      fillOpacity={1}
+                      fill="url(#colorS3)"
+                      name="S3 Assets (MB)"
                     />
                   </AreaChart>
                 </ResponsiveContainer>
@@ -247,20 +269,12 @@ const CollegeStorageAnalysis = () => {
                     bg: "bg-rose-50",
                   },
                   {
-                    label: "Data Objects",
-                    value: trendData[trendData.length - 1]?.docs || 0,
+                    label: "S3 Assets",
+                    value:
+                      (trendData[trendData.length - 1]?.s3 || 0).toFixed(2) +
+                      "MB",
                     color: "text-amber-600",
                     bg: "bg-amber-50",
-                  },
-                  {
-                    label: "Avg Storage/User",
-                    value:
-                      (
-                        (trendData[trendData.length - 1]?.storage || 0) /
-                        (trendData[trendData.length - 1]?.users || 1)
-                      ).toFixed(3) + "MB",
-                    color: "text-[#1E90FF]",
-                    bg: "bg-indigo-50",
                   },
                 ].map((stat, i) => (
                   <div

@@ -143,28 +143,16 @@ export const verifyPayment = async (req: Request, res: Response) => {
         let subscriptionPlan = plan;
 
         if (selectedPlan) {
-          // TESTING OVERRIDE
-          if (selectedPlan.alias === "monthly") {
-            premiumUntil = new Date(Date.now() + 60 * 1000); // 1 minute
-          } else if (selectedPlan.alias === "semester") {
-            premiumUntil = new Date(Date.now() + 90 * 1000); // 1.5 minutes
-          } else {
-            premiumUntil = new Date(
-              Date.now() + selectedPlan.durationDays * 24 * 60 * 60 * 1000,
-            );
-          }
+          // Use durationDays from the selected plan
+          premiumUntil = new Date(
+            Date.now() + selectedPlan.durationDays * 24 * 60 * 60 * 1000,
+          );
           isPremium = true;
           subscriptionPlan = selectedPlan.alias;
         } else {
           // Fallback for legacy or missing plans
-          console.warn(`Plan ${plan} not found in DB. Using fallback logic.`);
-          if (plan === "monthly") {
-            premiumUntil = new Date(Date.now() + 60 * 1000); // 1 minute
-          } else if (plan === "semester") {
-            premiumUntil = new Date(Date.now() + 90 * 1000); // 1.5 minutes
-          } else {
-            premiumUntil = new Date(Date.now() + 60 * 1000); // 1 minute
-          }
+          console.warn(`Plan ${plan} not found in DB. Using 30-day fallback.`);
+          premiumUntil = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
         }
 
         await User.findByIdAndUpdate(authReq.user.id, {

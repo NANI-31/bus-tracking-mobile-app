@@ -51,6 +51,15 @@ export const fetchColleges = async (params) => {
   }
 };
 
+export const fetchCollegeById = async (collegeId) => {
+  try {
+    const response = await axios.get(`/admin/super/colleges/${collegeId}`);
+    return response.data;
+  } catch (error) {
+    throw error.response ? error.response.data : error.message;
+  }
+};
+
 export const verifyCollege = async (collegeId) => {
   try {
     // Mapped to /api/admin/super/colleges/:id/verify
@@ -194,6 +203,21 @@ export const fetchAdvancedAnalytics = async (params) => {
     const response = await axios.get("/payments/admin/advanced-analytics", {
       params,
     });
+    return response.data;
+  } catch (error) {
+    throw error.response ? error.response.data : error.message;
+  }
+};
+
+export const wipeCollegeData = async (
+  collegeId,
+  deleteCollegeRecord = false,
+) => {
+  try {
+    const response = await axios.delete(
+      `/admin/super/colleges/${collegeId}/wipe-data`,
+      { data: { deleteCollegeRecord } },
+    );
     return response.data;
   } catch (error) {
     throw error.response ? error.response.data : error.message;

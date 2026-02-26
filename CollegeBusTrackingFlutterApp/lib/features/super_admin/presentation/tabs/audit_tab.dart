@@ -28,7 +28,7 @@ class AuditTab extends ConsumerWidget {
             ),
             title: Text(log.action),
             subtitle: Text(
-              '${log.actionDescription}\n${DateFormat('yyyy-MM-dd HH:mm').format(log.createdAt)}',
+              '${log.actionDescription}\n${DateFormat('yyyy-MM-dd HH:mm').format(log.createdAt.toLocal())}',
             ),
             isThreeLine: true,
           ),
@@ -37,8 +37,3 @@ class AuditTab extends ConsumerWidget {
     );
   }
 }
-
-
-
-
-

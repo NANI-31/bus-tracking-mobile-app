@@ -262,7 +262,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
 
   String _formatTimestamp(DateTime timestamp) {
     final now = DateTime.now();
-    final difference = now.difference(timestamp);
+    final difference = now.difference(timestamp.toLocal());
 
     if (difference.inMinutes < 1) {
       return "Just now";

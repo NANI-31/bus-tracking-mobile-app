@@ -19,6 +19,7 @@ import RefundDashboard from "@/features/college-admin/pages/RefundDashboard";
 import SuperAdminLayout from "@/layouts/SuperAdminLayout";
 import SuperAdminDashboard from "@/features/super-admin/pages/SuperAdminDashboard";
 import Colleges from "@/features/super-admin/pages/Colleges";
+import CollegeDetails from "@/features/super-admin/pages/CollegeDetails";
 import GlobalUsers from "@/features/super-admin/pages/GlobalUsers";
 import AuditLogs from "@/features/super-admin/pages/AuditLogs";
 import GlobalPayments from "@/features/super-admin/pages/GlobalPayments";
@@ -69,6 +70,7 @@ function App() {
               <Route path="/super-admin" element={<SuperAdminLayout />}>
                 <Route index element={<SuperAdminDashboard />} />
                 <Route path="colleges" element={<Colleges />} />
+                <Route path="colleges/:id" element={<CollegeDetails />} />
                 <Route path="users" element={<GlobalUsers />} />
                 <Route path="audit" element={<AuditLogs />} />
                 <Route path="payments" element={<GlobalPayments />} />

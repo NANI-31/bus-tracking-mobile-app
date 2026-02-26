@@ -10,6 +10,7 @@ import {
   sendTemplatedNotification,
   broadcastNotification,
   markAllNotificationsAsRead,
+  deleteNotification,
 } from "../../controllers/features/notification.controller";
 import { sendVoiceNotification } from "../../controllers/features/voiceNotification.controller";
 
@@ -50,5 +51,6 @@ router.get("/user/:userId", protect, getUserNotifications);
 router.put("/user/:userId/read-all", protect, markAllNotificationsAsRead);
 router.post("/voice", protect, upload.single("audio"), sendVoiceNotification);
 router.put("/:id/read", protect, markNotificationAsRead);
+router.delete("/:id", protect, deleteNotification);
 
 export default router;

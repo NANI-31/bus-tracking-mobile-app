@@ -325,7 +325,7 @@ class _CollegeAdminTransactionsTabState
                         Text(
                           DateFormat(
                             'MMM dd, yyyy',
-                          ).format(transaction.createdAt),
+                          ).format(transaction.createdAt.toLocal()),
                           style: const TextStyle(fontSize: 13),
                         ),
                       ],
@@ -341,7 +341,7 @@ class _CollegeAdminTransactionsTabState
                         Text(
                           DateFormat(
                             'MMM dd, yyyy',
-                          ).format(transaction.premiumUntil),
+                          ).format(transaction.premiumUntil.toLocal()),
                           style: const TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w500,

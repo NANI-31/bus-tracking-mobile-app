@@ -55,6 +55,7 @@ export interface IUser extends Document {
   tokenVersion: number;
   referralCode: string;
   referredBy?: string;
+  pendingEmail?: string;
 }
 
 const UserSchema: Schema = new Schema({
@@ -121,6 +122,7 @@ const UserSchema: Schema = new Schema({
   tokenVersion: { type: Number, default: 0 },
   referralCode: { type: String, unique: true, sparse: true },
   referredBy: { type: String, ref: "User" },
+  pendingEmail: { type: String, sparse: true },
 });
 
 // Index for geospatial queries

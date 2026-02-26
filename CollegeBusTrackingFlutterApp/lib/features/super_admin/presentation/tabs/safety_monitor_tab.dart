@@ -80,7 +80,7 @@ class SafetyMonitorTab extends ConsumerWidget {
                     'Bus ${sos.busNumber} - ${college?.name ?? 'Unknown'}',
                   ),
                   subtitle: Text(
-                    'Reported ${DateFormat('HH:mm').format(sos.timestamp)} • ${sos.userRole}',
+                    'Reported ${DateFormat('HH:mm').format(sos.timestamp.toLocal())} • ${sos.userRole}',
                   ),
                   trailing: const Icon(Icons.arrow_forward_ios, size: 14),
                 ),
@@ -156,8 +156,3 @@ class SafetyMonitorTab extends ConsumerWidget {
     );
   }
 }
-
-
-
-
-

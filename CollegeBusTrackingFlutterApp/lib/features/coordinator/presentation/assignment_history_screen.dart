@@ -46,9 +46,12 @@ class AssignmentHistoryScreen extends ConsumerWidget {
                   HStack([
                     _getStatusBadge(log.status),
                     const Spacer(),
-                    DateFormat(
-                      'MMM dd, yyyy',
-                    ).format(log.assignedAt).text.size(12).gray500.make(),
+                    DateFormat('MMM dd, yyyy')
+                        .format(log.assignedAt.toLocal())
+                        .text
+                        .size(12)
+                        .gray500
+                        .make(),
                   ]).pOnly(bottom: 8),
 
                   HStack([
@@ -97,7 +100,7 @@ class AssignmentHistoryScreen extends ConsumerWidget {
     return HStack([
       label.text.size(12).gray600.make(),
       const Spacer(),
-      DateFormat('hh:mm a').format(time).text.size(12).bold.make(),
+      DateFormat('hh:mm a').format(time.toLocal()).text.size(12).bold.make(),
     ]);
   }
 
@@ -131,8 +134,3 @@ class AssignmentHistoryScreen extends ConsumerWidget {
         .make();
   }
 }
-
-
-
-
-

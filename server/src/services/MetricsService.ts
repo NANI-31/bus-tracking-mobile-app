@@ -9,6 +9,7 @@ import Transaction from "@/models/Transaction.model";
 import Notification from "@/models/Notification.model";
 import AuditLog from "@/models/AuditLog.model";
 import MetricSnapshot from "@/models/MetricSnapshot.model";
+import { s3Service } from "./s3.service";
 
 export class MetricsService {
   private static readonly HISTORY_KEY = "storage_stats:history";
@@ -56,13 +57,14 @@ export class MetricsService {
       for (const college of colleges) {
         const collegeId = college._id;
 
-        const [users, buses, transactions, notifications, auditLogs] =
+        const [users, buses, transactions, notifications, auditLogs, s3Stats] =
           await Promise.all([
             User.countDocuments({ collegeId }),
             Bus.countDocuments({ collegeId }),
             Transaction.countDocuments({ collegeId }),
             Notification.countDocuments({ collegeId }),
             AuditLog.countDocuments({ collegeId }),
+            s3Service.getBucketStats(`voice-messages/${collegeId}`),
           ]);
 
         const totalDocs =
@@ -71,12 +73,18 @@ export class MetricsService {
         const estimatedStorageMB = parseFloat(
           (estimatedStorageBytes / (1024 * 1024)).toFixed(2),
         );
+        const s3StorageMB = parseFloat(
+          (s3Stats.totalSize / (1024 * 1024)).toFixed(2),
+        );
+        const s3ObjectCount = s3Stats.objectCount;
 
         await MetricSnapshot.findOneAndUpdate(
           { collegeId, date: today },
           {
             counts: { users, buses, transactions, notifications, auditLogs },
             estimatedStorageMB,
+            s3StorageMB,
+            s3ObjectCount,
           },
           { upsert: true },
         );
@@ -97,6 +105,7 @@ export class MetricsService {
 
       const dbStats = await mongoose.connection.db.stats();
       const redisInfo = await pubClient.info("memory");
+      const s3Stats = await s3Service.getBucketStats();
 
       const lines = redisInfo.split("\r\n");
       const findRedisValue = (key: string) => {
@@ -114,6 +123,10 @@ export class MetricsService {
         redis: {
           usedMemory: findRedisValue("used_memory_human"),
           usedMemoryBytes: findRedisValue("used_memory"), // raw bytes for better charting
+        },
+        s3: {
+          totalSize: (s3Stats.totalSize / (1024 * 1024)).toFixed(2), // MB
+          objectCount: s3Stats.objectCount,
         },
       };
 

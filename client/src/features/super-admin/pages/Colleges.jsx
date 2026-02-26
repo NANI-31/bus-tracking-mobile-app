@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
+import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   CheckCircleIcon,
@@ -8,15 +9,18 @@ import {
   BuildingLibraryIcon,
   NoSymbolIcon,
   CurrencyDollarIcon,
+  TrashIcon,
 } from "@heroicons/react/24/outline";
 import {
   getColleges,
   verifyCollegeAction,
   toggleManualPremiumAction,
+  wipeCollegeDataAction,
 } from "../slices/superAdminSlice";
 
 const Colleges = () => {
   const dispatch = useDispatch();
+  const navigate = useNavigate();
   const { colleges, loading } = useSelector((state) => state.superAdmin);
   const [filter, setFilter] = useState("all");
   const [search, setSearch] = useState("");
@@ -53,6 +57,32 @@ const Colleges = () => {
     );
   };
 
+  const handleWipe = async (college) => {
+    const confirmName = window.prompt(
+      `DANGER: This will PERMANENTLY WIPE ALL DATA (Buses, Users, Trips, SOS, Notifications) for ${college.name}.\n\nPlease type the college name "${college.name}" to confirm:`,
+    );
+
+    if (confirmName === college.name) {
+      const deleteRecord = window.confirm(
+        "Do you also want to DELETE the college record itself? (Cancel = Wipe data only)",
+      );
+
+      try {
+        await dispatch(
+          wipeCollegeDataAction({
+            collegeId: college._id,
+            deleteCollegeRecord: deleteRecord,
+          }),
+        ).unwrap();
+        alert("Wipe successful.");
+      } catch (err) {
+        alert("Wipe failed: " + (err.message || err));
+      }
+    } else if (confirmName !== null) {
+      alert("Verification failed. Data wipe cancelled.");
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -80,6 +110,12 @@ const Colleges = () => {
             <option value="verified">Verified</option>
             <option value="suspended">Suspended</option>
           </select>
+          <button
+            onClick={() => handleWipe({ _id: "all", name: "ALL COLLEGES" })}
+            className="flex items-center justify-center px-4 py-2 bg-red-50 text-red-600 border border-red-200 rounded-lg hover:bg-red-600 hover:text-white transition-all text-sm font-bold shadow-sm"
+          >
+            <TrashIcon className="w-5 h-5 mr-2" /> Wipe All Data
+          </button>
         </div>
       </div>
 
@@ -99,10 +135,13 @@ const Colleges = () => {
                   <div className="p-3 bg-indigo-50 rounded-lg">
                     <BuildingLibraryIcon className="w-8 h-8 text-[#1E90FF]" />
                   </div>
-                  <div>
+                  <div className="flex-1 min-w-0">
                     <h3
-                      className="text-lg font-bold text-slate-800 line-clamp-1"
-                      title={college.name}
+                      className="text-lg font-bold text-slate-800 truncate cursor-pointer hover:text-[#1E90FF] transition-colors"
+                      onClick={() =>
+                        navigate(`/super-admin/colleges/${college._id}`)
+                      }
+                      title="View Details"
                     >
                       {college.name}
                     </h3>
@@ -180,6 +219,13 @@ const Colleges = () => {
                   className="flex-1 flex items-center justify-center py-2 border border-red-200 text-red-600 rounded-lg hover:bg-red-50 transition-colors text-sm font-medium"
                 >
                   <NoSymbolIcon className="w-4 h-4 mr-2" /> Suspend
+                </button>
+                <button
+                  onClick={() => handleWipe(college)}
+                  className="px-3 py-2 border border-red-200 text-red-600 rounded-lg hover:bg-red-600 hover:text-white transition-all text-sm font-medium"
+                  title="Wipe Data"
+                >
+                  <TrashIcon className="w-4 h-4" />
                 </button>
               </div>
             </motion.div>

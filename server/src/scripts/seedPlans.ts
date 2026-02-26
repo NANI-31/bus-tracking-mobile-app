@@ -15,35 +15,35 @@ const seedPlans = async () => {
     await mongoose.connect(mongoUri);
     console.log("Connected to MongoDB");
 
-    const count = await Plan.countDocuments();
-    if (count > 0) {
-      console.log("Plans already exist. Skipping seed.");
-      process.exit(0);
-    }
-
     const defaultPlans = [
       {
         name: "Monthly Premium",
         alias: "monthly",
-        price: 1,
+        price: 10,
         durationDays: 30,
         features: ["Live Tracking", "Basic Alerts"],
         isActive: true,
         isBestValue: false,
       },
       {
-        name: "Semester Premium",
+        name: "Extended Premium (4 Months)",
         alias: "semester",
-        price: 2,
-        durationDays: 180,
+        price: 20,
+        durationDays: 120,
         features: ["Priority Support", "Route Insights", "Ad-Free"],
         isActive: true,
         isBestValue: true,
       },
     ];
 
-    await Plan.insertMany(defaultPlans);
-    console.log("Default plans seeded successfully");
+    // UPDATED: UPSERT PLANS INSTEAD OF JUST INSERTING IF EMPTY
+    for (const planData of defaultPlans) {
+      await Plan.findOneAndUpdate({ alias: planData.alias }, planData, {
+        upsert: true,
+        new: true,
+      });
+    }
+    console.log("Plans updated/seeded successfully");
     process.exit(0);
   } catch (error) {
     console.error("Error seeding plans:", error);

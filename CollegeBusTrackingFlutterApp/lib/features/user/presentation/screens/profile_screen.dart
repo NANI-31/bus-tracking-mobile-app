@@ -115,6 +115,23 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   20.heightBox,
                   HStack([
                     user.fullName.text.size(26).bold.color(Colors.white).make(),
+                    IconButton(
+                      icon: const Icon(
+                        Icons.edit_outlined,
+                        color: Colors.white,
+                        size: 20,
+                      ),
+                      onPressed: () {
+                        if (context.canPop()) {
+                          // If we're deep in student routes
+                          context.push('/student/edit-profile');
+                        } else {
+                          // Global profile route
+                          context.push('/profile/edit');
+                        }
+                      },
+                      tooltip: 'Edit Profile',
+                    ),
                     if (user.isPremium) ...[
                       8.widthBox,
                       const Icon(

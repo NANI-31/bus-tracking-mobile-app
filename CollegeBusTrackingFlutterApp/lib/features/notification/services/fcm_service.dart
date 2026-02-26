@@ -176,17 +176,31 @@ class FCMService {
 
   void _handleForegroundMessage(RemoteMessage message) {
     AppLogger.i('Foreground message received: ${message.notification?.title}');
-    AppLogger.i('Foreground message body: ${message.notification?.body}');
     AppLogger.i('Foreground message data: ${message.data}');
+
+    // Handle Silent Actions (Sync/Dismissal)
+    final action = message.data['action'];
+    if (action != null) {
+      _handleSilentAction(message.data);
+      return;
+    }
+
     _messageController.add(message);
 
     // Show local notification for foreground messages
     final notification = message.notification;
     final android = message.notification?.android;
+    final data = message.data;
+    final notificationIdStr = data['notificationId'] ?? data['id'];
 
     if (notification != null) {
+      // Use notificationId from data if available for consistent tracking
+      final localId = notificationIdStr != null
+          ? notificationIdStr.hashCode
+          : notification.hashCode;
+
       _localNotifications.show(
-        notification.hashCode,
+        localId,
         notification.title,
         notification.body,
         NotificationDetails(
@@ -206,6 +220,31 @@ class FCMService {
         ),
         payload: message.data.toString(),
       );
+    }
+  }
+
+  void _handleSilentAction(Map<String, dynamic> data) {
+    final action = data['action'];
+    AppLogger.i('Handling silent action: $action');
+
+    switch (action) {
+      case 'dismiss':
+        final notificationIdStr = data['notificationId'];
+        if (notificationIdStr != null) {
+          _localNotifications.cancel(notificationIdStr.hashCode);
+        }
+        break;
+      case 'dismiss_voice':
+        final voiceKey = data['voiceKey'];
+        if (voiceKey != null) {
+          // If we had a way to map voiceKey to local notification IDs, we'd cancel here.
+          // For now, cancelAll or if we used voiceKey.hashCode as ID.
+          _localNotifications.cancel(voiceKey.hashCode);
+        }
+        break;
+      case 'dismiss_all':
+        _localNotifications.cancelAll();
+        break;
     }
   }
 

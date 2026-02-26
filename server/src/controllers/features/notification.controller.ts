@@ -2,7 +2,11 @@
 import { Request, Response } from "express";
 import Notification from "@/models/Notification.model";
 import User from "@/models/User.model";
-import { sendNotificationToDevice } from "@/utils/firebase";
+import {
+  sendNotificationToDevice,
+  sendDataOnlyNotificationToDevices,
+  sendDataOnlyNotificationToTopic,
+} from "@/utils/firebase";
 import { getNotificationService } from "@/services/notificationService";
 import logger from "@/utils/logger";
 import { s3Service } from "@/services/s3.service";
@@ -81,7 +85,38 @@ export const markNotificationAsRead = async (req: Request, res: Response) => {
       { isRead: true },
       { new: true },
     );
-    res.json(notification);
+
+    if (!notification) {
+      return res.status(404).json({ message: "Notification not found" });
+    }
+
+    // Sync across devices via Socket
+    try {
+      const { getIO } = require("../../socket");
+      const io = getIO();
+      if (notification.receiverId) {
+        io.to(notification.receiverId).emit("notification_read", {
+          id: notification._id,
+        });
+      }
+    } catch (err) {
+      logger.warn("[Socket] Failed to emit notification_read", err);
+    }
+
+    // Dismiss push notification across devices via Silent FCM
+    try {
+      const user = await User.findById(notification.receiverId);
+      if (user?.fcmToken) {
+        await sendDataOnlyNotificationToDevices([user.fcmToken], {
+          action: "dismiss",
+          notificationId: notification._id.toString(),
+        });
+      }
+    } catch (err) {
+      logger.warn("[FCM] Failed to send silent dismissal", err);
+    }
+
+    res.status(200).json(notification);
   } catch (error) {
     res.status(500).json({ message: "Error updating notification", error });
   }
@@ -101,14 +136,33 @@ export const markAllNotificationsAsRead = async (
     }
 
     const result = await Notification.updateMany(
-      { receiverId: userId, isRead: false },
+      { receiverId: req.params.userId, isRead: false },
       { $set: { isRead: true } },
     );
 
-    res.status(200).json({
-      success: true,
-      message: `${result.modifiedCount} notifications marked as read`,
-    });
+    // Sync across devices via Socket
+    try {
+      const { getIO } = require("../../socket");
+      const { userId } = req.params;
+      getIO().to(userId).emit("notifications_read_all", { userId });
+    } catch (err) {
+      logger.warn("[Socket] Failed to emit notifications_read_all", err);
+    }
+
+    // Dismiss all push notifications across devices via Silent FCM
+    try {
+      const user = await User.findById(req.params.userId);
+      if (user?.fcmToken) {
+        await sendDataOnlyNotificationToDevices([user.fcmToken], {
+          action: "dismiss_all",
+          userId: req.params.userId,
+        });
+      }
+    } catch (err) {
+      logger.warn("[FCM] Failed to send silent dismissal", err);
+    }
+
+    res.status(200).json({ success: true });
   } catch (error) {
     res.status(500).json({ message: "Error updating notifications", error });
   }
@@ -287,6 +341,111 @@ export const broadcastNotification = async (req: Request, res: Response) => {
     logger.error(`[NotificationController] Broadcast error: ${error}`);
     res.status(500).json({
       message: "Error sending broadcast notification",
+      error: (error as Error).message,
+    });
+  }
+};
+
+/**
+ * Delete a notification
+ * If it's a voice notification, also deletes the S3 asset
+ */
+export const deleteNotification = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const notification = await Notification.findById(id);
+
+    if (!notification) {
+      return res.status(444).json({ message: "Notification not found" });
+    }
+
+    // Security: Only sender or an admin can delete
+    const { user } = req as AuthenticatedRequest;
+    if (notification.senderId !== user?.id && user?.role !== "Super Admin") {
+      return res
+        .status(403)
+        .json({ message: "Unauthorized to delete this notification" });
+    }
+
+    const voiceKey = notification.data?.voiceKey;
+    const isVoice = notification.type === NOTIFICATION_TYPES.VOICE_NOTIFICATION;
+    const collegeId = user?.collegeId;
+
+    // 1. Cleanup S3 if it's a voice notification
+    if (isVoice && voiceKey) {
+      try {
+        await s3Service.deleteFile(voiceKey);
+        logger.info(`[NotificationController] S3 asset deleted: ${voiceKey}`);
+      } catch (s3Err) {
+        logger.error(`[NotificationController] S3 deletion failed: ${s3Err}`);
+      }
+    }
+
+    // 2. RETRACTION LOGIC: If many notifications share the same voiceKey (broadcast), delete all
+    let deletedIds: string[] = [id];
+    if (isVoice && voiceKey) {
+      const related = await Notification.find({ "data.voiceKey": voiceKey });
+      deletedIds = related.map((r) => r._id.toString());
+      await Notification.deleteMany({ "data.voiceKey": voiceKey });
+      logger.info(
+        `[NotificationController] Retracted ${deletedIds.length} notifications for voiceKey: ${voiceKey}`,
+      );
+    } else {
+      await Notification.findByIdAndDelete(id);
+    }
+
+    // 3. SYNC: Emit Socket event
+    try {
+      const { getIO } = require("../../socket");
+      const io = getIO();
+      if (isVoice && voiceKey && collegeId) {
+        // Broadcast retraction to the whole college room
+        io.to(collegeId).emit("notification_deleted", { voiceKey, deletedIds });
+      } else if (notification.receiverId) {
+        // Single recipient sync
+        io.to(notification.receiverId).emit("notification_deleted", {
+          id,
+          deletedIds: [id],
+        });
+      }
+    } catch (socketErr) {
+      logger.warn("[Socket] Deletion emit failed", socketErr);
+    }
+
+    // 4. DISMISS: Send silent FCM to clear system tray
+    try {
+      if (isVoice && voiceKey) {
+        // Find all recipients to send silent push
+        // Optimization: In a real system, we might use a topic for clear,
+        // but here we'll try to find active tokens for related notifications if not too many.
+        // For now, let's at least dismiss it for the main user or use topic if available.
+        if (collegeId) {
+          await sendDataOnlyNotificationToTopic(`college_${collegeId}`, {
+            action: "dismiss_voice",
+            voiceKey: voiceKey,
+          });
+        }
+      } else {
+        const receiver = await User.findById(notification.receiverId);
+        if (receiver?.fcmToken) {
+          await sendDataOnlyNotificationToDevices([receiver.fcmToken], {
+            action: "dismiss",
+            notificationId: id,
+          });
+        }
+      }
+    } catch (fcmErr) {
+      logger.warn("[FCM] Silent dismissal failed", fcmErr);
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Notification(s) deleted/retracted successfully",
+    });
+  } catch (error) {
+    logger.error(`[NotificationController] Deletion error: ${error}`);
+    res.status(500).json({
+      message: "Error deleting notification",
       error: (error as Error).message,
     });
   }

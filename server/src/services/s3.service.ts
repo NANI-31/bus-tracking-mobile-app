@@ -2,6 +2,9 @@ import {
   S3Client,
   PutObjectCommand,
   GetObjectCommand,
+  DeleteObjectCommand,
+  DeleteObjectsCommand,
+  ListObjectsV2Command,
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { Upload } from "@aws-sdk/lib-storage";
@@ -80,6 +83,104 @@ class S3Service {
         `[S3Service] Presigned URL generation failed for ${key}:`,
         error,
       );
+      throw error;
+    }
+  }
+  /**
+   * Deletes a file from S3
+   * @param key S3 Object Key
+   */
+  async deleteFile(key: string): Promise<boolean> {
+    try {
+      const command = new DeleteObjectCommand({
+        Bucket: this.bucketName,
+        Key: key,
+      });
+
+      await this.client.send(command);
+      logger.info(`[S3Service] Successfully deleted: ${key}`);
+      return true;
+    } catch (error) {
+      logger.error(`[S3Service] Deletion failed for ${key}:`, error);
+      return false;
+    }
+  }
+
+  /**
+   * Calculates bucket statistics (total size and object count)
+   * @param prefix Optional prefix to filter objects (e.g. for a specific college)
+   */
+  async getBucketStats(prefix?: string): Promise<{
+    totalSize: number;
+    objectCount: number;
+  }> {
+    try {
+      let totalSize = 0;
+      let objectCount = 0;
+      let isTruncated = true;
+      let continuationToken: string | undefined;
+
+      while (isTruncated) {
+        const command = new ListObjectsV2Command({
+          Bucket: this.bucketName,
+          Prefix: prefix,
+          ContinuationToken: continuationToken,
+        });
+
+        const response = await this.client.send(command);
+        if (response.Contents) {
+          for (const item of response.Contents) {
+            totalSize += item.Size || 0;
+            objectCount++;
+          }
+        }
+        isTruncated = response.IsTruncated || false;
+        continuationToken = response.NextContinuationToken;
+      }
+
+      return { totalSize, objectCount };
+    } catch (error) {
+      logger.error(`[S3Service] Failed to fetch bucket stats:`, error);
+      return { totalSize: 0, objectCount: 0 };
+    }
+  }
+
+  /**
+   * Clears all objects in the S3 bucket
+   */
+  async clearBucket(): Promise<void> {
+    try {
+      logger.info(`[S3Service] Attempting to clear bucket: ${this.bucketName}`);
+      let isTruncated = true;
+      let continuationToken: string | undefined;
+
+      while (isTruncated) {
+        const listCommand = new ListObjectsV2Command({
+          Bucket: this.bucketName,
+          ContinuationToken: continuationToken,
+        });
+
+        const response = await this.client.send(listCommand);
+
+        if (response.Contents && response.Contents.length > 0) {
+          const keys = response.Contents.map((item) => ({ Key: item.Key! }));
+          const deleteCommand = new DeleteObjectsCommand({
+            Bucket: this.bucketName,
+            Delete: { Objects: keys },
+          });
+
+          await this.client.send(deleteCommand);
+          logger.info(`[S3Service] Deleted ${keys.length} objects`);
+        }
+
+        isTruncated = response.IsTruncated || false;
+        continuationToken = response.NextContinuationToken;
+      }
+      logger.info(
+        `[S3Service] Successfully cleared bucket: ${this.bucketName}`,
+      );
+    } catch (error) {
+      logger.error(`[S3Service] Failed to clear bucket:`, error);
       throw error;
     }
   }

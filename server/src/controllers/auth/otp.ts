@@ -67,3 +67,45 @@ export const verifyOtp = async (req: Request, res: Response) => {
     res.status(500).json({ message: "Error verifying OTP" });
   }
 };
+
+export const verifyEmailChange = async (req: Request, res: Response) => {
+  try {
+    const { email, otp } = req.body;
+    // We check for pendingEmail because that's where the target email is stored
+    const user = await User.findOne({ pendingEmail: email });
+
+    if (!user) {
+      return res
+        .status(404)
+        .json({ message: "Verification request not found" });
+    }
+
+    if (!user.otp || !user.otpExpires) {
+      return res.status(400).json({ message: "No pending verification" });
+    }
+
+    if (user.otp !== otp) {
+      return res.status(400).json({ message: "Invalid OTP" });
+    }
+
+    if (user.otpExpires < new Date()) {
+      return res.status(400).json({ message: "OTP Expired" });
+    }
+
+    // Success! Update the email
+    user.email = user.pendingEmail;
+    user.pendingEmail = undefined;
+    user.emailVerified = true;
+    user.otp = undefined;
+    user.otpExpires = undefined;
+    await user.save();
+
+    res.json({
+      message: "Email updated and verified successfully",
+      success: true,
+    });
+  } catch (error) {
+    console.error("Verify Email Change error:", error);
+    res.status(500).json({ message: "Error verifying email change" });
+  }
+};

@@ -88,6 +88,74 @@ class NotificationsNotifier extends AsyncNotifier<List<NotificationModel>> {
       state = previousState;
     }
   }
+
+  Future<void> deleteNotification(String notificationId) async {
+    final previousState = state;
+
+    // Optimistic Update: Remove from list
+    if (state.hasValue) {
+      state = AsyncValue.data(
+        state.value!.where((n) => n.id != notificationId).toList(),
+      );
+    }
+
+    try {
+      final repo = ref.read(notificationRepositoryProvider);
+      await repo.deleteNotification(notificationId);
+    } catch (e) {
+      // Revert on error
+      state = previousState;
+      rethrow;
+    }
+  }
+
+  /// Local sync: remove a notification by ID (from socket)
+  void deleteNotificationLocal(String notificationId) {
+    if (state.hasValue) {
+      state = AsyncValue.data(
+        state.value!.where((n) => n.id != notificationId).toList(),
+      );
+    }
+  }
+
+  /// Local sync: remove all notifications sharing a voiceKey (from socket retraction)
+  void removeNotificationsByVoiceKey(String voiceKey) {
+    if (state.hasValue) {
+      state = AsyncValue.data(
+        state.value!.where((n) {
+          // If it's a voice notification, check the voiceKey in data
+          if (n.type == 'VOICE_NOTIFICATION' &&
+              n.data?['voiceKey'] == voiceKey) {
+            return false;
+          }
+          return true;
+        }).toList(),
+      );
+    }
+  }
+
+  /// Local sync: mark a single notification as read (from socket)
+  void markAsReadLocal(String notificationId) {
+    if (state.hasValue) {
+      state = AsyncValue.data(
+        state.value!.map((n) {
+          if (n.id == notificationId) {
+            return n.copyWith(isRead: true);
+          }
+          return n;
+        }).toList(),
+      );
+    }
+  }
+
+  /// Local sync: mark all notifications as read (from socket)
+  void markAllAsReadLocal() {
+    if (state.hasValue) {
+      state = AsyncValue.data(
+        state.value!.map((n) => n.copyWith(isRead: true)).toList(),
+      );
+    }
+  }
 }
 
 // Derived provider for unread count

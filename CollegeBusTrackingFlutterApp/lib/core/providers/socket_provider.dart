@@ -46,5 +46,35 @@ final socketServiceProvider = ChangeNotifierProvider<SocketService>((ref) {
     ref.read(notificationsProvider.notifier).refreshNotifications(silent: true);
   });
 
+  socketService.notificationDeletedStream.listen((data) {
+    AppLogger.i('[socketServiceProvider] Notification deleted via socket');
+    final voiceKey = data['voiceKey'] as String?;
+    final notificationId = data['id'] as String?;
+
+    if (voiceKey != null) {
+      // It's a broadcast retraction
+      ref
+          .read(notificationsProvider.notifier)
+          .removeNotificationsByVoiceKey(voiceKey);
+    } else if (notificationId != null) {
+      ref
+          .read(notificationsProvider.notifier)
+          .deleteNotificationLocal(notificationId);
+    }
+  });
+
+  socketService.notificationReadStream.listen((data) {
+    AppLogger.i('[socketServiceProvider] Notification mark as read via socket');
+    final id = data['id'] as String;
+    ref.read(notificationsProvider.notifier).markAsReadLocal(id);
+  });
+
+  socketService.notificationReadAllStream.listen((data) {
+    AppLogger.i(
+      '[socketServiceProvider] All notifications mark as read via socket',
+    );
+    ref.read(notificationsProvider.notifier).markAllAsReadLocal();
+  });
+
   return socketService;
 });

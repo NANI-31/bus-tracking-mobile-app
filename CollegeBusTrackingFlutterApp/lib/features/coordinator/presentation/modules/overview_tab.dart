@@ -46,18 +46,18 @@ class OverviewTab extends ConsumerWidget {
         HStack([
           _buildStatCard(
             context,
-            'Total Routes',
-            routes.length.toString(),
-            Icons.route,
-            AppColors.primary,
-          ).expand(),
-          AppSizes.paddingMedium.widthBox,
-          _buildStatCard(
-            context,
             'Active Buses',
             buses.where((b) => b.isActive).length.toString(),
             Icons.directions_bus,
             AppColors.secondary,
+          ).expand(),
+          AppSizes.paddingMedium.widthBox,
+          _buildStatCard(
+            context,
+            'Total Routes',
+            routes.length.toString(),
+            Icons.route,
+            AppColors.primary,
           ).expand(),
         ]),
 

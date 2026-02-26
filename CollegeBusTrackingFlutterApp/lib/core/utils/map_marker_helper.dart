@@ -12,7 +12,7 @@ class MapMarkerHelper {
     }
 
     _cachedBusMarker = await BitmapDescriptor.fromAssetImage(
-      const ImageConfiguration(size: Size(32, 32), devicePixelRatio: 2.5),
+      const ImageConfiguration(size: Size(24, 24), devicePixelRatio: 2.5),
       'assets/bus_icon.png',
     );
 

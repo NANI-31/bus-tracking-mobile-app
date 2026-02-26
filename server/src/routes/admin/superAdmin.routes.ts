@@ -13,7 +13,12 @@ router.get(
   "/colleges/:collegeId/storage-history",
   SuperAdminController.getCollegeStorageHistory,
 );
+router.get("/colleges/:collegeId", SuperAdminController.getCollegeDetails);
 router.put("/colleges/:collegeId/verify", SuperAdminController.verifyCollege);
 router.put("/colleges/:collegeId/suspend", SuperAdminController.suspendCollege);
+router.delete(
+  "/colleges/:collegeId/wipe-data",
+  SuperAdminController.wipeCollegeData,
+);
 
 export default router;

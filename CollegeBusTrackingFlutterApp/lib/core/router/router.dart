@@ -26,6 +26,7 @@ import 'package:collegebus/shared/screens/privacy_policy_screen.dart';
 import 'package:collegebus/shared/screens/terms_conditions_screen.dart';
 import 'package:collegebus/features/notification/presentation/screens/notifications_screen.dart';
 import 'package:collegebus/features/user/presentation/screens/referral_screen.dart';
+import 'package:collegebus/features/user/presentation/screens/edit_profile_screen.dart';
 import 'package:collegebus/core/constants/constants.dart';
 import 'package:collegebus/features/coordinator/presentation/driver_selection_screen.dart';
 import 'package:collegebus/features/coordinator/presentation/assignment_history_screen.dart';
@@ -163,6 +164,12 @@ final routerProvider = riverpod.Provider<GoRouter>((ref) {
       GoRoute(
         path: '/profile',
         builder: (context, state) => const ProfileScreen(),
+        routes: [
+          GoRoute(
+            path: 'edit',
+            builder: (context, state) => const EditProfileScreen(),
+          ),
+        ],
       ),
       GoRoute(
         path: '/referral',
@@ -204,6 +211,10 @@ final routerProvider = riverpod.Provider<GoRouter>((ref) {
           GoRoute(
             path: 'language',
             builder: (context, state) => const LanguageSelectionScreen(),
+          ),
+          GoRoute(
+            path: 'edit-profile',
+            builder: (context, state) => const EditProfileScreen(),
           ),
         ],
       ),

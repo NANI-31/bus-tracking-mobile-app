@@ -11,6 +11,8 @@ export interface IMetricSnapshot extends Document {
     auditLogs: number;
   };
   estimatedStorageMB: number;
+  s3StorageMB: number;
+  s3ObjectCount: number;
   createdAt: Date;
 }
 
@@ -34,6 +36,8 @@ const MetricSnapshotSchema: Schema = new Schema({
     auditLogs: { type: Number, default: 0 },
   },
   estimatedStorageMB: { type: Number, default: 0 },
+  s3StorageMB: { type: Number, default: 0 },
+  s3ObjectCount: { type: Number, default: 0 },
   createdAt: { type: Date, default: Date.now },
 });
 

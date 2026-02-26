@@ -5,6 +5,8 @@ import College from "@/models/College.model";
 import { Bus } from "@/models/Bus.model";
 import Route from "@/models/Route.model";
 import { AuditService } from "@/services/AuditService";
+import { s3Service } from "@/services/s3.service";
+import MetricSnapshot from "@/models/MetricSnapshot.model";
 
 /**
  * Get statistics for the admin's college
@@ -16,7 +18,7 @@ export const getCollegeStats = async (req: IAuthRequest, res: Response) => {
       return res.status(400).json({ message: "College ID missing from token" });
     }
 
-    const [userCount, busCount, routeCount, pendingApprovals] =
+    const [userCount, busCount, routeCount, pendingApprovals, s3Stats] =
       await Promise.all([
         User.countDocuments({ collegeId }),
         Bus.countDocuments({ collegeId }),
@@ -26,6 +28,7 @@ export const getCollegeStats = async (req: IAuthRequest, res: Response) => {
           needsManualApproval: true,
           approved: false,
         }),
+        s3Service.getBucketStats(`voice-messages/${collegeId}`),
       ]);
 
     res.json({
@@ -33,6 +36,10 @@ export const getCollegeStats = async (req: IAuthRequest, res: Response) => {
       busCount,
       routeCount,
       pendingApprovals,
+      s3: {
+        totalSize: (s3Stats.totalSize / (1024 * 1024)).toFixed(2) + " MB",
+        objectCount: s3Stats.objectCount,
+      },
     });
   } catch (error) {
     res.status(500).json({ message: (error as Error).message });
@@ -102,3 +109,31 @@ export const updateCollegeSettings = async (
   }
 };
 
+/**
+ * Get historical storage metrics for the admin's college
+ */
+export const getCollegeStorageHistory = async (
+  req: IAuthRequest,
+  res: Response,
+) => {
+  try {
+    const collegeId = req.user?.collegeId;
+    if (!collegeId) {
+      return res.status(400).json({ message: "College ID missing from token" });
+    }
+
+    const { startDate, endDate } = req.query;
+    const query: any = { collegeId };
+
+    if (startDate || endDate) {
+      query.date = {};
+      if (startDate) query.date.$gte = new Date(startDate as string);
+      if (endDate) query.date.$lte = new Date(endDate as string);
+    }
+
+    const history = await MetricSnapshot.find(query).sort({ date: 1 });
+    res.json(history);
+  } catch (error) {
+    res.status(500).json({ message: (error as Error).message });
+  }
+};
