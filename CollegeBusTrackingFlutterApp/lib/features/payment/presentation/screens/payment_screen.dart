@@ -365,34 +365,37 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
                           ),
                         )
                       else
-                        Row(
-                          children: _plans.map((plan) {
-                            final bool isCurrent =
-                                (user?.isPremium ?? false) &&
-                                user?.subscriptionPlan == plan['alias'];
-                            return Expanded(
-                              child: Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 6.0,
-                                ),
-                                child: _buildPlanCard(
-                                  title: plan['name'],
-                                  price: "₹${plan['price']}",
-                                  duration: "${plan['durationDays']} Days",
-                                  isSelected: _selectedPlan == plan['alias'],
-                                  isCurrentPlan: isCurrent,
-                                  onTap: () => setState(
-                                    () => _selectedPlan = plan['alias'],
+                        IntrinsicHeight(
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: _plans.map((plan) {
+                              final bool isCurrent =
+                                  (user?.isPremium ?? false) &&
+                                  user?.subscriptionPlan == plan['alias'];
+                              return Expanded(
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 6.0,
                                   ),
-                                  theme: theme,
-                                  isBestValue: plan['isBestValue'] ?? false,
-                                  benefits: List<String>.from(
-                                    plan['features'] ?? [],
+                                  child: _buildPlanCard(
+                                    title: plan['name'],
+                                    price: "₹${plan['price']}",
+                                    duration: "${plan['durationDays']} Days",
+                                    isSelected: _selectedPlan == plan['alias'],
+                                    isCurrentPlan: isCurrent,
+                                    onTap: () => setState(
+                                      () => _selectedPlan = plan['alias'],
+                                    ),
+                                    theme: theme,
+                                    isBestValue: plan['isBestValue'] ?? false,
+                                    benefits: List<String>.from(
+                                      plan['features'] ?? [],
+                                    ),
                                   ),
                                 ),
-                              ),
-                            );
-                          }).toList(),
+                              );
+                            }).toList(),
+                          ),
                         ),
 
                       const SizedBox(height: 32),
@@ -512,9 +515,10 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
     return GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
+        height: double.infinity,
         duration: const Duration(milliseconds: 250),
         curve: Curves.easeInOut,
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: isSelected
               ? theme.colorScheme.primary.withValues(alpha: 0.08)
@@ -544,16 +548,18 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
               children: [
                 Row(
                   children: [
-                    Text(
-                      title,
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14,
-                        color: isSelected
-                            ? theme.colorScheme.primary
-                            : theme.textTheme.bodyMedium?.color?.withValues(
-                                alpha: 0.6,
-                              ),
+                    Expanded(
+                      child: Text(
+                        title,
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                          color: isSelected
+                              ? theme.colorScheme.primary
+                              : theme.textTheme.bodyMedium?.color?.withValues(
+                                  alpha: 0.6,
+                                ),
+                        ),
                       ),
                     ),
                     if (isCurrentPlan) ...[
@@ -621,12 +627,14 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
                               : theme.disabledColor,
                         ),
                         const SizedBox(width: 6),
-                        Text(
-                          b,
-                          style: TextStyle(
-                            fontSize: 10,
-                            color: theme.textTheme.bodySmall?.color?.withValues(
-                              alpha: 0.8,
+                        Expanded(
+                          child: Text(
+                            b,
+                            style: TextStyle(
+                              fontSize: 10,
+                              color: theme.textTheme.bodySmall?.color?.withValues(
+                                alpha: 0.8,
+                              ),
                             ),
                           ),
                         ),

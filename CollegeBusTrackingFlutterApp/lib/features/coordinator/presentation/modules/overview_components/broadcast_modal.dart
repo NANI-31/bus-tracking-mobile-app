@@ -105,7 +105,7 @@ class _BroadcastModalState extends ConsumerState<BroadcastModal> {
                   VoiceMessageButton(
                     receiverId: 'broadcast',
                     label: 'Record Voice Broadcast',
-                    defaultMessage: 'New voice broadcast from administration',
+                    defaultMessage: 'New voice broadcast from Bus Coordinator',
                   ),
                   const Spacer(),
                   TextButton(

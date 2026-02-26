@@ -12,34 +12,36 @@ export const getActivePlans = async (req: Request, res: Response) => {
 
 export const seedPlans = async (req: Request, res: Response) => {
   try {
-    const count = await Plan.countDocuments();
-    if (count > 0) {
-      return res.status(400).json({ message: "Plans already seeded" });
-    }
-
     const defaultPlans = [
       {
         name: "Monthly Premium",
         alias: "monthly",
-        price: 1,
+        price: 10,
         durationDays: 30,
         features: ["Live Tracking", "Basic Alerts"],
         isActive: true,
         isBestValue: false,
       },
       {
-        name: "Semester Premium",
+        name: "Extended Premium (4 Months)",
         alias: "semester",
-        price: 2,
-        durationDays: 180,
+        price: 20,
+        durationDays: 120,
         features: ["Priority Support", "Route Insights", "Ad-Free"],
         isActive: true,
         isBestValue: true,
       },
     ];
 
-    await Plan.insertMany(defaultPlans);
-    res.status(201).json({ message: "Default plans seeded successfully" });
+    for (const planData of defaultPlans) {
+      await Plan.findOneAndUpdate({ alias: planData.alias }, planData, {
+        upsert: true,
+        new: true,
+      });
+    }
+    res
+      .status(201)
+      .json({ message: "Default plans seeded/updated successfully" });
   } catch (error) {
     res.status(500).json({ message: (error as Error).message });
   }
