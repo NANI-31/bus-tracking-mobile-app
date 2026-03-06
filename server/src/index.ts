@@ -31,7 +31,7 @@ const startServer = async () => {
     // Enable CORS for web client
     app.use(
       cors({
-        origin: ["http://localhost:5173"],
+        origin: [process.env.VITE_CLIENT_URL || "http://localhost:5173"],
         credentials: true,
       }),
     );
