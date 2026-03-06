@@ -2,6 +2,7 @@ import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import { createServer } from "http";
+import path from "path";
 import { Server } from "socket.io";
 import connectDB from "@/config/db";
 import { connectRedis } from "@/config/redis";
@@ -55,9 +56,17 @@ const startServer = async () => {
     // Make io accessible to our router/controllers
     app.set("io", io);
 
+    // Serve static files from the "public" folder
+    app.use(express.static(path.join(__dirname, "../public")));
+
     // Register Middleware and Routes
     app.use("/api/v1", router);
     app.get("/ping", (req, res) => res.send("pong"));
+
+    // Serve HTML entry file for the root URL
+    app.get("/", (req, res) => {
+      res.sendFile(path.join(__dirname, "../public/index.html"));
+    });
 
     // Global Error Handler
     app.use(errorHandler);
