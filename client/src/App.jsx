@@ -25,7 +25,6 @@ import AuditLogs from "@/features/super-admin/pages/AuditLogs";
 import GlobalPayments from "@/features/super-admin/pages/GlobalPayments";
 import GlobalTracking from "@/features/super-admin/pages/GlobalTracking";
 import SystemAnalysis from "@/features/super-admin/pages/SystemAnalysis";
-import CouponManager from "@/features/super-admin/pages/CouponManager";
 import AdvancedAnalytics from "@/features/super-admin/pages/AdvancedAnalytics";
 
 import Login from "@/pages/Login";
@@ -74,7 +73,6 @@ function App() {
                 <Route path="users" element={<GlobalUsers />} />
                 <Route path="audit" element={<AuditLogs />} />
                 <Route path="payments" element={<GlobalPayments />} />
-                <Route path="coupons" element={<CouponManager />} />
                 <Route path="analytics" element={<AdvancedAnalytics />} />
                 <Route path="tracking" element={<GlobalTracking />} />
                 <Route path="analysis" element={<SystemAnalysis />} />

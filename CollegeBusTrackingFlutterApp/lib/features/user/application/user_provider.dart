@@ -101,6 +101,7 @@ final pendingApprovalsProvider = StreamProvider.family<List<UserModel>, String>(
               .where(
                 (u) =>
                     u.collegeId == collegeId &&
+                    u.role == UserRole.driver &&
                     u.needsManualApproval &&
                     !u.approved,
               )
@@ -117,8 +118,3 @@ final pendingApprovalsProvider = StreamProvider.family<List<UserModel>, String>(
     });
   },
 );
-
-
-
-
-

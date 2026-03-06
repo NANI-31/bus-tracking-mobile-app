@@ -10,6 +10,7 @@ class NotificationCard extends StatelessWidget {
   final Color iconBgColor;
   final bool isUnread;
   final VoidCallback? onTap;
+  final VoidCallback? onDelete;
 
   const NotificationCard({
     super.key,
@@ -21,6 +22,7 @@ class NotificationCard extends StatelessWidget {
     required this.iconBgColor,
     required this.isUnread,
     this.onTap,
+    this.onDelete,
   });
 
   @override
@@ -83,6 +85,17 @@ class NotificationCard extends StatelessWidget {
                     .make(),
               ],
             ).expand(),
+            if (onDelete != null)
+              IconButton(
+                icon: const Icon(
+                  Icons.delete_outline,
+                  color: Colors.red,
+                  size: 20,
+                ),
+                onPressed: onDelete,
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+              ),
             if (isUnread)
               Container(
                 width: 8.0,

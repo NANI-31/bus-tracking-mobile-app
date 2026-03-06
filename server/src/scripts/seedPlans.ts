@@ -26,7 +26,7 @@ const seedPlans = async () => {
         isBestValue: false,
       },
       {
-        name: "Extended Premium (4 Months)",
+        name: "Semester Premium",
         alias: "semester",
         price: 20,
         durationDays: 120,

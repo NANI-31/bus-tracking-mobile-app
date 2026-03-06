@@ -21,15 +21,11 @@ class PaymentScreen extends ConsumerStatefulWidget {
 }
 
 class _PaymentScreenState extends ConsumerState<PaymentScreen> {
-  final TextEditingController _couponController = TextEditingController();
-  int _discountPercentage = 0;
   bool _isEarlyRenewal = false;
-  String? _appliedCoupon;
   late Razorpay _razorpay;
   bool _isLoading = false;
-  String _selectedPlan = 'monthly'; // 'monthly' or 'semester'
+  String? _selectedPlan = 'monthly'; // 'monthly' or 'semester'
   Timer? _countdownTimer;
-  String? _couponError;
   List<dynamic> _plans = []; // Store fetched plans
   bool _fetchingPlans = true;
 
@@ -192,14 +188,12 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
       if (user == null) throw "User not logged in";
 
       final amount = _currentAmount;
-      // Calculate totalAmount after discount if any
-      final double totalAmount = amount * (1 - _discountPercentage / 100.0);
+      final double totalAmount = amount * (1 - (_isEarlyRenewal ? 0.05 : 0.0));
 
       final orderData = await api.createPaymentOrder(
         totalAmount.toInt(), // Pass integer amount to backend
         "INR",
         plan: _selectedPlan,
-        couponCode: _appliedCoupon, // Include coupon code
       );
       final orderId = orderData['id']?.toString() ?? "";
       final keyId =
@@ -400,9 +394,6 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
 
                       const SizedBox(height: 32),
                       _buildComparisonTable(theme),
-
-                      const SizedBox(height: 32),
-                      _buildCouponField(theme),
 
                       const SizedBox(height: 32),
                       _buildPaymentSummary(theme),
@@ -632,9 +623,8 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
                             b,
                             style: TextStyle(
                               fontSize: 10,
-                              color: theme.textTheme.bodySmall?.color?.withValues(
-                                alpha: 0.8,
-                              ),
+                              color: theme.textTheme.bodySmall?.color
+                                  ?.withValues(alpha: 0.8),
                             ),
                           ),
                         ),
@@ -775,182 +765,6 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
           ),
         ],
       ),
-    );
-  }
-
-  Widget _buildCouponField(ThemeData theme) {
-    bool hasError = _couponError != null;
-    bool hasApplied = _appliedCoupon != null;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          "Have a Coupon?",
-          style: theme.textTheme.titleSmall?.copyWith(
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        const SizedBox(height: 12),
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  TextField(
-                    controller: _couponController,
-                    onChanged: (v) {
-                      if (_couponError != null)
-                        setState(() => _couponError = null);
-                    },
-                    decoration: InputDecoration(
-                      hintText: "Enter Code (e.g. SEM20)",
-                      hintStyle: TextStyle(
-                        fontSize: 14,
-                        color: theme.disabledColor,
-                      ),
-                      filled: true,
-                      fillColor: theme.cardColor,
-                      prefixIcon: Icon(
-                        Icons.confirmation_num_outlined,
-                        color: hasError
-                            ? theme.colorScheme.error
-                            : (hasApplied
-                                  ? theme.colorScheme.primary
-                                  : theme.disabledColor),
-                        size: 20,
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(16),
-                        borderSide: BorderSide(
-                          color: hasError
-                              ? theme.colorScheme.error
-                              : (hasApplied
-                                    ? theme.colorScheme.primary
-                                    : theme.dividerColor.withValues(
-                                        alpha: 0.1,
-                                      )),
-                        ),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(16),
-                        borderSide: BorderSide(
-                          color: hasError
-                              ? theme.colorScheme.error
-                              : theme.colorScheme.primary,
-                          width: 2,
-                        ),
-                      ),
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 16,
-                      ),
-                    ),
-                  ),
-                  if (hasError)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 6, left: 4),
-                      child: Text(
-                        _couponError!,
-                        style: TextStyle(
-                          color: theme.colorScheme.error,
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  if (hasApplied && !hasError)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 6, left: 4),
-                      child: Text(
-                        "Coupon Applied: $_appliedCoupon ✨",
-                        style: TextStyle(
-                          color: theme.colorScheme.primary,
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-            ),
-            const SizedBox(width: 12),
-            SizedBox(
-              height: 56,
-              child: ElevatedButton(
-                onPressed: () {
-                  final code = _couponController.text.trim().toUpperCase();
-                  if (code.isEmpty) {
-                    setState(() => _couponError = "Please enter a code");
-                    return;
-                  }
-
-                  setState(() {
-                    // Simple mock validation
-                    if (code.startsWith("SAVE") || code.startsWith("SEM")) {
-                      _appliedCoupon = code;
-                      _couponError = null;
-                      _showSnackBar(
-                        "Coupon Applied Successfully!",
-                        type: SnackBarType.success,
-                      );
-                    } else {
-                      _appliedCoupon = null;
-                      _couponError = "Invalid coupon code";
-                    }
-                  });
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: theme.colorScheme.primary,
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  padding: const EdgeInsets.symmetric(horizontal: 24),
-                  elevation: 0,
-                ),
-                child: const Text(
-                  "Apply",
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                ),
-              ),
-            ),
-          ],
-        ),
-        if (_isEarlyRenewal)
-          Padding(
-            padding: const EdgeInsets.only(top: 16),
-            child: Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.green.withValues(alpha: 0.08),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: Colors.green.withValues(alpha: 0.2)),
-              ),
-              child: Row(
-                children: [
-                  const Icon(
-                    Icons.rocket_launch_rounded,
-                    color: Colors.green,
-                    size: 20,
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      "Early Renewal Active! 5% extra discount applied automatically. 🚀",
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: Colors.green[800],
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-      ],
     );
   }
 
@@ -1161,11 +975,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
   Widget _buildPaymentSummary(ThemeData theme) {
     final amount = _currentAmount.toDouble();
     final earlyRenewalDiscount = _isEarlyRenewal ? (amount * 0.05) : 0.0;
-
-    // Simple mock logic for coupon discount (assuming 10% for any valid coupon for UI)
-    final couponDiscount = _appliedCoupon != null ? (amount * 0.1) : 0.0;
-
-    final totalDiscount = earlyRenewalDiscount + couponDiscount;
+    final totalDiscount = earlyRenewalDiscount;
     final finalAmount = amount - totalDiscount;
 
     return Container(
@@ -1194,13 +1004,6 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
             _buildSummaryRow(
               "Early Renewal Discount (5%)",
               "- ₹${earlyRenewalDiscount.toStringAsFixed(2)}",
-              theme,
-              isDiscount: true,
-            ),
-          if (_appliedCoupon != null)
-            _buildSummaryRow(
-              "Coupon Discount",
-              "- ₹${couponDiscount.toStringAsFixed(2)}",
               theme,
               isDiscount: true,
             ),

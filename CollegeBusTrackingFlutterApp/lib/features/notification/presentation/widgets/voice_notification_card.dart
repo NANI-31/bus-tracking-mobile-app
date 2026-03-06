@@ -25,6 +25,8 @@ class VoiceNotificationCard extends ConsumerWidget {
     ).format(notification.timestamp.toLocal());
     final currentUser = ref.watch(currentUserProvider);
     final isSender = currentUser?.id == notification.senderId;
+    final isCoordinator = currentUser?.role == 'Bus Coordinator';
+    final canDelete = isSender || isCoordinator;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
@@ -83,7 +85,7 @@ class VoiceNotificationCard extends ConsumerWidget {
                       .make(),
                 ],
               ).expand(),
-              if (isSender)
+              if (canDelete)
                 IconButton(
                   icon: const Icon(
                     Icons.delete_outline,

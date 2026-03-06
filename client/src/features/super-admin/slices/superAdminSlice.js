@@ -12,10 +12,6 @@ import {
   toggleCollegeManualPremium,
   fetchStorageStats,
   fetchCollegeStorageHistory,
-  fetchCoupons,
-  createCoupon,
-  updateCoupon,
-  deleteCoupon,
   fetchAdvancedAnalytics,
   wipeCollegeData,
 } from "../api/superAdminApi";
@@ -132,38 +128,6 @@ export const getCollegeStorageHistory = createAsyncThunk(
   },
 );
 
-export const getCoupons = createAsyncThunk(
-  "superAdmin/getCoupons",
-  async () => {
-    const response = await fetchCoupons();
-    return response;
-  },
-);
-
-export const addCoupon = createAsyncThunk(
-  "superAdmin/addCoupon",
-  async (couponData) => {
-    const response = await createCoupon(couponData);
-    return response;
-  },
-);
-
-export const editCoupon = createAsyncThunk(
-  "superAdmin/editCoupon",
-  async ({ id, couponData }) => {
-    const response = await updateCoupon(id, couponData);
-    return response;
-  },
-);
-
-export const removeCoupon = createAsyncThunk(
-  "superAdmin/removeCoupon",
-  async (id) => {
-    await deleteCoupon(id);
-    return id;
-  },
-);
-
 export const getAdvancedAnalytics = createAsyncThunk(
   "superAdmin/getAdvancedAnalytics",
   async (params) => {
@@ -197,7 +161,6 @@ const initialState = {
   buses: [],
   storageStats: null,
   collegeStorageHistory: [],
-  coupons: [],
   advancedAnalytics: null,
   analyticsLoading: false,
   loading: false,
@@ -362,23 +325,6 @@ const superAdminSlice = createSlice({
       .addCase(getCollegeStorageHistory.rejected, (state, action) => {
         state.loading = false;
         state.error = action.error.message;
-      })
-
-      // Coupons
-      .addCase(getCoupons.fulfilled, (state, action) => {
-        state.coupons = action.payload;
-      })
-      .addCase(addCoupon.fulfilled, (state, action) => {
-        state.coupons.unshift(action.payload);
-      })
-      .addCase(editCoupon.fulfilled, (state, action) => {
-        const index = state.coupons.findIndex(
-          (c) => c._id === action.payload._id,
-        );
-        if (index !== -1) state.coupons[index] = action.payload;
-      })
-      .addCase(removeCoupon.fulfilled, (state, action) => {
-        state.coupons = state.coupons.filter((c) => c._id !== action.payload);
       })
 
       // Advanced Analytics

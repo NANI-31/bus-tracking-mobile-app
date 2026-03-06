@@ -8,10 +8,6 @@ import {
   resolveRefund,
   getSubscriptionAnalytics,
   getAdvancedAnalytics,
-  getCoupons,
-  createCoupon,
-  updateCoupon,
-  deleteCoupon,
 } from "@/controllers/features/payment.controller";
 import {
   protect,
@@ -48,11 +44,5 @@ router.get(
   premiumOnly,
   getAdvancedAnalytics,
 );
-
-// Coupon management (Super Admin)
-router.get("/admin/coupons", protect, superAdminOnly, getCoupons);
-router.post("/admin/coupons", protect, superAdminOnly, createCoupon);
-router.put("/admin/coupons/:id", protect, superAdminOnly, updateCoupon);
-router.delete("/admin/coupons/:id", protect, superAdminOnly, deleteCoupon);
 
 export default router;

@@ -157,46 +157,6 @@ export const fetchTransactions = async (params) => {
   }
 };
 
-// Coupons
-export const fetchCoupons = async () => {
-  try {
-    const response = await axios.get("/payments/admin/coupons");
-    return response.data;
-  } catch (error) {
-    throw error.response ? error.response.data : error.message;
-  }
-};
-
-export const createCoupon = async (couponData) => {
-  try {
-    const response = await axios.post("/payments/admin/coupons", couponData);
-    return response.data;
-  } catch (error) {
-    throw error.response ? error.response.data : error.message;
-  }
-};
-
-export const updateCoupon = async (id, couponData) => {
-  try {
-    const response = await axios.put(
-      `/payments/admin/coupons/${id}`,
-      couponData,
-    );
-    return response.data;
-  } catch (error) {
-    throw error.response ? error.response.data : error.message;
-  }
-};
-
-export const deleteCoupon = async (id) => {
-  try {
-    const response = await axios.delete(`/payments/admin/coupons/${id}`);
-    return response.data;
-  } catch (error) {
-    throw error.response ? error.response.data : error.message;
-  }
-};
-
 // Advanced Analytics
 export const fetchAdvancedAnalytics = async (params) => {
   try {

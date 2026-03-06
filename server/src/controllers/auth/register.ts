@@ -117,9 +117,9 @@ export const register = async (req: Request, res: Response) => {
       collegeId: finalCollegeId,
       phoneNumber,
       rollNumber,
-      approved: role === "parent", // Parents auto-approved (from original logic)
+      approved: role === "parent" || role === "driver", // Parents and drivers auto-approved
       emailVerified: false,
-      needsManualApproval: role !== "parent",
+      needsManualApproval: role !== "parent" && role !== "driver",
       createdAt: new Date(),
       referralCode,
       referredBy,

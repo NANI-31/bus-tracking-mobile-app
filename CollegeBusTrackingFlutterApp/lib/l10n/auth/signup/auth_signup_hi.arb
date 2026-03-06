@@ -4,7 +4,7 @@
   "whoAreYou": "आप कौन हैं?",
   "fullName": "पूरा नाम",
   "fullNameHint": "उदा. जॉन डो",
-  "rollNumber": "రోల్ సంఖ్య / ఐడి",
+  "rollNumber": "रोल नंबर / आईडी",
   "rollNumberHint": "उदा. 21CSE102",
   "emailAddress": "ईमेल पता",
   "emailAddressHint": "john@example.com",

@@ -4,7 +4,6 @@ import crypto from "crypto";
 import dotenv from "dotenv";
 import User from "@/models/User.model";
 import Transaction from "@/models/Transaction.model";
-import Coupon from "@/models/Coupon.model";
 import Plan from "@/models/Plan.model";
 import { sendNotificationToDevices } from "@/utils/firebase";
 import { IAuthRequest } from "@/types";
@@ -25,7 +24,7 @@ export const createOrder = async (req: Request, res: Response) => {
     });
   }
   try {
-    const { amount, currency = "INR", plan, couponCode } = req.body;
+    const { amount, currency = "INR", plan } = req.body;
     const authReq = req as IAuthRequest;
     const userId = authReq.user?.id;
 
@@ -54,24 +53,7 @@ export const createOrder = async (req: Request, res: Response) => {
       }
     }
 
-    // 2. Coupon Discount
-    if (couponCode) {
-      const coupon = await Coupon.findOne({
-        code: couponCode.toUpperCase(),
-        isActive: true,
-        expiryDate: { $gt: new Date() },
-      });
-
-      if (coupon) {
-        if (!coupon.maxUses || coupon.usedCount < coupon.maxUses) {
-          appliedDiscount += coupon.discountPercentage;
-          // Note: We don't increment usedCount yet, usually better to do it after verifyPayment
-          console.log(
-            `Coupon ${couponCode} applied: ${coupon.discountPercentage}%`,
-          );
-        }
-      }
-    }
+    // 2. Applied Discount Calculation (Currently only early renewal)
 
     // Calculate final amount after all discounts (capped at 100% total though unlikely)
     const discountMultiplier = Math.max(0, (100 - appliedDiscount) / 100);
@@ -83,7 +65,6 @@ export const createOrder = async (req: Request, res: Response) => {
       receipt: `receipt_order_${Date.now()}`,
       notes: {
         plan: selectedPlan.alias,
-        couponCode: couponCode || "",
         originalAmount: selectedPlan.price,
         discountApplied: `${appliedDiscount}%`,
       },
@@ -124,16 +105,7 @@ export const verifyPayment = async (req: Request, res: Response) => {
         const payment = await razorpay.payments.fetch(razorpay_payment_id);
 
         const plan = order.notes?.plan as string;
-        const couponCode = order.notes?.couponCode as string;
         const paymentMethod = (payment as any).method || "unknown";
-
-        // --- NEW: Increment Coupon Usage ---
-        if (couponCode) {
-          await Coupon.findOneAndUpdate(
-            { code: couponCode.toUpperCase() },
-            { $inc: { usedCount: 1 } },
-          );
-        }
 
         // Fetch plan details from DB
         const selectedPlan = await Plan.findOne({ alias: plan });
@@ -414,46 +386,6 @@ export const getSubscriptionAnalytics = async (req: Request, res: Response) => {
   } catch (error) {
     console.error("Error fetching analytics:", error);
     res.status(500).json({ message: "Internal server error", error });
-  }
-};
-
-// --- Coupon Management ---
-export const getCoupons = async (req: Request, res: Response) => {
-  try {
-    const coupons = await Coupon.find().sort({ createdAt: -1 });
-    res.status(200).json(coupons);
-  } catch (error) {
-    res.status(500).json({ message: "Error fetching coupons", error });
-  }
-};
-
-export const createCoupon = async (req: Request, res: Response) => {
-  try {
-    const coupon = new Coupon(req.body);
-    await coupon.save();
-    res.status(201).json(coupon);
-  } catch (error) {
-    res.status(500).json({ message: "Error creating coupon", error });
-  }
-};
-
-export const updateCoupon = async (req: Request, res: Response) => {
-  try {
-    const coupon = await Coupon.findByIdAndUpdate(req.params.id, req.body, {
-      new: true,
-    });
-    res.status(200).json(coupon);
-  } catch (error) {
-    res.status(500).json({ message: "Error updating coupon", error });
-  }
-};
-
-export const deleteCoupon = async (req: Request, res: Response) => {
-  try {
-    await Coupon.findByIdAndDelete(req.params.id);
-    res.status(200).json({ message: "Coupon deleted" });
-  } catch (error) {
-    res.status(500).json({ message: "Error deleting coupon", error });
   }
 };
 

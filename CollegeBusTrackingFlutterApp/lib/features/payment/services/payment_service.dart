@@ -30,14 +30,12 @@ class PaymentService extends ChangeNotifier {
     int amount,
     String currency, {
     String? plan,
-    String? couponCode,
   }) async {
     try {
       final result = await _apiService.createPaymentOrder(
         amount,
         currency,
         plan: plan,
-        couponCode: couponCode,
       );
       clearError();
       return result;

@@ -4,6 +4,7 @@ import 'package:collegebus/core/constants/constants.dart';
 import 'package:velocity_x/velocity_x.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:collegebus/features/notification/application/notification_provider.dart';
+import 'package:collegebus/features/auth/application/auth_provider.dart';
 import 'package:collegebus/features/notification/domain/notification_model.dart';
 import '../widgets/notification_card.dart';
 import '../widgets/voice_notification_card.dart';
@@ -61,6 +62,10 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final currentUser = ref.watch(currentUserProvider);
+    final isCoordinatorOrAdmin =
+        currentUser?.role == 'Bus Coordinator' || currentUser?.role == 'Admin';
+
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle(
         statusBarColor: Colors.transparent,
@@ -247,6 +252,12 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                               iconColor: iconColor,
                               iconBgColor: iconBgColor,
                               isUnread: !notif.isRead,
+                              onDelete:
+                                  (isCoordinatorOrAdmin ||
+                                      notif.senderId == currentUser?.id ||
+                                      notif.receiverId == currentUser?.id)
+                                  ? () => _confirmDelete(context, ref, notif)
+                                  : null,
                             ),
                           );
                         },
@@ -256,6 +267,51 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
             ),
           ),
         ]),
+      ),
+    );
+  }
+
+  void _confirmDelete(
+    BuildContext context,
+    WidgetRef ref,
+    NotificationModel notification,
+  ) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete Notification?'),
+        content: const Text(
+          'This will permanently delete this notification from your list.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('CANCEL'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.pop(ctx);
+              try {
+                await ref
+                    .read(notificationsProvider.notifier)
+                    .deleteNotification(notification.id);
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Notification deleted')),
+                  );
+                }
+              } catch (e) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Failed to delete: $e')),
+                  );
+                }
+              }
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text('DELETE', style: TextStyle(color: Colors.white)),
+          ),
+        ],
       ),
     );
   }

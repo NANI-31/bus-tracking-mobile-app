@@ -359,9 +359,16 @@ export const deleteNotification = async (req: Request, res: Response) => {
       return res.status(444).json({ message: "Notification not found" });
     }
 
-    // Security: Only sender or an admin can delete
+    // Security: Only sender, receiver, or a coordinator/admin can delete
     const { user } = req as AuthenticatedRequest;
-    if (notification.senderId !== user?.id && user?.role !== "Super Admin") {
+    const isAuthorized =
+      notification.senderId === user?.id ||
+      notification.receiverId === user?.id ||
+      user?.role === "Bus Coordinator" ||
+      user?.role === "Admin" ||
+      user?.role === "Super Admin";
+
+    if (!isAuthorized) {
       return res
         .status(403)
         .json({ message: "Unauthorized to delete this notification" });

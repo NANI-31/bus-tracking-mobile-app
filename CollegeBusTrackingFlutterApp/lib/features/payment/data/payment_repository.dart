@@ -5,17 +5,11 @@ class PaymentRepository extends BaseRepository {
     int amount,
     String currency, {
     String? plan,
-    String? couponCode,
   }) async {
     try {
       final response = await dio.post(
         '/payments/create-order',
-        data: {
-          'amount': amount,
-          'currency': currency,
-          'plan': plan,
-          'couponCode': couponCode,
-        },
+        data: {'amount': amount, 'currency': currency, 'plan': plan},
       );
       return response.data;
     } catch (e) {

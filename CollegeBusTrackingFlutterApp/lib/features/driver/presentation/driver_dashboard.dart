@@ -1141,8 +1141,10 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
                 busId: myBus?.id,
                 routeId: _selectedRoute?.id,
               ),
-              16.heightBox,
-              const VoiceMessageButton(),
+              if (myBus != null && myBus.assignmentStatus == 'accepted') ...[
+                16.heightBox,
+                const VoiceMessageButton(),
+              ],
             ],
           ),
         ),

@@ -245,13 +245,7 @@ class ApiService {
     int amount,
     String currency, {
     String? plan,
-    String? couponCode,
-  }) => _paymentRepo.createOrder(
-    amount,
-    currency,
-    plan: plan,
-    couponCode: couponCode,
-  );
+  }) => _paymentRepo.createOrder(amount, currency, plan: plan);
 
   Future<Map<String, dynamic>> verifyPayment(
     String orderId,

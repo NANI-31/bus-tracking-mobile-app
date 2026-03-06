@@ -6,6 +6,7 @@ import logger from "@/utils/logger";
 import { s3Service } from "@/services/s3.service";
 import path from "path";
 import fs from "fs";
+import { Bus } from "@/models/Bus.model";
 
 /**
  * Handle voice notification upload and sending
@@ -42,6 +43,17 @@ export const sendVoiceNotification = async (req: Request, res: Response) => {
     // Upload to AWS S3
     await s3Service.uploadFile(file.path, s3Key, file.mimetype || "audio/mpeg");
 
+    // Construct enriched message for Driver
+    let enrichedMessage = message;
+    if (role === UserRole.Driver) {
+      const driverName = user.fullName || "Driver";
+      const bus = await Bus.findOne({ driverId: senderId });
+      const busInfo = bus ? ` (Bus: ${bus.busNumber})` : "";
+      enrichedMessage = message
+        ? `${message} - from ${driverName}${busInfo}`
+        : `Voice message from ${driverName}${busInfo}`;
+    }
+
     // Clean up temporary local file
     try {
       if (fs.existsSync(file.path)) {
@@ -67,7 +79,7 @@ export const sendVoiceNotification = async (req: Request, res: Response) => {
         collegeId,
         s3Key,
         senderId,
-        message || "New voice message from driver",
+        enrichedMessage || "New voice message from driver",
       );
     } else if (targetReceiverId === "all" || targetReceiverId === "broadcast") {
       const collegeId = user?.collegeId;
@@ -80,14 +92,14 @@ export const sendVoiceNotification = async (req: Request, res: Response) => {
         collegeId,
         senderId,
         s3Key,
-        message || "New voice broadcast",
+        enrichedMessage || "New voice broadcast",
       );
     } else {
       result = await notificationService.sendVoiceNotification(
         targetReceiverId,
         s3Key,
         senderId,
-        message || "New voice message",
+        enrichedMessage || "New voice message",
       );
     }
 

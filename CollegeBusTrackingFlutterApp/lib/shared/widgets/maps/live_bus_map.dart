@@ -87,7 +87,10 @@ class LiveBusMapState extends ConsumerState<LiveBusMap>
 
   Future<void> _loadCustomMarker() async {
     try {
+      // Clear cache to pick up any size changes
+      MapMarkerHelper.clearCache();
       final icon = await MapMarkerHelper.createBusMarker();
+      debugPrint('[LiveBusMap] Custom bus marker loaded successfully');
       if (mounted) {
         setState(() {
           _busIcon = icon;

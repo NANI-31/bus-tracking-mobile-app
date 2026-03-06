@@ -22,7 +22,6 @@ import Notification from "@/models/Notification.model";
 import { History } from "@/models/History.model";
 import Transaction from "@/models/Transaction.model";
 import { BusAssignmentLog } from "@/models/BusAssignmentLog.model";
-import Coupon from "@/models/Coupon.model";
 import Plan from "@/models/Plan.model";
 import SystemConfig from "@/models/SystemConfig.model";
 import { s3Service } from "@/services/s3.service";
@@ -68,7 +67,6 @@ const runSeed = async () => {
       Transaction.deleteMany({}),
       BusAssignmentLog.deleteMany({}),
       BusLocation.deleteMany({}),
-      Coupon.deleteMany({}),
       Plan.deleteMany({}),
       SystemConfig.deleteMany({}),
     ]);
