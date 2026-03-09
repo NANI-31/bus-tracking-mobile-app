@@ -11,8 +11,7 @@ const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 const connectDB = async (retries = 10, delayMs = 5000) => {
   for (let attempt = 1; attempt <= retries; attempt++) {
     try {
-      // Security: Enable sanitizeFilter to strip $ operators from user input
-      mongoose.set("sanitizeFilter", true);
+      // Security: strictQuery helps prevent unexpected query behaviors
       mongoose.set("strictQuery", true);
 
       const conn = await mongoose.connect(MONGO_URI, {
