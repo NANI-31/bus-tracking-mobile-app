@@ -85,9 +85,11 @@ class ApiErrorModal extends StatelessWidget {
         );
       }
       statusCode = error.response?.statusCode;
-      if (error.response?.data is Map &&
-          error.response?.data['message'] != null) {
-        serverMessage = error.response?.data['message'];
+      if (error.response?.data is Map) {
+        final data = error.response?.data as Map;
+        if (data['message'] != null) {
+          serverMessage = data['message'].toString();
+        }
       }
     }
 
@@ -138,11 +140,15 @@ class ApiErrorModal extends StatelessWidget {
           onPrimaryAction: () => Navigator.pop(context),
         );
       default:
-        // Generic Fallback
-        final defaultMsg = error?.toString().replaceAll('Exception: ', '');
+        // Generic Fallback - safely handle null error strings
+        final String rawMsg = error?.toString() ?? 'Unknown Error';
+        final String defaultMsg = rawMsg.replaceAll('Exception: ', '');
+
         return _ErrorContent(
           title: 'Error',
-          message: serverMessage ?? (defaultMsg ?? 'Something went wrong.'),
+          message:
+              serverMessage ??
+              (defaultMsg.isNotEmpty ? defaultMsg : 'Something went wrong.'),
           icon: Icons.close_rounded,
           iconColor: const Color(0xFFFF8A80), // Soft Red
           primaryActionText: 'Try Again',

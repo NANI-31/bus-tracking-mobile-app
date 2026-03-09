@@ -7,6 +7,7 @@ export interface INotification extends Document {
   type: string;
   timestamp: Date;
   isRead: boolean;
+  groupId?: string;
   data?: any;
   audioUrl?: string;
 }
@@ -18,6 +19,7 @@ const NotificationSchema: Schema = new Schema({
   type: { type: String, required: true },
   timestamp: { type: Date, default: Date.now },
   isRead: { type: Boolean, default: false },
+  groupId: { type: String, index: true },
   data: { type: Schema.Types.Mixed },
 });
 

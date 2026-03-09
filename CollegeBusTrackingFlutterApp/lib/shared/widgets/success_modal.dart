@@ -28,12 +28,18 @@ class SuccessModal extends StatelessWidget {
     VoidCallback? onPrimaryAction,
     String? primaryActionText,
   }) async {
+    // Robustly handle null title or message passed via dynamic/optional paths
+    final safeTitle = title.isEmpty ? 'Success' : title;
+    final safeMessage = message.isEmpty
+        ? 'Operation completed successfully.'
+        : message;
+
     final resultFuture = showDialog<T>(
       context: context,
       barrierDismissible: false,
       builder: (context) => SuccessModal(
-        title: title,
-        message: message,
+        title: safeTitle,
+        message: safeMessage,
         icon: icon ?? Icons.check_rounded,
         onPrimaryAction: onPrimaryAction,
         primaryActionText: primaryActionText,

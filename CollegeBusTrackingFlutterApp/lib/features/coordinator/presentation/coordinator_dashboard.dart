@@ -11,8 +11,11 @@ import 'package:collegebus/features/sos/application/sos_provider.dart';
 import 'package:collegebus/core/providers/api_provider.dart';
 import 'package:collegebus/core/providers/service_providers.dart'; // Added for locationServiceProvider
 import 'package:collegebus/features/bus/domain/bus_model.dart';
+import 'package:collegebus/features/bus/application/bus_provider.dart';
+import 'package:collegebus/features/user/domain/user_model.dart';
 import 'package:collegebus/features/sos/domain/sos_model.dart';
 import 'package:collegebus/core/constants/constants.dart';
+import 'package:go_router/go_router.dart';
 import 'package:collegebus/features/notification/presentation/screens/notifications_screen.dart';
 import 'package:collegebus/features/notification/services/notification_service.dart';
 import 'package:collegebus/features/notification/services/fcm_service.dart'; // Added
@@ -118,6 +121,26 @@ class _CoordinatorDashboardState extends ConsumerState<CoordinatorDashboard>
       _bottomNavIndex = 0; // Go to Dashboard
       _tabController.animateTo(1); // Switch to Live Map tab
     });
+  }
+
+  void _handleEditDriver(UserModel driver) {
+    final user = ref.read(currentUserProvider);
+    final collegeId = user?.collegeId;
+    if (collegeId == null) return;
+
+    // We use read here because this is an event handler
+    final buses =
+        ref.read(allCollegeBusesStreamProvider(collegeId)).value ?? [];
+
+    try {
+      final bus = buses.firstWhere((b) => b.driverId == driver.id);
+      context.push(
+        '/coordinator/edit-bus/${bus.busNumber}?editable=false',
+        extra: bus,
+      );
+    } catch (_) {
+      context.push('/coordinator/edit-driver/${driver.id}', extra: driver);
+    }
   }
 
   @override
@@ -496,7 +519,10 @@ class _CoordinatorDashboardState extends ConsumerState<CoordinatorDashboard>
                 onSosTap: () => _tabController.animateTo(1), // Go to Live Map
               ),
               LiveMapTab(selectedBus: _selectedBus),
-              DriverManagementTab(onTrack: _handleTrackBus),
+              DriverManagementTab(
+                onTrack: _handleTrackBus,
+                onEditDriver: _handleEditDriver,
+              ),
               const BusNumbersTab(),
               const RoutesTab(),
             ],

@@ -17,6 +17,7 @@ import 'package:collegebus/features/super_admin/presentation/tabs/safety_monitor
 import 'package:collegebus/features/super_admin/presentation/tabs/transactions_tab.dart';
 import 'package:collegebus/features/super_admin/presentation/tabs/danger_zone_tab.dart';
 import 'package:collegebus/shared/widgets/logout_confirmation_dialog.dart';
+import 'package:collegebus/shared/widgets/logout_loading_dialog.dart';
 
 class SuperAdminDashboard extends ConsumerStatefulWidget {
   const SuperAdminDashboard({super.key});
@@ -88,6 +89,9 @@ class _SuperAdminDashboardState extends ConsumerState<SuperAdminDashboard> {
             onPressed: () async {
               final confirmed = await LogoutConfirmationDialog.show(context);
               if (confirmed) {
+                if (context.mounted) {
+                  LogoutLoadingDialog.show(context);
+                }
                 await authService.signOut();
                 if (context.mounted) {
                   context.go('/login');

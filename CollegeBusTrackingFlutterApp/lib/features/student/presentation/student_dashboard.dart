@@ -24,7 +24,6 @@ import 'package:collegebus/features/user/presentation/screens/profile_screen.dar
 import 'student_home_screen.dart';
 import 'bus_schedule_screen.dart';
 import 'package:collegebus/shared/widgets/navigation/curved_bottom_nav_bar.dart';
-import 'package:collegebus/shared/widgets/indicators/rive_sos_indicator.dart';
 
 class StudentDashboard extends ConsumerStatefulWidget {
   const StudentDashboard({super.key});
@@ -394,8 +393,6 @@ class _StudentDashboardState extends ConsumerState<StudentDashboard>
           return const SizedBox.shrink();
         }
 
-        final color = isConnecting ? Colors.amber : Colors.redAccent;
-
         return Positioned(
           top: MediaQuery.of(context).padding.top + 12,
           left: 20,
@@ -413,66 +410,28 @@ class _StudentDashboardState extends ConsumerState<StudentDashboard>
                 ),
               );
             },
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(30),
-              child: BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 12.0, sigmaY: 12.0),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 10,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              decoration: BoxDecoration(
+                color: isConnecting ? Colors.amber : Colors.red,
+                borderRadius: BorderRadius.circular(30),
+                boxShadow: [
+                  BoxShadow(
+                    color: (isConnecting ? Colors.amber : Colors.red)
+                        .withValues(alpha: 0.3),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
                   ),
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [
-                        color.withValues(alpha: 0.7),
-                        color.withValues(alpha: 0.4),
-                      ],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                    borderRadius: BorderRadius.circular(30),
-                    border: Border.all(
-                      color: color.withValues(alpha: 0.3),
-                      width: 1.5,
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: color.withValues(alpha: 0.2),
-                        blurRadius: 15,
-                        offset: const Offset(0, 8),
-                      ),
-                    ],
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const RiveSosIndicator(size: 20),
-                      const SizedBox(width: 12),
-                      Text(
-                        isConnecting ? "Connecting..." : "Server Disconnected",
-                        style: TextStyle(
-                          color: isConnecting ? Colors.black87 : Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 13,
-                          letterSpacing: 0.5,
-                        ),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.only(left: 10),
-                        child: const SizedBox(
-                          width: 12,
-                          height: 12,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 1.5,
-                            valueColor: AlwaysStoppedAnimation<Color>(
-                              Colors.black54,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
+                ],
+              ),
+              child: Text(
+                isConnecting ? "Connecting..." : "Server Disconnected",
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: isConnecting ? Colors.black87 : Colors.white,
+                  fontWeight: FontWeight.w900,
+                  fontSize: 14,
+                  letterSpacing: 0.8,
                 ),
               ),
             ),

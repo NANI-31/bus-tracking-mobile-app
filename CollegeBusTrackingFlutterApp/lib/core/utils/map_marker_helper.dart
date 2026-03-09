@@ -10,7 +10,7 @@ class MapMarkerHelper {
   /// Creates a small bus marker icon by resizing the asset image.
   /// [targetWidth] controls the physical pixel width of the marker on screen.
   static Future<BitmapDescriptor> createBusMarker({
-    int targetWidth = 120,
+    int targetWidth = 100,
   }) async {
     if (_cachedBusMarker != null) {
       return _cachedBusMarker!;

@@ -375,6 +375,7 @@ export const deleteNotification = async (req: Request, res: Response) => {
     }
 
     const voiceKey = notification.data?.voiceKey;
+    const groupId = notification.groupId;
     const isVoice = notification.type === NOTIFICATION_TYPES.VOICE_NOTIFICATION;
     const collegeId = user?.collegeId;
 
@@ -388,7 +389,7 @@ export const deleteNotification = async (req: Request, res: Response) => {
       }
     }
 
-    // 2. RETRACTION LOGIC: If many notifications share the same voiceKey (broadcast), delete all
+    // 2. RETRACTION LOGIC: If many notifications share the same voiceKey (broadcast) or groupId, delete all
     let deletedIds: string[] = [id];
     if (isVoice && voiceKey) {
       const related = await Notification.find({ "data.voiceKey": voiceKey });
@@ -396,6 +397,13 @@ export const deleteNotification = async (req: Request, res: Response) => {
       await Notification.deleteMany({ "data.voiceKey": voiceKey });
       logger.info(
         `[NotificationController] Retracted ${deletedIds.length} notifications for voiceKey: ${voiceKey}`,
+      );
+    } else if (groupId) {
+      const related = await Notification.find({ groupId });
+      deletedIds = related.map((r) => r._id.toString());
+      await Notification.deleteMany({ groupId });
+      logger.info(
+        `[NotificationController] Retracted ${deletedIds.length} notifications for groupId: ${groupId}`,
       );
     } else {
       await Notification.findByIdAndDelete(id);
@@ -405,9 +413,15 @@ export const deleteNotification = async (req: Request, res: Response) => {
     try {
       const { getIO } = require("../../socket");
       const io = getIO();
-      if (isVoice && voiceKey && collegeId) {
-        // Broadcast retraction to the whole college room
-        io.to(collegeId).emit("notification_deleted", { voiceKey, deletedIds });
+      if ((isVoice && voiceKey) || groupId) {
+        if (collegeId) {
+          // Broadcast retraction to the whole college room
+          io.to(collegeId).emit("notification_deleted", {
+            voiceKey,
+            groupId,
+            deletedIds,
+          });
+        }
       } else if (notification.receiverId) {
         // Single recipient sync
         io.to(notification.receiverId).emit("notification_deleted", {

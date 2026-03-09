@@ -18,6 +18,7 @@ import 'package:collegebus/features/college_admin/presentation/tabs/users_tab.da
 import 'package:collegebus/features/college_admin/presentation/tabs/transactions_tab.dart';
 import 'package:collegebus/features/college_admin/presentation/tabs/settings_tab.dart';
 import 'package:collegebus/shared/widgets/logout_confirmation_dialog.dart';
+import 'package:collegebus/shared/widgets/logout_loading_dialog.dart';
 import 'package:collegebus/shared/widgets/navigation/curved_bottom_nav_bar.dart';
 
 class CollegeAdminDashboard extends ConsumerStatefulWidget {
@@ -154,6 +155,9 @@ class _CollegeAdminDashboardState extends ConsumerState<CollegeAdminDashboard> {
             onPressed: () async {
               final confirmed = await LogoutConfirmationDialog.show(context);
               if (confirmed) {
+                if (context.mounted) {
+                  LogoutLoadingDialog.show(context);
+                }
                 await authService.signOut();
                 if (context.mounted) {
                   context.go('/login');

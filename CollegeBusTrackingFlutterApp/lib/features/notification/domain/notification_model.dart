@@ -8,6 +8,7 @@ class NotificationModel {
   final String type;
   final DateTime timestamp;
   final bool isRead;
+  final String? groupId;
   final Map<String, dynamic>? data;
   final String? audioUrl; // Transient field for pre-signed URL from server
 
@@ -19,6 +20,7 @@ class NotificationModel {
     required this.type,
     required this.timestamp,
     this.isRead = false,
+    this.groupId,
     this.data,
     this.audioUrl,
   });
@@ -35,6 +37,7 @@ class NotificationModel {
       type: map['type'] ?? '',
       timestamp: DateTime.parse(map['timestamp']),
       isRead: parseBool(map['isRead'], false),
+      groupId: map['groupId'],
       data: map['data'],
       audioUrl: map['audioUrl'],
     );
@@ -48,6 +51,7 @@ class NotificationModel {
       'type': type,
       'timestamp': timestamp.toIso8601String(),
       'isRead': isRead,
+      'groupId': groupId,
       'data': data,
       'audioUrl': audioUrl,
     };
@@ -61,6 +65,7 @@ class NotificationModel {
     String? type,
     DateTime? timestamp,
     bool? isRead,
+    String? groupId,
     Map<String, dynamic>? data,
     String? audioUrl,
   }) {
@@ -72,6 +77,7 @@ class NotificationModel {
       type: type ?? this.type,
       timestamp: timestamp ?? this.timestamp,
       isRead: isRead ?? this.isRead,
+      groupId: groupId ?? this.groupId,
       data: data ?? this.data,
       audioUrl: audioUrl ?? this.audioUrl,
     );

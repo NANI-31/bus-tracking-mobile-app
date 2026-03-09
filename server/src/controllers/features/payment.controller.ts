@@ -67,10 +67,11 @@ export const createOrder = async (req: Request, res: Response) => {
         plan: selectedPlan.alias,
         originalAmount: selectedPlan.price,
         discountApplied: `${appliedDiscount}%`,
+        userId: userId,
       },
     };
 
-    const order = await razorpay.orders.create(options);
+    const order = await razorpay.orders.create(options as any);
 
     res.status(200).json({
       ...order,
@@ -110,21 +111,34 @@ export const verifyPayment = async (req: Request, res: Response) => {
         // Fetch plan details from DB
         const selectedPlan = await Plan.findOne({ alias: plan });
 
+        // Fetch current user to check for existing subscription
+        const currentUser = await User.findById(authReq.user.id);
+        const currentExpiry =
+          currentUser &&
+          currentUser.premiumUntil &&
+          currentUser.premiumUntil > new Date()
+            ? currentUser.premiumUntil
+            : new Date();
+
         let premiumUntil: Date;
         let isPremium = false;
         let subscriptionPlan = plan;
 
         if (selectedPlan) {
-          // Use durationDays from the selected plan
+          // Stack durationDays on top of currentExpiry
           premiumUntil = new Date(
-            Date.now() + selectedPlan.durationDays * 24 * 60 * 60 * 1000,
+            currentExpiry.getTime() +
+              selectedPlan.durationDays * 24 * 60 * 60 * 1000,
           );
           isPremium = true;
           subscriptionPlan = selectedPlan.alias;
         } else {
           // Fallback for legacy or missing plans
           console.warn(`Plan ${plan} not found in DB. Using 30-day fallback.`);
-          premiumUntil = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+          premiumUntil = new Date(
+            currentExpiry.getTime() + 30 * 24 * 60 * 60 * 1000,
+          );
+          isPremium = true;
         }
 
         await User.findByIdAndUpdate(authReq.user.id, {
@@ -443,5 +457,128 @@ export const getAdvancedAnalytics = async (req: Request, res: Response) => {
   } catch (error) {
     console.error("Error fetching advanced analytics:", error);
     res.status(500).json({ message: "Internal server error", error });
+  }
+};
+
+export const handleWebhook = async (req: Request, res: Response) => {
+  const secret = process.env.RAZORPAY_WEBHOOK_SECRET;
+
+  if (!secret) {
+    console.warn("RAZORPAY_WEBHOOK_SECRET is not set. Skipping verification.");
+    return res.status(400).json({ message: "Webhook secret not configured" });
+  }
+
+  const signature = req.headers["x-razorpay-signature"] as string;
+  const body = JSON.stringify(req.body);
+
+  const expectedSignature = crypto
+    .createHmac("sha256", secret)
+    .update(body)
+    .digest("hex");
+
+  if (signature !== expectedSignature) {
+    console.error("Invalid Webhook Signature");
+    return res.status(400).json({ message: "Invalid signature" });
+  }
+
+  const { event, payload } = req.body;
+  console.log(`[Webhook] Event received: ${event}`);
+
+  try {
+    if (event === "payment.captured" || event === "order.paid") {
+      const paymentDetail =
+        event === "payment.captured"
+          ? payload.payment.entity
+          : payload.order.entity;
+      const orderId =
+        event === "payment.captured"
+          ? paymentDetail.order_id
+          : paymentDetail.id;
+      const paymentId =
+        event === "payment.captured"
+          ? paymentDetail.id
+          : payload.payment?.entity?.id;
+
+      // Ensure we have an order ID to find the plan
+      if (!orderId) {
+        return res.status(200).json({ status: "ok", message: "No order ID" });
+      }
+
+      const order = await razorpay.orders.fetch(orderId);
+      const planAlias = order.notes?.plan as string;
+
+      if (!planAlias) {
+        console.warn(`[Webhook] No plan alias found in order ${orderId}`);
+        return res.status(200).json({ status: "ok" });
+      }
+
+      // Check if transaction already processed (Idempotency)
+      const existingTx = await Transaction.findOne({
+        orderId: orderId,
+        status: "captured",
+      });
+      if (existingTx) {
+        console.log(`[Webhook] Order ${orderId} already processed. Skipping.`);
+        return res.status(200).json({ status: "ok" });
+      }
+
+      // Find user by order notes
+      const userId = order.notes?.userId as string;
+      if (!userId) {
+        console.warn(
+          `[Webhook] userId not found in order notes for ${orderId}`,
+        );
+        return res.status(200).json({ status: "ok" });
+      }
+
+      const selectedPlan = await Plan.findOne({ alias: planAlias });
+      const user = await User.findById(userId);
+
+      if (!user || !selectedPlan) {
+        console.warn(`[Webhook] User or Plan not found for ${orderId}`);
+        return res.status(200).json({ status: "ok" });
+      }
+
+      // Calculate expiry with stacking
+      const currentExpiry =
+        user.premiumUntil && user.premiumUntil > new Date()
+          ? user.premiumUntil
+          : new Date();
+
+      const premiumUntil = new Date(
+        currentExpiry.getTime() +
+          selectedPlan.durationDays * 24 * 60 * 60 * 1000,
+      );
+
+      // Update User
+      await User.findByIdAndUpdate(userId, {
+        isPremium: true,
+        subscriptionPlan: planAlias,
+        premiumUntil: premiumUntil,
+      });
+
+      // Create Transaction Record
+      await Transaction.create({
+        userId: userId,
+        collegeId: user.collegeId,
+        orderId: orderId,
+        paymentId: paymentId || "unknown",
+        amount: (order.amount as any) / 100,
+        currency: order.currency,
+        plan: planAlias,
+        premiumUntil: premiumUntil,
+        status: "captured",
+        paymentMethod: paymentDetail.method || "unknown",
+      });
+
+      console.log(
+        `[Webhook] Successfully processed ${event} for user ${userId}`,
+      );
+    }
+
+    res.status(200).json({ status: "ok" });
+  } catch (error) {
+    console.error("[Webhook] Error processing webhook:", error);
+    res.status(500).json({ message: "Internal server error" });
   }
 };

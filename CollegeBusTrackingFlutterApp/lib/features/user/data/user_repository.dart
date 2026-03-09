@@ -29,7 +29,10 @@ class UserRepository extends BaseRepository {
   Future<UserModel> updateUser(String userId, Map<String, dynamic> data) async {
     try {
       final response = await dio.put('/users/$userId', data: data);
-      return UserModel.fromMap(response.data, userId);
+      final userData = response.data is Map && response.data['user'] != null
+          ? response.data['user']
+          : response.data;
+      return UserModel.fromMap(userData, userId);
     } catch (e) {
       throw handleError(e);
     }
@@ -75,8 +78,3 @@ class UserRepository extends BaseRepository {
     }
   }
 }
-
-
-
-
-

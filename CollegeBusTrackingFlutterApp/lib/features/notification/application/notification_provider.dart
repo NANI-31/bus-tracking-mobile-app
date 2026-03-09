@@ -134,6 +134,15 @@ class NotificationsNotifier extends AsyncNotifier<List<NotificationModel>> {
     }
   }
 
+  /// Local sync: remove all notifications sharing a groupId (from socket retraction)
+  void removeNotificationsByGroupId(String groupId) {
+    if (state.hasValue) {
+      state = AsyncValue.data(
+        state.value!.where((n) => n.groupId != groupId).toList(),
+      );
+    }
+  }
+
   /// Local sync: mark a single notification as read (from socket)
   void markAsReadLocal(String notificationId) {
     if (state.hasValue) {

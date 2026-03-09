@@ -132,6 +132,9 @@ const UserSchema: Schema = new Schema({
 // Index for geospatial queries
 UserSchema.index({ stopLocationGeo: "2dsphere" }, { sparse: true });
 
+// Index for subscription expiry checks and analytics
+UserSchema.index({ premiumUntil: 1 }, { sparse: true });
+
 // Pre-save hook to sync stopLocation -> stopLocationGeo
 UserSchema.pre<IUser>("save", function (next) {
   if (this.stopLocation && this.stopLocation.lat && this.stopLocation.lng) {

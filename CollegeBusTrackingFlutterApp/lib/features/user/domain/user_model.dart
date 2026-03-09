@@ -45,6 +45,14 @@ class UserModel {
     return premiumUntil!.isAfter(DateTime.now());
   }
 
+  String get planDisplayName {
+    if (!hasActivePremium) return 'Free';
+    if (subscriptionPlan == null) return 'Premium'; // Fallback
+    if (subscriptionPlan!.toLowerCase().contains('premium')) return 'Premium';
+    if (subscriptionPlan!.toLowerCase().contains('standard')) return 'Standard';
+    return 'Premium'; // Default for paid but unknown
+  }
+
   UserModel({
     required this.id,
     required this.fullName,
@@ -77,13 +85,17 @@ class UserModel {
 
   // Backward compatibility alias
   factory UserModel.fromMap(Map<String, dynamic> map, String id) {
-    if (!map.containsKey('_id')) {
+    if (map['_id'] == null) {
       map['_id'] = id;
     }
     // Handle potential nulls for required fields to prevent cast errors
     if (map['collegeId'] == null) map['collegeId'] = '';
     if (map['fullName'] == null) map['fullName'] = 'Unknown User';
     if (map['email'] == null) map['email'] = '';
+    if (map['role'] == null) map['role'] = UserRole.student.value;
+    if (map['createdAt'] == null) {
+      map['createdAt'] = DateTime.now().toIso8601String();
+    }
 
     // Sanitize boolean fields before passing to fromJson
     map['approved'] = parseBool(map['approved'], false);

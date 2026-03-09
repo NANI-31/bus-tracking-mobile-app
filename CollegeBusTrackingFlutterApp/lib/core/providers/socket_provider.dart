@@ -49,13 +49,19 @@ final socketServiceProvider = ChangeNotifierProvider<SocketService>((ref) {
   socketService.notificationDeletedStream.listen((data) {
     AppLogger.i('[socketServiceProvider] Notification deleted via socket');
     final voiceKey = data['voiceKey'] as String?;
+    final groupId = data['groupId'] as String?;
     final notificationId = data['id'] as String?;
 
     if (voiceKey != null) {
-      // It's a broadcast retraction
+      // It's a voice retraction
       ref
           .read(notificationsProvider.notifier)
           .removeNotificationsByVoiceKey(voiceKey);
+    } else if (groupId != null) {
+      // It's a text broadcast retraction
+      ref
+          .read(notificationsProvider.notifier)
+          .removeNotificationsByGroupId(groupId);
     } else if (notificationId != null) {
       ref
           .read(notificationsProvider.notifier)

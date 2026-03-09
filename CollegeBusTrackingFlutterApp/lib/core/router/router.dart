@@ -31,7 +31,9 @@ import 'package:collegebus/core/constants/constants.dart';
 import 'package:collegebus/features/coordinator/presentation/driver_selection_screen.dart';
 import 'package:collegebus/features/coordinator/presentation/assignment_history_screen.dart';
 import 'package:collegebus/features/coordinator/presentation/modules/edit_bus_screen.dart';
+import 'package:collegebus/features/coordinator/presentation/modules/edit_driver_screen.dart';
 import 'package:collegebus/features/bus/domain/bus_model.dart';
+import 'package:collegebus/features/user/domain/user_model.dart';
 
 final routerProvider = riverpod.Provider<GoRouter>((ref) {
   // Simple notifier to trigger router refresh on auth state changes
@@ -254,7 +256,21 @@ final routerProvider = riverpod.Provider<GoRouter>((ref) {
             builder: (context, state) {
               final busNumber = state.pathParameters['busNumber']!;
               final bus = state.extra as BusModel?;
-              return EditBusScreen(busNumber: busNumber, bus: bus);
+              final isBusEditable =
+                  state.uri.queryParameters['editable'] != 'false';
+              return EditBusScreen(
+                busNumber: busNumber,
+                bus: bus,
+                isBusEditable: isBusEditable,
+              );
+            },
+          ),
+          GoRoute(
+            path: 'edit-driver/:driverId',
+            builder: (context, state) {
+              final driverId = state.pathParameters['driverId']!;
+              final driver = state.extra as UserModel?;
+              return EditDriverScreen(driverId: driverId, driver: driver);
             },
           ),
         ],

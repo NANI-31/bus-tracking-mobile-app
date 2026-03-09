@@ -17,8 +17,14 @@ import 'package:collegebus/core/providers/socket_provider.dart';
 class EditBusScreen extends ConsumerStatefulWidget {
   final String busNumber;
   final BusModel? bus;
+  final bool isBusEditable;
 
-  const EditBusScreen({super.key, required this.busNumber, this.bus});
+  const EditBusScreen({
+    super.key,
+    required this.busNumber,
+    this.bus,
+    this.isBusEditable = true,
+  });
 
   @override
   ConsumerState<EditBusScreen> createState() => _EditBusScreenState();
@@ -213,6 +219,7 @@ class _EditBusScreenState extends ConsumerState<EditBusScreen> {
                 // Bus Number Field
                 TextFormField(
                   controller: _busNumberController,
+                  enabled: widget.isBusEditable,
                   decoration: InputDecoration(
                     labelText: 'Bus Number / Name',
                     hintText: 'e.g. BUS-01',
@@ -254,11 +261,13 @@ class _EditBusScreenState extends ConsumerState<EditBusScreen> {
                       );
                     }),
                   ],
-                  onChanged: (value) {
-                    setState(() {
-                      _selectedDefaultRouteId = value;
-                    });
-                  },
+                  onChanged: widget.isBusEditable
+                      ? (value) {
+                          setState(() {
+                            _selectedDefaultRouteId = value;
+                          });
+                        }
+                      : null,
                 ),
                 const SizedBox(height: 32),
 

@@ -8,6 +8,7 @@ import {
   resolveRefund,
   getSubscriptionAnalytics,
   getAdvancedAnalytics,
+  handleWebhook,
 } from "@/controllers/features/payment.controller";
 import {
   protect,
@@ -20,6 +21,7 @@ const router = Router();
 
 router.post("/create-order", protect, createOrder);
 router.post("/verify-payment", protect, verifyPayment);
+router.post("/webhook", handleWebhook);
 router.get("/transactions", protect, getTransactions);
 router.post("/request-refund", protect, requestRefund);
 

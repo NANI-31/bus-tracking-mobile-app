@@ -2,13 +2,13 @@ import 'package:flutter/material.dart';
 import 'dart:ui';
 
 import 'package:collegebus/shared/widgets/logout_confirmation_dialog.dart';
+import 'package:collegebus/shared/widgets/logout_loading_dialog.dart';
 import 'package:collegebus/l10n/driver/app_localizations.dart';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:go_router/go_router.dart';
 import 'package:velocity_x/velocity_x.dart';
-// import 'package:provider/provider.dart'; // Removed legacy provider
 import 'package:collegebus/core/services/persistence_service.dart';
 import 'package:collegebus/core/services/secure_storage_service.dart';
 import 'package:collegebus/features/auth/application/auth_provider.dart';
@@ -28,7 +28,6 @@ import 'widgets/bus_assignment_card.dart';
 import 'widgets/live_tracking_control_panel.dart';
 import 'package:collegebus/widgets/common/common_map_view.dart';
 import 'package:collegebus/shared/widgets/navigation/curved_bottom_nav_bar.dart';
-import 'package:collegebus/shared/widgets/indicators/rive_sos_indicator.dart';
 import 'dart:async';
 import 'package:collegebus/shared/widgets/success_modal.dart';
 import 'package:collegebus/shared/widgets/sos_button.dart';
@@ -572,8 +571,6 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
           return const SizedBox.shrink();
         }
 
-        final color = isConnecting ? Colors.amber : Colors.redAccent;
-
         return Positioned(
           top: MediaQuery.of(context).padding.top + 12,
           left: 20,
@@ -591,66 +588,28 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
                 ),
               );
             },
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(30),
-              child: BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 12.0, sigmaY: 12.0),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 10,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              decoration: BoxDecoration(
+                color: isConnecting ? Colors.amber : Colors.red,
+                borderRadius: BorderRadius.circular(30),
+                boxShadow: [
+                  BoxShadow(
+                    color: (isConnecting ? Colors.amber : Colors.red)
+                        .withValues(alpha: 0.3),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
                   ),
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [
-                        color.withValues(alpha: 0.7),
-                        color.withValues(alpha: 0.4),
-                      ],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                    borderRadius: BorderRadius.circular(30),
-                    border: Border.all(
-                      color: color.withValues(alpha: 0.3),
-                      width: 1.5,
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: color.withValues(alpha: 0.2),
-                        blurRadius: 15,
-                        offset: const Offset(0, 8),
-                      ),
-                    ],
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const RiveSosIndicator(size: 20),
-                      const SizedBox(width: 12),
-                      Text(
-                        isConnecting ? "Connecting..." : "Server Disconnected",
-                        style: TextStyle(
-                          color: isConnecting ? Colors.black87 : Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 13,
-                          letterSpacing: 0.5,
-                        ),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.only(left: 10),
-                        child: const SizedBox(
-                          width: 12,
-                          height: 12,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 1.5,
-                            valueColor: AlwaysStoppedAnimation<Color>(
-                              Colors.black54,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
+                ],
+              ),
+              child: Text(
+                isConnecting ? "Connecting..." : "Server Disconnected",
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: isConnecting ? Colors.black87 : Colors.white,
+                  fontWeight: FontWeight.w900,
+                  fontSize: 14,
+                  letterSpacing: 0.8,
                 ),
               ),
             ),
@@ -817,6 +776,9 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
             onPressed: () async {
               final confirmed = await LogoutConfirmationDialog.show(context);
               if (confirmed) {
+                if (context.mounted) {
+                  LogoutLoadingDialog.show(context);
+                }
                 await ref.read(authProvider.notifier).signOut();
                 if (context.mounted) context.go('/login');
               }

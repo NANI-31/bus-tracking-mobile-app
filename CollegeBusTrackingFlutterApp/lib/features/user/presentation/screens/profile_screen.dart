@@ -15,6 +15,7 @@ import 'package:collegebus/features/college/application/college_provider.dart';
 import '../widgets/profile_section_card.dart';
 import '../widgets/profile_list_item.dart';
 import 'package:collegebus/shared/widgets/logout_confirmation_dialog.dart';
+import 'package:collegebus/shared/widgets/logout_loading_dialog.dart';
 import 'package:collegebus/features/settings/presentation/sos_sound_settings.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
@@ -382,6 +383,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     context,
                   );
                   if (confirmed) {
+                    if (context.mounted) {
+                      LogoutLoadingDialog.show(context);
+                    }
                     await ref.read(authProvider.notifier).signOut();
                     if (context.mounted) {
                       context.go('/login');

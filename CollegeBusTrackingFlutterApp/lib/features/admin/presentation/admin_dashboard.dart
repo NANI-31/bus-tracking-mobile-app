@@ -5,6 +5,8 @@ import 'package:go_router/go_router.dart';
 import 'package:collegebus/features/auth/application/auth_provider.dart';
 import 'package:collegebus/core/constants/constants.dart';
 import 'package:velocity_x/velocity_x.dart';
+import 'package:collegebus/shared/widgets/logout_confirmation_dialog.dart';
+import 'package:collegebus/shared/widgets/logout_loading_dialog.dart';
 
 // New Modules
 import 'modules/admin_overview_tab.dart';
@@ -57,9 +59,15 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard>
           IconButton(
             icon: const Icon(Icons.logout),
             onPressed: () async {
-              await authService.signOut();
-              if (context.mounted) {
-                context.go('/login');
+              final confirmed = await LogoutConfirmationDialog.show(context);
+              if (confirmed) {
+                if (context.mounted) {
+                  LogoutLoadingDialog.show(context);
+                }
+                await authService.signOut();
+                if (context.mounted) {
+                  context.go('/login');
+                }
               }
             },
           ),

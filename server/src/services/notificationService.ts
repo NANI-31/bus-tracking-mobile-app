@@ -10,6 +10,7 @@ import { buildNotificationMessage } from "@/utils/buildNotification";
 import { NOTIFICATION_TYPES } from "@/constants/notificationTypes";
 import logger from "@/utils/logger";
 import { s3Service } from "@/services/s3.service";
+import { v4 as uuidv4 } from "uuid";
 
 /**
  * NotificationService - Encapsulates notification business logic.
@@ -457,12 +458,14 @@ export class NotificationService {
     );
 
     // 2. Save notifications to DB for each user
+    const groupId = uuidv4();
     const notificationDocs = users.map((u) => ({
       senderId,
       receiverId: u._id,
       title,
       message,
       type,
+      groupId,
     }));
     await Notification.insertMany(notificationDocs);
 

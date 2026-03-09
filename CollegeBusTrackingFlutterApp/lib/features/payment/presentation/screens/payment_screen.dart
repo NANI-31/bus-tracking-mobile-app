@@ -6,7 +6,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:collegebus/core/providers/api_provider.dart';
 import 'package:collegebus/features/auth/application/auth_provider.dart';
 import 'package:collegebus/core/utils/app_logger.dart';
-import 'package:collegebus/core/constants/constants.dart';
 import 'package:collegebus/features/payment/presentation/screens/transaction_history_screen.dart';
 
 // We'll use standard colors to avoid dependency issues if any
@@ -21,10 +20,6 @@ class PaymentScreen extends ConsumerStatefulWidget {
 }
 
 class _PaymentScreenState extends ConsumerState<PaymentScreen> {
-  bool _isEarlyRenewal = false;
-  late Razorpay _razorpay;
-  bool _isLoading = false;
-  String? _selectedPlan = 'monthly'; // 'monthly' or 'semester'
   Timer? _countdownTimer;
   List<dynamic> _plans = []; // Store fetched plans
   bool _fetchingPlans = true;
@@ -35,7 +30,13 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
       (p) => p['alias'] == _selectedPlan,
       orElse: () => null,
     );
-    return plan != null ? plan['price'] : 0;
+    if (plan == null) return 0;
+
+    // Safety: ensure price is treated as num and converted to int
+    final price = plan['price'];
+    if (price is num) return price.toInt();
+    if (price is String) return int.tryParse(price) ?? 0;
+    return 0;
   }
 
   @override
@@ -45,12 +46,16 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
     _razorpay.on(Razorpay.EVENT_PAYMENT_SUCCESS, _handlePaymentSuccess);
     _razorpay.on(Razorpay.EVENT_PAYMENT_ERROR, _handlePaymentError);
     _razorpay.on(Razorpay.EVENT_EXTERNAL_WALLET, _handleExternalWallet);
-    _razorpay.on(Razorpay.EVENT_EXTERNAL_WALLET, _handleExternalWallet);
     _startTimer();
     _fetchPlans();
   }
 
-  Future<void> _fetchPlans() async {
+  bool _isEarlyRenewal = false;
+  late Razorpay _razorpay;
+  bool _isLoading = false;
+  String? _selectedPlan;
+
+  void _fetchPlans() async {
     try {
       final api = ref.read(apiServiceProvider);
       final plans = await api.getPlans();
@@ -58,12 +63,13 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
         setState(() {
           _plans = plans;
           _fetchingPlans = false;
-          // Default selection to the first non-trial plan or just the first plan
-          if (_plans.isNotEmpty && _selectedPlan == 'monthly') {
-            // Try to find a logical default if 'monthly' doesn't exist,
-            // but for now keeping 'monthly' as default string is risky if alias changes.
-            // Let's default to the first plan's alias.
-            _selectedPlan = _plans[0]['alias'];
+          if (_plans.isNotEmpty) {
+            // Find standard monthly as default
+            final defaultPlan = _plans.firstWhere(
+              (p) => p['alias'] == 'standard_30',
+              orElse: () => _plans[0],
+            );
+            _selectedPlan = defaultPlan['alias'];
           }
         });
       }
@@ -108,28 +114,31 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
         );
 
         if (mounted) {
-          // 1. Optimistic Update (Immediate Feedback)
           final user = ref.read(currentUserProvider);
           if (user != null) {
-            // If the plan is 'semester', it's premium. Otherwise, assume premium unless logic dictates otherwise.
-            final isPremium = true;
-
-            final Duration duration = _selectedPlan == 'semester'
-                ? const Duration(days: 120)
+            final duration = _selectedPlan?.contains('365') ?? false
+                ? const Duration(days: 365)
                 : const Duration(days: 30);
 
+            // Stacking logic for optimistic update
+            final currentExpiry =
+                (user.premiumUntil != null &&
+                    user.premiumUntil!.isAfter(DateTime.now()))
+                ? user.premiumUntil!
+                : DateTime.now();
+
             final updatedUser = user.copyWith(
-              isPremium: isPremium,
-              premiumUntil: DateTime.now().add(duration),
+              isPremium:
+                  true, // Any paid plan (Standard/Premium) counts as isPremium for feature gating
+              premiumUntil: currentExpiry.add(duration),
               subscriptionPlan: _selectedPlan,
             );
             ref.read(authProvider.notifier).updateCurrentUser(updatedUser);
           }
-          // 2. Sync with Backend
           ref.read(authProvider.notifier).refreshUser();
 
           _showSnackBar(
-            "Payment Verified Successfully! You are now Premium.",
+            "Payment Verified Successfully!",
             type: SnackBarType.success,
           );
           Navigator.pop(context);
@@ -137,7 +146,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
       } else {
         if (mounted) {
           _showSnackBar(
-            "Payment Successful (Check Status)", // Ambiguous case
+            "Payment Successful (Check Status)",
             type: SnackBarType.warning,
           );
         }
@@ -154,17 +163,13 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
   void _handlePaymentError(PaymentFailureResponse response) {
     if (!mounted) return;
     AppLogger.e("Payment Error: ${response.code} - ${response.message}");
-
     String message = response.message ?? "Payment Failed";
     int code = response.code ?? 0;
-
-    // Handle User Cancellation or "undefined" error typically associated with back press
     if (code == Razorpay.PAYMENT_CANCELLED ||
         message.toLowerCase().contains("undefined") ||
         message.toLowerCase().contains("cancelled")) {
       _showSnackBar("Payment Process Cancelled", type: SnackBarType.warning);
     } else {
-      // Actual Error
       _showSnackBar("Payment Failed: $message", type: SnackBarType.error);
     }
     setState(() => _isLoading = false);
@@ -184,14 +189,13 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
     try {
       final api = ref.read(apiServiceProvider);
       final user = ref.read(currentUserProvider);
-
       if (user == null) throw "User not logged in";
 
       final amount = _currentAmount;
       final double totalAmount = amount * (1 - (_isEarlyRenewal ? 0.05 : 0.0));
 
       final orderData = await api.createPaymentOrder(
-        totalAmount.toInt(), // Pass integer amount to backend
+        totalAmount.toInt(),
         "INR",
         plan: _selectedPlan,
       );
@@ -199,20 +203,16 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
       final keyId =
           orderData['key_id']?.toString() ?? 'rzp_test_1DP5mmOlF5G5ag';
 
-      AppLogger.i("Initiating Razorpay with Order: $orderId and Key: $keyId");
-
       final options = {
         'key': keyId,
-        'amount': amount * 100,
+        'amount': (totalAmount * 100).toInt(),
         'name': 'College Bus Tracking',
-        'description': 'Premium Access',
+        'description': 'Subscription Plan Selection',
         'order_id': orderId,
         'retry': {'enabled': true, 'max_count': 1},
         'send_sms_hash': true,
         'prefill': {'contact': user.phoneNumber ?? "", 'email': user.email},
       };
-
-      AppLogger.d("Razorpay Options: $options");
 
       if (!mounted) return;
       _razorpay.open(options);
@@ -227,18 +227,15 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
 
   void _showSnackBar(String message, {SnackBarType type = SnackBarType.info}) {
     if (!mounted) return;
-
     Color bgColor;
     IconData icon;
-    Color textColor = Colors.white;
-
     switch (type) {
       case SnackBarType.success:
-        bgColor = AppColors.success;
+        bgColor = Colors.green.shade800;
         icon = Icons.check_circle_rounded;
         break;
       case SnackBarType.error:
-        bgColor = AppColors.error;
+        bgColor = Colors.red.shade800;
         icon = Icons.error_rounded;
         break;
       case SnackBarType.warning:
@@ -246,36 +243,21 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
         icon = Icons.warning_rounded;
         break;
       case SnackBarType.info:
-        bgColor = Theme.of(context).colorScheme.onSurface;
+        bgColor = Colors.black87;
         icon = Icons.info_rounded;
         break;
     }
-
-    ScaffoldMessenger.of(context).hideCurrentSnackBar();
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Row(
           children: [
-            Icon(icon, color: textColor, size: 24),
+            Icon(icon, color: Colors.white, size: 24),
             const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                message,
-                style: TextStyle(
-                  color: textColor,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 14,
-                ),
-              ),
-            ),
+            Expanded(child: Text(message)),
           ],
         ),
         backgroundColor: bgColor,
         behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        elevation: 4,
-        margin: const EdgeInsets.all(16),
-        duration: const Duration(seconds: 3),
       ),
     );
   }
@@ -283,10 +265,9 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    // Use Theme.of(context) for reliable brightness check aligned with UI
-    final isDark = theme.brightness == Brightness.dark;
-
     final user = ref.watch(currentUserProvider);
+
+    // Calculate early renewal eligibility
     if (user != null && user.isPremium && user.premiumUntil != null) {
       final threeDaysInMs = 3 * 24 * 60 * 60 * 1000;
       final timeRemaining = user.premiumUntil!
@@ -297,236 +278,346 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
       _isEarlyRenewal = false;
     }
 
-    return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: SystemUiOverlayStyle(
-        // Transparent background so it mimics the app bar color
-        statusBarColor: Colors.transparent,
-        // Light Mode -> Dark Icons (Black). Dark Mode -> Light Icons (White).
-        statusBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
-        // iOS: Light Mode -> Light Background (Dark Icons). Dark Mode -> Dark Background (Light Icons).
-        statusBarBrightness: isDark ? Brightness.dark : Brightness.light,
-      ),
-      child: Scaffold(
-        backgroundColor: theme.scaffoldBackgroundColor,
-        appBar: AppBar(
-          title: const Text("Payments"),
-          backgroundColor: isDark ? Colors.transparent : theme.primaryColor,
-          elevation: 0,
-          foregroundColor: Colors.white,
-          actions: [
-            IconButton(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => const TransactionHistoryScreen(),
-                  ),
-                );
-              },
-              icon: const Icon(Icons.history_rounded),
-              tooltip: "Transaction History",
-            ),
-          ],
-        ),
-        body: SafeArea(
-          child: Column(
-            children: [
-              _buildSubscriptionStatus(theme),
-              Expanded(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const SizedBox(height: 24),
-                      _buildPremiumBanner(theme),
-                      const SizedBox(height: 32),
+    // Show all active plans
 
-                      Text(
-                        "Select Your Plan",
-                        style: theme.textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 16),
+    return Scaffold(
+      appBar: AppBar(
+        backgroundColor: theme.colorScheme.primary,
+        foregroundColor: Colors.white,
+        title: const Text(
+          "Subscription Plans",
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+        elevation: 0,
+        actions: [
+          IconButton(
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => const TransactionHistoryScreen(),
+              ),
+            ),
+            icon: const Icon(Icons.history_rounded),
+          ),
+        ],
+      ),
+      body: SafeArea(
+        child: Column(
+          children: [
+            _buildSubscriptionStatus(theme),
+            Expanded(
+              child: RefreshIndicator(
+                onRefresh: () async => _fetchPlans(),
+                child: SingleChildScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  padding: const EdgeInsets.all(20.0),
+                  child: Column(
+                    children: [
                       if (_fetchingPlans)
-                        const Center(child: CircularProgressIndicator())
-                      else if (_plans.isEmpty)
-                        Center(
-                          child: Text(
-                            "No plans available",
-                            style: theme.textTheme.bodyLarge,
+                        const Center(
+                          child: Padding(
+                            padding: EdgeInsets.all(40.0),
+                            child: CircularProgressIndicator(),
                           ),
                         )
-                      else
-                        IntrinsicHeight(
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: _plans.map((plan) {
-                              final bool isCurrent =
-                                  (user?.isPremium ?? false) &&
-                                  user?.subscriptionPlan == plan['alias'];
-                              return Expanded(
-                                child: Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 6.0,
-                                  ),
-                                  child: _buildPlanCard(
-                                    title: plan['name'],
-                                    price: "₹${plan['price']}",
-                                    duration: "${plan['durationDays']} Days",
-                                    isSelected: _selectedPlan == plan['alias'],
-                                    isCurrentPlan: isCurrent,
-                                    onTap: () => setState(
-                                      () => _selectedPlan = plan['alias'],
-                                    ),
-                                    theme: theme,
-                                    isBestValue: plan['isBestValue'] ?? false,
-                                    benefits: List<String>.from(
-                                      plan['features'] ?? [],
-                                    ),
+                      else if (_plans.isEmpty)
+                        Center(
+                          child: Column(
+                            children: [
+                              const Icon(
+                                Icons.error_outline,
+                                size: 48,
+                                color: Colors.grey,
+                              ),
+                              const SizedBox(height: 16),
+                              const Text("No active plans found."),
+                              const SizedBox(height: 16),
+                              ElevatedButton(
+                                onPressed: _fetchPlans,
+                                child: const Text("Retry"),
+                              ),
+                            ],
+                          ),
+                        )
+                      else ...[
+                        _buildBenefitsSection(theme),
+                        const SizedBox(height: 32),
+
+                        // 1. Standard Tiers
+                        if (_plans.any(
+                          (p) =>
+                              p['alias']?.toString().contains('standard') ??
+                              false,
+                        )) ...[
+                          _buildTierHeader(
+                            "Standard Tiers",
+                            theme,
+                            Icons.star_outline,
+                          ),
+                          const SizedBox(height: 16),
+                          ..._plans
+                              .where(
+                                (p) =>
+                                    p['alias']?.toString().contains(
+                                      'standard',
+                                    ) ??
+                                    false,
+                              )
+                              .map(
+                                (plan) => _buildEnhancedPlanCard(
+                                  plan: plan,
+                                  isSelected: _selectedPlan == plan['alias'],
+                                  theme: theme,
+                                  onTap: () => setState(
+                                    () => _selectedPlan = plan['alias'],
                                   ),
                                 ),
-                              );
-                            }).toList(),
-                          ),
-                        ),
+                              ),
+                          const SizedBox(height: 24),
+                        ],
 
+                        // 2. Premium Tiers
+                        if (_plans.any(
+                          (p) =>
+                              p['alias']?.toString().contains('premium') ??
+                              false,
+                        )) ...[
+                          _buildTierHeader(
+                            "Premium Tiers",
+                            theme,
+                            Icons.workspace_premium,
+                          ),
+                          const SizedBox(height: 16),
+                          ..._plans
+                              .where(
+                                (p) =>
+                                    p['alias']?.toString().contains(
+                                      'premium',
+                                    ) ??
+                                    false,
+                              )
+                              .map(
+                                (plan) => _buildEnhancedPlanCard(
+                                  plan: plan,
+                                  isSelected: _selectedPlan == plan['alias'],
+                                  theme: theme,
+                                  onTap: () => setState(
+                                    () => _selectedPlan = plan['alias'],
+                                  ),
+                                ),
+                              ),
+                          const SizedBox(height: 24),
+                        ],
+
+                        // 3. Fallback for any other plans (e.g. legacy)
+                        if (_plans.any(
+                          (p) =>
+                              !(p['alias']?.toString().contains('standard') ??
+                                  false) &&
+                              !(p['alias']?.toString().contains('premium') ??
+                                  false),
+                        )) ...[
+                          _buildTierHeader(
+                            "Available Plans",
+                            theme,
+                            Icons.list_alt,
+                          ),
+                          const SizedBox(height: 16),
+                          ..._plans
+                              .where(
+                                (p) =>
+                                    !(p['alias']?.toString().contains(
+                                          'standard',
+                                        ) ??
+                                        false) &&
+                                    !(p['alias']?.toString().contains(
+                                          'premium',
+                                        ) ??
+                                        false),
+                              )
+                              .map(
+                                (plan) => _buildEnhancedPlanCard(
+                                  plan: plan,
+                                  isSelected: _selectedPlan == plan['alias'],
+                                  theme: theme,
+                                  onTap: () => setState(
+                                    () => _selectedPlan = plan['alias'],
+                                  ),
+                                ),
+                              ),
+                        ],
+                      ],
                       const SizedBox(height: 32),
                       _buildComparisonTable(theme),
-
                       const SizedBox(height: 32),
                       _buildPaymentSummary(theme),
-                      const SizedBox(height: 24),
                     ],
                   ),
                 ),
               ),
-
-              // Bottom Payment Button Area
-              Container(
-                padding: const EdgeInsets.all(24),
-                decoration: BoxDecoration(
-                  color: theme.scaffoldBackgroundColor,
-                  border: Border(
-                    top: BorderSide(
-                      color: theme.dividerColor.withValues(alpha: 0.1),
-                      width: 1,
-                    ),
-                  ),
-                ),
-                child: Column(
-                  children: [
-                    if (_isLoading)
-                      const Center(child: CircularProgressIndicator())
-                    else
-                      SizedBox(
-                        width: double.infinity,
-                        height: 56,
-                        child: Consumer(
-                          builder: (context, ref, child) {
-                            final user = ref.watch(currentUserProvider);
-                            final bool isCurrentPlanSelected =
-                                (user?.isPremium ?? false) &&
-                                user?.subscriptionPlan == _selectedPlan;
-
-                            return ElevatedButton(
-                              onPressed: isCurrentPlanSelected
-                                  ? null
-                                  : _initiatePayment,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: isCurrentPlanSelected
-                                    ? theme.disabledColor.withValues(alpha: 0.1)
-                                    : theme.colorScheme.primary,
-                                foregroundColor: isCurrentPlanSelected
-                                    ? theme.disabledColor
-                                    : theme.colorScheme.onPrimary,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(30),
-                                ),
-                                elevation: 0,
-                              ),
-                              child: Text(
-                                isCurrentPlanSelected
-                                    ? "Current Plan"
-                                    : "Pay ₹$_currentAmount",
-                                style: const TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            );
-                          },
-                        ),
-                      ),
-                    const SizedBox(height: 16),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.security_rounded,
-                          size: 14,
-                          color: theme.colorScheme.primary.withValues(
-                            alpha: 0.6,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          "Secured by Razorpay. Encrypted Payment.",
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: theme.textTheme.bodySmall?.color?.withValues(
-                              alpha: 0.5,
-                            ),
-                            fontSize: 12,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
+            ),
+            _buildBottomBar(theme, user),
+          ],
         ),
       ),
     );
   }
 
-  Widget _buildPlanCard({
-    required String title,
-    required String price,
-    required String duration,
+  Widget _buildTierHeader(String title, ThemeData theme, IconData icon) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.primary.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 20, color: theme.colorScheme.primary),
+          const SizedBox(width: 8),
+          Text(
+            title,
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.bold,
+              color: theme.colorScheme.primary,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBenefitsSection(ThemeData theme) {
+    final benefits = [
+      {"icon": Icons.speed, "title": "Real-time", "desc": "Live Tracking"},
+      {
+        "icon": Icons.notifications_active,
+        "title": "Instant",
+        "desc": "Custom Alerts",
+      },
+      {"icon": Icons.history, "title": "History", "desc": "Route Logs"},
+      {"icon": Icons.shield, "title": "Security", "desc": "SOS & Safety"},
+    ];
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4.0),
+          child: Text(
+            "Premium Benefits",
+            style: theme.textTheme.titleLarge?.copyWith(
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
+        const SizedBox(height: 16),
+        SizedBox(
+          height: 100,
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal,
+            itemCount: benefits.length,
+            itemBuilder: (context, index) {
+              final b = benefits[index];
+              return Container(
+                width: 100,
+                margin: const EdgeInsets.only(right: 12),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: theme.cardColor,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: theme.dividerColor.withOpacity(0.05),
+                  ),
+                ),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      b['icon'] as IconData,
+                      size: 24,
+                      color: theme.colorScheme.primary,
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      b['title'] as String,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    Text(
+                      b['desc'] as String,
+                      style: TextStyle(
+                        fontSize: 10,
+                        color: theme.disabledColor,
+                      ),
+                      textAlign: TextAlign.center,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildEnhancedPlanCard({
+    required dynamic plan,
     required bool isSelected,
-    required VoidCallback onTap,
     required ThemeData theme,
-    List<String> benefits = const [],
-    bool isBestValue = false,
-    bool isCurrentPlan = false,
+    required VoidCallback onTap,
   }) {
+    final String alias = plan['alias']?.toString() ?? '';
+    final bool isPremium = alias.contains('premium');
+    final bool isYearly = alias.contains('365');
+    final String price = "₹${plan['price'] ?? 0}";
+
+    final durationData = plan['durationDays'];
+    final int days = (durationData is num)
+        ? durationData.toInt()
+        : (int.tryParse(durationData?.toString() ?? '0') ?? 0);
+    final String durationText = days >= 365 ? "Year" : "$days Days";
+
+    // "Save 17%" logic: if price is 100 and it's yearly, and there's a monthly for 10
+    // (10*12 - 100) / 120 = 16.6%
+    final String? badgeText = isYearly
+        ? "Save 17%"
+        : (isPremium ? "Popular" : null);
+
     return GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
-        height: double.infinity,
-        duration: const Duration(milliseconds: 250),
-        curve: Curves.easeInOut,
-        padding: const EdgeInsets.all(16),
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOutCubic,
+        margin: const EdgeInsets.only(bottom: 16),
+        padding: const EdgeInsets.all(24),
         decoration: BoxDecoration(
           color: isSelected
-              ? theme.colorScheme.primary.withValues(alpha: 0.08)
+              ? (isPremium
+                    ? Colors.amber.shade50
+                    : theme.colorScheme.primary.withOpacity(0.05))
               : theme.cardColor,
-          borderRadius: BorderRadius.circular(24),
+          borderRadius: BorderRadius.circular(28),
           border: Border.all(
             color: isSelected
-                ? theme.colorScheme.primary
-                : theme.dividerColor.withValues(alpha: 0.1),
-            width: isSelected ? 2 : 1,
+                ? (isPremium ? Colors.amber : theme.colorScheme.primary)
+                : theme.dividerColor.withOpacity(0.1),
+            width: isSelected ? 2.5 : 1.5,
           ),
           boxShadow: isSelected
               ? [
                   BoxShadow(
-                    color: theme.colorScheme.primary.withValues(alpha: 0.1),
-                    blurRadius: 12,
-                    offset: const Offset(0, 6),
+                    color:
+                        (isPremium ? Colors.amber : theme.colorScheme.primary)
+                            .withOpacity(0.15),
+                    blurRadius: 25,
+                    offset: const Offset(0, 12),
                   ),
                 ]
               : [],
@@ -534,132 +625,118 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
         child: Stack(
           clipBehavior: Clip.none,
           children: [
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            Row(
               children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        title,
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 13,
-                          color: isSelected
-                              ? theme.colorScheme.primary
-                              : theme.textTheme.bodyMedium?.color?.withValues(
-                                  alpha: 0.6,
-                                ),
+                Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color:
+                        (isPremium ? Colors.amber : theme.colorScheme.primary)
+                            .withOpacity(0.15),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    isPremium ? Icons.auto_awesome : Icons.local_activity,
+                    color: isPremium
+                        ? Colors.amber.shade900
+                        : theme.colorScheme.primary,
+                    size: 26,
+                  ),
+                ),
+                const SizedBox(width: 18),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        plan['name'],
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w800,
+                          fontSize: 17,
+                          letterSpacing: -0.5,
                         ),
                       ),
-                    ),
-                    if (isCurrentPlan) ...[
-                      const SizedBox(width: 4),
+                      const SizedBox(height: 6),
                       Container(
                         padding: const EdgeInsets.symmetric(
-                          horizontal: 4,
-                          vertical: 2,
+                          horizontal: 8,
+                          vertical: 4,
                         ),
                         decoration: BoxDecoration(
-                          color: Colors.green.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(4),
-                          border: Border.all(
-                            color: Colors.green.withValues(alpha: 0.3),
-                          ),
+                          color: theme.dividerColor.withOpacity(0.05),
+                          borderRadius: BorderRadius.circular(8),
                         ),
-                        child: const Text(
-                          "CURRENT",
+                        child: Text(
+                          "${plan['features']?.length ?? 0} Core Features",
                           style: TextStyle(
-                            color: Colors.green,
-                            fontSize: 7,
+                            color: theme.disabledColor,
+                            fontSize: 11,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
                       ),
                     ],
-                  ],
+                  ),
                 ),
-                const SizedBox(height: 8),
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.baseline,
-                  textBaseline: TextBaseline.alphabetic,
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     Text(
                       price,
                       style: TextStyle(
                         fontWeight: FontWeight.w900,
-                        fontSize: 28,
-                        color: theme.textTheme.bodyLarge?.color,
+                        fontSize: 24,
+                        color: isSelected
+                            ? (isPremium
+                                  ? Colors.amber.shade900
+                                  : theme.colorScheme.primary)
+                            : null,
                       ),
                     ),
-                    const SizedBox(width: 4),
                     Text(
-                      "/ $duration",
+                      "/$durationText",
                       style: TextStyle(
+                        color: theme.disabledColor,
                         fontSize: 12,
-                        color: theme.textTheme.bodySmall?.color?.withValues(
-                          alpha: 0.5,
-                        ),
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 16),
-                ...benefits.map(
-                  (b) => Padding(
-                    padding: const EdgeInsets.only(bottom: 6),
-                    child: Row(
-                      children: [
-                        Icon(
-                          Icons.check_circle_outline_rounded,
-                          size: 12,
-                          color: isSelected
-                              ? theme.colorScheme.primary
-                              : theme.disabledColor,
-                        ),
-                        const SizedBox(width: 6),
-                        Expanded(
-                          child: Text(
-                            b,
-                            style: TextStyle(
-                              fontSize: 10,
-                              color: theme.textTheme.bodySmall?.color
-                                  ?.withValues(alpha: 0.8),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
               ],
             ),
-            if (isBestValue)
+            if (badgeText != null)
               Positioned(
-                top: -32,
-                right: -8,
+                top: -36,
+                right: -10,
                 child: Container(
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 4,
+                    horizontal: 12,
+                    vertical: 6,
                   ),
                   decoration: BoxDecoration(
-                    color: Colors.amber,
-                    borderRadius: BorderRadius.circular(8),
+                    gradient: LinearGradient(
+                      colors: isYearly
+                          ? [Colors.green.shade600, Colors.green.shade400]
+                          : [Colors.orange.shade600, Colors.orange.shade400],
+                    ),
+                    borderRadius: BorderRadius.circular(12),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.amber.withValues(alpha: 0.3),
+                        color: (isYearly ? Colors.green : Colors.orange)
+                            .withOpacity(0.3),
                         blurRadius: 8,
-                        offset: const Offset(0, 2),
+                        offset: const Offset(0, 4),
                       ),
                     ],
                   ),
-                  child: const Text(
-                    "MOST POPULAR",
-                    style: TextStyle(
-                      color: Colors.black,
-                      fontSize: 8,
+                  child: Text(
+                    badgeText,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 10,
                       fontWeight: FontWeight.w900,
+                      letterSpacing: 0.5,
                     ),
                   ),
                 ),
@@ -685,184 +762,100 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
     }
 
     final days = totalDuration.inDays;
-    final hours = totalDuration.inHours % 24;
-    final minutes = totalDuration.inMinutes % 60;
-
-    final String timeRemainingText;
-    if (days > 0) {
-      timeRemainingText = "$days Days Left";
-    } else if (hours > 0) {
-      timeRemainingText = "$hours Hours Left";
-    } else {
-      final seconds = totalDuration.inSeconds % 60;
-      timeRemainingText =
-          "${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}";
-    }
-
-    // Make progress bar dynamic for both testing and real production times
-    final int totalPlanSeconds;
-    if (totalDuration.inDays > 2) {
-      // Real plan
-      totalPlanSeconds =
-          (user.subscriptionPlan == 'semester' ? 180 : 30) * 24 * 3600;
-    } else {
-      // Testing plan
-      totalPlanSeconds = user.subscriptionPlan == 'semester' ? 90 : 60;
-    }
+    final String timeRemainingText = days > 0
+        ? "$days Days Left"
+        : "Expiring Soon";
+    final double progress = (days / 365).clamp(
+      0.0,
+      1.0,
+    ); // Simple progress for UI
 
     return Container(
       margin: const EdgeInsets.all(16),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.primary.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: theme.colorScheme.primary.withValues(alpha: 0.2),
-        ),
-      ),
-      child: Column(
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Row(
-                children: [
-                  Icon(
-                    Icons.verified_rounded,
-                    color: theme.colorScheme.primary,
-                    size: 20,
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    "Premium Active",
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: theme.colorScheme.primary,
-                    ),
-                  ),
-                ],
-              ),
-              Text(
-                timeRemainingText,
-                style: theme.textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  fontFamily: 'monospace',
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(10),
-            child: LinearProgressIndicator(
-              value: totalDuration.inSeconds / totalPlanSeconds,
-              backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.1),
-              valueColor: AlwaysStoppedAnimation<Color>(
-                theme.colorScheme.primary,
-              ),
-              minHeight: 8,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildPremiumBanner(ThemeData theme) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
             theme.colorScheme.primary,
-            theme.colorScheme.primary.withValues(alpha: 0.8),
-            theme.colorScheme.secondary.withValues(alpha: 0.9),
+            theme.colorScheme.primary.withBlue(200),
           ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
-        borderRadius: BorderRadius.circular(28),
+        borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: theme.colorScheme.primary.withValues(alpha: 0.3),
-            blurRadius: 20,
-            offset: const Offset(0, 10),
+            color: theme.colorScheme.primary.withOpacity(0.3),
+            blurRadius: 15,
+            offset: const Offset(0, 8),
           ),
         ],
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 4,
-                ),
+                padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.2),
-                  borderRadius: BorderRadius.circular(12),
+                  color: Colors.white.withOpacity(0.2),
+                  shape: BoxShape.circle,
                 ),
-                child: const Text(
-                  "PREMIUM",
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: 1,
-                    fontSize: 10,
-                  ),
+                child: const Icon(
+                  Icons.verified_user,
+                  color: Colors.white,
+                  size: 24,
                 ),
               ),
-              const Icon(
-                Icons.workspace_premium_rounded,
-                color: Colors.white,
-                size: 28,
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      "Current Subscription",
+                      style: TextStyle(color: Colors.white70, fontSize: 13),
+                    ),
+                    Text(
+                      user.subscriptionPlan
+                              ?.replaceAll('_', ' ')
+                              .toUpperCase() ??
+                          "ACTIVE PLAN",
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    timeRemainingText,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const Text(
+                    "Remaining",
+                    style: TextStyle(color: Colors.white70, fontSize: 11),
+                  ),
+                ],
               ),
             ],
           ),
-          const SizedBox(height: 16),
-          const Text(
-            "Go Premium. Get More.",
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 26,
-              fontWeight: FontWeight.bold,
-              letterSpacing: -0.5,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            "Join 500+ students using live alerts and advanced trip insights.",
-            style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.9),
-              fontSize: 14,
-              height: 1.4,
-            ),
-          ),
           const SizedBox(height: 20),
-          ElevatedButton(
-            onPressed: () {
-              // Scroll to plans? For now just small feedback
-              _showSnackBar(
-                "Scroll down to select your plan!",
-                type: SnackBarType.info,
-              );
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.white,
-              foregroundColor: theme.colorScheme.primary,
-              elevation: 0,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-            ),
-            child: const Text(
-              "Upgrade Now",
-              style: TextStyle(fontWeight: FontWeight.bold),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(4),
+            child: LinearProgressIndicator(
+              value: progress,
+              backgroundColor: Colors.white.withOpacity(0.2),
+              valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
+              minHeight: 6,
             ),
           ),
         ],
@@ -874,60 +867,47 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          "Plan Comparison",
-          style: theme.textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.bold,
-          ),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              "Plan Comparison",
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            Icon(
+              Icons.compare_arrows_rounded,
+              size: 20,
+              color: theme.colorScheme.primary,
+            ),
+          ],
         ),
         const SizedBox(height: 16),
         Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
             color: theme.cardColor,
-            borderRadius: BorderRadius.circular(24),
-            border: Border.all(
-              color: theme.dividerColor.withValues(alpha: 0.1),
-            ),
+            borderRadius: BorderRadius.circular(28),
+            border: Border.all(color: theme.dividerColor.withOpacity(0.1)),
           ),
           child: Table(
-            defaultVerticalAlignment: TableCellVerticalAlignment.middle,
             columnWidths: const {
               0: FlexColumnWidth(2.5),
               1: FlexColumnWidth(1),
               2: FlexColumnWidth(1),
             },
             children: [
-              _buildModernTableRow(
-                ["Feature", "Standard", "Premium"],
+              _buildTableRow(
+                ["Feature", "Std", "Prem"],
                 isHeader: true,
                 theme: theme,
               ),
-              _buildModernTableRow([
-                "Live Bus Tracking",
-                true,
-                true,
-              ], theme: theme),
-              _buildModernTableRow([
-                "Bus Load Insights",
-                false,
-                true,
-              ], theme: theme),
-              _buildModernTableRow([
-                "Priority Support",
-                false,
-                true,
-              ], theme: theme),
-              _buildModernTableRow([
-                "Ad-Free Access",
-                false,
-                true,
-              ], theme: theme),
-              _buildModernTableRow([
-                "Early Renewal Disc.",
-                false,
-                true,
-              ], theme: theme),
+              _buildTableRow(["Real-time Tracking", true, true], theme: theme),
+              _buildTableRow(["Basic Notifications", true, true], theme: theme),
+              _buildTableRow(["Advanced Logins", false, true], theme: theme),
+              _buildTableRow(["Unlimited SOS", false, true], theme: theme),
+              _buildTableRow(["Priority Help", false, true], theme: theme),
             ],
           ),
         ),
@@ -935,38 +915,48 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
     );
   }
 
-  TableRow _buildModernTableRow(
+  TableRow _buildTableRow(
     List<dynamic> cells, {
     bool isHeader = false,
     required ThemeData theme,
   }) {
     return TableRow(
+      decoration: isHeader
+          ? BoxDecoration(
+              color: theme.colorScheme.primary.withOpacity(0.05),
+              borderRadius: BorderRadius.circular(16),
+            )
+          : null,
       children: cells.map((cell) {
         return Padding(
-          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
-          child: cell is bool
-              ? Center(
-                  child: Icon(
-                    cell ? Icons.check_circle_rounded : Icons.cancel_rounded,
-                    color: cell
-                        ? theme.colorScheme.primary
-                        : theme.disabledColor.withValues(alpha: 0.3),
-                    size: 20,
+          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 4),
+          child: Center(
+            child: cell is bool
+                ? Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(
+                      color: cell
+                          ? Colors.green.withOpacity(0.1)
+                          : theme.disabledColor.withOpacity(0.05),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      cell ? Icons.check_rounded : Icons.close_rounded,
+                      color: cell
+                          ? Colors.green
+                          : theme.disabledColor.withOpacity(0.3),
+                      size: 16,
+                    ),
+                  )
+                : Text(
+                    cell.toString(),
+                    style: TextStyle(
+                      fontWeight: isHeader ? FontWeight.w900 : FontWeight.w600,
+                      fontSize: isHeader ? 13 : 12,
+                      color: isHeader ? theme.colorScheme.primary : null,
+                    ),
                   ),
-                )
-              : Text(
-                  cell.toString(),
-                  textAlign: isHeader && cells.indexOf(cell) != 0
-                      ? TextAlign.center
-                      : TextAlign.start,
-                  style: TextStyle(
-                    fontWeight: isHeader ? FontWeight.w900 : FontWeight.w500,
-                    fontSize: isHeader ? 12 : 13,
-                    color: isHeader
-                        ? theme.disabledColor
-                        : theme.textTheme.bodyLarge?.color,
-                  ),
-                ),
+          ),
         );
       }).toList(),
     );
@@ -975,55 +965,57 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
   Widget _buildPaymentSummary(ThemeData theme) {
     final amount = _currentAmount.toDouble();
     final earlyRenewalDiscount = _isEarlyRenewal ? (amount * 0.05) : 0.0;
-    final totalDiscount = earlyRenewalDiscount;
-    final finalAmount = amount - totalDiscount;
+    final finalAmount = amount - earlyRenewalDiscount;
 
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: theme.primaryColor.withValues(alpha: 0.05),
+        color: theme.primaryColor.withOpacity(0.05),
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: theme.primaryColor.withValues(alpha: 0.1)),
+        border: Border.all(color: theme.primaryColor.withOpacity(0.1)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            "Payment Summary",
-            style: theme.textTheme.titleSmall?.copyWith(
-              fontWeight: FontWeight.bold,
-            ),
+          const Text(
+            "Summary",
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
           ),
-          const SizedBox(height: 20),
-          _buildSummaryRow(
-            "Plan Price",
-            "₹${amount.toStringAsFixed(0)}",
-            theme,
+          const SizedBox(height: 16),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [const Text("Base Price"), Text("₹${amount.toInt()}")],
           ),
           if (_isEarlyRenewal)
-            _buildSummaryRow(
-              "Early Renewal Discount (5%)",
-              "- ₹${earlyRenewalDiscount.toStringAsFixed(2)}",
-              theme,
-              isDiscount: true,
+            Padding(
+              padding: const EdgeInsets.only(top: 8.0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    "Early Renewal (5%)",
+                    style: TextStyle(color: Colors.green),
+                  ),
+                  Text(
+                    "- ₹${earlyRenewalDiscount.toInt()}",
+                    style: const TextStyle(color: Colors.green),
+                  ),
+                ],
+              ),
             ),
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: 12),
-            child: Divider(height: 1),
-          ),
+          const Divider(height: 32),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                "Total Payable",
-                style: theme.textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w900,
-                ),
+              const Text(
+                "Total",
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
               ),
               Text(
-                "₹${finalAmount.toStringAsFixed(2)}",
-                style: theme.textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.w900,
+                "₹${finalAmount.toInt()}",
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 18,
                   color: theme.colorScheme.primary,
                 ),
               ),
@@ -1034,33 +1026,72 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
     );
   }
 
-  Widget _buildSummaryRow(
-    String label,
-    String value,
-    ThemeData theme, {
-    bool isDiscount = false,
-  }) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(
-            label,
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: isDiscount
-                  ? Colors.green
-                  : theme.textTheme.bodySmall?.color,
-              fontWeight: isDiscount ? FontWeight.bold : FontWeight.normal,
-            ),
+  Widget _buildBottomBar(ThemeData theme, dynamic user) {
+    final bool isCurrentPlanSelected =
+        (user?.isPremium ?? false) && user?.subscriptionPlan == _selectedPlan;
+    final amount = _currentAmount;
+    final double finalAmount = amount * (1 - (_isEarlyRenewal ? 0.05 : 0.0));
+
+    return Container(
+      padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
+      decoration: BoxDecoration(
+        color: theme.scaffoldBackgroundColor,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            offset: const Offset(0, -5),
+            blurRadius: 10,
           ),
-          Text(
-            value,
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: isDiscount
-                  ? Colors.green
-                  : theme.textTheme.bodyLarge?.color,
-              fontWeight: FontWeight.bold,
+        ],
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (isCurrentPlanSelected)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 12.0),
+              child: Text(
+                "You are currently on this plan",
+                style: TextStyle(
+                  color: Colors.green.shade600,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 12,
+                ),
+              ),
+            ),
+          SizedBox(
+            width: double.infinity,
+            height: 60,
+            child: ElevatedButton(
+              onPressed: (_isLoading || isCurrentPlanSelected)
+                  ? null
+                  : _initiatePayment,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: theme.colorScheme.primary,
+                foregroundColor: Colors.white,
+                elevation: 8,
+                shadowColor: theme.colorScheme.primary.withOpacity(0.4),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20),
+                ),
+              ),
+              child: _isLoading
+                  ? const SizedBox(
+                      height: 24,
+                      width: 24,
+                      child: CircularProgressIndicator(
+                        color: Colors.white,
+                        strokeWidth: 2.5,
+                      ),
+                    )
+                  : Text(
+                      "Pay ₹${finalAmount % 1 == 0 ? finalAmount.toInt() : finalAmount.toStringAsFixed(1)}",
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w900,
+                        fontSize: 20,
+                        letterSpacing: 1.2,
+                      ),
+                    ),
             ),
           ),
         ],

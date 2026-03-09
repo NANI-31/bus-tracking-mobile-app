@@ -103,7 +103,7 @@ class StudentHomeScreen extends ConsumerWidget {
               if (!user.hasActivePremium)
                 _buildPremiumUpsell(context)
               else if (user.premiumUntil != null)
-                _buildPremiumStatus(context, user.premiumUntil!),
+                _buildPremiumStatus(context, user, user.premiumUntil!),
               const SizedBox(height: 16),
               WelcomeSection(userName: userName),
               const SizedBox(height: 16),
@@ -183,13 +183,19 @@ class StudentHomeScreen extends ConsumerWidget {
     ).indigo600.roundedLg.p16.shadowLg.make();
   }
 
-  Widget _buildPremiumStatus(BuildContext context, DateTime expiry) {
+  Widget _buildPremiumStatus(
+    BuildContext context,
+    dynamic user,
+    DateTime expiry,
+  ) {
     final daysLeft = expiry.difference(DateTime.now()).inDays;
     return VxBox(
       child: HStack([
         const Icon(Icons.verified_rounded, color: Colors.greenAccent, size: 24),
         12.widthBox,
-        "Premium Active • $daysLeft days left".text.white.bold.size(12).make(),
+        "${user.planDisplayName} Active • $daysLeft days left".text.white.bold
+            .size(12)
+            .make(),
       ]),
     ).roundedFull.px16.py8.make();
   }

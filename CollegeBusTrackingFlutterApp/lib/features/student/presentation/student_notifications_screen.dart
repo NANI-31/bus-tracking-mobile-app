@@ -36,18 +36,18 @@ class _StudentNotificationsScreenState
     final notificationsAsync = ref.watch(notificationsProvider);
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: SystemUiOverlayStyle(
-        statusBarColor: Colors.transparent,
-        statusBarIconBrightness: Brightness.light,
-        statusBarBrightness: Brightness.dark,
+      value: const SystemUiOverlayStyle(
+        statusBarColor: Colors.white,
+        statusBarIconBrightness: Brightness.dark,
+        statusBarBrightness: Brightness.light,
       ),
       child: Scaffold(
         backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         appBar: AppBar(
           title: "Notifications".text.white.bold.make(),
-          backgroundColor: AppColors.primary,
+          backgroundColor: Theme.of(context).primaryColor,
           elevation: 0,
-          centerTitle: false,
+          centerTitle: true,
           automaticallyImplyLeading: true,
         ),
         body: VStack([
