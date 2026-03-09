@@ -2,15 +2,15 @@ import { createClient } from "redis";
 import logger from "@/utils/logger";
 
 const redisUrl = process.env.REDIS_URL || "redis://localhost:6379";
-
-const socketOptions =
-  process.env.NODE_ENV === "production"
-    ? { tls: true as const, rejectUnauthorized: true }
-    : undefined;
-
+const useTLS = redisUrl.startsWith("rediss://");
 const pubClient = createClient({
   url: redisUrl,
-  socket: socketOptions,
+  socket: useTLS
+    ? {
+        tls: true,
+        rejectUnauthorized: true,
+      }
+    : undefined,
 });
 const subClient = pubClient.duplicate();
 
