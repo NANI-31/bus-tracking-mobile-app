@@ -11,8 +11,14 @@ const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 const connectDB = async (retries = 10, delayMs = 5000) => {
   for (let attempt = 1; attempt <= retries; attempt++) {
     try {
+      // Security: Enable sanitizeFilter to strip $ operators from user input
+      mongoose.set("sanitizeFilter", true);
+      mongoose.set("strictQuery", true);
+
       const conn = await mongoose.connect(MONGO_URI, {
         serverSelectionTimeoutMS: 5000, // Fail after 5 seconds
+        // tls: process.env.NODE_ENV === "production", // Enforce TLS in production
+        retryWrites: true,
       });
       console.log(`MongoDB Connected: ${conn.connection.host}`);
       return conn;

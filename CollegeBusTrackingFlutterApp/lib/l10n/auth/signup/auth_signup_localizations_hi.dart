@@ -24,7 +24,7 @@ class SignupLocalizationsHi extends SignupLocalizations {
   String get fullNameHint => 'उदा. जॉन डो';
 
   @override
-  String get rollNumber => 'రోల్ సంఖ్య / ఐడి';
+  String get rollNumber => 'रोल नंबर / आईडी';
 
   @override
   String get rollNumberHint => 'उदा. 21CSE102';
@@ -69,7 +69,8 @@ class SignupLocalizationsHi extends SignupLocalizations {
   String get personalEmailDetected => 'व्यक्तिगत ईमेल पाया गया';
 
   @override
-  String get personalEmailMessage => 'आप व्यक्तिगत ईमेल का उपयोग कर रहे हैं। आपके खाते को स्वीकृति की आवश्यकता होगी।';
+  String get personalEmailMessage =>
+      'आप व्यक्तिगत ईमेल का उपयोग कर रहे हैं। आपके खाते को स्वीकृति की आवश्यकता होगी।';
 
   @override
   String get continueText => 'जारी रखें';
@@ -108,7 +109,8 @@ class SignupLocalizationsHi extends SignupLocalizations {
   String get roleBusCoordinator => 'बस समन्वयक';
 
   @override
-  String get roleCoordinatorDescription => 'मार्गों और शेड्यूल को प्रबंधित करें';
+  String get roleCoordinatorDescription =>
+      'मार्गों और शेड्यूल को प्रबंधित करें';
 
   @override
   String get college => 'कॉलेज';
@@ -137,8 +139,3 @@ class SignupLocalizationsHi extends SignupLocalizations {
   @override
   String get invalidDomain => 'अमान्य डोमेन';
 }
-
-
-
-
-

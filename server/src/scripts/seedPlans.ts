@@ -19,7 +19,7 @@ const seedPlans = async () => {
       {
         name: "Monthly Premium",
         alias: "monthly",
-        price: 10,
+        price: 20,
         durationDays: 30,
         features: ["Live Tracking", "Basic Alerts"],
         isActive: true,
@@ -28,7 +28,7 @@ const seedPlans = async () => {
       {
         name: "Semester Premium",
         alias: "semester",
-        price: 20,
+        price: 40,
         durationDays: 120,
         features: ["Priority Support", "Route Insights", "Ad-Free"],
         isActive: true,

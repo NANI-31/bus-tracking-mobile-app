@@ -64,7 +64,8 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
   Widget build(BuildContext context) {
     final currentUser = ref.watch(currentUserProvider);
     final isCoordinatorOrAdmin =
-        currentUser?.role == 'Bus Coordinator' || currentUser?.role == 'Admin';
+        currentUser?.role == UserRole.busCoordinator ||
+        currentUser?.role == UserRole.admin;
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle(

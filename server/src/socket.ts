@@ -381,7 +381,48 @@ export const initializeSocket = (io: Server) => {
     });
 
     socket.on("update_location", async (data) => {
-      // data: { busId, collegeId, location: { lat, lng }, speed, heading }
+      // ===== INPUT VALIDATION =====
+
+      // 1. Validate data structure exists
+      if (!data || !data.busId || !data.collegeId || !data.location) {
+        logger.warn(`[Socket] Invalid location data shape from ${socket.id}`);
+        return;
+      }
+
+      // 2. Validate types
+      if (
+        typeof data.busId !== "string" ||
+        typeof data.collegeId !== "string" ||
+        typeof data.location.lat !== "number" ||
+        typeof data.location.lng !== "number"
+      ) {
+        logger.warn(`[Socket] Invalid location data types from ${socket.id}`);
+        return;
+      }
+
+      // 3. Validate coordinate ranges
+      if (
+        data.location.lat < -90 ||
+        data.location.lat > 90 ||
+        data.location.lng < -180 ||
+        data.location.lng > 180 ||
+        isNaN(data.location.lat) ||
+        isNaN(data.location.lng)
+      ) {
+        logger.warn(
+          `[Socket] Invalid coordinates from ${socket.id}: ${data.location.lat}, ${data.location.lng}`,
+        );
+        return;
+      }
+
+      // 4. Verify the user is a driver (only drivers should emit location)
+      if (!user || user.role !== "driver") {
+        logger.warn(
+          `[Socket] Non-driver ${user?.role || "unknown"} tried to update location: ${socket.id}`,
+        );
+        return;
+      }
+
       const { collegeId, busId } = data;
 
       // Round coordinates to 5 decimal places (~1m precision) for efficiency

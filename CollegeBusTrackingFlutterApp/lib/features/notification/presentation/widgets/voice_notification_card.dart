@@ -6,6 +6,7 @@ import 'simple_audio_player.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:collegebus/features/auth/application/auth_provider.dart';
 import 'package:collegebus/features/notification/application/notification_provider.dart';
+import 'package:collegebus/core/constants/constants.dart';
 
 class VoiceNotificationCard extends ConsumerWidget {
   final NotificationModel notification;
@@ -25,7 +26,7 @@ class VoiceNotificationCard extends ConsumerWidget {
     ).format(notification.timestamp.toLocal());
     final currentUser = ref.watch(currentUserProvider);
     final isSender = currentUser?.id == notification.senderId;
-    final isCoordinator = currentUser?.role == 'Bus Coordinator';
+    final isCoordinator = currentUser?.role == UserRole.busCoordinator;
     final canDelete = isSender || isCoordinator;
 
     return Container(

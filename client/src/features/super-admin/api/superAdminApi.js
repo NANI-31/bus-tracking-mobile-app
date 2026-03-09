@@ -51,6 +51,15 @@ export const fetchColleges = async (params) => {
   }
 };
 
+export const createCollege = async (collegeData) => {
+  try {
+    const response = await axios.post("/colleges", collegeData);
+    return response.data;
+  } catch (error) {
+    throw error.response ? error.response.data : error.message;
+  }
+};
+
 export const fetchCollegeById = async (collegeId) => {
   try {
     const response = await axios.get(`/admin/super/colleges/${collegeId}`);

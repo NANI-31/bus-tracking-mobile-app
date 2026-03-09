@@ -14,7 +14,21 @@ import {
   fetchCollegeStorageHistory,
   fetchAdvancedAnalytics,
   wipeCollegeData,
+  createCollege,
 } from "../api/superAdminApi";
+
+// Thunks
+export const createCollegeAction = createAsyncThunk(
+  "superAdmin/createCollege",
+  async (collegeData, { rejectWithValue }) => {
+    try {
+      const response = await createCollege(collegeData);
+      return response;
+    } catch (error) {
+      return rejectWithValue(error);
+    }
+  },
+);
 
 // Thunks
 export const getSystemStats = createAsyncThunk(
@@ -250,6 +264,9 @@ const superAdminSlice = createSlice({
           );
         }
         // If not deleted, we might want to refresh its stats but usually wipe is destructive enough to just remove it or keep it empty.
+      })
+      .addCase(createCollegeAction.fulfilled, (state, action) => {
+        state.colleges = [action.payload, ...state.colleges];
       })
 
       // Users

@@ -9,7 +9,7 @@ import {
   renameBusNumber,
   updateBusDetails,
   toggleManualPremium,
-} from "../../controllers/core/college.controller";
+} from "@/controllers/core/college.controller";
 
 import { protect, authorize } from "@/middleware/authMiddleware";
 
@@ -18,11 +18,11 @@ import {
   addBusNumberSchema,
   removeBusNumberSchema,
   renameBusNumberSchema,
-} from "../../models/college.schema";
+} from "@/models/college.schema";
 
 const router = express.Router();
 
-router.post("/", protect, authorize("admin"), createCollege);
+router.post("/", protect, authorize("admin", "superAdmin"), createCollege);
 router.get("/", getAllColleges); // Public for registration
 router.get("/:id", protect, getCollege);
 

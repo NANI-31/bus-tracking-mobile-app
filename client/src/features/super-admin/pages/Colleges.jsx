@@ -10,13 +10,17 @@ import {
   NoSymbolIcon,
   CurrencyDollarIcon,
   TrashIcon,
+  PlusIcon,
 } from "@heroicons/react/24/outline";
 import {
   getColleges,
   verifyCollegeAction,
   toggleManualPremiumAction,
   wipeCollegeDataAction,
+  createCollegeAction,
 } from "../slices/superAdminSlice";
+import { toast } from "react-hot-toast";
+import CollegeFormModal from "../components/CollegeFormModal";
 
 const Colleges = () => {
   const dispatch = useDispatch();
@@ -24,6 +28,8 @@ const Colleges = () => {
   const { colleges, loading } = useSelector((state) => state.superAdmin);
   const [filter, setFilter] = useState("all");
   const [search, setSearch] = useState("");
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [createLoading, setCreateLoading] = useState(false);
 
   useEffect(() => {
     dispatch(getColleges());
@@ -83,25 +89,38 @@ const Colleges = () => {
     }
   };
 
+  const handleCreateCollege = async (collegeData) => {
+    setCreateLoading(true);
+    try {
+      await dispatch(createCollegeAction(collegeData)).unwrap();
+      toast.success("College created successfully");
+      setIsModalOpen(false);
+    } catch (error) {
+      toast.error(error.message || "Failed to create college");
+    } finally {
+      setCreateLoading(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold text-slate-800">
+      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+        <h1 className="text-2xl font-bold text-slate-800 shrink-0">
           College Management
         </h1>
-        <div className="flex space-x-4">
-          <div className="relative">
+        <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto">
+          <div className="relative flex-1 min-w-[200px] max-w-full md:max-w-xs">
             <MagnifyingGlassIcon className="w-5 h-5 absolute left-3 top-2.5 text-slate-400" />
             <input
               type="text"
               placeholder="Search colleges..."
-              className="pl-10 pr-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1E90FF]"
+              className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1E90FF] bg-white text-sm"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
           </div>
           <select
-            className="border border-slate-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[#1E90FF] bg-white"
+            className="flex-1 md:flex-none border border-slate-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[#1E90FF] bg-white text-sm min-w-[120px]"
             value={filter}
             onChange={(e) => setFilter(e.target.value)}
           >
@@ -111,10 +130,18 @@ const Colleges = () => {
             <option value="suspended">Suspended</option>
           </select>
           <button
-            onClick={() => handleWipe({ _id: "all", name: "ALL COLLEGES" })}
-            className="flex items-center justify-center px-4 py-2 bg-red-50 text-red-600 border border-red-200 rounded-lg hover:bg-red-600 hover:text-white transition-all text-sm font-bold shadow-sm"
+            onClick={() => setIsModalOpen(true)}
+            className="flex items-center justify-center px-4 py-2 bg-[#1E90FF] text-white rounded-lg hover:bg-[#1E90FF]/90 transition-all text-sm font-bold shadow-sm shrink-0"
           >
-            <TrashIcon className="w-5 h-5 mr-2" /> Wipe All Data
+            <PlusIcon className="w-5 h-5 md:mr-2" />
+            <span className="hidden md:inline">Add College</span>
+          </button>
+          <button
+            onClick={() => handleWipe({ _id: "all", name: "ALL COLLEGES" })}
+            className="flex items-center justify-center px-4 py-2 bg-red-50 text-red-600 border border-red-200 rounded-lg hover:bg-red-600 hover:text-white transition-all text-sm font-bold shadow-sm shrink-0"
+          >
+            <TrashIcon className="w-5 h-5 md:mr-2" />
+            <span className="hidden md:inline">Wipe All Data</span>
           </button>
         </div>
       </div>
@@ -130,37 +157,44 @@ const Colleges = () => {
               layout
               className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 flex flex-col"
             >
-              <div className="flex justify-between items-start mb-4">
-                <div className="flex items-center space-x-3">
-                  <div className="p-3 bg-indigo-50 rounded-lg">
+              <div className="flex justify-between items-start mb-4 gap-4">
+                <div className="flex items-center space-x-3 min-w-0 flex-1">
+                  <div className="shrink-0 p-3 bg-indigo-50 rounded-lg">
                     <BuildingLibraryIcon className="w-8 h-8 text-[#1E90FF]" />
                   </div>
-                  <div className="flex-1 min-w-0">
+                  <div className="min-w-0 flex-1">
                     <h3
-                      className="text-lg font-bold text-slate-800 truncate cursor-pointer hover:text-[#1E90FF] transition-colors"
+                      className="text-lg font-bold text-slate-800 line-clamp-2 cursor-pointer hover:text-[#1E90FF] transition-colors"
                       onClick={() =>
                         navigate(`/super-admin/colleges/${college._id}`)
                       }
-                      title="View Details"
+                      title={college.name}
                     >
                       {college.name}
                     </h3>
-                    <p className="text-sm text-slate-500">{college.email}</p>
+                    <p
+                      className="text-sm text-slate-500 truncate"
+                      title={college.email}
+                    >
+                      {college.email}
+                    </p>
                   </div>
                 </div>
-                {college.status === "verified" ? (
-                  <span className="bg-emerald-100 text-emerald-800 text-xs px-2 py-1 rounded-full font-medium">
-                    Verified
-                  </span>
-                ) : college.status === "suspended" ? (
-                  <span className="bg-red-100 text-red-800 text-xs px-2 py-1 rounded-full font-medium">
-                    Suspended
-                  </span>
-                ) : (
-                  <span className="bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded-full font-medium">
-                    Pending
-                  </span>
-                )}
+                <div className="shrink-0 pt-1">
+                  {college.status === "verified" ? (
+                    <span className="bg-emerald-100 text-emerald-800 text-[10px] uppercase tracking-wider px-2 py-1 rounded-md font-bold border border-emerald-200">
+                      Verified
+                    </span>
+                  ) : college.status === "suspended" ? (
+                    <span className="bg-red-100 text-red-800 text-[10px] uppercase tracking-wider px-2 py-1 rounded-md font-bold border border-red-200">
+                      Suspended
+                    </span>
+                  ) : (
+                    <span className="bg-amber-100 text-amber-800 text-[10px] uppercase tracking-wider px-2 py-1 rounded-md font-bold border border-amber-200">
+                      Pending
+                    </span>
+                  )}
+                </div>
               </div>
 
               <div className="space-y-2 mb-6 flex-1">
@@ -237,8 +271,21 @@ const Colleges = () => {
         <div className="text-center py-12 text-slate-500">
           <BuildingLibraryIcon className="w-16 h-16 mx-auto mb-4 text-slate-300" />
           <p className="text-lg">No colleges found matching criteria.</p>
+          <button
+            onClick={() => setIsModalOpen(true)}
+            className="mt-4 px-6 py-2 bg-[#1E90FF] text-white rounded-lg font-bold hover:bg-[#1E90FF]/90 transition-colors"
+          >
+            Add Your First College
+          </button>
         </div>
       )}
+
+      <CollegeFormModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onSubmit={handleCreateCollege}
+        loading={createLoading}
+      />
     </div>
   );
 };

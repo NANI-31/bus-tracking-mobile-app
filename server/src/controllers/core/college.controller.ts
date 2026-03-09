@@ -1,10 +1,15 @@
 import { Request, Response } from "express";
+import { IAuthRequest } from "@/middleware/authMiddleware";
 import College from "@/models/College.model";
 import { getCollegeService } from "@/services/collegeService";
 
 export const createCollege = async (req: Request, res: Response) => {
   try {
-    const newCollege = new College(req.body);
+    const authReq = req as IAuthRequest;
+    const newCollege = new College({
+      ...req.body,
+      createdBy: authReq.user?.id,
+    });
     const savedCollege = await newCollege.save();
     res.status(201).json(savedCollege);
   } catch (error) {

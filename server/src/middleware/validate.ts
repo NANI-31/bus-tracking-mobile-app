@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import { ZodSchema, ZodError } from "zod";
+import logger from "@/utils/logger";
 
 export const validate =
   (schema: ZodSchema) =>
@@ -13,22 +14,20 @@ export const validate =
       return next();
     } catch (error) {
       if (error instanceof ZodError) {
-        // Log validation error for debugging
-        console.error(
-          "Validation error details:",
-          JSON.stringify(error, null, 2),
-        );
+        // Log validation errors only in non-production (avoid PII leakage)
+        if (process.env.NODE_ENV !== "production") {
+          logger.debug(`Validation error: ${JSON.stringify(error.issues)}`);
+        }
 
-        const errors = (error as any).errors || [];
         return res.status(400).json({
           message: "Validation failed",
-          errors: errors.map((e: any) => ({
+          errors: error.issues.map((e) => ({
             field: e.path.join("."),
             message: e.message,
           })),
         });
       }
-      console.error("Unexpected validation error:", error);
+      logger.error(`Unexpected validation error: ${error}`);
       return res.status(400).json({ message: "Invalid request data" });
     }
   };

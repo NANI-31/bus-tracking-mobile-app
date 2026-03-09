@@ -16,6 +16,7 @@ class SecureStorageService {
   static const String _keyDriverBusNumber = 'secure_driver_bus_number';
   static const String _keyDriverRouteId = 'secure_driver_route_id';
   static const String _keyAuthToken = 'secure_auth_token';
+  static const String _keyRefreshToken = 'secure_refresh_token';
 
   // ============== Driver Data ==============
 
@@ -119,6 +120,37 @@ class SecureStorageService {
     }
   }
 
+  // ============== Refresh Token ==============
+
+  /// Save refresh token (encrypted)
+  static Future<void> setRefreshToken(String token) async {
+    try {
+      await _storage.write(key: _keyRefreshToken, value: token);
+    } catch (e) {
+      AppLogger.e('[SecureStorage] Failed to save refresh token: $e');
+    }
+  }
+
+  /// Get refresh token
+  static Future<String?> getRefreshToken() async {
+    try {
+      return await _storage.read(key: _keyRefreshToken);
+    } catch (e) {
+      AppLogger.e('[SecureStorage] Failed to read refresh token: $e');
+      return null;
+    }
+  }
+
+  /// Clear refresh token
+  static Future<void> clearRefreshToken() async {
+    try {
+      await _storage.delete(key: _keyRefreshToken);
+      AppLogger.i('[SecureStorage] Refresh token cleared');
+    } catch (e) {
+      AppLogger.e('[SecureStorage] Failed to clear refresh token: $e');
+    }
+  }
+
   // ============== Clear All ==============
 
   /// Clear all secure storage data (complete reset)
@@ -131,8 +163,3 @@ class SecureStorageService {
     }
   }
 }
-
-
-
-
-

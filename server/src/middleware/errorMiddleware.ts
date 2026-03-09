@@ -7,15 +7,17 @@ export const errorHandler = (
   res: Response,
   next: NextFunction,
 ) => {
-  console.error("ERROR MIDDLWARE CAUGHT:", err);
   logger.error(err.stack || err.message);
 
   const statusCode = err.statusCode || 500;
-  const message = err.message || "Internal Server Error";
+  const isProduction = process.env.NODE_ENV === "production";
 
   res.status(statusCode).json({
     success: false,
-    message,
-    stack: process.env.NODE_ENV === "development" ? err.stack : undefined,
+    message:
+      isProduction && statusCode === 500
+        ? "Internal Server Error" // Never leak internal error details in production
+        : err.message || "Internal Server Error",
+    stack: isProduction ? undefined : err.stack,
   });
 };

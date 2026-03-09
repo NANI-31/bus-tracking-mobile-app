@@ -127,21 +127,35 @@ export const register = async (req: Request, res: Response) => {
 
     await newUser.save();
 
-    // Create token
-    const token = jwt.sign(
+    // Create tokens
+    const REFRESH_TOKEN_SECRET = process.env.REFRESH_TOKEN_SECRET!;
+    const accessToken = jwt.sign(
       {
         id: newUser._id,
         email: newUser.email,
-        fullName: newUser.fullName, // Added fullName
+        fullName: newUser.fullName,
         role: newUser.role,
+        collegeId: newUser.collegeId,
+        approved: newUser.approved,
+        tokenVersion: newUser.tokenVersion,
       },
       JWT_SECRET,
-      { expiresIn: "30d" },
+      { expiresIn: "15m" },
+    );
+
+    const refreshToken = jwt.sign(
+      {
+        id: newUser._id,
+        tokenVersion: newUser.tokenVersion,
+      },
+      REFRESH_TOKEN_SECRET,
+      { expiresIn: "7d" },
     );
 
     res.status(201).json({
       success: true,
-      token,
+      token: accessToken,
+      refreshToken,
       user: {
         id: newUser._id,
         email: newUser.email,

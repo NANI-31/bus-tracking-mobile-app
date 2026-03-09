@@ -1,5 +1,5 @@
 import 'dart:ui' as ui;
-import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
@@ -21,7 +21,7 @@ class MapMarkerHelper {
         'assets/bus_icon.png',
         targetWidth,
       );
-      _cachedBusMarker = BitmapDescriptor.fromBytes(resizedBytes);
+      _cachedBusMarker = BitmapDescriptor.bytes(resizedBytes);
     } catch (e) {
       debugPrint(
         '[MapMarkerHelper] fromBytes failed ($e), trying canvas approach',
@@ -84,7 +84,7 @@ class MapMarkerHelper {
       format: ui.ImageByteFormat.png,
     );
 
-    return BitmapDescriptor.fromBytes(byteData!.buffer.asUint8List());
+    return BitmapDescriptor.bytes(byteData!.buffer.asUint8List());
   }
 
   /// Clear the cache to force re-creation (e.g. after theme change).

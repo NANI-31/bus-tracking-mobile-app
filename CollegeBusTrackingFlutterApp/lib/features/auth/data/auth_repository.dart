@@ -72,4 +72,17 @@ class AuthRepository extends BaseRepository {
       throw handleError(e);
     }
   }
+
+  /// Refresh auth token using refresh token
+  Future<Map<String, dynamic>> refreshToken(String refreshToken) async {
+    try {
+      final response = await dio.post(
+        '/auth/refresh-token',
+        data: {'refreshToken': refreshToken},
+      );
+      return response.data;
+    } catch (e) {
+      throw handleError(e);
+    }
+  }
 }

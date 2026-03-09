@@ -141,9 +141,16 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
     try {
       final result = await _authRepo.login(email, password);
 
-      if (result['success'] == true && result['token'] != null) {
-        final token = result['token'] as String;
-        await PersistenceService.setAuthToken(token);
+      if (result['success'] == true &&
+          (result['token'] != null || result['accessToken'] != null)) {
+        final accessToken =
+            (result['token'] ?? result['accessToken']) as String;
+        final refreshToken = result['refreshToken'] as String?;
+
+        await PersistenceService.setAuthToken(accessToken);
+        if (refreshToken != null) {
+          await PersistenceService.setRefreshToken(refreshToken);
+        }
 
         final userId = result['user']?['id'];
         if (userId != null) {
@@ -152,7 +159,9 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
           if (user != null) {
             await _registerFCMToken(user.id);
             _setupPremiumExpiryTimer(user);
-            state = AsyncValue.data(AuthState(currentUser: user, token: token));
+            state = AsyncValue.data(
+              AuthState(currentUser: user, token: accessToken),
+            );
             return {'success': true, 'message': 'Login successful'};
           }
         }
@@ -203,6 +212,7 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
     // 3. Clear Local Storage
     await SecureStorageService.clearAll();
     await PersistenceService.removeAuthToken();
+    await PersistenceService.removeRefreshToken();
     await PersistenceService.removeUserId();
 
     // Clear Dashboard Preferences

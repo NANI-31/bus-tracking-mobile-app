@@ -56,6 +56,8 @@ export interface IUser extends Document {
   referralCode: string;
   referredBy?: string;
   pendingEmail?: string;
+  loginAttempts: number;
+  lockUntil?: Date;
 }
 
 const UserSchema: Schema = new Schema({
@@ -123,6 +125,8 @@ const UserSchema: Schema = new Schema({
   referralCode: { type: String, unique: true, sparse: true },
   referredBy: { type: String, ref: "User" },
   pendingEmail: { type: String, sparse: true },
+  loginAttempts: { type: Number, default: 0 },
+  lockUntil: { type: Date },
 });
 
 // Index for geospatial queries

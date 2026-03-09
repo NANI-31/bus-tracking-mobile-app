@@ -16,7 +16,7 @@ export const seedPlans = async (req: Request, res: Response) => {
       {
         name: "Monthly Premium",
         alias: "monthly",
-        price: 10,
+        price: 20,
         durationDays: 30,
         features: ["Live Tracking", "Basic Alerts"],
         isActive: true,
@@ -25,7 +25,7 @@ export const seedPlans = async (req: Request, res: Response) => {
       {
         name: "Extended Premium (4 Months)",
         alias: "semester",
-        price: 20,
+        price: 40,
         durationDays: 120,
         features: ["Priority Support", "Route Insights", "Ad-Free"],
         isActive: true,

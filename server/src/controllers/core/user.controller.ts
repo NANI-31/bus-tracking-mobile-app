@@ -3,7 +3,7 @@ import User from "@/models/User.model";
 import { IAuthRequest } from "@/types";
 import College from "@/models/College.model";
 import { AuditService } from "@/services/AuditService";
-import * as xlsx from "xlsx";
+import * as ExcelJS from "exceljs";
 import path from "path";
 import fs from "fs";
 import { sendEmail } from "@/utils/emailService";
@@ -278,10 +278,16 @@ export const bulkActivatePremium = async (req: IAuthRequest, res: Response) => {
         .json({ message: "Manual premium not enabled for this college" });
     }
 
-    // Read Excel
-    const workbook = xlsx.read(req.file.buffer, { type: "buffer" });
-    const sheetName = workbook.SheetNames[0];
-    const data = xlsx.utils.sheet_to_json(workbook.Sheets[sheetName]) as any[];
+    // Read Excel using exceljs
+    const workbook = new ExcelJS.Workbook();
+    await workbook.xlsx.load(req.file.buffer as any);
+    const worksheet = workbook.getWorksheet(1); // Use the first sheet
+
+    if (!worksheet) {
+      return res
+        .status(400)
+        .json({ message: "Worksheet not found in Excel file" });
+    }
 
     const results = {
       success: 0,
@@ -292,18 +298,52 @@ export const bulkActivatePremium = async (req: IAuthRequest, res: Response) => {
     const now = new Date();
     const msToAdd = planType === "semesterly" ? 1.5 * 60 * 1000 : 1 * 60 * 1000;
 
-    for (const row of data) {
+    // Helper to find column index (1-based for exceljs)
+    const findColumnIndex = (
+      row: ExcelJS.Row,
+      searchNames: string[],
+    ): number => {
+      let foundIndex = -1;
+      row.eachCell((cell, colNumber) => {
+        const val = cell.value?.toString().toLowerCase().replace(/\s/g, "");
+        if (
+          val &&
+          searchNames.some((name) =>
+            val.includes(name.toLowerCase().replace(/\s/g, "")),
+          )
+        ) {
+          foundIndex = colNumber;
+        }
+      });
+      return foundIndex;
+    };
+
+    // Get header row (first row)
+    const headerRow = worksheet.getRow(1);
+    const rollNumberIdx = findColumnIndex(headerRow, [
+      "rollnumber",
+      "roll number",
+    ]);
+    const emailIdx = findColumnIndex(headerRow, ["email"]);
+
+    if (rollNumberIdx === -1 && emailIdx === -1) {
+      return res.status(400).json({
+        message: "Could not find 'Roll Number' or 'Email' column in Excel file",
+      });
+    }
+
+    // Iterate through rows starting from row 2
+    for (let i = 2; i <= worksheet.rowCount; i++) {
+      const row = worksheet.getRow(i);
       try {
-        // Support Roll Number or Email headers
-        const identifier = (
-          row.rollNumber ||
-          row.RollNumber ||
-          row.email ||
-          row.Email ||
-          ""
-        )
-          .toString()
-          .trim();
+        const rollNumberValue =
+          rollNumberIdx !== -1
+            ? row.getCell(rollNumberIdx).value?.toString().trim()
+            : "";
+        const emailValue =
+          emailIdx !== -1 ? row.getCell(emailIdx).value?.toString().trim() : "";
+
+        const identifier = rollNumberValue || emailValue || "";
         if (!identifier) continue;
 
         const targetUser = await User.findOne({
@@ -324,7 +364,9 @@ export const bulkActivatePremium = async (req: IAuthRequest, res: Response) => {
         }
       } catch (err) {
         results.failed++;
-        results.errors.push(`Error processing row: ${(err as Error).message}`);
+        results.errors.push(
+          `Error processing row ${i}: ${(err as Error).message}`,
+        );
       }
     }
 

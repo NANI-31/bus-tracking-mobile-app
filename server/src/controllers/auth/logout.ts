@@ -17,8 +17,11 @@ export const logout = async (req: Request, res: Response) => {
     const userFullName = authReq.user.fullName || "Unknown";
     const userCollegeId = authReq.user.collegeId;
 
-    // Find user and update isLoggedIn to false
-    await User.findByIdAndUpdate(userId, { isLoggedIn: false });
+    // Find user and update session version (invalidates all issued tokens)
+    await User.findByIdAndUpdate(userId, {
+      $set: { isLoggedIn: false },
+      $inc: { tokenVersion: 1 },
+    });
 
     console.log(`LOGOUT: User ${userId} logged out successfully.`);
 
@@ -45,4 +48,3 @@ export const logout = async (req: Request, res: Response) => {
     res.status(500).json({ message: "Server error during logout" });
   }
 };
-

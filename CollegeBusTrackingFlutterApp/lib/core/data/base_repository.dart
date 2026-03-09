@@ -35,15 +35,55 @@ abstract class BaseRepository {
           }
           return handler.next(options);
         },
-        onError: (e, handler) {
+        onError: (e, handler) async {
           if (e.response?.statusCode == 401) {
-            // Check if this is a logout request to avoid circular dependency/loop
             final isLogoutRequest = e.requestOptions.path.contains(
               'auth/logout',
             );
+            final isRefreshRequest = e.requestOptions.path.contains(
+              'auth/refresh-token',
+            );
 
-            // Trigger global logout if authorized session found but expired/invalidated
-            if (PersistenceService.getAuthToken() != null && !isLogoutRequest) {
+            if (!isLogoutRequest && !isRefreshRequest) {
+              final refreshToken = PersistenceService.getRefreshToken();
+              if (refreshToken != null) {
+                try {
+                  // Attempt to refresh token using a separate Dio instance to avoid interceptor loops
+                  final refreshDio = Dio(
+                    BaseOptions(baseUrl: AppConstants.apiBaseUrl),
+                  );
+                  final response = await refreshDio.post(
+                    '/auth/refresh-token',
+                    data: {'refreshToken': refreshToken},
+                  );
+
+                  if (response.data != null &&
+                      response.data['success'] == true) {
+                    final newToken =
+                        response.data['accessToken'] ?? response.data['token'];
+                    if (newToken != null) {
+                      await PersistenceService.setAuthToken(newToken);
+
+                      // Retry the original request with the new token
+                      final opts = e.requestOptions;
+                      opts.headers['Authorization'] = 'Bearer $newToken';
+
+                      final retryResponse = await dio.fetch(opts);
+                      return handler.resolve(retryResponse);
+                    }
+                  }
+                } catch (refreshError) {
+                  // If refresh fails, clear everything and force logout
+                  await PersistenceService.removeAuthToken();
+                  await PersistenceService.removeRefreshToken();
+                  onUnauthorized?.call();
+                  return handler.next(e);
+                }
+              }
+            }
+
+            // Fallback for unauthorized without refresh capability
+            if (!isLogoutRequest) {
               onUnauthorized?.call();
             }
           }

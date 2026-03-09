@@ -230,6 +230,16 @@ class LiveBusMapState extends ConsumerState<LiveBusMap>
     final Map<String, Marker> newMarkers = {};
 
     for (var bus in widget.buses) {
+      // If bus reached destination or is not running, stop showing it as "live"
+      if (bus.status == 'not-running' || bus.assignmentStatus == 'unassigned') {
+        // Clear caches for this bus to ensure it disappears
+        _liveLocations.remove(bus.id);
+        _animatedLocations.remove(bus.id);
+        _animationControllers[bus.id]?.dispose();
+        _animationControllers.remove(bus.id);
+        continue;
+      }
+
       final pos =
           _animatedLocations[bus.id] ?? _liveLocations[bus.id]?.currentLocation;
       if (pos != null) {

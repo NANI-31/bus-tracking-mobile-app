@@ -11,6 +11,7 @@ import 'package:collegebus/core/providers/api_provider.dart';
 import 'package:collegebus/core/constants/constants.dart';
 import 'package:collegebus/features/college/application/college_provider.dart';
 import 'package:collegebus/features/college/domain/college_model.dart';
+import 'package:collegebus/features/coordinator/presentation/edit_schedule_screen.dart';
 
 class ScheduleManagementScreen extends ConsumerStatefulWidget {
   const ScheduleManagementScreen({super.key});
@@ -336,92 +337,6 @@ class _ScheduleManagementScreenState
     );
   }
 
-  void _showChangeBusDialog({
-    required ScheduleModel schedule,
-    required List<BusModel> buses,
-  }) {
-    BusModel? selectedBus = buses.firstWhere(
-      (b) => b.id == schedule.busId,
-      orElse: () => buses.first,
-    );
-
-    showDialog(
-      context: context,
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setState) {
-            return AlertDialog(
-              title: const Text('Change Bus'),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Text('Select a new bus for this schedule:'),
-                  const SizedBox(height: 16),
-                  DropdownButtonFormField<BusModel>(
-                    initialValue: selectedBus,
-                    isExpanded: true,
-                    decoration: const InputDecoration(
-                      labelText: 'Select Bus',
-                      border: OutlineInputBorder(),
-                    ),
-                    items: buses
-                        .map(
-                          (bus) => DropdownMenuItem(
-                            value: bus,
-                            child: Text('Bus ${bus.busNumber}'),
-                          ),
-                        )
-                        .toList(),
-                    onChanged: (bus) => setState(() => selectedBus = bus),
-                  ),
-                ],
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  child: const Text('Cancel'),
-                ),
-                ElevatedButton(
-                  onPressed:
-                      selectedBus != null && selectedBus!.id != schedule.busId
-                      ? () async {
-                          final api = ref.read(apiServiceProvider);
-                          try {
-                            final updatedSchedule = schedule.copyWith(
-                              busId: selectedBus!.id,
-                              updatedAt: DateTime.now(),
-                            );
-                            await api.updateSchedule(
-                              schedule.id,
-                              updatedSchedule.toMap(),
-                            );
-                            ref.invalidate(
-                              collegeSchedulesProvider(schedule.collegeId),
-                            );
-                            if (!context.mounted) return;
-                            Navigator.of(context).pop();
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Bus reassigned successfully'),
-                              ),
-                            );
-                          } catch (e) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text('Error: $e')),
-                            );
-                          }
-                        }
-                      : null,
-                  child: const Text('Save'),
-                ),
-              ],
-            );
-          },
-        );
-      },
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final user = ref.watch(currentUserProvider);
@@ -720,7 +635,7 @@ class _ScheduleManagementScreenState
                             Expanded(
                               child: OutlinedButton.icon(
                                 icon: const Icon(Icons.edit, size: 18),
-                                label: const Text('Change Bus'),
+                                label: const Text('Edit'),
                                 style: OutlinedButton.styleFrom(
                                   foregroundColor: Colors.blue,
                                   side: const BorderSide(color: Colors.blue),
@@ -728,10 +643,17 @@ class _ScheduleManagementScreenState
                                     vertical: 12,
                                   ),
                                 ),
-                                onPressed: () => _showChangeBusDialog(
-                                  schedule: schedule,
-                                  buses: buses,
-                                ),
+                                onPressed: () {
+                                  Navigator.of(context).push(
+                                    MaterialPageRoute(
+                                      builder: (context) => EditScheduleScreen(
+                                        schedule: schedule,
+                                        routes: routes,
+                                        buses: buses,
+                                      ),
+                                    ),
+                                  );
+                                },
                               ),
                             ),
                             const SizedBox(width: 12),
