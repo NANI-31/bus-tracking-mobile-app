@@ -126,10 +126,10 @@ const startServer = async () => {
     // Initialize Socket.IO
     initializeSocket(io);
 
-    const PORT = Number(process.env.PORT) || 5000;
+    const PORT = process.env.PORT ? parseInt(process.env.PORT) : 5000;
 
     httpServer.listen(PORT, "0.0.0.0", () => {
-      logger.info(`Server running on port ${PORT}`);
+      logger.info(`[Render] Server identified and listening on port: ${PORT}`);
     });
   } catch (error) {
     logger.error("Failed to start server:", error);

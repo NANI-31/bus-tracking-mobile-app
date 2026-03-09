@@ -2,16 +2,18 @@ import { createClient } from "redis";
 import logger from "@/utils/logger";
 
 const redisUrl = process.env.REDIS_URL || "redis://localhost:6379";
-const useTLS = redisUrl.startsWith("rediss://");
-const pubClient = createClient({
-  url: redisUrl,
-  socket: useTLS
-    ? {
-        tls: true,
-        rejectUnauthorized: true,
-      }
-    : undefined,
-});
+const isTLS = redisUrl.startsWith("rediss://");
+
+// Build options manually to avoid passing undefined properties that might confuse node-redis
+const clientOptions: any = { url: redisUrl };
+if (isTLS) {
+  clientOptions.socket = {
+    tls: true,
+    rejectUnauthorized: true,
+  };
+}
+
+const pubClient = createClient(clientOptions);
 const subClient = pubClient.duplicate();
 
 pubClient.on("error", (err: any) =>
