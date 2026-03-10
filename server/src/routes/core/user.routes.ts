@@ -49,7 +49,7 @@ router.post(
 router.delete(
   "/:id",
   protect,
-  authorize("superAdmin", "collegeAdmin"),
+  authorize("superAdmin", "collegeAdmin", "busCoordinator"),
   deleteUser,
 );
 

@@ -1,17 +1,17 @@
 import 'dart:async';
-import 'package:collegebus/core/services/api_service.dart';
+import 'package:collegebus/core/data/repositories.dart';
 import 'package:flutter/material.dart';
 
 class PaymentService extends ChangeNotifier {
-  ApiService _apiService;
+  PaymentRepository _paymentRepo;
   String? _lastError;
 
   String? get lastError => _lastError;
 
-  PaymentService(this._apiService);
+  PaymentService(this._paymentRepo);
 
-  void updateDependencies(ApiService api) {
-    _apiService = api;
+  void updateDependencies(PaymentRepository repo) {
+    _paymentRepo = repo;
   }
 
   void clearError() {
@@ -32,7 +32,7 @@ class PaymentService extends ChangeNotifier {
     String? plan,
   }) async {
     try {
-      final result = await _apiService.createPaymentOrder(
+      final result = await _paymentRepo.createOrder(
         amount,
         currency,
         plan: plan,
@@ -51,7 +51,7 @@ class PaymentService extends ChangeNotifier {
     String signature,
   ) async {
     try {
-      final result = await _apiService.verifyPayment(
+      final result = await _paymentRepo.verifyPayment(
         orderId,
         paymentId,
         signature,

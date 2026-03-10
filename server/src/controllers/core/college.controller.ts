@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import { IAuthRequest } from "@/middleware/authMiddleware";
 import College from "@/models/College.model";
+import { Bus } from "@/models/Bus.model";
 import { getCollegeService } from "@/services/collegeService";
 
 export const createCollege = async (req: Request, res: Response) => {
@@ -121,7 +122,6 @@ export const updateBusDetails = async (req: Request, res: Response) => {
     }
 
     // 2. Update/Upsert actual Bus document(s)
-    const { Bus } = require("../../models/Bus");
     const targetBusNumber = newBusNumber || oldBusNumber;
 
     // Find if a bus document already exists for the old number

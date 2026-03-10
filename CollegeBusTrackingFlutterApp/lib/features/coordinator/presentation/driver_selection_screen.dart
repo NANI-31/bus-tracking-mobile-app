@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:velocity_x/velocity_x.dart';
 import 'package:collegebus/features/user/domain/user_model.dart';
 import 'package:collegebus/features/auth/application/auth_provider.dart';
-import 'package:collegebus/core/providers/api_provider.dart';
+import 'package:collegebus/core/providers/repository_providers.dart';
 import 'package:collegebus/features/user/application/user_provider.dart';
 import 'package:collegebus/features/bus/application/bus_provider.dart';
 import 'package:collegebus/features/route/application/route_provider.dart';
@@ -93,27 +93,34 @@ class _DriverSelectionScreenState extends ConsumerState<DriverSelectionScreen> {
           ),
           ElevatedButton(
             onPressed: () async {
-              final api = ref.read(apiServiceProvider);
-              final currentUser = ref.read(currentUserProvider);
-
-              if (currentUser == null || currentUser.collegeId.isEmpty) {
-                if (dialogContext.mounted) {
-                  Navigator.pop(dialogContext);
-                }
-                if (mounted) {
-                  ApiErrorModal.show(
-                    context: context,
-                    error: "Session Invalid. Please login again.",
-                  );
-                }
-                return;
-              }
-
               try {
-                await api.assignDriverToBus(
-                  busNumber: widget.busNumber,
+                final repo = ref.read(busRepositoryProvider);
+                final currentUser = ref.read(currentUserProvider);
+
+                if (currentUser == null || currentUser.collegeId.isEmpty) {
+                  if (dialogContext.mounted) {
+                    Navigator.pop(dialogContext);
+                  }
+                  if (mounted) {
+                    ApiErrorModal.show(
+                      context: context,
+                      error: "Session Invalid. Please login again.",
+                    );
+                  }
+                  return;
+                }
+
+                // Find bus correctly
+                final bus = buses.firstWhere(
+                  (b) =>
+                      b.busNumber == widget.busNumber &&
+                      b.collegeId == currentUser.collegeId,
+                  orElse: () => throw Exception('Bus not found'),
+                );
+
+                await repo.assignDriverToBus(
+                  busId: bus.id,
                   driverId: driver.id,
-                  collegeId: currentUser.collegeId,
                   routeId: selectedRoute.id,
                 );
 

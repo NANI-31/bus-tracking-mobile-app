@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:collegebus/features/sos/domain/sos_model.dart';
-import 'package:collegebus/core/providers/api_provider.dart';
+import 'package:collegebus/core/providers/repository_providers.dart';
 import 'package:collegebus/core/providers/socket_provider.dart';
 
 /// StreamProvider for active SOS alerts in a specific college
@@ -8,7 +8,7 @@ final activeSosProvider = StreamProvider.family<List<SosModel>, String>((
   ref,
   collegeId,
 ) {
-  final api = ref.watch(apiServiceProvider);
+  final repo = ref.watch(incidentRepositoryProvider);
   final socket = ref.watch(socketServiceProvider);
 
   return Stream.multi((controller) async {
@@ -16,7 +16,7 @@ final activeSosProvider = StreamProvider.family<List<SosModel>, String>((
 
     Future<void> fetch() async {
       try {
-        final rawAlerts = await api.getActiveSos(collegeId);
+        final rawAlerts = await repo.getActiveSos(collegeId);
         currentAlerts = rawAlerts.map((m) => SosModel.fromMap(m)).toList();
         if (!controller.isClosed) controller.add(List.from(currentAlerts));
       } catch (e) {
@@ -81,8 +81,3 @@ final onlineDriversProvider = StreamProvider.family<Set<String>, String>((
     controller.add(Set.from(onlineIds));
   });
 });
-
-
-
-
-

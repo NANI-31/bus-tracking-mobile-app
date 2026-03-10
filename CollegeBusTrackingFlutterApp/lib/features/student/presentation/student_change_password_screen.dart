@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:collegebus/features/auth/application/auth_provider.dart';
-import 'package:collegebus/core/providers/api_provider.dart';
+import 'package:collegebus/core/providers/repository_providers.dart';
 import 'package:velocity_x/velocity_x.dart';
 
 class StudentChangePasswordScreen extends ConsumerStatefulWidget {
@@ -30,16 +30,14 @@ class _StudentChangePasswordScreenState
 
     try {
       final user = ref.read(currentUserProvider);
-      final apiService = ref.read(apiServiceProvider);
+      final repo = ref.read(userRepositoryProvider);
       final userId = user?.id;
 
       if (userId == null) throw Exception('User not found');
 
       // Placeholder: Using updateUser for now.
       // In a real app, this should be a dedicated endpoint that verifies the old password.
-      await apiService.updateUser(userId, {
-        'password': _newPasswordController.text,
-      });
+      await repo.updateUser(userId, {'password': _newPasswordController.text});
 
       if (mounted) {
         VxToast.show(context, msg: 'Password updated successfully');
@@ -182,8 +180,3 @@ class _StudentChangePasswordScreenState
     );
   }
 }
-
-
-
-
-

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:collegebus/core/providers/api_provider.dart';
+import 'package:collegebus/core/providers/repository_providers.dart';
 import 'package:intl/intl.dart';
 import 'package:csv/csv.dart';
 import 'package:share_plus/share_plus.dart';
@@ -8,8 +8,8 @@ import 'package:path_provider/path_provider.dart';
 import 'dart:io';
 
 final userTransactionsProvider = FutureProvider<List<dynamic>>((ref) async {
-  final api = ref.read(apiServiceProvider);
-  return await api.getPaymentTransactions();
+  final repo = ref.read(paymentRepositoryProvider);
+  return await repo.getTransactions();
 });
 
 class TransactionHistoryScreen extends ConsumerStatefulWidget {
@@ -367,8 +367,8 @@ class _TransactionHistoryScreenState
           ElevatedButton(
             onPressed: () async {
               try {
-                final api = ref.read(apiServiceProvider);
-                await api.requestRefund(
+                final repo = ref.read(paymentRepositoryProvider);
+                await repo.requestRefund(
                   transactionId,
                   "User requested via app",
                 );

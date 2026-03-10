@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-import 'dart:ui';
-
 import 'package:collegebus/shared/widgets/logout_confirmation_dialog.dart';
 import 'package:collegebus/shared/widgets/logout_loading_dialog.dart';
 import 'package:collegebus/l10n/driver/app_localizations.dart';
@@ -15,7 +13,7 @@ import 'package:collegebus/features/auth/application/auth_provider.dart';
 import 'package:collegebus/core/providers/service_providers.dart';
 import 'package:collegebus/features/bus/application/bus_provider.dart';
 import 'package:collegebus/features/route/application/route_provider.dart';
-import 'package:collegebus/core/providers/api_provider.dart';
+import 'package:collegebus/core/providers/repository_providers.dart';
 import 'package:collegebus/core/providers/socket_provider.dart';
 import 'package:collegebus/features/bus/domain/bus_model.dart';
 import 'package:collegebus/features/route/domain/route_model.dart';
@@ -115,7 +113,7 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
     final locationService = ref.read(locationServiceProvider);
     final socketService = ref.read(socketServiceProvider);
     final user = ref.read(currentUserProvider);
-    final api = ref.read(apiServiceProvider);
+    final repo = ref.read(busRepositoryProvider);
 
     // SECURITY: Re-verify location permission before each trip start
     final hasPermission = await locationService.checkLocationPermission();
@@ -142,7 +140,7 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
     }
 
     // Update bus status to live
-    api.updateBusStatus(myBus.id, 'on-time').catchError((e) {
+    repo.updateBus(myBus.id, {'status': 'on-time'}).catchError((e) {
       AppLogger.e('Failed to update bus status: $e');
     });
 
@@ -416,13 +414,13 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
 
   void _stopLocationSharing(BusModel? myBus) {
     final locationService = ref.read(locationServiceProvider);
-    final api = ref.read(apiServiceProvider);
+    final repo = ref.read(busRepositoryProvider);
 
     locationService.stopLocationTracking();
 
     // Revert bus status to offline
     if (myBus != null) {
-      api.updateBusStatus(myBus.id, 'not-running').catchError((e) {
+      repo.updateBus(myBus.id, {'status': 'not-running'}).catchError((e) {
         AppLogger.e('Failed to update bus status: $e');
       });
     }
@@ -442,9 +440,9 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
   }
 
   Future<void> _handleRemoveAssignment(BusModel myBus) async {
-    final api = ref.read(apiServiceProvider);
+    final repo = ref.read(busRepositoryProvider);
     try {
-      await api.deleteBus(myBus.id);
+      await repo.deleteBus(myBus.id);
       await PersistenceService.remove('driver_bus_id');
       await PersistenceService.remove('driver_bus_number');
       await PersistenceService.remove('driver_route_id');
@@ -475,9 +473,9 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
   }
 
   Future<void> _handleAcceptAssignment(BusModel bus) async {
-    final api = ref.read(apiServiceProvider);
+    final repo = ref.read(busRepositoryProvider);
     try {
-      await api.acceptBusAssignment(bus.id);
+      await repo.updateBus(bus.id, {'assignmentStatus': 'accepted'});
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -509,9 +507,13 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
   }
 
   Future<void> _handleRejectAssignment(String busId) async {
-    final api = ref.read(apiServiceProvider);
+    final repo = ref.read(busRepositoryProvider);
     try {
-      await api.rejectBusAssignment(busId);
+      await repo.updateBus(busId, {
+        'driverId': null,
+        'assignmentStatus': 'unassigned',
+        'status': 'not-running',
+      });
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -672,54 +674,55 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
     // Auto-resume location sharing if state was persisted
     // CRITICAL: Only auto-resume AFTER initialization is complete to prevent
     // Android from killing the process when foreground service starts too early
-    ref.listen(driverBusProvider(userId), (previous, next) {
+    ref.listen<AsyncValue<BusModel?>>(driverBusProvider(userId), (
+      previous,
+      next,
+    ) {
       try {
-        next.whenData((bus) {
-          if (bus != null) {
-            debugPrint(
-              '[DriverDashboard] Bus data received: ${bus.busNumber}, assignmentStatus=${bus.assignmentStatus}',
-            );
+        final bus = next.value;
+        if (bus != null) {
+          debugPrint(
+            '[DriverDashboard] Bus data received: ${bus.busNumber}, assignmentStatus=${bus.assignmentStatus}',
+          );
 
-            // 1. Handle auto-resume location sharing (ONLY after init)
-            if (_isSharing && _hasInitialized) {
-              final locationService = ref.read(locationServiceProvider);
-              if (!locationService.isTracking) {
-                debugPrint(
-                  '[DriverDashboard] Auto-resuming location sharing...',
-                );
-                // Delay slightly to ensure app is fully ready
-                Future.delayed(const Duration(milliseconds: 500), () {
-                  if (mounted) {
-                    _startLocationSharing(bus, silent: true);
-                  }
-                });
-              }
-            }
-
-            // 2. Handle initial route selection if matching preference
-            if (_selectedRoute == null && bus.routeId != null) {
-              debugPrint(
-                '[DriverDashboard] Matching route for routeId=${bus.routeId}',
-              );
-              final routesAsync = ref.read(collegeRoutesProvider(collegeId));
-              routesAsync.whenData((routes) {
-                try {
-                  final route = routes.firstWhere((r) => r.id == bus.routeId);
-                  if (mounted) {
-                    setState(() {
-                      _selectedRoute = route;
-                    });
-                    _updateMarkers();
-                  }
-                } catch (e) {
-                  AppLogger.e('Error matching route selection: $e');
+          // 1. Handle auto-resume location sharing (ONLY after init)
+          if (_isSharing && _hasInitialized) {
+            final locationService = ref.read(locationServiceProvider);
+            if (!locationService.isTracking) {
+              debugPrint('[DriverDashboard] Auto-resuming location sharing...');
+              // Delay slightly to ensure app is fully ready
+              Future.delayed(const Duration(milliseconds: 500), () {
+                if (mounted) {
+                  _startLocationSharing(bus, silent: true);
                 }
               });
             }
-          } else {
-            debugPrint('[DriverDashboard] Bus data is null (no assignment)');
           }
-        });
+
+          // 2. Handle initial route selection if matching preference
+          if (_selectedRoute == null && bus.routeId != null) {
+            debugPrint(
+              '[DriverDashboard] Matching route for routeId=${bus.routeId}',
+            );
+            final routesAsync = ref.read(collegeRoutesProvider(collegeId));
+            final routes = routesAsync.valueOrNull;
+            if (routes != null) {
+              try {
+                final route = routes.firstWhere((r) => r.id == bus.routeId);
+                if (mounted) {
+                  setState(() {
+                    _selectedRoute = route;
+                  });
+                  _updateMarkers();
+                }
+              } catch (e) {
+                AppLogger.e('Error matching route selection: $e');
+              }
+            }
+          }
+        } else {
+          debugPrint('[DriverDashboard] Bus data is null (no assignment)');
+        }
       } catch (e, stack) {
         debugPrint('[DriverDashboard] ERROR in driverBus listener: $e');
         debugPrint('[DriverDashboard] Stack: $stack');
@@ -1016,11 +1019,11 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
     );
 
     if (confirm == true) {
-      final api = ref.read(apiServiceProvider);
+      final repo = ref.read(busRepositoryProvider);
       try {
         _stopLocationSharing(myBus); // Stop tracking first
         // unassignDriverFromBus logic: set driverId to null, etc.
-        await api.updateBus(myBus.id, {
+        await repo.updateBus(myBus.id, {
           'driverId': null,
           'assignmentStatus': 'unassigned',
           'status': 'not-running',

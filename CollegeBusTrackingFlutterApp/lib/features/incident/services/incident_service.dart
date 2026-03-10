@@ -1,19 +1,19 @@
 import 'dart:async';
 import 'package:collegebus/features/incident/domain/incident_model.dart';
 import 'package:collegebus/features/sos/domain/sos_model.dart';
-import 'package:collegebus/core/services/api_service.dart';
+import 'package:collegebus/core/data/repositories.dart';
 import 'package:flutter/material.dart';
 
 class IncidentService extends ChangeNotifier {
-  ApiService _apiService;
+  IncidentRepository _incidentRepo;
   String? _lastError;
 
   String? get lastError => _lastError;
 
-  IncidentService(this._apiService);
+  IncidentService(this._incidentRepo);
 
-  void updateDependencies(ApiService api) {
-    _apiService = api;
+  void updateDependencies(IncidentRepository repo) {
+    _incidentRepo = repo;
   }
 
   void clearError() {
@@ -35,7 +35,7 @@ class IncidentService extends ChangeNotifier {
     required double lng,
   }) async {
     try {
-      final result = await _apiService.sendSOS(
+      final result = await _incidentRepo.sendSOS(
         busId: busId,
         routeId: routeId,
         lat: lat,
@@ -51,7 +51,7 @@ class IncidentService extends ChangeNotifier {
 
   Future<void> resolveSos(String sosId) async {
     try {
-      await _apiService.resolveSos(sosId);
+      await _incidentRepo.resolveSos(sosId);
       clearError();
     } catch (e) {
       _setError(e);
@@ -61,7 +61,7 @@ class IncidentService extends ChangeNotifier {
 
   Future<List<SosModel>> getActiveSos(String collegeId) async {
     try {
-      final result = await _apiService.getActiveSos(collegeId);
+      final result = await _incidentRepo.getActiveSos(collegeId);
       clearError();
       return result.map((data) => SosModel.fromMap(data)).toList();
     } catch (e) {
@@ -72,7 +72,7 @@ class IncidentService extends ChangeNotifier {
 
   Future<void> createIncident(IncidentModel incident) async {
     try {
-      await _apiService.createIncident(incident);
+      await _incidentRepo.createIncident(incident);
       clearError();
     } catch (e) {
       _setError(e);
@@ -80,8 +80,3 @@ class IncidentService extends ChangeNotifier {
     }
   }
 }
-
-
-
-
-

@@ -1,34 +1,30 @@
 import 'dart:async';
 import 'package:collegebus/features/route/domain/route_model.dart';
 import 'package:collegebus/features/schedule/domain/schedule_model.dart';
-import 'package:collegebus/core/services/api_service.dart';
+import 'package:collegebus/core/data/repositories.dart';
 import 'package:collegebus/core/services/socket_service.dart';
 
 class RouteService {
-  final ApiService _apiService;
+  final RouteRepository _routeRepo;
+  final ScheduleRepository _scheduleRepo;
 
-  RouteService(this._apiService, SocketService socket);
+  RouteService(this._routeRepo, this._scheduleRepo, SocketService socket);
 
   // Route Operations
-  Future<void> createRoute(RouteModel route) => _apiService.createRoute(route);
+  Future<void> createRoute(RouteModel route) => _routeRepo.createRoute(route);
 
   Future<void> updateRoute(String routeId, Map<String, dynamic> data) =>
-      _apiService.updateRoute(routeId, data);
+      _routeRepo.updateRoute(routeId, data);
 
-  Future<void> deleteRoute(String routeId) => _apiService.deleteRoute(routeId);
+  Future<void> deleteRoute(String routeId) => _routeRepo.deleteRoute(routeId);
 
   // Schedule Operations
   Future<void> createSchedule(ScheduleModel schedule) =>
-      _apiService.createSchedule(schedule);
+      _scheduleRepo.createSchedule(schedule);
 
   Future<void> updateSchedule(String scheduleId, Map<String, dynamic> data) =>
-      _apiService.updateSchedule(scheduleId, data);
+      _scheduleRepo.updateSchedule(scheduleId, data);
 
   Future<void> deleteSchedule(String scheduleId) =>
-      _apiService.deleteSchedule(scheduleId);
+      _scheduleRepo.deleteSchedule(scheduleId);
 }
-
-
-
-
-

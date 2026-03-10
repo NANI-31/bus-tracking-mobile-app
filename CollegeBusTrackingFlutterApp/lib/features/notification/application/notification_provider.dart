@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:collegebus/features/notification/domain/notification_model.dart';
 import 'package:collegebus/features/auth/application/auth_provider.dart';
+import 'package:collegebus/core/providers/repository_providers.dart';
 
 // Import the existing repository provider if it exists, otherwise define it here.
 // Actually, earlier we saw notificationRepositoryProvider is defined in auth_provider.dart!

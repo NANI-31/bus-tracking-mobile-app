@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:velocity_x/velocity_x.dart';
 import 'package:collegebus/features/auth/application/auth_provider.dart';
-import 'package:collegebus/core/providers/api_provider.dart';
+import 'package:collegebus/core/providers/repository_providers.dart';
 import 'package:collegebus/features/incident/domain/incident_model.dart';
 import 'package:collegebus/core/constants/constants.dart';
 import 'package:collegebus/shared/widgets/api_error_modal.dart';
@@ -66,7 +66,7 @@ class _IncidentReportModalState extends ConsumerState<IncidentReportModal> {
 
     setState(() => _isLoading = true);
     final user = ref.read(currentUserProvider);
-    final api = ref.read(apiServiceProvider);
+    final repo = ref.read(incidentRepositoryProvider);
 
     if (user == null) {
       if (mounted) {
@@ -87,7 +87,7 @@ class _IncidentReportModalState extends ConsumerState<IncidentReportModal> {
         severity: _selectedSeverity,
       );
 
-      await api.createIncident(incident);
+      await repo.createIncident(incident);
 
       if (mounted) {
         Navigator.pop(context); // Close modal
@@ -200,8 +200,3 @@ class _IncidentReportModalState extends ConsumerState<IncidentReportModal> {
     );
   }
 }
-
-
-
-
-

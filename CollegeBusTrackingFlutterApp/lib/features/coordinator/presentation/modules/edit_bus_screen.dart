@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:velocity_x/velocity_x.dart';
 import 'package:collegebus/core/constants/constants.dart';
@@ -9,7 +10,7 @@ import 'package:collegebus/features/auth/application/auth_provider.dart';
 import 'package:collegebus/features/route/application/route_provider.dart';
 import 'package:collegebus/features/user/application/user_provider.dart';
 import 'package:collegebus/features/bus/application/bus_provider.dart';
-import 'package:collegebus/core/providers/api_provider.dart';
+import 'package:collegebus/core/providers/repository_providers.dart';
 import 'package:collegebus/shared/widgets/success_modal.dart';
 import 'package:collegebus/shared/widgets/api_error_modal.dart';
 import 'package:collegebus/core/providers/socket_provider.dart';
@@ -57,7 +58,8 @@ class _EditBusScreenState extends ConsumerState<EditBusScreen> {
 
     setState(() => _isSaving = true);
     try {
-      final api = ref.read(apiServiceProvider);
+      final collegeRepo = ref.read(collegeRepositoryProvider);
+      final busRepo = ref.read(busRepositoryProvider);
       final authState = ref.read(authProvider).value;
       final collegeId = authState?.currentUser?.collegeId;
       if (collegeId == null) throw 'College context missing';
@@ -65,22 +67,22 @@ class _EditBusScreenState extends ConsumerState<EditBusScreen> {
       final newBusNumber = _busNumberController.text.trim();
 
       // Update bus name and route
-      await api.updateBusDetails(
-        collegeId,
-        widget.busNumber,
+      await collegeRepo.updateBusDetails(
+        collegeId: collegeId,
+        oldBusNumber: widget.busNumber,
         newBusNumber: newBusNumber != widget.busNumber ? newBusNumber : null,
-        defaultRouteId: _selectedDefaultRouteId != widget.bus?.defaultRouteId
-            ? _selectedDefaultRouteId
+        details: _selectedDefaultRouteId != widget.bus?.defaultRouteId
+            ? {'defaultRouteId': _selectedDefaultRouteId}
             : null,
       );
 
       // Update driver assignment if changed
       if (_selectedDriverId != widget.bus?.driverId && widget.bus != null) {
         if (_selectedDriverId != null && _selectedDriverId!.isNotEmpty) {
-          await api.assignDriverToBus(
-            busNumber: widget.busNumber,
+          await busRepo.assignDriverToBus(
+            busId: widget.bus!.id,
             driverId: _selectedDriverId!,
-            collegeId: collegeId,
+            routeId: _selectedDefaultRouteId, // Use default route as initial
           );
         }
       }
@@ -94,7 +96,11 @@ class _EditBusScreenState extends ConsumerState<EditBusScreen> {
           title: 'Bus Updated',
           message: 'Bus details have been updated successfully.',
           primaryActionText: 'OK',
-          onPrimaryAction: () => Navigator.pop(context),
+          onPrimaryAction: () {
+            if (context.mounted) {
+              context.pop();
+            }
+          },
         );
       }
     } catch (e) {
@@ -137,8 +143,8 @@ class _EditBusScreenState extends ConsumerState<EditBusScreen> {
 
     setState(() => _isRemovingDriver = true);
     try {
-      final api = ref.read(apiServiceProvider);
-      await api.rejectBusAssignment(widget.bus!.id);
+      final busRepo = ref.read(busRepositoryProvider);
+      await busRepo.rejectBusAssignment(widget.bus!.id);
 
       // Notify socket for real-time synchronization
       ref.read(socketServiceProvider).sendBusListUpdate();
@@ -149,7 +155,11 @@ class _EditBusScreenState extends ConsumerState<EditBusScreen> {
           title: 'Driver Removed',
           message: 'The driver has been removed from this bus.',
           primaryActionText: 'OK',
-          onPrimaryAction: () => Navigator.pop(context),
+          onPrimaryAction: () {
+            if (context.mounted) {
+              context.pop();
+            }
+          },
         );
       }
     } catch (e) {

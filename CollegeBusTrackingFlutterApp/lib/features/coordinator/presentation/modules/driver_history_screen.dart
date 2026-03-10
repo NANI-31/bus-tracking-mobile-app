@@ -4,7 +4,7 @@ import 'package:intl/intl.dart';
 import 'package:velocity_x/velocity_x.dart';
 import 'package:collegebus/features/user/domain/user_model.dart';
 import 'package:collegebus/features/coordinator/domain/history_log_model.dart';
-import 'package:collegebus/core/providers/api_provider.dart';
+import 'package:collegebus/core/providers/repository_providers.dart';
 import 'package:collegebus/core/constants/constants.dart';
 
 class DriverHistoryScreen extends ConsumerStatefulWidget {
@@ -46,8 +46,8 @@ class _DriverHistoryScreenState extends ConsumerState<DriverHistoryScreen> {
     });
 
     try {
-      final api = ref.read(apiServiceProvider);
-      final response = await api.getDriverHistory(
+      final repo = ref.read(userRepositoryProvider);
+      final response = await repo.getDriverHistory(
         widget.driver.id,
         eventType: _filterToEventType[_selectedFilter],
       );

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
-import 'package:collegebus/core/providers/api_provider.dart';
+import 'package:collegebus/core/providers/repository_providers.dart';
 import 'package:collegebus/core/constants/constants.dart';
 
 class SOSButton extends ConsumerStatefulWidget {
@@ -60,8 +60,8 @@ class _SOSButtonState extends ConsumerState<SOSButton>
     }
 
     try {
-      final api = ref.read(apiServiceProvider);
-      await api.sendSOS(
+      final repo = ref.read(incidentRepositoryProvider);
+      await repo.sendSOS(
         busId: widget.busId,
         routeId: widget.routeId,
         lat: widget.currentLocation!.latitude,

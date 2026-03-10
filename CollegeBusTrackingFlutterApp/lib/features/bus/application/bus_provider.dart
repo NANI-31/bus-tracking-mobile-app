@@ -1,15 +1,15 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:collegebus/features/bus/domain/bus_model.dart';
 import 'package:collegebus/features/coordinator/domain/assignment_log_model.dart';
-import 'package:collegebus/core/providers/api_provider.dart';
+import 'package:collegebus/core/providers/repository_providers.dart';
 import 'package:collegebus/core/providers/socket_provider.dart';
 
 /// Bus notifier for managing the list of buses
 class BusNotifier extends AsyncNotifier<List<BusModel>> {
   @override
   Future<List<BusModel>> build() async {
-    final api = ref.watch(apiServiceProvider);
-    return await api.getAllBuses();
+    final repo = ref.watch(busRepositoryProvider);
+    return await repo.getAllBuses();
   }
 
   Future<void> refresh() async {
@@ -19,21 +19,21 @@ class BusNotifier extends AsyncNotifier<List<BusModel>> {
 
   // Common operations that update state
   Future<void> createBus(BusModel bus) async {
-    final api = ref.read(apiServiceProvider);
-    await api.createBus(bus);
+    final repo = ref.read(busRepositoryProvider);
+    await repo.createBus(bus);
     await refresh();
   }
 
   Future<void> updateBus(String busId, Map<String, dynamic> data) async {
-    final api = ref.read(apiServiceProvider);
-    await api.updateBus(busId, data);
+    final repo = ref.read(busRepositoryProvider);
+    await repo.updateBus(busId, data);
     ref.read(socketServiceProvider).sendBusListUpdate();
     await refresh();
   }
 
   Future<void> deleteBus(String busId) async {
-    final api = ref.read(apiServiceProvider);
-    await api.deleteBus(busId);
+    final repo = ref.read(busRepositoryProvider);
+    await repo.deleteBus(busId);
     await refresh();
   }
 }
@@ -46,13 +46,13 @@ final busListProvider = AsyncNotifierProvider<BusNotifier, List<BusModel>>(
 /// StreamProvider for buses in a specific college
 final collegeBusesStreamProvider =
     StreamProvider.family<List<BusModel>, String>((ref, collegeId) {
-      final api = ref.watch(apiServiceProvider);
+      final repo = ref.watch(busRepositoryProvider);
       final socket = ref.read(socketServiceProvider);
 
       return Stream.multi((controller) async {
         Future<void> fetch() async {
           try {
-            final buses = await api.getAllBuses();
+            final buses = await repo.getAllBuses();
             final filtered = buses
                 .where((b) => b.collegeId == collegeId && b.isActive)
                 .toList();
@@ -71,13 +71,13 @@ final collegeBusesStreamProvider =
 /// StreamProvider for ALL buses in a specific college (including inactive)
 final allCollegeBusesStreamProvider =
     StreamProvider.family<List<BusModel>, String>((ref, collegeId) {
-      final api = ref.watch(apiServiceProvider);
+      final repo = ref.watch(busRepositoryProvider);
       final socket = ref.read(socketServiceProvider);
 
       return Stream.multi((controller) async {
         Future<void> fetch() async {
           try {
-            final buses = await api.getAllBuses();
+            final buses = await repo.getAllBuses();
             final filtered = buses
                 .where((b) => b.collegeId == collegeId)
                 .toList();
@@ -98,13 +98,13 @@ final busNumbersProvider = StreamProvider.family<List<String>, String>((
   ref,
   collegeId,
 ) {
-  final api = ref.watch(apiServiceProvider);
+  final repo = ref.watch(collegeRepositoryProvider);
   final socket = ref.watch(socketServiceProvider);
 
   return Stream.multi((controller) async {
     Future<void> fetch() async {
       try {
-        final numbers = await api.getBusNumbers(collegeId);
+        final numbers = await repo.getBusNumbers(collegeId);
         if (!controller.isClosed) controller.add(numbers);
       } catch (e) {
         if (!controller.isClosed) controller.addError(e);
@@ -120,7 +120,6 @@ final busNumbersProvider = StreamProvider.family<List<String>, String>((
 /// StreamProvider for real-time bus locations in a specific college
 final collegeBusLocationsProvider =
     StreamProvider.family<List<BusLocationModel>, String>((ref, collegeId) {
-      final api = ref.watch(apiServiceProvider);
       final socket = ref.read(socketServiceProvider);
 
       return Stream.multi((controller) async {
@@ -145,7 +144,8 @@ final collegeBusLocationsProvider =
         controller.onCancel = () => subscription.cancel();
 
         try {
-          final apiLocations = await api.getCollegeBusLocations(collegeId);
+          final repo = ref.watch(busRepositoryProvider);
+          final apiLocations = await repo.getCollegeBusLocations(collegeId);
           currentLocations = List.from(apiLocations);
           if (!controller.isClosed) controller.add(currentLocations);
         } catch (e) {
@@ -159,12 +159,12 @@ final busLocationProvider = StreamProvider.family<BusLocationModel?, String>((
   ref,
   busId,
 ) {
-  final api = ref.watch(apiServiceProvider);
+  final repo = ref.watch(busRepositoryProvider);
   final socket = ref.watch(socketServiceProvider);
 
   return Stream.multi((controller) async {
     try {
-      final location = await api.getBusLocation(busId);
+      final location = await repo.getBusLocation(busId);
       if (!controller.isClosed) controller.add(location);
     } catch (_) {}
 
@@ -180,8 +180,8 @@ final busLocationProvider = StreamProvider.family<BusLocationModel?, String>((
 /// Provider for assignment logs of a bus
 final busAssignmentLogsProvider =
     FutureProvider.family<List<AssignmentLogModel>, String>((ref, busId) async {
-      final api = ref.watch(apiServiceProvider);
-      return await api.getAssignmentLogsByBus(busId);
+      final repo = ref.watch(busRepositoryProvider);
+      return await repo.getAssignmentLogsByBus(busId);
     });
 
 /// StreamProvider for a specific driver's assigned bus
@@ -189,13 +189,13 @@ final driverBusProvider = StreamProvider.family<BusModel?, String>((
   ref,
   driverId,
 ) {
-  final api = ref.watch(apiServiceProvider);
   final socket = ref.watch(socketServiceProvider);
 
   return Stream.multi((controller) async {
     Future<void> fetch() async {
       try {
-        final bus = await api.getBusByDriver(driverId);
+        final repo = ref.watch(busRepositoryProvider);
+        final bus = await repo.getBusByDriver(driverId);
         if (!controller.isClosed) controller.add(bus);
       } catch (e) {
         if (!controller.isClosed) controller.addError(e);
@@ -205,9 +205,18 @@ final driverBusProvider = StreamProvider.family<BusModel?, String>((
     await fetch();
     final sub1 = socket.busListUpdateStream.listen((_) => fetch());
     final sub2 = socket.busUpdateStream.listen((_) => fetch());
+    // NEW: Listen for direct notifications to ensure immediate refresh
+    final sub3 = socket.notificationStream.listen((data) {
+      final type = data['type'] as String?;
+      if (type == 'DRIVER_ASSIGNED') {
+        fetch();
+      }
+    });
+
     controller.onCancel = () {
       sub1.cancel();
       sub2.cancel();
+      sub3.cancel();
     };
   });
 });

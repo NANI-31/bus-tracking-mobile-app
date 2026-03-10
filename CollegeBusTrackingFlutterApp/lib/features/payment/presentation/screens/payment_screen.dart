@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'dart:async';
 import 'package:razorpay_flutter/razorpay_flutter.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:collegebus/core/providers/api_provider.dart';
+import 'package:collegebus/core/providers/repository_providers.dart';
 import 'package:collegebus/features/auth/application/auth_provider.dart';
 import 'package:collegebus/core/utils/app_logger.dart';
 import 'package:collegebus/features/payment/presentation/screens/transaction_history_screen.dart';
@@ -57,8 +56,8 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
 
   void _fetchPlans() async {
     try {
-      final api = ref.read(apiServiceProvider);
-      final plans = await api.getPlans();
+      final repo = ref.read(paymentRepositoryProvider);
+      final plans = await repo.getPlans();
       if (mounted) {
         setState(() {
           _plans = plans;
@@ -99,7 +98,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
     if (!mounted) return;
     setState(() => _isLoading = true);
     try {
-      final api = ref.read(apiServiceProvider);
+      final repo = ref.read(paymentRepositoryProvider);
       AppLogger.d(
         "Payment Success: ${response.paymentId}, Order: ${response.orderId}, Sig: ${response.signature}",
       );
@@ -107,7 +106,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
       if (response.paymentId != null &&
           response.orderId != null &&
           response.signature != null) {
-        await api.verifyPayment(
+        await repo.verifyPayment(
           response.orderId!,
           response.paymentId!,
           response.signature!,
@@ -187,14 +186,14 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
   Future<void> _initiatePayment() async {
     setState(() => _isLoading = true);
     try {
-      final api = ref.read(apiServiceProvider);
+      final repo = ref.read(paymentRepositoryProvider);
       final user = ref.read(currentUserProvider);
       if (user == null) throw "User not logged in";
 
       final amount = _currentAmount;
       final double totalAmount = amount * (1 - (_isEarlyRenewal ? 0.05 : 0.0));
 
-      final orderData = await api.createPaymentOrder(
+      final orderData = await repo.createOrder(
         totalAmount.toInt(),
         "INR",
         plan: _selectedPlan,
@@ -467,7 +466,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
-        color: theme.colorScheme.primary.withOpacity(0.05),
+        color: theme.colorScheme.primary.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
@@ -527,7 +526,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
                   color: theme.cardColor,
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(
-                    color: theme.dividerColor.withOpacity(0.05),
+                    color: theme.dividerColor.withValues(alpha: 0.05),
                   ),
                 ),
                 child: Column(
@@ -600,14 +599,14 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
         decoration: BoxDecoration(
           color: isSelected
               ? (isPremium
-                    ? Colors.amber.shade50
-                    : theme.colorScheme.primary.withOpacity(0.05))
+                    ? Colors.amber.withValues(alpha: 0.05)
+                    : theme.colorScheme.primary.withValues(alpha: 0.05))
               : theme.cardColor,
           borderRadius: BorderRadius.circular(28),
           border: Border.all(
             color: isSelected
                 ? (isPremium ? Colors.amber : theme.colorScheme.primary)
-                : theme.dividerColor.withOpacity(0.1),
+                : theme.dividerColor.withValues(alpha: 0.1),
             width: isSelected ? 2.5 : 1.5,
           ),
           boxShadow: isSelected
@@ -663,7 +662,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
                           vertical: 4,
                         ),
                         decoration: BoxDecoration(
-                          color: theme.dividerColor.withOpacity(0.05),
+                          color: theme.dividerColor.withValues(alpha: 0.05),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Text(
@@ -724,7 +723,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
                     boxShadow: [
                       BoxShadow(
                         color: (isYearly ? Colors.green : Colors.orange)
-                            .withOpacity(0.3),
+                            .withValues(alpha: 0.3),
                         blurRadius: 8,
                         offset: const Offset(0, 4),
                       ),
@@ -785,7 +784,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: theme.colorScheme.primary.withOpacity(0.3),
+            color: theme.colorScheme.primary.withValues(alpha: 0.3),
             blurRadius: 15,
             offset: const Offset(0, 8),
           ),
@@ -798,7 +797,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
               Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.2),
+                  color: Colors.white.withValues(alpha: 0.2),
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(
@@ -853,7 +852,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
             borderRadius: BorderRadius.circular(4),
             child: LinearProgressIndicator(
               value: progress,
-              backgroundColor: Colors.white.withOpacity(0.2),
+              backgroundColor: Colors.white.withValues(alpha: 0.2),
               valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
               minHeight: 6,
             ),
@@ -889,7 +888,9 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
           decoration: BoxDecoration(
             color: theme.cardColor,
             borderRadius: BorderRadius.circular(28),
-            border: Border.all(color: theme.dividerColor.withOpacity(0.1)),
+            border: Border.all(
+              color: theme.dividerColor.withValues(alpha: 0.1),
+            ),
           ),
           child: Table(
             columnWidths: const {
@@ -923,7 +924,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
     return TableRow(
       decoration: isHeader
           ? BoxDecoration(
-              color: theme.colorScheme.primary.withOpacity(0.05),
+              color: theme.colorScheme.primary.withValues(alpha: 0.05),
               borderRadius: BorderRadius.circular(16),
             )
           : null,
@@ -936,15 +937,15 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
                     padding: const EdgeInsets.all(4),
                     decoration: BoxDecoration(
                       color: cell
-                          ? Colors.green.withOpacity(0.1)
-                          : theme.disabledColor.withOpacity(0.05),
+                          ? Colors.green.withValues(alpha: 0.1)
+                          : theme.disabledColor.withValues(alpha: 0.05),
                       shape: BoxShape.circle,
                     ),
                     child: Icon(
                       cell ? Icons.check_rounded : Icons.close_rounded,
                       color: cell
                           ? Colors.green
-                          : theme.disabledColor.withOpacity(0.3),
+                          : theme.disabledColor.withValues(alpha: 0.3),
                       size: 16,
                     ),
                   )
@@ -970,9 +971,9 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: theme.primaryColor.withOpacity(0.05),
+        color: theme.primaryColor.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: theme.primaryColor.withOpacity(0.1)),
+        border: Border.all(color: theme.primaryColor.withValues(alpha: 0.1)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1038,7 +1039,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
         color: theme.scaffoldBackgroundColor,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             offset: const Offset(0, -5),
             blurRadius: 10,
           ),
@@ -1070,7 +1071,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
                 backgroundColor: theme.colorScheme.primary,
                 foregroundColor: Colors.white,
                 elevation: 8,
-                shadowColor: theme.colorScheme.primary.withOpacity(0.4),
+                shadowColor: theme.colorScheme.primary.withValues(alpha: 0.8),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(20),
                 ),

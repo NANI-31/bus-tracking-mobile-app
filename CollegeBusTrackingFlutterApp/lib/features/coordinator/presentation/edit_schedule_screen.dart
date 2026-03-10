@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:collegebus/features/bus/domain/bus_model.dart';
 import 'package:collegebus/features/route/domain/route_model.dart';
 import 'package:collegebus/features/schedule/domain/schedule_model.dart';
-import 'package:collegebus/core/providers/api_provider.dart';
+import 'package:collegebus/core/providers/repository_providers.dart';
 import 'package:collegebus/features/route/application/route_provider.dart';
 import 'package:velocity_x/velocity_x.dart';
 
@@ -61,7 +61,7 @@ class _EditScheduleScreenState extends ConsumerState<EditScheduleScreen> {
     setState(() => _isLoading = true);
 
     try {
-      final api = ref.read(apiServiceProvider);
+      final repo = ref.read(scheduleRepositoryProvider);
 
       // If route changed, we might want to update stop schedules too.
       // For now, we follow the logic in createSchedule which regenerates stops from the route.
@@ -89,7 +89,7 @@ class _EditScheduleScreenState extends ConsumerState<EditScheduleScreen> {
         updatedAt: DateTime.now(),
       );
 
-      await api.updateSchedule(widget.schedule.id, updatedSchedule.toMap());
+      await repo.updateSchedule(widget.schedule.id, updatedSchedule.toMap());
 
       // Invalidate the provider to refresh the list
       ref.invalidate(collegeSchedulesProvider(widget.schedule.collegeId));

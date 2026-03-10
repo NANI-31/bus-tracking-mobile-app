@@ -10,9 +10,8 @@ import 'package:collegebus/features/payment/services/payment_service.dart';
 import 'package:collegebus/core/services/data_service.dart';
 import 'package:collegebus/core/services/theme_service.dart';
 import 'package:collegebus/features/bus/services/location_service.dart';
-import 'package:collegebus/features/auth/application/auth_provider.dart';
 import 'package:collegebus/core/services/voice_recording_service.dart';
-import 'api_provider.dart';
+import 'package:collegebus/core/providers/repository_providers.dart';
 import 'socket_provider.dart';
 import 'package:collegebus/core/utils/map_style_helper.dart';
 
@@ -25,38 +24,41 @@ final voiceRecordingServiceProvider = Provider<VoiceRecordingService>((ref) {
 /// BusService provider
 final busServiceProvider = Provider<BusService>(
   (ref) => BusService(
-    ref.watch(apiServiceProvider),
+    ref.watch(busRepositoryProvider),
+    ref.watch(collegeRepositoryProvider),
     ref.watch(socketServiceProvider),
   ),
 );
 
 /// UserService provider
 final userServiceProvider = Provider<UserService>(
-  (ref) => UserService(ref.watch(apiServiceProvider)),
+  (ref) => UserService(ref.watch(userRepositoryProvider)),
 );
 
 /// RouteService provider
 final routeServiceProvider = Provider<RouteService>(
   (ref) => RouteService(
-    ref.watch(apiServiceProvider),
+    ref.watch(routeRepositoryProvider),
+    ref.watch(scheduleRepositoryProvider),
     ref.watch(socketServiceProvider),
   ),
 );
 
 /// IncidentService provider
 final incidentServiceProvider = ChangeNotifierProvider<IncidentService>(
-  (ref) => IncidentService(ref.watch(apiServiceProvider)),
+  (ref) => IncidentService(ref.watch(incidentRepositoryProvider)),
 );
 
 /// NotificationDataService provider
 final notificationDataServiceProvider =
     ChangeNotifierProvider<NotificationDataService>(
-      (ref) => NotificationDataService(ref.watch(apiServiceProvider)),
+      (ref) =>
+          NotificationDataService(ref.watch(notificationRepositoryProvider)),
     );
 
 /// PaymentService provider
 final paymentServiceProvider = ChangeNotifierProvider<PaymentService>(
-  (ref) => PaymentService(ref.watch(apiServiceProvider)),
+  (ref) => PaymentService(ref.watch(paymentRepositoryProvider)),
 );
 
 /// DataService (Facade) provider

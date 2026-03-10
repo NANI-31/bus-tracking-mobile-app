@@ -84,7 +84,7 @@ class SuccessModal extends StatelessWidget {
                 30.heightBox,
                 ElevatedButton(
                       onPressed: () {
-                        Navigator.pop(context);
+                        Navigator.of(context).pop();
                         if (onPrimaryAction != null) {
                           onPrimaryAction!();
                         }

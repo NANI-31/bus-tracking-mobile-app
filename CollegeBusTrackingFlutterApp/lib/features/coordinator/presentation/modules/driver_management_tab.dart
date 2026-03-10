@@ -12,7 +12,7 @@ import 'package:collegebus/features/auth/application/auth_provider.dart';
 import 'package:collegebus/features/bus/application/bus_provider.dart';
 import 'package:collegebus/features/user/application/user_provider.dart';
 import 'package:collegebus/features/sos/application/sos_provider.dart';
-import 'package:collegebus/core/providers/api_provider.dart';
+import 'package:collegebus/core/providers/repository_providers.dart';
 
 class DriverManagementTab extends ConsumerWidget {
   final Function(UserModel)? onEditDriver;
@@ -280,7 +280,7 @@ class DriverManagementTab extends ConsumerWidget {
                     final approverId = ref.read(currentUserProvider)?.id;
                     if (approverId != null) {
                       ref
-                          .read(apiServiceProvider)
+                          .read(userRepositoryProvider)
                           .approveUser(driver.id, approverId);
                     }
                   },
@@ -288,7 +288,7 @@ class DriverManagementTab extends ConsumerWidget {
                 IconButton(
                   icon: Icon(Icons.close, color: AppColors.error),
                   onPressed: () =>
-                      ref.read(apiServiceProvider).deleteUser(driver.id),
+                      ref.read(userRepositoryProvider).deleteUser(driver.id),
                 ),
               ]),
             )

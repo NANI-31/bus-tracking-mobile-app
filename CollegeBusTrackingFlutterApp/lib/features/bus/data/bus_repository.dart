@@ -49,6 +49,18 @@ class BusRepository extends BaseRepository {
     }
   }
 
+  /// Get bus assigned to a specific driver
+  Future<BusModel?> getBusByDriver(String driverId) async {
+    try {
+      final response = await dio.get('/buses/driver/$driverId');
+      if (response.data == null) return null;
+      return BusModel.fromMap(response.data, response.data['_id']);
+    } catch (e) {
+      // It's common for a driver to not have a bus assigned
+      return null;
+    }
+  }
+
   // ============== Location Operations ==============
 
   /// Update bus location (REST API fallback - prefer socket)
@@ -123,6 +135,49 @@ class BusRepository extends BaseRepository {
       return (response.data as List)
           .map((data) => AssignmentLogModel.fromMap(data))
           .toList();
+    } catch (e) {
+      throw handleError(e);
+    }
+  }
+
+  // ============== Assignment Operations ==============
+
+  /// Assign a driver to a bus
+  Future<void> assignDriverToBus({
+    required String busId,
+    required String driverId,
+    String? routeId,
+  }) async {
+    try {
+      final data = {
+        'driverId': driverId,
+        'assignmentStatus': 'pending',
+        'isActive': true,
+      };
+      if (routeId != null) data['routeId'] = routeId;
+      await updateBus(busId, data);
+    } catch (e) {
+      throw handleError(e);
+    }
+  }
+
+  /// Accept a bus assignment
+  Future<void> acceptBusAssignment(String busId) async {
+    try {
+      await updateBus(busId, {'assignmentStatus': 'accepted'});
+    } catch (e) {
+      throw handleError(e);
+    }
+  }
+
+  /// Reject a bus assignment
+  Future<void> rejectBusAssignment(String busId) async {
+    try {
+      await updateBus(busId, {
+        'driverId': null,
+        'assignmentStatus': 'unassigned',
+        'status': 'not-running',
+      });
     } catch (e) {
       throw handleError(e);
     }

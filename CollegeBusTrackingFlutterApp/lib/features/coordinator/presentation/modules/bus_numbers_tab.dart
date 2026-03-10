@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:collegebus/core/providers/api_provider.dart';
+import 'package:collegebus/core/providers/repository_providers.dart';
 import 'package:collegebus/features/user/application/user_provider.dart';
 import 'package:collegebus/features/auth/application/auth_provider.dart';
 import 'package:collegebus/features/bus/application/bus_provider.dart';
@@ -88,7 +88,7 @@ class _BusNumbersTabState extends ConsumerState<BusNumbersTab>
 
                 if (collegeId != null) {
                   await ref
-                      .read(apiServiceProvider)
+                      .read(collegeRepositoryProvider)
                       .addBusNumber(collegeId, busNumber);
                   if (!context.mounted) return;
                   Navigator.of(context).pop();
@@ -406,11 +406,13 @@ class _BusNumbersTabState extends ConsumerState<BusNumbersTab>
               if (collegeId != null) {
                 // If there is an associated Bus document (even if unassigned), delete it too
                 if (isAssigned) {
-                  await ref.read(apiServiceProvider).deleteBus(assignedBus.id);
+                  await ref
+                      .read(busRepositoryProvider)
+                      .deleteBus(assignedBus.id);
                 }
 
                 await ref
-                    .read(apiServiceProvider)
+                    .read(collegeRepositoryProvider)
                     .removeBusNumber(collegeId, busNumber);
                 if (!context.mounted) return;
                 ScaffoldMessenger.of(context).showSnackBar(

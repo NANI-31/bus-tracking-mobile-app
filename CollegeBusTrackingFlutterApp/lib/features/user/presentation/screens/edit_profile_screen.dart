@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:collegebus/features/auth/application/auth_provider.dart';
-import 'package:collegebus/core/providers/api_provider.dart';
+import 'package:collegebus/core/providers/repository_providers.dart';
 import 'package:velocity_x/velocity_x.dart';
 
 class EditProfileScreen extends ConsumerStatefulWidget {
@@ -42,7 +42,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
 
     try {
       final user = ref.read(currentUserProvider);
-      final apiService = ref.read(apiServiceProvider);
+      final repo = ref.read(userRepositoryProvider);
       final userId = user?.id;
 
       if (userId == null) throw Exception('User not found');
@@ -53,7 +53,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
         'phoneNumber': _phoneController.text.trim(),
       };
 
-      await apiService.updateUser(userId, updateData);
+      await repo.updateUser(userId, updateData);
 
       // Refresh the current user in all providers
       await ref.read(authProvider.notifier).refreshUser();

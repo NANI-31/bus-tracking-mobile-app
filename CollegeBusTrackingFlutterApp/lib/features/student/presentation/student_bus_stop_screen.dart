@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:collegebus/features/auth/application/auth_provider.dart';
-import 'package:collegebus/core/providers/api_provider.dart';
+import 'package:collegebus/core/providers/repository_providers.dart';
 import 'package:collegebus/features/route/application/route_provider.dart';
 import 'package:velocity_x/velocity_x.dart';
 
@@ -32,13 +32,13 @@ class _StudentBusStopScreenState extends ConsumerState<StudentBusStopScreen> {
     String userId,
     String routeName,
   ) async {
-    final apiService = ref.read(apiServiceProvider);
+    final repo = ref.read(userRepositoryProvider);
     final authNotifier = ref.read(authProvider.notifier);
     // Unique ID for the updating state (stopName + routeId)
     final uniqueId = '$stopName-$routeId';
     setState(() => _updatingStop = uniqueId);
     try {
-      final updatedUser = await apiService.updateUser(userId, {
+      final updatedUser = await repo.updateUser(userId, {
         'preferredStop': stopName,
         'routeId': routeId,
         'stopName': stopName,

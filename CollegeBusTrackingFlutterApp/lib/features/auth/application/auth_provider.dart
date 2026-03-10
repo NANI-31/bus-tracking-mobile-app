@@ -11,17 +11,9 @@ import 'package:collegebus/features/notification/services/fcm_service.dart';
 import 'package:collegebus/core/constants/constants.dart';
 import 'package:collegebus/core/data/base_repository.dart';
 import 'package:collegebus/features/auth/data/auth_service.dart';
+import 'package:collegebus/core/providers/repository_providers.dart';
 
-// Repository providers
-final authRepositoryProvider = Provider<AuthRepository>(
-  (ref) => AuthRepository(),
-);
-final userRepositoryProvider = Provider<UserRepository>(
-  (ref) => UserRepository(),
-);
-final notificationRepositoryProvider = Provider<NotificationRepository>(
-  (ref) => NotificationRepository(),
-);
+// Repository providers (moved to repository_providers.dart)
 
 /// Auth state class - simplified
 class AuthState {

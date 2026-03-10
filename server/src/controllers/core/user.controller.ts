@@ -136,15 +136,19 @@ export const deleteUser = async (req: IAuthRequest, res: Response) => {
     if (!userToDelete)
       return res.status(404).json({ message: "User not found" });
 
-    // Security Check: CollegeAdmin can only delete users from their own college
-    if (req.user?.role === "collegeAdmin") {
+    // Security Check: CollegeAdmin and busCoordinator can only delete users from their own college
+    if (
+      req.user?.role === "collegeAdmin" ||
+      req.user?.role === "busCoordinator"
+    ) {
       if (
         !userToDelete.collegeId ||
         userToDelete.collegeId.toString() !== req.user.collegeId.toString()
       ) {
         return res.status(403).json({
-          message:
-            "Access denied. You can only delete users from your own college.",
+          message: `Access denied. ${
+            req.user.role === "busCoordinator" ? "Coordinators" : "Admins"
+          } can only delete users from their own college.`,
         });
       }
     }

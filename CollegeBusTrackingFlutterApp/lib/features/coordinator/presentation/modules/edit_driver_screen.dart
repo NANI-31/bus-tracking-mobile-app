@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:velocity_x/velocity_x.dart';
 import 'package:collegebus/core/constants/constants.dart';
 import 'package:collegebus/features/user/domain/user_model.dart';
-import 'package:collegebus/core/providers/api_provider.dart';
+import 'package:collegebus/core/providers/repository_providers.dart';
 import 'package:collegebus/shared/widgets/success_modal.dart';
 import 'package:collegebus/shared/widgets/api_error_modal.dart';
 
@@ -42,8 +43,8 @@ class _EditDriverScreenState extends ConsumerState<EditDriverScreen> {
 
     setState(() => _isSaving = true);
     try {
-      final api = ref.read(apiServiceProvider);
-      await api.updateUser(widget.driverId, {
+      final repo = ref.read(userRepositoryProvider);
+      await repo.updateUser(widget.driverId, {
         'fullName': _nameController.text.trim(),
       });
 
@@ -94,8 +95,8 @@ class _EditDriverScreenState extends ConsumerState<EditDriverScreen> {
 
     setState(() => _isDeleting = true);
     try {
-      final api = ref.read(apiServiceProvider);
-      await api.deleteUser(widget.driverId);
+      final repo = ref.read(userRepositoryProvider);
+      await repo.deleteUser(widget.driverId);
 
       if (mounted) {
         SuccessModal.show(
@@ -104,8 +105,9 @@ class _EditDriverScreenState extends ConsumerState<EditDriverScreen> {
           message: 'The driver has been removed from the database.',
           primaryActionText: 'OK',
           onPrimaryAction: () {
-            Navigator.pop(context); // Close success modal
-            Navigator.pop(context); // Return to dashboard
+            if (context.mounted) {
+              context.pop();
+            }
           },
         );
       }

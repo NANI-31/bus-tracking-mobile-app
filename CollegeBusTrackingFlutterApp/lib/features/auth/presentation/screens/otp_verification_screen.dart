@@ -113,10 +113,7 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
       title: 'Success',
       message: message,
       icon: Icons.check_circle_rounded,
-      onPrimaryAction: () {
-        Navigator.pop(context);
-        context.go('/login');
-      },
+      onPrimaryAction: () => context.go('/login'),
       primaryActionText: 'Login Now',
     );
   }

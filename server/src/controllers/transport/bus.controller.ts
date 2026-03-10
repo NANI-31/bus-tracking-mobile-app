@@ -49,6 +49,17 @@ export const createBus = async (req: Request, res: Response) => {
   }
 };
 
+export const getBusByDriver = async (req: Request, res: Response) => {
+  try {
+    const { driverId } = req.params;
+    const bus = await Bus.findOne({ driverId });
+    // Return 200 with null if no bus found to match Flutter's expected behavior
+    res.status(200).json(bus);
+  } catch (error) {
+    res.status(500).json({ message: (error as Error).message });
+  }
+};
+
 export const getBus = async (req: Request, res: Response) => {
   try {
     const bus = await Bus.findById(req.params.id);

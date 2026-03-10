@@ -8,7 +8,7 @@ import 'package:collegebus/core/utils/app_logger.dart';
 import 'package:collegebus/features/auth/application/auth_provider.dart';
 import 'package:collegebus/core/providers/socket_provider.dart';
 import 'package:collegebus/features/sos/application/sos_provider.dart';
-import 'package:collegebus/core/providers/api_provider.dart';
+import 'package:collegebus/core/providers/repository_providers.dart';
 import 'package:collegebus/core/providers/service_providers.dart'; // Added for locationServiceProvider
 import 'package:collegebus/features/bus/domain/bus_model.dart';
 import 'package:collegebus/features/bus/application/bus_provider.dart';
@@ -426,9 +426,9 @@ class _CoordinatorDashboardState extends ConsumerState<CoordinatorDashboard>
   }
 
   Future<void> _resolveSos(String sosId) async {
-    final api = ref.read(apiServiceProvider);
+    final repo = ref.read(incidentRepositoryProvider);
     try {
-      await api.resolveSos(sosId);
+      await repo.resolveSos(sosId);
       final user = ref.read(currentUserProvider);
       if (user?.collegeId != null) {
         ref.invalidate(activeSosProvider(user!.collegeId));

@@ -2,7 +2,6 @@
 library;
 
 // Services
-export 'services/api_service.dart';
 export 'services/socket_service.dart';
 export 'services/persistence_service.dart';
 export 'services/secure_storage_service.dart';
@@ -20,8 +19,3 @@ export 'constants/constants.dart';
 
 // Router
 export 'router/router.dart';
-
-
-
-
-

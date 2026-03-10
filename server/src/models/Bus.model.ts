@@ -40,6 +40,7 @@ const BusSchema: Schema = new Schema({
   updatedAt: { type: Date },
 });
 
+BusSchema.index({ driverId: 1 });
 BusSchema.index({ collegeId: 1, busNumber: 1 }, { unique: true });
 export const Bus = mongoose.model<IBus>("Bus", BusSchema);
 

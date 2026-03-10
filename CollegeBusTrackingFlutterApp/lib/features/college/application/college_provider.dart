@@ -1,13 +1,13 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:collegebus/features/college/domain/college_model.dart';
-import 'package:collegebus/core/providers/api_provider.dart';
+import 'package:collegebus/core/providers/repository_providers.dart';
 
 /// College notifier
 class CollegeNotifier extends AsyncNotifier<List<CollegeModel>> {
   @override
   Future<List<CollegeModel>> build() async {
-    final api = ref.watch(apiServiceProvider);
-    return await api.getAllColleges();
+    final repo = ref.watch(collegeRepositoryProvider);
+    return await repo.getAllColleges();
   }
 
   Future<CollegeModel?> getCollege(String collegeId) async {
@@ -30,8 +30,3 @@ final collegeServiceProvider =
     AsyncNotifierProvider<CollegeNotifier, List<CollegeModel>>(
       CollegeNotifier.new,
     );
-
-
-
-
-

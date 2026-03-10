@@ -8,6 +8,7 @@ import {
   getCollegeBusLocations,
   updateBus,
   deleteBus,
+  getBusByDriver,
 } from "../../controllers/transport/bus.controller";
 
 import { protect, authorize } from "@/middleware/authMiddleware";
@@ -22,6 +23,7 @@ router.post(
 );
 router.get("/", protect, getAllBuses);
 router.get("/college/:collegeId/locations", protect, getCollegeBusLocations);
+router.get("/driver/:driverId", protect, getBusByDriver);
 router.get("/:id", protect, getBus);
 router.put(
   "/:id",

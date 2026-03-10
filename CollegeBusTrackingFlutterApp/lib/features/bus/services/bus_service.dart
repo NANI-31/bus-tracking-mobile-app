@@ -1,27 +1,28 @@
 import 'package:collegebus/features/bus/domain/bus_model.dart';
 import 'package:collegebus/features/coordinator/domain/assignment_log_model.dart';
-import 'package:collegebus/core/services/api_service.dart';
+import 'package:collegebus/core/data/repositories.dart';
 import 'package:collegebus/core/services/socket_service.dart';
 
 class BusService {
-  final ApiService _apiService;
+  final BusRepository _busRepo;
+  final CollegeRepository _collegeRepo;
   final SocketService _socketService;
 
-  BusService(this._apiService, this._socketService);
+  BusService(this._busRepo, this._collegeRepo, this._socketService);
 
-  // Operations delegate to ApiService
-  Future<void> createBus(BusModel bus) => _apiService.createBus(bus);
+  // Operations delegate to repositories
+  Future<void> createBus(BusModel bus) => _busRepo.createBus(bus);
 
   Future<void> updateBus(String busId, Map<String, dynamic> data) async {
-    await _apiService.updateBus(busId, data);
+    await _busRepo.updateBus(busId, data);
     _socketService.sendBusListUpdate();
   }
 
-  Future<void> deleteBus(String busId) => _apiService.deleteBus(busId);
+  Future<void> deleteBus(String busId) => _busRepo.deleteBus(busId);
 
   Future<BusModel?> getBusByDriver(String driverId) async {
     try {
-      final buses = await _apiService.getAllBuses();
+      final buses = await _busRepo.getAllBuses();
       return buses.firstWhere((b) => b.driverId == driverId && b.isActive);
     } catch (e) {
       return null;
@@ -29,15 +30,15 @@ class BusService {
   }
 
   Future<void> updateBusStatus(String busId, String status) async {
-    await _apiService.updateBus(busId, {'status': status});
+    await _busRepo.updateBus(busId, {'status': status});
     _socketService.sendBusListUpdate();
   }
 
   Future<List<AssignmentLogModel>> getAssignmentLogsByBus(String busId) =>
-      _apiService.getAssignmentLogsByBus(busId);
+      _busRepo.getAssignmentLogsByBus(busId);
 
   Future<List<AssignmentLogModel>> getAssignmentLogsByDriver(String driverId) =>
-      _apiService.getAssignmentLogsByDriver(driverId);
+      _busRepo.getAssignmentLogsByDriver(driverId);
 
   Future<void> updateBusLocation(
     String busId,
@@ -60,19 +61,19 @@ class BusService {
     });
   }
 
-  // Bus Number Operations
+  // Bus Number Operations (via CollegeRepository)
   Future<void> addBusNumber(String collegeId, String busNumber) =>
-      _apiService.addBusNumber(collegeId, busNumber);
+      _collegeRepo.addBusNumber(collegeId, busNumber);
 
   Future<void> removeBusNumber(String collegeId, String busNumber) =>
-      _apiService.removeBusNumber(collegeId, busNumber);
+      _collegeRepo.removeBusNumber(collegeId, busNumber);
 
   Future<void> renameBusNumber(
     String collegeId,
     String oldBusNumber,
     String newBusNumber,
   ) async {
-    await _apiService.renameBusNumber(collegeId, oldBusNumber, newBusNumber);
+    await _collegeRepo.renameBusNumber(collegeId, oldBusNumber, newBusNumber);
     _socketService.sendBusListUpdate();
   }
 
@@ -82,17 +83,14 @@ class BusService {
     String? newBusNumber,
     String? defaultRouteId,
   }) async {
-    await _apiService.updateBusDetails(
-      collegeId,
-      oldBusNumber,
+    await _collegeRepo.updateBusDetails(
+      collegeId: collegeId,
+      oldBusNumber: oldBusNumber,
       newBusNumber: newBusNumber,
-      defaultRouteId: defaultRouteId,
+      details: defaultRouteId != null
+          ? {'defaultRouteId': defaultRouteId}
+          : null,
     );
     _socketService.sendBusListUpdate();
   }
 }
-
-
-
-
-

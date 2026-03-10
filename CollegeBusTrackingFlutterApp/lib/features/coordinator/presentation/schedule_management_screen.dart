@@ -7,7 +7,7 @@ import 'package:collegebus/features/schedule/domain/schedule_model.dart';
 import 'package:collegebus/features/auth/application/auth_provider.dart';
 import 'package:collegebus/features/bus/application/bus_provider.dart';
 import 'package:collegebus/features/route/application/route_provider.dart';
-import 'package:collegebus/core/providers/api_provider.dart';
+import 'package:collegebus/core/providers/repository_providers.dart';
 import 'package:collegebus/core/constants/constants.dart';
 import 'package:collegebus/features/college/application/college_provider.dart';
 import 'package:collegebus/features/college/domain/college_model.dart';
@@ -245,7 +245,9 @@ class _ScheduleManagementScreenState
                                       final user = ref.read(
                                         currentUserProvider,
                                       );
-                                      final api = ref.read(apiServiceProvider);
+                                      final repo = ref.read(
+                                        scheduleRepositoryProvider,
+                                      );
 
                                       // Create stop schedules without specific times
                                       final stopSchedules = <StopSchedule>[];
@@ -282,7 +284,7 @@ class _ScheduleManagementScreenState
                                       );
 
                                       try {
-                                        await api.createSchedule(schedule);
+                                        await repo.createSchedule(schedule);
                                         ref.invalidate(
                                           collegeSchedulesProvider(
                                             user.collegeId,
@@ -697,8 +699,10 @@ class _ScheduleManagementScreenState
                                   );
                                   if (confirmed == true) {
                                     if (!context.mounted) return;
-                                    final api = ref.read(apiServiceProvider);
-                                    await api.deleteSchedule(schedule.id);
+                                    final repo = ref.read(
+                                      scheduleRepositoryProvider,
+                                    );
+                                    await repo.deleteSchedule(schedule.id);
                                     ref.invalidate(
                                       collegeSchedulesProvider(
                                         schedule.collegeId,

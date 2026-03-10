@@ -4,7 +4,7 @@ import 'package:velocity_x/velocity_x.dart';
 import 'package:collegebus/core/constants/constants.dart';
 import 'package:collegebus/features/auth/application/auth_provider.dart';
 import 'package:collegebus/features/route/application/route_provider.dart';
-import 'package:collegebus/core/providers/api_provider.dart';
+import 'package:collegebus/core/providers/repository_providers.dart';
 import 'package:collegebus/l10n/coordinator/app_localizations.dart'
     as coord_l10n;
 import 'route_edit_screen.dart';
@@ -251,8 +251,10 @@ class _RoutesTabState extends ConsumerState<RoutesTab>
                                     );
                                     if (confirmed == true) {
                                       if (!context.mounted) return;
-                                      final api = ref.read(apiServiceProvider);
-                                      await api.deleteRoute(route.id);
+                                      final repo = ref.read(
+                                        routeRepositoryProvider,
+                                      );
+                                      await repo.deleteRoute(route.id);
                                       if (!context.mounted) return;
                                       ScaffoldMessenger.of(
                                         context,

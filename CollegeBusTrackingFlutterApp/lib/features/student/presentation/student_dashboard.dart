@@ -1,4 +1,3 @@
-import 'dart:ui';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -8,7 +7,7 @@ import 'package:collegebus/features/auth/application/auth_provider.dart';
 import 'package:collegebus/features/bus/application/bus_provider.dart';
 import 'package:collegebus/features/route/application/route_provider.dart';
 import 'package:collegebus/core/providers/socket_provider.dart';
-import 'package:collegebus/core/providers/api_provider.dart';
+import 'package:collegebus/core/providers/repository_providers.dart';
 import 'package:collegebus/core/providers/service_providers.dart';
 import 'package:collegebus/features/bus/domain/bus_model.dart';
 import 'package:collegebus/features/route/domain/route_model.dart';
@@ -140,8 +139,8 @@ class _StudentDashboardState extends ConsumerState<StudentDashboard>
 
   void _selectBus(BusModel bus) {
     if (mounted) setState(() => _selectedBus = bus);
-    final api = ref.read(apiServiceProvider);
-    api.getBusLocation(bus.id).then((location) {
+    final repo = ref.read(busRepositoryProvider);
+    repo.getBusLocation(bus.id).then((location) {
       if (location != null && _mapController != null) {
         _mapController!.animateCamera(
           CameraUpdate.newLatLngZoom(location.currentLocation, 16.0),

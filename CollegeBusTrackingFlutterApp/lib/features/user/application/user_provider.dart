@@ -1,15 +1,15 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:collegebus/features/user/domain/user_model.dart';
 import 'package:collegebus/core/constants/constants.dart';
-import 'package:collegebus/core/providers/api_provider.dart';
+import 'package:collegebus/core/providers/repository_providers.dart';
 import 'package:collegebus/core/providers/socket_provider.dart';
 
 /// User notifier for managing the list of all users
 class UserNotifier extends AsyncNotifier<List<UserModel>> {
   @override
   Future<List<UserModel>> build() async {
-    final api = ref.watch(apiServiceProvider);
-    return await api.getAllUsers();
+    final repo = ref.watch(userRepositoryProvider);
+    return await repo.getAllUsers();
   }
 
   Future<void> refresh() async {
@@ -18,14 +18,14 @@ class UserNotifier extends AsyncNotifier<List<UserModel>> {
   }
 
   Future<void> updateUser(String userId, Map<String, dynamic> data) async {
-    final api = ref.read(apiServiceProvider);
-    await api.updateUser(userId, data);
+    final repo = ref.read(userRepositoryProvider);
+    await repo.updateUser(userId, data);
     await refresh();
   }
 
   Future<void> approveUser(String userId, String approverId) async {
-    final api = ref.read(apiServiceProvider);
-    await api.approveUser(userId, approverId);
+    final repo = ref.read(userRepositoryProvider);
+    await repo.approveUser(userId, approverId);
     await refresh();
   }
 }
@@ -37,13 +37,13 @@ final userListProvider = AsyncNotifierProvider<UserNotifier, List<UserModel>>(
 
 /// StreamProvider for all users (for backward compatibility)
 final allUsersStreamProvider = StreamProvider<List<UserModel>>((ref) {
-  final api = ref.watch(apiServiceProvider);
+  final repo = ref.watch(userRepositoryProvider);
   final socket = ref.watch(socketServiceProvider);
 
   return Stream.multi((controller) async {
     Future<void> fetch() async {
       try {
-        final users = await api.getAllUsers();
+        final users = await repo.getAllUsers();
         if (!controller.isClosed) controller.add(users);
       } catch (e) {
         if (!controller.isClosed) controller.addError(e);
@@ -60,13 +60,13 @@ final allUsersStreamProvider = StreamProvider<List<UserModel>>((ref) {
 final usersByRoleProvider =
     StreamProvider.family<List<UserModel>, ({UserRole role, String collegeId})>(
       (ref, arg) {
-        final api = ref.watch(apiServiceProvider);
+        final repo = ref.watch(userRepositoryProvider);
         final socket = ref.watch(socketServiceProvider);
 
         return Stream.multi((controller) async {
           Future<void> fetch() async {
             try {
-              final allUsers = await api.getAllUsers();
+              final allUsers = await repo.getAllUsers();
               final filteredUsers = allUsers
                   .where(
                     (u) => u.role == arg.role && u.collegeId == arg.collegeId,
@@ -90,13 +90,13 @@ final usersByRoleProvider =
 /// StreamProvider for pending approvals in a college
 final pendingApprovalsProvider = StreamProvider.family<List<UserModel>, String>(
   (ref, collegeId) {
-    final api = ref.watch(apiServiceProvider);
+    final repo = ref.watch(userRepositoryProvider);
     final socket = ref.watch(socketServiceProvider);
 
     return Stream.multi((controller) async {
       Future<void> fetch() async {
         try {
-          final allUsers = await api.getAllUsers();
+          final allUsers = await repo.getAllUsers();
           final filteredUsers = allUsers
               .where(
                 (u) =>

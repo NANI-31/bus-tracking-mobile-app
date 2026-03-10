@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:collegebus/features/bus/domain/bus_model.dart';
-import 'package:collegebus/core/providers/api_provider.dart';
+import 'package:collegebus/core/providers/repository_providers.dart';
 import 'package:collegebus/core/constants/constants.dart';
 import 'package:collegebus/shared/widgets/maps/live_bus_map.dart';
 import 'package:velocity_x/velocity_x.dart';
@@ -316,8 +316,8 @@ class _StudentMapTabState extends ConsumerState<StudentMapTab>
               onTap: () {
                 _mapStateKey.currentState?.resumeFollowing();
                 if (_mapController != null) {
-                  final api = ref.read(apiServiceProvider);
-                  api.getBusLocation(widget.selectedBus!.id).then((location) {
+                  final repo = ref.read(busRepositoryProvider);
+                  repo.getBusLocation(widget.selectedBus!.id).then((location) {
                     if (location != null && mounted) {
                       _mapController!.animateCamera(
                         CameraUpdate.newLatLngZoom(

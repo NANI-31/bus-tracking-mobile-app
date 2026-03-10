@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:collegebus/features/route/domain/route_model.dart';
 import 'package:collegebus/features/schedule/domain/schedule_model.dart';
-import 'package:collegebus/core/providers/api_provider.dart';
+import 'package:collegebus/core/providers/repository_providers.dart';
 import 'package:collegebus/core/providers/socket_provider.dart';
 
 /// Notifier for managing the list of routes
@@ -14,23 +14,23 @@ class RouteNotifier extends AsyncNotifier<List<RouteModel>> {
   }
 
   Future<void> createRoute(RouteModel route) async {
-    final api = ref.read(apiServiceProvider);
+    final repo = ref.read(routeRepositoryProvider);
     final socket = ref.read(socketServiceProvider);
-    await api.createRoute(route);
+    await repo.createRoute(route);
     socket.sendRouteListUpdate();
   }
 
   Future<void> updateRoute(String routeId, Map<String, dynamic> data) async {
-    final api = ref.read(apiServiceProvider);
+    final repo = ref.read(routeRepositoryProvider);
     final socket = ref.read(socketServiceProvider);
-    await api.updateRoute(routeId, data);
+    await repo.updateRoute(routeId, data);
     socket.sendRouteListUpdate();
   }
 
   Future<void> deleteRoute(String routeId) async {
-    final api = ref.read(apiServiceProvider);
+    final repo = ref.read(routeRepositoryProvider);
     final socket = ref.read(socketServiceProvider);
-    await api.deleteRoute(routeId);
+    await repo.deleteRoute(routeId);
     socket.sendRouteListUpdate();
   }
 }
@@ -44,13 +44,13 @@ final collegeRoutesProvider = StreamProvider.family<List<RouteModel>, String>((
   ref,
   collegeId,
 ) {
-  final api = ref.watch(apiServiceProvider);
+  final repo = ref.watch(routeRepositoryProvider);
   final socket = ref.watch(socketServiceProvider);
 
   return Stream.multi((controller) async {
     Future<void> fetch() async {
       try {
-        final routes = await api.getRoutesByCollege(collegeId);
+        final routes = await repo.getRoutesByCollege(collegeId);
         if (!controller.isClosed) controller.add(routes);
       } catch (e) {
         if (!controller.isClosed) controller.addError(e);
@@ -66,13 +66,13 @@ final collegeRoutesProvider = StreamProvider.family<List<RouteModel>, String>((
 /// StreamProvider for schedules of a specific college
 final collegeSchedulesProvider =
     StreamProvider.family<List<ScheduleModel>, String>((ref, collegeId) {
-      final api = ref.watch(apiServiceProvider);
+      final repo = ref.watch(scheduleRepositoryProvider);
       final socket = ref.read(socketServiceProvider);
 
       return Stream.multi((controller) async {
         Future<void> fetch() async {
           try {
-            final schedules = await api.getSchedulesByCollege(collegeId);
+            final schedules = await repo.getSchedulesByCollege(collegeId);
             if (!controller.isClosed) controller.add(schedules);
           } catch (e) {
             if (!controller.isClosed) controller.addError(e);
@@ -87,8 +87,3 @@ final collegeSchedulesProvider =
         controller.onCancel = () => subscription.cancel();
       });
     });
-
-
-
-
-

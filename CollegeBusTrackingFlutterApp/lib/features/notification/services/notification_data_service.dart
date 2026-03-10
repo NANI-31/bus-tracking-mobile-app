@@ -1,18 +1,18 @@
 import 'dart:async';
 import 'package:collegebus/features/notification/domain/notification_model.dart';
-import 'package:collegebus/core/services/api_service.dart';
+import 'package:collegebus/core/data/repositories.dart';
 import 'package:flutter/material.dart';
 
 class NotificationDataService extends ChangeNotifier {
-  ApiService _apiService;
+  NotificationRepository _notificationRepo;
   String? _lastError;
 
   String? get lastError => _lastError;
 
-  NotificationDataService(this._apiService);
+  NotificationDataService(this._notificationRepo);
 
-  void updateDependencies(ApiService api) {
-    _apiService = api;
+  void updateDependencies(NotificationRepository repo) {
+    _notificationRepo = repo;
   }
 
   void clearError() {
@@ -29,7 +29,7 @@ class NotificationDataService extends ChangeNotifier {
 
   Future<void> sendNotification(NotificationModel notification) async {
     try {
-      await _apiService.sendNotification(notification);
+      await _notificationRepo.sendNotification(notification);
       clearError();
     } catch (e) {
       _setError(e);
@@ -39,7 +39,7 @@ class NotificationDataService extends ChangeNotifier {
 
   Stream<List<NotificationModel>> getNotifications(String userId) {
     return Stream.fromFuture(
-      _apiService.getUserNotifications(userId).catchError((e) {
+      _notificationRepo.getUserNotifications(userId).catchError((e) {
         _setError(e);
         throw e;
       }),
@@ -48,7 +48,7 @@ class NotificationDataService extends ChangeNotifier {
 
   Future<void> markNotificationAsRead(String notificationId) async {
     try {
-      await _apiService.markNotificationAsRead(notificationId);
+      await _notificationRepo.markNotificationAsRead(notificationId);
       clearError();
     } catch (e) {
       _setError(e);
@@ -57,7 +57,7 @@ class NotificationDataService extends ChangeNotifier {
 
   Future<void> broadcastNotification(String message) async {
     try {
-      await _apiService.broadcastToCollege(message);
+      await _notificationRepo.broadcastToCollege(message);
       clearError();
     } catch (e) {
       _setError(e);
@@ -65,8 +65,3 @@ class NotificationDataService extends ChangeNotifier {
     }
   }
 }
-
-
-
-
-

@@ -197,10 +197,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       title: l10n.registrationSuccessful,
       message: message,
       icon: Icons.check_circle_rounded,
-      onPrimaryAction: () {
-        Navigator.pop(context);
-        context.go('/login');
-      },
+      onPrimaryAction: () => context.go('/login'),
       primaryActionText: l10n.loginNow,
     );
   }
