@@ -62,7 +62,7 @@ export const resolveSos = async (req: IAuthRequest, res: Response) => {
     const io = req.app.get("io");
     const sosService = getSosService(io);
 
-    const sos = await sosService.resolveSos(id, resolutionNotes, userId);
+    const sos = await sosService.resolveSos(id as string, resolutionNotes, userId);
 
     res.json({ success: true, message: "SOS alert marked as resolved", sos });
   } catch (error) {
@@ -102,7 +102,7 @@ export const getActiveSos = async (req: IAuthRequest, res: Response) => {
     const sosService = getSosService(io);
 
     const alerts = await sosService.getActiveSos(
-      collegeId,
+      collegeId as string,
       query,
       user?.role || "unknown",
     );

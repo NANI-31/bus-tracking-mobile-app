@@ -11,7 +11,8 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["src/*"]
-    }
+    },
+    "types": ["jest", "node"]
   },
-  "exclude": ["tests", "node_modules"]
+  "exclude": ["node_modules"]
 }

@@ -186,11 +186,7 @@ export class BusAssignmentService {
    */
   private async handleAcceptedAssignment(bus: IBus): Promise<void> {
     await BusAssignmentLog.findOneAndUpdate(
-      {
-        busId: bus._id,
-        driverId: bus.driverId,
-        status: "pending",
-      },
+      { busId: bus._id, driverId: bus.driverId, status: "pending" } as any,
       { status: "accepted", acceptedAt: new Date() },
       { sort: { assignedAt: -1 } },
     );
@@ -216,7 +212,7 @@ export class BusAssignmentService {
     updatedBus: IBus,
   ): Promise<void> {
     await BusAssignmentLog.findOneAndUpdate(
-      { busId: oldBus._id, driverId: oldBus.driverId, status: "pending" },
+      { busId: oldBus._id, driverId: oldBus.driverId, status: "pending" } as any,
       { status: "rejected", completedAt: new Date() },
       { sort: { assignedAt: -1 } },
     );
@@ -239,7 +235,7 @@ export class BusAssignmentService {
     updatedBus: IBus,
   ): Promise<void> {
     await BusAssignmentLog.findOneAndUpdate(
-      { busId: oldBus._id, driverId: oldBus.driverId, status: "accepted" },
+      { busId: oldBus._id, driverId: oldBus.driverId, status: "accepted" } as any,
       { status: "completed", completedAt: new Date() },
       { sort: { assignedAt: -1 } },
     );

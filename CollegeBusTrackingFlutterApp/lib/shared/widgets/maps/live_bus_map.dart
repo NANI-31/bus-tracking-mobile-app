@@ -3,11 +3,11 @@ import 'dart:ui' show lerpDouble;
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:geolocator/geolocator.dart';
 import 'package:collegebus/features/bus/domain/bus_model.dart';
 import 'package:collegebus/features/auth/application/auth_provider.dart';
 import 'package:collegebus/features/bus/application/bus_provider.dart';
 import 'package:collegebus/widgets/common/common_map_view.dart';
+import 'package:collegebus/core/providers/service_providers.dart';
 import 'package:collegebus/core/utils/map_marker_helper.dart';
 
 class LiveBusMap extends ConsumerStatefulWidget {
@@ -118,23 +118,19 @@ class LiveBusMapState extends ConsumerState<LiveBusMap>
   }
 
   Future<void> _initLocation() async {
+    final locationService = ref.read(locationServiceProvider);
     try {
-      final lastPos = await Geolocator.getLastKnownPosition();
+      final lastPos = await locationService.getCurrentLocation();
       if (lastPos != null && mounted) {
         setState(() {
-          _centerLocation = LatLng(lastPos.latitude, lastPos.longitude);
+          _centerLocation = lastPos;
         });
       }
       if (widget.showUserLocation) {
-        final pos = await Geolocator.getCurrentPosition(
-          locationSettings: const LocationSettings(
-            accuracy: LocationAccuracy.medium,
-            timeLimit: Duration(seconds: 5),
-          ),
-        );
-        if (mounted) {
+        final pos = await locationService.getCurrentLocation();
+        if (pos != null && mounted) {
           setState(() {
-            _centerLocation = LatLng(pos.latitude, pos.longitude);
+            _centerLocation = pos;
           });
         }
       }

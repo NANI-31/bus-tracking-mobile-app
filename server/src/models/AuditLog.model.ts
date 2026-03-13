@@ -12,7 +12,7 @@ export interface IAuditLog extends Document {
   newState?: any;
   ipAddress?: string;
   userAgent?: string;
-  collegeId?: string;
+  collegeId?: any;
   createdAt: Date;
 }
 

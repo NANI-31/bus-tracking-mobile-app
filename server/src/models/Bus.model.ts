@@ -5,7 +5,7 @@ export interface IBus extends Document {
   driverId: string;
   routeId?: string;
   defaultRouteId?: string;
-  collegeId: string;
+  collegeId: any;
   isActive: boolean;
   capacity?: number;
   status: "on-time" | "delayed" | "not-running";

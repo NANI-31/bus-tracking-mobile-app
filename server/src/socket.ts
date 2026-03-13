@@ -69,7 +69,15 @@ async function flushLocationBuffer() {
 }
 
 // Start the flush interval
-setInterval(flushLocationBuffer, DB_FLUSH_INTERVAL_MS);
+const flushInterval = setInterval(flushLocationBuffer, DB_FLUSH_INTERVAL_MS);
+
+/**
+ * Stops the location buffer flush interval.
+ * Used primarily for testing to prevent open handles.
+ */
+export const stopSocketInterval = () => {
+  clearInterval(flushInterval);
+};
 
 let ioInstance: Server;
 
@@ -134,7 +142,7 @@ export const initializeSocket = (io: Server) => {
       logger.info(`A user connected (unauthenticated): ${socket.id}`);
     }
 
-    socket.on("join_college", async (collegeId) => {
+    socket.on("join_college", async (collegeId: string) => {
       socket.join(collegeId);
 
       logger.info(
@@ -183,7 +191,7 @@ export const initializeSocket = (io: Server) => {
       ) {
         try {
           const sockets = await io.in(collegeId).fetchSockets();
-          sockets.forEach((s) => {
+          sockets.forEach((s: any) => {
             const sUser = (s as any).user;
             if (sUser && sUser.role === "driver") {
               socket.emit("driver_status_update", {
@@ -360,7 +368,7 @@ export const initializeSocket = (io: Server) => {
       }
     });
 
-    socket.on("trigger_sos", (data) => {
+    socket.on("trigger_sos", (data: any) => {
       if (user && user.collegeId) {
         const coordRoom = `${user.collegeId.toString()}_coordinators`;
         logger.info(
@@ -370,7 +378,7 @@ export const initializeSocket = (io: Server) => {
       }
     });
 
-    socket.on("resolve_sos", (data) => {
+    socket.on("resolve_sos", (data: any) => {
       if (user && user.collegeId) {
         const coordRoom = `${user.collegeId.toString()}_coordinators`;
         logger.info(
@@ -380,7 +388,7 @@ export const initializeSocket = (io: Server) => {
       }
     });
 
-    socket.on("update_location", async (data) => {
+    socket.on("update_location", async (data: any) => {
       // ===== INPUT VALIDATION =====
 
       // 1. Validate data structure exists
@@ -510,7 +518,7 @@ export const initializeSocket = (io: Server) => {
       }
     });
 
-    socket.on("disconnect", (reason) => {
+    socket.on("disconnect", (reason: string) => {
       if (user) {
         logger.info(
           `${user.fullName || "User"} disconnected (reason: ${reason}) - Socket ${socket.id}`,
@@ -522,17 +530,19 @@ export const initializeSocket = (io: Server) => {
       // For drivers, add a grace period before marking offline
       // This prevents false offline notifications when the app briefly backgrounds
       if (user && user.role === "driver" && user.collegeId) {
-        const collegeRoom = user.collegeId;
+        const collegeRoom = user.collegeId.toString();
         const driverId = user.id;
         const driverName = user.fullName || "Driver";
 
-        // Wait 30 seconds before emitting offline status
+        // Wait 30 seconds (or 100ms in test) before emitting offline status
+        const disconnectDelay = process.env.NODE_ENV === "test" ? 100 : 30000;
+        
         // If the driver reconnects within this window, the new socket will override
         setTimeout(async () => {
           try {
             // Check if driver has reconnected with a new socket
             const sockets = await io.in(collegeRoom).fetchSockets();
-            const isStillConnected = sockets.some((s) => {
+            const isStillConnected = sockets.some((s: any) => {
               const sUser = (s as any).user;
               return sUser && sUser.id === driverId;
             });

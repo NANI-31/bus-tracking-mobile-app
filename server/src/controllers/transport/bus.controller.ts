@@ -136,7 +136,7 @@ export const updateBus = async (req: Request, res: Response) => {
     const requestingUserName = (req as AuthenticatedRequest).user?.fullName;
 
     const updatedBus = await busService.updateBus(
-      req.params.id,
+      req.params.id as string,
       req.body,
       requestingUserName,
     );

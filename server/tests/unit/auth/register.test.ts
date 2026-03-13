@@ -1,17 +1,22 @@
 import { Request, Response } from "express";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
-import { register } from "../../src/controllers/auth/register";
-import User from "../../src/models/User";
+import { register } from "@/controllers/auth/register";
+import User from "@/models/User.model";
+import College from "@/models/College.model";
 
 // Mock dependencies
-jest.mock("../../../src/models/User");
+jest.mock("@/models/User.model");
+jest.mock("@/models/College.model");
 jest.mock("bcryptjs");
 jest.mock("jsonwebtoken");
 jest.mock("crypto", () => ({
   randomUUID: () => "mock-uuid-123",
+  randomBytes: () => ({
+    toString: () => "MOCKCODE",
+  }),
 }));
-jest.mock("../../../src/utils/logger", () => ({
+jest.mock("@/utils/logger", () => ({
   info: jest.fn(),
   warn: jest.fn(),
   error: jest.fn(),
@@ -20,6 +25,7 @@ jest.mock("../../../src/utils/logger", () => ({
 const mockUser = User as jest.Mocked<typeof User>;
 const mockBcrypt = bcrypt as jest.Mocked<typeof bcrypt>;
 const mockJwt = jwt as jest.Mocked<typeof jwt>;
+const mockCollege = College as jest.Mocked<typeof College>;
 
 describe("Auth Controller - Register", () => {
   let mockReq: Partial<Request>;
@@ -38,9 +44,10 @@ describe("Auth Controller - Register", () => {
       status: statusMock,
     };
     jest.clearAllMocks();
+    process.env.JWT_SECRET = "test-secret";
+    process.env.REFRESH_TOKEN_SECRET = "test_refresh_secret";
   });
 
-  // Test 1: Missing email for non-parent roles
   it("should return 400 if email is missing for student role", async () => {
     mockReq.body = {
       password: "password123",
@@ -55,7 +62,6 @@ describe("Auth Controller - Register", () => {
     expect(jsonMock).toHaveBeenCalledWith({ message: "Email is required" });
   });
 
-  // Test 2: Duplicate email
   it("should return 400 if user already exists", async () => {
     mockReq.body = {
       email: "existing@test.com",
@@ -74,7 +80,6 @@ describe("Auth Controller - Register", () => {
     expect(jsonMock).toHaveBeenCalledWith({ message: "User already exists" });
   });
 
-  // Test 3: Parent registration without phone
   it("should return 400 if parent registers without phone number", async () => {
     mockReq.body = {
       email: "parent@test.com",
@@ -91,7 +96,6 @@ describe("Auth Controller - Register", () => {
     });
   });
 
-  // Test 4: Duplicate phone number for parent
   it("should return 400 if parent phone number already exists", async () => {
     mockReq.body = {
       password: "password123",
@@ -111,7 +115,6 @@ describe("Auth Controller - Register", () => {
     });
   });
 
-  // Test 5: Successful student registration
   it("should successfully register a new student", async () => {
     mockReq.body = {
       email: "newstudent@test.com",
@@ -134,6 +137,7 @@ describe("Auth Controller - Register", () => {
       role: "student",
       collegeId: "college123",
       approved: false,
+      tokenVersion: 0,
       save: saveMock,
     }));
 
@@ -148,7 +152,6 @@ describe("Auth Controller - Register", () => {
     );
   });
 
-  // Test 6: Parent auto-approved
   it("should auto-approve parent on registration", async () => {
     mockReq.body = {
       password: "password123",
@@ -166,7 +169,8 @@ describe("Auth Controller - Register", () => {
       _id: "mock-uuid-123",
       fullName: "Parent User",
       role: "parent",
-      approved: true, // Parents are auto-approved
+      approved: true,
+      tokenVersion: 0,
       save: saveMock,
     }));
 
@@ -175,7 +179,6 @@ describe("Auth Controller - Register", () => {
     expect(statusMock).toHaveBeenCalledWith(201);
   });
 
-  // Test 7: Server error handling
   it("should return 500 on server error", async () => {
     mockReq.body = {
       email: "user@test.com",

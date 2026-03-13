@@ -290,17 +290,17 @@ export const wipeCollegeData = async (req: IAuthRequest, res: Response) => {
     }
 
     // Audit Log the wipe
-    await AuditLog.create({
+    await AuditService.log({
+      req,
       action: "DATA_WIPE",
-      resource: "System",
-      resourceId: collegeId,
-      performedBy: req.user?.id,
-      details: {
-        collegeId,
+      resource: isGlobalWipe ? "System" : "College",
+      resourceId: isGlobalWipe ? undefined : collegeId,
+      resourceName: isGlobalWipe ? "All Colleges Data" : `College Data (${collegeId})`,
+      newState: {
+        collegeId: collegeId,
         isGlobal: isGlobalWipe,
         deletedCollegeRecord: deleteCollegeRecord,
       },
-      timestamp: new Date(),
     });
 
     res.status(200).json({

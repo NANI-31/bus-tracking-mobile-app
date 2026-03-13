@@ -24,7 +24,7 @@ export interface IUser extends Document {
   otp?: string;
   otpExpires?: Date;
   role: string;
-  collegeId: string;
+  collegeId: any;
   approved: boolean;
   emailVerified: boolean;
   needsManualApproval: boolean;
@@ -136,7 +136,7 @@ UserSchema.index({ stopLocationGeo: "2dsphere" }, { sparse: true });
 UserSchema.index({ premiumUntil: 1 }, { sparse: true });
 
 // Pre-save hook to sync stopLocation -> stopLocationGeo
-UserSchema.pre<IUser>("save", function (next) {
+UserSchema.pre("save", async function (this: any) {
   if (this.stopLocation && this.stopLocation.lat && this.stopLocation.lng) {
     this.stopLocationGeo = {
       type: "Point",
@@ -146,7 +146,6 @@ UserSchema.pre<IUser>("save", function (next) {
     // Ensure we don't save an invalid Partial object
     this.stopLocationGeo = undefined;
   }
-  next();
 });
 
 export default mongoose.model<IUser>("User", UserSchema);

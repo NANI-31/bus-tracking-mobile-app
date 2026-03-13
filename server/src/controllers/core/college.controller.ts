@@ -71,8 +71,8 @@ export const removeBusNumber = async (req: Request, res: Response) => {
     const collegeService = getCollegeService(io);
 
     const busNumbers = await collegeService.removeBusNumber(
-      collegeId,
-      busNumber,
+      collegeId as string,
+      busNumber as string,
     );
     res.status(200).json(busNumbers);
   } catch (error) {

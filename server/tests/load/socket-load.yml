@@ -1,0 +1,40 @@
+config:
+  target: "http://127.0.0.1:5000"
+  processor: "./hooks.js"
+  socketio:
+    transports: ["websocket"]
+  phases:
+    - duration: 30
+      arrivalRate: 5
+      name: "Warm up"
+    - duration: 60
+      arrivalRate: 5
+      rampTo: 50
+      name: "Ramp up"
+    - duration: 120
+      arrivalRate: 50
+      name: "Sustained load"
+  payload:
+    path: "tokens.csv"
+    fields:
+      - "token"
+      - "role"
+      - "collegeId"
+      - "busId"
+    order: sequence
+    skipHeader: true
+
+scenarios:
+  - name: "Dynamic Auth Scenario"
+    engine: socketio
+    beforeScenario: "setToken"
+    flow:
+      - connect:
+          options:
+            auth: "{{ socketio.auth }}"
+            query: "{{ socketio.query }}"
+      - emit:
+          channel: "join_college"
+          data: "{{ collegeId }}"
+      - think: 5
+      - disconnect: {}

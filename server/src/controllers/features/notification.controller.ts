@@ -155,7 +155,7 @@ export const markAllNotificationsAsRead = async (
       if (user?.fcmToken) {
         await sendDataOnlyNotificationToDevices([user.fcmToken], {
           action: "dismiss_all",
-          userId: req.params.userId,
+          userId: req.params.userId as string,
         });
       }
     } catch (err) {
@@ -390,7 +390,7 @@ export const deleteNotification = async (req: Request, res: Response) => {
     }
 
     // 2. RETRACTION LOGIC: If many notifications share the same voiceKey (broadcast) or groupId, delete all
-    let deletedIds: string[] = [id];
+    let deletedIds: string[] = [id as string];
     if (isVoice && voiceKey) {
       const related = await Notification.find({ "data.voiceKey": voiceKey });
       deletedIds = related.map((r) => r._id.toString());
@@ -451,7 +451,7 @@ export const deleteNotification = async (req: Request, res: Response) => {
         if (receiver?.fcmToken) {
           await sendDataOnlyNotificationToDevices([receiver.fcmToken], {
             action: "dismiss",
-            notificationId: id,
+            notificationId: id as string,
           });
         }
       }

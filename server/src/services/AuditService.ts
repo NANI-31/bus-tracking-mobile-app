@@ -28,6 +28,9 @@ export class AuditService {
     collegeId,
   }: LogParams) {
     try {
+      const xForwardedFor = req.headers["x-forwarded-for"];
+      const forwardedIp = Array.isArray(xForwardedFor) ? xForwardedFor[0] : xForwardedFor;
+
       const logData = {
         userId: req.user?.id,
         userEmail: req.user?.email,
@@ -39,9 +42,8 @@ export class AuditService {
         resourceName,
         previousState,
         newState,
-        ipAddress:
-          req.ip || req.headers["x-forwarded-for"] || req.socket.remoteAddress,
-        userAgent: req.headers["user-agent"],
+        ipAddress: (req.ip || forwardedIp || req.socket.remoteAddress || "unknown") as string,
+        userAgent: (req.headers["user-agent"] || "unknown") as string,
         createdAt: new Date(),
       };
 
