@@ -58,11 +58,11 @@ export const seedTransport = async (
     });
 
     // 4. Create Bus
-    const bus = await Bus.create({
+    const bus: any = await Bus.create({
       busNumber: busNumber,
-      driverId: null,
-      routeId: route._id,
-      defaultRouteId: route._id,
+      driverId: driverId || undefined,
+      routeId: (route._id as any).toString(),
+      defaultRouteId: (route._id as any).toString(),
       collegeId: collegeId,
       isActive: true,
       status: "not-running",
@@ -71,8 +71,8 @@ export const seedTransport = async (
 
     // 5. Create Schedule
     await Schedule.create({
-      routeId: route._id,
-      busId: bus._id,
+      routeId: (route._id as any).toString(),
+      busId: (bus._id as any).toString(),
       shift: "1st",
       collegeId: collegeId,
       createdBy: coordinatorId,

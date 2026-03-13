@@ -12,7 +12,6 @@ import 'package:collegebus/core/providers/socket_provider.dart';
 import 'package:collegebus/core/providers/repository_providers.dart';
 import 'package:collegebus/features/user/domain/user_model.dart';
 import 'package:collegebus/features/bus/domain/bus_model.dart';
-import 'package:collegebus/features/college/domain/college_model.dart';
 import 'package:collegebus/core/services/socket_service.dart';
 import 'package:collegebus/features/bus/services/location_service.dart';
 import 'package:collegebus/features/bus/data/bus_repository.dart';

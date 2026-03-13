@@ -5,7 +5,6 @@ import 'package:collegebus/core/services/theme_service.dart';
 import 'package:collegebus/core/providers/service_providers.dart';
 import 'package:collegebus/features/college/application/college_provider.dart';
 import 'package:collegebus/features/college/domain/college_model.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 /// Mocks the platform views channel to prevent MissingPluginException
 /// when widgets like GoogleMap are used in widget tests.
