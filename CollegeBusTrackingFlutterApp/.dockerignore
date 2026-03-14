@@ -1,0 +1,6 @@
+# Ignore test directories during deployment
+test/
+integration_test/
+macos/RunnerTests/
+ios/RunnerTests/
+coverage/
