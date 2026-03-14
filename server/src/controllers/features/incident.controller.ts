@@ -43,7 +43,7 @@ export const updateIncidentStatus = async (req: Request, res: Response) => {
     const incident = await Incident.findByIdAndUpdate(
       req.params.id,
       { status },
-      { new: true },
+      { returnDocument: 'after' },
     );
     if (!incident)
       return res.status(404).json({ message: "Incident not found" });

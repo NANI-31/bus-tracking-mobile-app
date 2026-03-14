@@ -46,7 +46,7 @@ export const updateConfig = async (req: IAuthRequest, res: Response) => {
         updatedAt: new Date(),
         updatedBy: req.user?.id,
       },
-      { new: true, upsert: true },
+      { returnDocument: 'after', upsert: true },
     );
 
     // Audit Log

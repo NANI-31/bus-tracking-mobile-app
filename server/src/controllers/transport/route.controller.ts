@@ -104,7 +104,7 @@ export const updateRoute = async (req: Request, res: Response) => {
     }
 
     const route = await Route.findOneAndUpdate(query, req.body, {
-      new: true,
+      returnDocument: 'after',
     });
     if (!route) return res.status(404).json({ message: "Route not found" });
 

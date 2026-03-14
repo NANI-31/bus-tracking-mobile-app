@@ -86,7 +86,7 @@ export const updateCollegeSettings = async (
           updatedAt: new Date(),
         },
       },
-      { new: true },
+      { returnDocument: 'after' },
     );
 
     if (!college) {

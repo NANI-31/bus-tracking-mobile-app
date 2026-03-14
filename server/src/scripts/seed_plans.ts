@@ -75,7 +75,7 @@ async function seed() {
       const plan = await Plan.findOneAndUpdate(
         { alias: planData.alias },
         planData,
-        { upsert: true, new: true },
+        { upsert: true, returnDocument: 'after' },
       );
       console.log(`✅ Seeded: ${plan.name} (${plan.alias})`);
     }

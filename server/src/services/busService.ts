@@ -29,7 +29,7 @@ export class BusService {
     }
 
     const updatedBus = await Bus.findByIdAndUpdate(busId, updateData, {
-      new: true,
+      returnDocument: 'after',
     });
 
     if (!updatedBus) {

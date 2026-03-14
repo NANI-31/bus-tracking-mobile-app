@@ -165,7 +165,7 @@ export const verifyCollege = async (req: IAuthRequest, res: Response) => {
     const college = await College.findByIdAndUpdate(
       collegeId,
       { verified: true, updatedAt: new Date() },
-      { new: true },
+      { returnDocument: 'after' },
     );
 
     if (!college) {
@@ -203,7 +203,7 @@ export const suspendCollege = async (req: IAuthRequest, res: Response) => {
         suspensionReason: reason,
         updatedAt: new Date(),
       },
-      { new: true },
+      { returnDocument: 'after' },
     );
 
     if (!college) {

@@ -106,7 +106,7 @@ export class SosService {
         resolvedBy: resolvedByApiKey,
         resolutionNotes: resolutionNotes || "Resolved by administrator",
       },
-      { new: true },
+      { returnDocument: 'after' },
     );
 
     if (!sos) {

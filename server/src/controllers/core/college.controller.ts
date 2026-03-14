@@ -169,7 +169,7 @@ export const toggleManualPremium = async (req: Request, res: Response) => {
     const college = await College.findByIdAndUpdate(
       collegeId,
       { allowManualPremium },
-      { new: true },
+      { returnDocument: 'after' },
     );
 
     if (!college) return res.status(404).json({ message: "College not found" });

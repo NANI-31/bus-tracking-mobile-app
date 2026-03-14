@@ -72,7 +72,7 @@ export const updateSchedule = async (req: Request, res: Response) => {
     const schedule = await Schedule.findByIdAndUpdate(
       req.params.id,
       { $set: req.body },
-      { new: true, runValidators: true },
+      { returnDocument: 'after', runValidators: true },
     );
     if (!schedule)
       return res.status(404).json({ message: "Schedule not found" });

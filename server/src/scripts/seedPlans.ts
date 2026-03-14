@@ -40,7 +40,7 @@ const seedPlans = async () => {
     for (const planData of defaultPlans) {
       await Plan.findOneAndUpdate({ alias: planData.alias }, planData, {
         upsert: true,
-        new: true,
+        returnDocument: 'after',
       });
     }
     console.log("Plans updated/seeded successfully");

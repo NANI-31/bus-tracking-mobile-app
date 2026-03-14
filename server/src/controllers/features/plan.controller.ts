@@ -71,7 +71,7 @@ export const seedPlans = async (req: Request, res: Response) => {
     for (const planData of defaultPlans) {
       await Plan.findOneAndUpdate({ alias: planData.alias }, planData, {
         upsert: true,
-        new: true,
+        returnDocument: 'after',
       });
     }
     res
