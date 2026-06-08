@@ -113,7 +113,7 @@ export const sendNotificationToDevices = async (
       },
     };
 
-    const response = await admin.messaging().sendEachForMulticast(message);
+    const response = await admin.messaging().sendMulticast(message);
     logger.info(
       `Notifications sent: ${response.successCount} success, ${response.failureCount} failed`,
     );
@@ -167,7 +167,7 @@ export const sendSosNotification = async (
       },
     };
 
-    const response = await admin.messaging().sendEachForMulticast(message);
+    const response = await admin.messaging().sendMulticast(message);
     logger.info(
       `SOS Notifications sent: ${response.successCount} success, ${response.failureCount} failed`,
     );
@@ -235,7 +235,7 @@ export const sendDataOnlyNotificationToDevices = async (
       },
     };
 
-    const response = await admin.messaging().sendEachForMulticast(message);
+    const response = await admin.messaging().sendMulticast(message);
     logger.info(`Silent notifications sent: ${response.successCount} success`);
     return { success: response.successCount, failure: response.failureCount };
   } catch (error) {

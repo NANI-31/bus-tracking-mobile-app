@@ -3,8 +3,7 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
-const MONGO_URI =
-  process.env.MONGO_URI || "mongodb://localhost:27017/college_bus_tracking";
+const MONGO_URI = process.env.MONGO_URI;
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -14,7 +13,7 @@ const connectDB = async (retries = 10, delayMs = 5000) => {
       // Security: strictQuery helps prevent unexpected query behaviors
       mongoose.set("strictQuery", true);
 
-      const conn = await mongoose.connect(MONGO_URI, {
+      const conn = await mongoose.connect(MONGO_URI || "", {
         serverSelectionTimeoutMS: 5000, // Fail after 5 seconds
         // tls: process.env.NODE_ENV === "production", // Enforce TLS in production
         retryWrites: true,
