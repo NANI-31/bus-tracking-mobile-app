@@ -76,7 +76,7 @@ class S3Service {
         Key: key,
       });
 
-      const url = await getSignedUrl(this.client, command, { expiresIn });
+      const url = await getSignedUrl(this.client as any, command, { expiresIn });
       return url;
     } catch (error) {
       logger.error(
