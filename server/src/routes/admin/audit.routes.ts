@@ -9,9 +9,9 @@ router.use(protect);
 
 router.get(
   "/",
-  authorize("superAdmin", "collegeAdmin"),
+  authorize("superAdmin", "collegeAdmin", "admin"),
   AuditController.getAuditLogs,
 );
-router.post("/", authorize("superAdmin"), AuditController.createManualAuditLog);
+router.post("/", authorize("superAdmin", "admin"), AuditController.createManualAuditLog);
 
 export default router;

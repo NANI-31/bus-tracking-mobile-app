@@ -8,6 +8,6 @@ import { protect, authorize } from "@/middleware/authMiddleware";
 const router = express.Router();
 
 router.get("/", protect, getActivePlans);
-router.post("/seed", protect, authorize("superAdmin"), seedPlans);
+router.post("/seed", protect, authorize("superAdmin", "admin"), seedPlans);
 
 export default router;

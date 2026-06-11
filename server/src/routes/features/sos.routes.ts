@@ -15,7 +15,7 @@ const router = express.Router();
 router.post(
   "/",
   protect,
-  authorize("driver", "busCoordinator", "collegeAdmin", "superAdmin"),
+  authorize("driver", "busCoordinator", "collegeAdmin", "superAdmin", "admin"),
   validate(triggerSosSchema),
   sendSOS,
 );
@@ -24,7 +24,7 @@ router.post(
 router.put(
   "/:id/resolve",
   protect,
-  authorize("busCoordinator", "collegeAdmin", "superAdmin"),
+  authorize("busCoordinator", "collegeAdmin", "superAdmin", "admin"),
   validate(resolveSosSchema),
   resolveSos,
 );
@@ -33,14 +33,14 @@ router.put(
 router.get(
   "/active/:collegeId",
   protect,
-  authorize("busCoordinator", "collegeAdmin", "superAdmin"),
+  authorize("busCoordinator", "collegeAdmin", "superAdmin", "admin"),
   getActiveSos,
 );
 
 router.get(
   "/logs/:collegeId",
   protect,
-  authorize("busCoordinator", "collegeAdmin", "superAdmin"),
+  authorize("busCoordinator", "collegeAdmin", "superAdmin", "admin"),
   getActiveSos, // I'll change the controller to handle status filter
 );
 

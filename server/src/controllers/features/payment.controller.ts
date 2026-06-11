@@ -168,9 +168,9 @@ export const getTransactions = async (req: Request, res: Response) => {
     const { plan, startDate, endDate, collegeId } = req.query;
 
     let query: any = {};
-    if (role === "collegeAdmin" || role === "admin") {
+    if (role === "collegeAdmin") {
       query.collegeId = userCollegeId;
-    } else if (role === "superAdmin") {
+    } else if (role === "superAdmin" || role === "admin") {
       if (collegeId) query.collegeId = collegeId;
     } else {
       query.userId = authReq.user.id;
@@ -242,9 +242,9 @@ export const getRefundRequests = async (req: Request, res: Response) => {
 
     const query: any = { status: "refund_requested" };
 
-    if (role === "collegeAdmin" || role === "admin") {
+    if (role === "collegeAdmin") {
       query.collegeId = userCollegeId;
-    } else if (role === "superAdmin") {
+    } else if (role === "superAdmin" || role === "admin") {
       if (collegeId) query.collegeId = collegeId;
     } else {
       return res.status(403).json({ message: "Access denied" });
@@ -284,8 +284,8 @@ export const getSubscriptionAnalytics = async (req: Request, res: Response) => {
     const { collegeId } = req.query;
 
     const match: any = { status: { $in: ["captured", "success"] } };
-    if (role === "collegeAdmin" || role === "admin") match.collegeId = userCollegeId;
-    else if (role === "superAdmin" && collegeId) match.collegeId = collegeId;
+    if (role === "collegeAdmin") match.collegeId = userCollegeId;
+    else if ((role === "superAdmin" || role === "admin") && collegeId) match.collegeId = collegeId;
 
     const analytics = await Transaction.aggregate([
       { $match: match },
@@ -316,8 +316,8 @@ export const getAdvancedAnalytics = async (req: Request, res: Response) => {
     const { role, collegeId: adminCollegeId } = authReq.user;
 
     const query: any = {};
-    if (role === "collegeAdmin" || role === "admin") query.collegeId = adminCollegeId;
-    else if (role === "superAdmin") if (collegeId) query.collegeId = collegeId;
+    if (role === "collegeAdmin") query.collegeId = adminCollegeId;
+    else if (role === "superAdmin" || role === "admin") if (collegeId) query.collegeId = collegeId;
 
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);

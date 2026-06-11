@@ -99,7 +99,7 @@ export const updateRoute = async (req: Request, res: Response) => {
     const { role, collegeId } = authReq.user || {};
 
     const query: any = { _id: req.params.id };
-    if (role !== "superAdmin" && collegeId) {
+    if (role !== "superAdmin" && role !== "admin" && collegeId) {
       query.collegeId = collegeId;
     }
 
@@ -137,7 +137,7 @@ export const deleteRoute = async (req: Request, res: Response) => {
     const { role, collegeId } = authReq.user || {};
 
     const query: any = { _id: req.params.id };
-    if (role !== "superAdmin" && collegeId) {
+    if (role !== "superAdmin" && role !== "admin" && collegeId) {
       query.collegeId = collegeId;
     }
 

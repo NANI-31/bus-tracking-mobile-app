@@ -59,7 +59,7 @@ router.put(
 router.put(
   "/:collegeId/toggle-manual-premium",
   protect,
-  authorize("superAdmin"),
+  authorize("superAdmin", "admin"),
   toggleManualPremium,
 );
 

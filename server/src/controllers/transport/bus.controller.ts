@@ -81,7 +81,7 @@ export const getAllBuses = async (req: Request, res: Response) => {
     // Multi-tenancy: College admins only see their own college's buses
     if (role === "collegeAdmin") {
       query.collegeId = userCollegeId;
-    } else if (role === "superAdmin") {
+    } else if (role === "superAdmin" || role === "admin") {
       if (queryCollegeId) {
         query.collegeId = queryCollegeId;
       }
@@ -171,7 +171,7 @@ export const deleteBus = async (req: Request, res: Response) => {
     // Enforce multi-tenancy: College admins can only delete their own buses
     if (role === "collegeAdmin" && collegeId) {
       query.collegeId = collegeId;
-    } else if (role !== "superAdmin") {
+    } else if (role !== "superAdmin" && role !== "admin") {
       // If not superAdmin or collegeAdmin, maybe coordinator but let's stick to these for now
       // Or if coordinator, they should also have a collegeId
       if (collegeId) {
