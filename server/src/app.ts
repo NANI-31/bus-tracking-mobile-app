@@ -15,6 +15,7 @@ import { requestIdMiddleware } from "@/middleware/requestIdMiddleware";
 
 export const createApp = () => {
   const app = express();
+  app.set("trust proxy", 1); // Trust Render load balancer proxy
   const httpServer = createServer(app);
 
   // ===== SECURITY MIDDLEWARE =====

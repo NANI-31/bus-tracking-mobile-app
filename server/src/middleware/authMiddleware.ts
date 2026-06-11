@@ -140,7 +140,7 @@ export const collegeAdminOnly = (
     return next(); // Super admin can access anything
   }
 
-  if (req.user.role !== "collegeAdmin") {
+  if (req.user.role !== "collegeAdmin" && req.user.role !== "admin") {
     return res.status(403).json({ message: "College Admin access required" });
   }
 
