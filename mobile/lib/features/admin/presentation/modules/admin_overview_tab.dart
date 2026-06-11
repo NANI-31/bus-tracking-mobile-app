@@ -17,10 +17,10 @@ class AdminOverviewTab extends ConsumerWidget {
       data: (colleges) => usersAsync.when(
         data: (users) => _buildContent(context, colleges, users),
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, s) => Center(child: Text('Error: $e')),
+        error: (e, s) => _buildErrorState(context, ref, e, isUsersError: true),
       ),
       loading: () => const Center(child: CircularProgressIndicator()),
-      error: (e, s) => Center(child: Text('Error: $e')),
+      error: (e, s) => _buildErrorState(context, ref, e, isUsersError: false),
     );
   }
 
@@ -76,6 +76,58 @@ class AdminOverviewTab extends ConsumerWidget {
         ).expand(),
       ]),
     ]).p(AppSizes.paddingMedium);
+  }
+
+  Widget _buildErrorState(
+    BuildContext context,
+    WidgetRef ref,
+    Object error, {
+    required bool isUsersError,
+  }) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(AppSizes.paddingMedium),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.error_outline,
+              size: 64,
+              color: Theme.of(context).colorScheme.error,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              isUsersError ? 'Failed to load users' : 'Failed to load colleges',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Theme.of(context).colorScheme.error,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              error.toString(),
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 13,
+                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+              ),
+            ),
+            const SizedBox(height: 24),
+            ElevatedButton.icon(
+              onPressed: () {
+                if (isUsersError) {
+                  ref.invalidate(userListProvider);
+                }
+                ref.invalidate(collegeServiceProvider);
+              },
+              icon: const Icon(Icons.refresh),
+              label: const Text('Retry'),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   Widget _buildStatCard(

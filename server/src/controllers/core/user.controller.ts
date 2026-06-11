@@ -55,6 +55,8 @@ export const getAllUsers = async (req: IAuthRequest, res: Response) => {
   try {
     let query = {};
 
+    console.log(`[getAllUsers] v2 - role=${req.user?.role}, id=${req.user?.id}`);
+
     // Multi-tenancy: College admins and coordinators only see their own college's users
     if (
       req.user?.role === "collegeAdmin" ||
@@ -62,6 +64,7 @@ export const getAllUsers = async (req: IAuthRequest, res: Response) => {
     ) {
       query = { collegeId: req.user.collegeId };
     } else if (req.user?.role !== "superAdmin" && req.user?.role !== "admin") {
+      console.warn(`[getAllUsers] Unauthorized role: ${req.user?.role}`);
       return res.status(403).json({ message: "Not authorized" });
     }
 
