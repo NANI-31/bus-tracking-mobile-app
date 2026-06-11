@@ -89,6 +89,16 @@ describe("Core Controller - User", () => {
       expect(mockUser.find).toHaveBeenCalledWith({ collegeId: "college123" });
       expect(statusMock).toHaveBeenCalledWith(200);
     });
+
+    it("should return users for the same college when user has admin role (multi-tenancy)", async () => {
+      mockReq.user.role = "admin";
+      mockUser.find.mockResolvedValue([{ email: "u1@test.com" }] as any);
+
+      await getAllUsers(mockReq, mockRes);
+
+      expect(mockUser.find).toHaveBeenCalledWith({ collegeId: "college123" });
+      expect(statusMock).toHaveBeenCalledWith(200);
+    });
   });
 
   describe("updateUser", () => {
@@ -132,6 +142,20 @@ describe("Core Controller - User", () => {
     });
 
     it("should prevent cross-college deletion", async () => {
+      mockReq.params.id = "user123";
+      const userToDelete = {
+        _id: "user123",
+        collegeId: "otherCollege",
+      };
+      mockUser.findById.mockResolvedValue(userToDelete as any);
+
+      await deleteUser(mockReq, mockRes);
+
+      expect(statusMock).toHaveBeenCalledWith(403);
+    });
+
+    it("should prevent cross-college deletion when user has admin role", async () => {
+      mockReq.user.role = "admin";
       mockReq.params.id = "user123";
       const userToDelete = {
         _id: "user123",

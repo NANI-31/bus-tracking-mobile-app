@@ -55,10 +55,11 @@ export const getAllUsers = async (req: IAuthRequest, res: Response) => {
   try {
     let query = {};
 
-    // Multi-tenancy: College admins and coordinators only see their own college's users
+    // Multi-tenancy: College admins, coordinators, and admins only see their own college's users
     if (
       req.user?.role === "collegeAdmin" ||
-      req.user?.role === "busCoordinator"
+      req.user?.role === "busCoordinator" ||
+      req.user?.role === "admin"
     ) {
       query = { collegeId: req.user.collegeId };
     } else if (req.user?.role !== "superAdmin") {
@@ -136,10 +137,11 @@ export const deleteUser = async (req: IAuthRequest, res: Response) => {
     if (!userToDelete)
       return res.status(404).json({ message: "User not found" });
 
-    // Security Check: CollegeAdmin and busCoordinator can only delete users from their own college
+    // Security Check: CollegeAdmin, busCoordinator, and admin can only delete users from their own college
     if (
       req.user?.role === "collegeAdmin" ||
-      req.user?.role === "busCoordinator"
+      req.user?.role === "busCoordinator" ||
+      req.user?.role === "admin"
     ) {
       if (
         !userToDelete.collegeId ||
