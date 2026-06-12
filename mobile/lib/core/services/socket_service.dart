@@ -90,7 +90,7 @@ class SocketService extends ChangeNotifier {
     _connect();
   }
 
-  void updateAuth(String? token) {
+  void updateAuth(String? token, {String? url}) {
     if (_token == token) return;
     _token = token;
 
@@ -108,7 +108,11 @@ class SocketService extends ChangeNotifier {
         AppLogger.i('[SocketService] Logged out: Disconnected and cleaned up.');
       }
     } else {
-      _reconnect();
+      if (_currentUrl == null && url != null) {
+        init(url, token: token);
+      } else {
+        _reconnect();
+      }
     }
   }
 

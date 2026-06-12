@@ -23,7 +23,7 @@ final socketServiceProvider = ChangeNotifierProvider<SocketService>((ref) {
     next,
   ) {
     if (previous != next) {
-      socketService.updateAuth(next);
+      socketService.updateAuth(next, url: AppConstants.baseUrl);
     }
   });
 

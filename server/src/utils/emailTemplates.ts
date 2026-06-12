@@ -1,4 +1,5 @@
 export const getOtpEmailTemplate = (userName: string, otp: string) => {
+  const supportLink = "https://bus-tracking-mobile-app.vercel.app/support";
   return `
 <!DOCTYPE html>
 <html>
@@ -118,7 +119,7 @@ export const getOtpEmailTemplate = (userName: string, otp: string) => {
       <div class="content">
         <div class="greeting">Hi ${userName},</div>
         <div class="message">
-          Use the One Time Password (OTP) below to verify your identity.
+          We received a request to verify your account identity for Upasthit. Please use the secure authorization code provided below to proceed.
         </div>
         
         <div class="otp-box">
@@ -126,20 +127,21 @@ export const getOtpEmailTemplate = (userName: string, otp: string) => {
         </div>
         
         <div class="validity">
-          This code is valid for 10 minutes.
+          This security code is temporary and will expire in 10 minutes.
         </div>
         
         <div class="security-note">
-          Do not share this code with anyone.
+          For your safety, do not share this email or verification code with anyone.
         </div>
       </div>
       
       <!-- Footer -->
       <div class="footer">
         <div class="footer-text">
-          If you didn't request this email, please ignore it.<br>
+          This is an automated operational message regarding your Upasthit account.<br>
+          If you did not make this request, you can safely disregard this message.<br>
           &copy; ${new Date().getFullYear()} Upasthit. All rights reserved.<br>
-          <a href="#" class="footer-link">Support Center</a>
+          <a href="${supportLink}" class="footer-link">Contact Support</a>
         </div>
       </div>
     </div>

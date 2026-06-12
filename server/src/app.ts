@@ -22,9 +22,20 @@ export const createApp = () => {
   app.use(requestIdMiddleware);
   app.use(helmet());
 
-  const allowedOrigins = (process.env.ALLOWED_ORIGINS || "http://localhost:5173")
-    .split(",")
-    .map((o) => o.trim());
+  // for more production url's
+//   const allowedOrigins = [
+//   "http://localhost:5173",
+//   "http://localhost:3000",
+//   ...(process.env.VITE_CLIENT_URL || "")
+//     .split(",")
+//     .map((o) => o.trim())
+//     .filter(Boolean),
+// ];
+  const allowedOrigins = [
+    "http://localhost:5173",
+    "http://localhost:3000",
+    (process.env.VITE_CLIENT_URL || "").trim(),
+  ].filter(Boolean);
 
   app.use(
     cors({
