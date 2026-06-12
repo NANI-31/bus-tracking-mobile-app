@@ -35,7 +35,10 @@ export const sendEmail = async (
     // Construct the email body in RFC 2822 format
     const utf8Subject = `=?utf-8?B?${Buffer.from(subject).toString("base64")}?=`;
     const messageParts = [
+      `From: ${process.env.EMAIL_USER}`,
       `To: ${email}`,
+      `Reply-To: ${process.env.EMAIL_USER}`,
+      `Message-ID: <${Date.now()}@upasthit.app>`,
       `Content-Type: text/html; charset=utf-8`,
       `MIME-Version: 1.0`,
       `Subject: ${utf8Subject}`,
