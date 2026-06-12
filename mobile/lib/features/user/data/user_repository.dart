@@ -25,6 +25,34 @@ class UserRepository extends BaseRepository {
     }
   }
 
+  /// Get paginated users
+  Future<Map<String, dynamic>> getPaginatedUsers({
+    int page = 1,
+    int limit = 20,
+    String? search,
+    String? role,
+  }) async {
+    try {
+      final params = <String, dynamic>{'page': page, 'limit': limit};
+      if (search != null && search.isNotEmpty) params['search'] = search;
+      if (role != null && role.isNotEmpty) params['role'] = role;
+
+      final response = await dio.get('/users', queryParameters: params);
+      final data = response.data;
+      final users = (data['users'] as List)
+          .map((d) => UserModel.fromMap(d, d['_id'] ?? ''))
+          .toList();
+      return {
+        'users': users,
+        'totalCount': data['totalCount'],
+        'totalPages': data['totalPages'],
+      };
+
+    } catch (e) {
+      throw handleError(e);
+    }
+  }
+
   /// Update user data
   Future<UserModel> updateUser(String userId, Map<String, dynamic> data) async {
     try {

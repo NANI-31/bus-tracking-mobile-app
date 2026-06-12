@@ -165,12 +165,12 @@ export const getTransactions = async (req: Request, res: Response) => {
   try {
     const authReq = req as any;
     const { role, collegeId: userCollegeId } = authReq.user;
-    const { plan, startDate, endDate, collegeId } = req.query;
+    const { plan, startDate, endDate, collegeId, page, limit } = req.query;
 
     let query: any = {};
     if (role === "collegeAdmin") {
       query.collegeId = userCollegeId;
-    } else if (role === "superAdmin" || role === "admin") {
+    } else if (role === "superAdmin") {
       if (collegeId) query.collegeId = collegeId;
     } else {
       query.userId = authReq.user.id;
@@ -184,11 +184,23 @@ export const getTransactions = async (req: Request, res: Response) => {
       if (endDate) query.createdAt.$lte = new Date(endDate as string);
     }
 
-    const transactions = await Transaction.find(query)
-      .populate("userId", "fullName email")
-      .sort({ createdAt: -1 });
+    if (page && limit) {
+      const pageNum = parseInt(page as string, 10);
+      const limitNum = parseInt(limit as string, 10);
+      const totalCount = await Transaction.countDocuments(query);
+      const transactions = await Transaction.find(query)
+        .populate("userId", "fullName email")
+        .sort({ createdAt: -1 })
+        .skip((pageNum - 1) * limitNum)
+        .limit(limitNum);
+      res.status(200).json({ transactions, totalCount, totalPages: Math.ceil(totalCount / limitNum) });
+    } else {
+      const transactions = await Transaction.find(query)
+        .populate("userId", "fullName email")
+        .sort({ createdAt: -1 });
 
-    res.status(200).json(transactions);
+      res.status(200).json(transactions);
+    }
   } catch (error) {
     res.status(500).json({ message: "Internal server error", error });
   }
@@ -244,7 +256,7 @@ export const getRefundRequests = async (req: Request, res: Response) => {
 
     if (role === "collegeAdmin") {
       query.collegeId = userCollegeId;
-    } else if (role === "superAdmin" || role === "admin") {
+    } else if (role === "superAdmin") {
       if (collegeId) query.collegeId = collegeId;
     } else {
       return res.status(403).json({ message: "Access denied" });
@@ -285,7 +297,7 @@ export const getSubscriptionAnalytics = async (req: Request, res: Response) => {
 
     const match: any = { status: { $in: ["captured", "success"] } };
     if (role === "collegeAdmin") match.collegeId = userCollegeId;
-    else if ((role === "superAdmin" || role === "admin") && collegeId) match.collegeId = collegeId;
+    else if (role === "superAdmin" && collegeId) match.collegeId = collegeId;
 
     const analytics = await Transaction.aggregate([
       { $match: match },
@@ -317,7 +329,7 @@ export const getAdvancedAnalytics = async (req: Request, res: Response) => {
 
     const query: any = {};
     if (role === "collegeAdmin") query.collegeId = adminCollegeId;
-    else if (role === "superAdmin" || role === "admin") if (collegeId) query.collegeId = collegeId;
+    else if (role === "superAdmin") if (collegeId) query.collegeId = collegeId;
 
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);

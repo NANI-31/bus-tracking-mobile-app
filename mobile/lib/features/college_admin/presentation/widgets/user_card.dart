@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:collegebus/features/user/domain/user_model.dart';
-import 'package:collegebus/features/admin/application/admin_provider.dart';
+import 'package:collegebus/features/college_admin/application/college_admin_provider.dart';
 import 'package:collegebus/core/constants/constants.dart';
 
 class UserCard extends ConsumerWidget {
@@ -26,8 +26,8 @@ class UserCard extends ConsumerWidget {
             onPressed: () async {
               Navigator.pop(context);
               try {
-                final caService = ref.read(collegeAdminServiceProvider);
-                await caService.deleteUser(user.id);
+                final caNotifier = ref.read(collegeAdminServiceProvider.notifier);
+                await caNotifier.deleteUser(user.id);
                 if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(

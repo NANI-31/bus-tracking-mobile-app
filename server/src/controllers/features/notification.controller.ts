@@ -365,8 +365,7 @@ export const deleteNotification = async (req: Request, res: Response) => {
       notification.senderId === user?.id ||
       notification.receiverId === user?.id ||
       user?.role === "Bus Coordinator" ||
-      user?.role === "Admin" ||
-      user?.role === "Super Admin";
+      user?.role === "superAdmin";
 
     if (!isAuthorized) {
       return res

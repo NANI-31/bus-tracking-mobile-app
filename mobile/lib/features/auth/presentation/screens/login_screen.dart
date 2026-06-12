@@ -104,9 +104,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
           case UserRole.busCoordinator:
             route = '/coordinator';
             break;
-          case UserRole.admin:
-            route = '/admin';
-            break;
           case UserRole.collegeAdmin:
             route = '/college-admin';
             break;

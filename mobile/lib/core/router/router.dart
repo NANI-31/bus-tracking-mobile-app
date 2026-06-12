@@ -16,7 +16,6 @@ import 'package:collegebus/features/student/presentation/bus_schedule_screen.dar
 import 'package:collegebus/features/driver/presentation/driver_dashboard.dart';
 import 'package:collegebus/features/coordinator/presentation/coordinator_dashboard.dart';
 import 'package:collegebus/features/coordinator/presentation/schedule_management_screen.dart';
-import 'package:collegebus/features/admin/presentation/admin_dashboard.dart';
 import 'package:collegebus/features/college_admin/presentation/college_admin_dashboard.dart';
 import 'package:collegebus/features/super_admin/presentation/super_admin_dashboard.dart';
 import 'package:collegebus/features/user/presentation/screens/profile_screen.dart';
@@ -109,8 +108,6 @@ final routerProvider = riverpod.Provider<GoRouter>((ref) {
             return '/driver';
           case UserRole.busCoordinator:
             return '/coordinator';
-          case UserRole.admin:
-            return '/admin';
           case UserRole.collegeAdmin:
             return '/college-admin';
           case UserRole.superAdmin:
@@ -274,10 +271,6 @@ final routerProvider = riverpod.Provider<GoRouter>((ref) {
             },
           ),
         ],
-      ),
-      GoRoute(
-        path: '/admin',
-        builder: (context, state) => const AdminDashboard(),
       ),
       GoRoute(
         path: '/college-admin',

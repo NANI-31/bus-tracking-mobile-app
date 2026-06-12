@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:collegebus/features/admin/application/admin_provider.dart';
+import 'package:collegebus/features/super_admin/application/super_admin_provider.dart';
 import 'package:collegebus/core/constants/constants.dart';
 
 class GlobalUsersTab extends ConsumerStatefulWidget {
@@ -13,23 +13,50 @@ class GlobalUsersTab extends ConsumerStatefulWidget {
 class _GlobalUsersTabState extends ConsumerState<GlobalUsersTab> {
   String _searchQuery = '';
   UserRole? _roleFilter;
+  late final ScrollController _scrollController;
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController = ScrollController();
+    _scrollController.addListener(_onScroll);
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (_scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent - 200) {
+      final asyncState = ref.read(superAdminServiceProvider);
+      final hasMore = asyncState.valueOrNull?.globalUsersHasMore ?? false;
+      if (!asyncState.isLoading && hasMore) {
+        ref.read(superAdminServiceProvider.notifier).fetchGlobalUsers(
+              search: _searchQuery,
+              role: _roleFilter?.value,
+              isLoadMore: true,
+            );
+      }
+    }
+  }
+
+  void _onFilterChanged() {
+    ref.read(superAdminServiceProvider.notifier).fetchGlobalUsers(
+          search: _searchQuery,
+          role: _roleFilter?.value,
+          isLoadMore: false,
+        );
+  }
 
   @override
   Widget build(BuildContext context) {
-    final saService = ref.watch(superAdminServiceProvider);
-    final allUsers = saService.globalUsers;
-
-    final filteredUsers = allUsers.where((user) {
-      if (_roleFilter != null && user.role != _roleFilter) {
-        return false;
-      }
-      if (_searchQuery.isNotEmpty) {
-        final query = _searchQuery.toLowerCase();
-        return user.fullName.toLowerCase().contains(query) ||
-            user.email.toLowerCase().contains(query);
-      }
-      return true;
-    }).toList();
+    final asyncState = ref.watch(superAdminServiceProvider);
+    final globalUsers = asyncState.valueOrNull?.globalUsers ?? [];
+    final hasMore = asyncState.valueOrNull?.globalUsersHasMore ?? false;
+    final isLoading = asyncState.isLoading;
 
     return Column(
       children: [
@@ -45,7 +72,10 @@ class _GlobalUsersTabState extends ConsumerState<GlobalUsersTab> {
                     borderRadius: BorderRadius.circular(AppSizes.radiusMedium),
                   ),
                 ),
-                onChanged: (val) => setState(() => _searchQuery = val),
+                onChanged: (val) {
+                  setState(() => _searchQuery = val);
+                  _onFilterChanged();
+                },
               ),
               const SizedBox(height: AppSizes.paddingSmall),
               SingleChildScrollView(
@@ -55,40 +85,46 @@ class _GlobalUsersTabState extends ConsumerState<GlobalUsersTab> {
                     FilterChip(
                       label: const Text('All'),
                       selected: _roleFilter == null,
-                      onSelected: (val) => setState(() => _roleFilter = null),
+                      onSelected: (val) {
+                        setState(() => _roleFilter = null);
+                        _onFilterChanged();
+                      },
                     ),
                     const SizedBox(width: 8.0),
                     FilterChip(
                       label: const Text('Admins'),
                       selected: _roleFilter == UserRole.collegeAdmin,
-                      onSelected: (val) => setState(
-                        () => _roleFilter = val ? UserRole.collegeAdmin : null,
-                      ),
+                      onSelected: (val) {
+                        setState(() => _roleFilter = val ? UserRole.collegeAdmin : null);
+                        _onFilterChanged();
+                      },
                     ),
                     const SizedBox(width: 8.0),
                     FilterChip(
                       label: const Text('Coordinators'),
                       selected: _roleFilter == UserRole.busCoordinator,
-                      onSelected: (val) => setState(
-                        () =>
-                            _roleFilter = val ? UserRole.busCoordinator : null,
-                      ),
+                      onSelected: (val) {
+                        setState(() => _roleFilter = val ? UserRole.busCoordinator : null);
+                        _onFilterChanged();
+                      },
                     ),
                     const SizedBox(width: 8.0),
                     FilterChip(
                       label: const Text('Drivers'),
                       selected: _roleFilter == UserRole.driver,
-                      onSelected: (val) => setState(
-                        () => _roleFilter = val ? UserRole.driver : null,
-                      ),
+                      onSelected: (val) {
+                        setState(() => _roleFilter = val ? UserRole.driver : null);
+                        _onFilterChanged();
+                      },
                     ),
                     const SizedBox(width: 8.0),
                     FilterChip(
                       label: const Text('Students'),
                       selected: _roleFilter == UserRole.student,
-                      onSelected: (val) => setState(
-                        () => _roleFilter = val ? UserRole.student : null,
-                      ),
+                      onSelected: (val) {
+                        setState(() => _roleFilter = val ? UserRole.student : null);
+                        _onFilterChanged();
+                      },
                     ),
                   ],
                 ),
@@ -97,16 +133,21 @@ class _GlobalUsersTabState extends ConsumerState<GlobalUsersTab> {
           ),
         ),
         Expanded(
-          child: filteredUsers.isEmpty
+          child: globalUsers.isEmpty && !isLoading
               ? const Center(child: Text('No users found matching criteria'))
               : ListView.builder(
-                  itemCount: filteredUsers.length,
+                  controller: _scrollController,
+                  itemCount: globalUsers.length + (hasMore ? 1 : 0),
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   itemBuilder: (context, index) {
-                    final user = filteredUsers[index];
-                    // Find college name if available
-                    // Ideally user model should have collegeName or we lookup from college list
-                    // For now, simple display
+                    if (index >= globalUsers.length) {
+                      return const Padding(
+                        padding: EdgeInsets.all(16.0),
+                        child: Center(child: CircularProgressIndicator()),
+                      );
+                    }
+
+                    final user = globalUsers[index];
                     return Card(
                       child: ListTile(
                         leading: CircleAvatar(
@@ -117,13 +158,13 @@ class _GlobalUsersTabState extends ConsumerState<GlobalUsersTab> {
                         ),
                         title: Text(user.fullName),
                         subtitle: Text(
-                          '${user.email}\n${user.role.displayName} • ${user.collegeId.isNotEmpty ? "College ID: ${user.collegeId}" : "No College"}',
+                          '${user.email}\n${user.role.name} • ${user.collegeId.isNotEmpty ? "College ID: ${user.collegeId}" : "No College"}',
                         ),
                         isThreeLine: true,
                         trailing: PopupMenuButton<String>(
                           onSelected: (action) async {
-                            final saService = ref.read(
-                              superAdminServiceProvider,
+                            final saNotifier = ref.read(
+                              superAdminServiceProvider.notifier,
                             );
                             if (action == 'delete') {
                               final confirm = await showDialog<bool>(
@@ -152,15 +193,14 @@ class _GlobalUsersTabState extends ConsumerState<GlobalUsersTab> {
                               );
                               if (confirm == true) {
                                 if (context.mounted) {
-                                  await saService.deleteUser(user.id);
+                                  await saNotifier.deleteUser(user.id);
                                 }
                               }
                             } else if (action == 'promote') {
-                              // Example: Promote to admin if student, etc.
                               final newRole = user.role == UserRole.student
                                   ? UserRole.collegeAdmin
                                   : UserRole.student;
-                              await saService.updateUserRole(user.id, newRole);
+                              await saNotifier.updateUserRole(user.id, newRole);
                             }
                           },
                           itemBuilder: (context) => [
@@ -186,8 +226,3 @@ class _GlobalUsersTabState extends ConsumerState<GlobalUsersTab> {
     );
   }
 }
-
-
-
-
-

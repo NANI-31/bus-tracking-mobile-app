@@ -53,9 +53,10 @@ export const getUser = async (req: Request, res: Response) => {
 
 export const getAllUsers = async (req: IAuthRequest, res: Response) => {
   try {
-    let query = {};
-
-    console.log(`[getAllUsers] v2 - role=${req.user?.role}, id=${req.user?.id}`);
+    let query: any = {};
+    const page = req.query.page ? parseInt(req.query.page as string, 10) : undefined;
+    const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : undefined;
+    const { search, role } = req.query;
 
     // Multi-tenancy: College admins and coordinators only see their own college's users
     if (
@@ -63,13 +64,32 @@ export const getAllUsers = async (req: IAuthRequest, res: Response) => {
       req.user?.role === "busCoordinator"
     ) {
       query = { collegeId: req.user.collegeId };
-    } else if (req.user?.role !== "superAdmin" && req.user?.role !== "admin") {
-      console.warn(`[getAllUsers] Unauthorized role: ${req.user?.role}`);
+    } else if (req.user?.role !== "superAdmin") {
       return res.status(403).json({ message: "Not authorized" });
     }
 
-    const users = await User.find(query);
-    res.status(200).json(users);
+    if (role) {
+      query.role = role;
+    }
+
+    if (search) {
+      const searchRegex = new RegExp(search as string, 'i');
+      query.$or = [
+        { fullName: searchRegex },
+        { email: searchRegex },
+      ];
+    }
+
+    if (page !== undefined && limit !== undefined) {
+      const totalCount = await User.countDocuments(query);
+      const users = await User.find(query)
+        .skip((page - 1) * limit)
+        .limit(limit);
+      res.status(200).json({ users, totalCount, totalPages: Math.ceil(totalCount / limit) });
+    } else {
+      const users = await User.find(query);
+      res.status(200).json(users);
+    }
   } catch (error) {
     console.error("GETALLUSERS ERROR:", error);
     res.status(500).json({ message: (error as Error).message });

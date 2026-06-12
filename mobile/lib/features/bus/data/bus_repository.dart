@@ -100,10 +100,21 @@ class BusRepository extends BaseRepository {
 
   /// Get latest locations for all buses in a college
   Future<List<BusLocationModel>> getCollegeBusLocations(
-    String collegeId,
-  ) async {
+    String collegeId, {
+    double? minLat,
+    double? maxLat,
+    double? minLng,
+    double? maxLng,
+  }) async {
     try {
-      final response = await dio.get('/buses/college/$collegeId/locations');
+      final queryParams = <String, dynamic>{};
+      if (minLat != null && maxLat != null && minLng != null && maxLng != null) {
+        queryParams['minLat'] = minLat;
+        queryParams['maxLat'] = maxLat;
+        queryParams['minLng'] = minLng;
+        queryParams['maxLng'] = maxLng;
+      }
+      final response = await dio.get('/buses/college/$collegeId/locations', queryParameters: queryParams.isNotEmpty ? queryParams : null);
       return (response.data as List)
           .map((data) => BusLocationModel.fromMap(data, data['busId']))
           .toList();

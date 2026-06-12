@@ -3,8 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:collegebus/features/auth/application/auth_provider.dart';
-import 'package:collegebus/features/admin/application/admin_provider.dart';
-import 'package:collegebus/features/college_admin/services/college_admin_service.dart';
+import 'package:collegebus/features/college_admin/application/college_admin_provider.dart';
 import 'package:collegebus/features/college_admin/presentation/widgets/live_fleet_map.dart';
 import 'package:collegebus/features/college_admin/presentation/widgets/sos_dashboard.dart';
 import 'package:collegebus/features/notification/services/fcm_service.dart';
@@ -65,9 +64,9 @@ class _CollegeAdminDashboardState extends ConsumerState<CollegeAdminDashboard> {
     });
 
     // Listen to provider for new SOS alerts from socket
-    ref.listenManual(collegeAdminServiceProvider, (previous, next) {
-      final prevCount = previous?.activeSos.length ?? 0;
-      final nextCount = next.activeSos.length;
+    ref.listen(collegeAdminServiceProvider, (previous, next) {
+      final prevCount = previous?.valueOrNull?.activeSos.length ?? 0;
+      final nextCount = next.valueOrNull?.activeSos.length ?? 0;
 
       if (nextCount > prevCount) {
         // New alert
@@ -119,8 +118,8 @@ class _CollegeAdminDashboardState extends ConsumerState<CollegeAdminDashboard> {
     );
 
     if (collegeId.isNotEmpty) {
-      final collegeAdminService = ref.read(collegeAdminServiceProvider);
-      await collegeAdminService.loadCollegeDashboard(collegeId);
+      final caNotifier = ref.read(collegeAdminServiceProvider.notifier);
+      await caNotifier.loadCollegeDashboard(collegeId);
     } else {
       debugPrint('DASHBOARD: Skipping load because collegeId is empty');
     }
@@ -134,9 +133,8 @@ class _CollegeAdminDashboardState extends ConsumerState<CollegeAdminDashboard> {
 
   @override
   Widget build(BuildContext context) {
-    final collegeAdminService = ref.watch(collegeAdminServiceProvider);
+    final asyncState = ref.watch(collegeAdminServiceProvider);
     final authService = ref.watch(authProvider.notifier);
-    final isLoading = collegeAdminService.isLoading;
     final authUser = ref.watch(currentUserProvider);
 
     return Scaffold(
@@ -167,9 +165,11 @@ class _CollegeAdminDashboardState extends ConsumerState<CollegeAdminDashboard> {
           ),
         ],
       ),
-      body: isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : _buildCurrentTab(collegeAdminService, authUser?.collegeId ?? ''),
+      body: asyncState.when(
+        data: (state) => _buildCurrentTab(state, authUser?.collegeId ?? ''),
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (error, st) => Center(child: Text('Error: $error')),
+      ),
       bottomNavigationBar: CurvedBottomNavBar(
         currentIndex: _currentIndex,
         onTap: (index) => setState(() => _currentIndex = index),
@@ -191,7 +191,7 @@ class _CollegeAdminDashboardState extends ConsumerState<CollegeAdminDashboard> {
           CurvedBottomNavItem(
             icon: Icons.emergency_outlined,
             label: 'Emergency',
-            badgeCount: collegeAdminService.activeSos.length,
+            badgeCount: asyncState.valueOrNull?.activeSos.length ?? 0,
           ),
           const CurvedBottomNavItem(
             icon: Icons.directions_bus_outlined,
@@ -207,7 +207,7 @@ class _CollegeAdminDashboardState extends ConsumerState<CollegeAdminDashboard> {
   }
 
   Widget _buildCurrentTab(
-    CollegeAdminService collegeAdminService,
+    dynamic state,
     String collegeId,
   ) {
     switch (_currentIndex) {
@@ -216,12 +216,12 @@ class _CollegeAdminDashboardState extends ConsumerState<CollegeAdminDashboard> {
       case 1:
         return const UsersTab();
       case 2:
-        return const CollegeAdminTransactionsTab();
+        return const TransactionsTab();
       case 3:
         return const SosDashboard();
       case 4:
         return LiveFleetMap(
-          buses: collegeAdminService.collegeBuses,
+          buses: state.collegeBuses,
           collegeId: collegeId,
         );
       case 5:

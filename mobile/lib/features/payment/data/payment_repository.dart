@@ -62,6 +62,33 @@ class PaymentRepository extends BaseRepository {
     }
   }
 
+  Future<Map<String, dynamic>> getPaginatedTransactions({
+    String? plan,
+    DateTime? startDate,
+    DateTime? endDate,
+    String? collegeId,
+    int page = 1,
+    int limit = 20,
+  }) async {
+    try {
+      final queryParams = <String, dynamic>{'page': page, 'limit': limit};
+      if (plan != null) queryParams['plan'] = plan;
+      if (startDate != null) {
+        queryParams['startDate'] = startDate.toIso8601String();
+      }
+      if (endDate != null) queryParams['endDate'] = endDate.toIso8601String();
+      if (collegeId != null) queryParams['collegeId'] = collegeId;
+
+      final response = await dio.get(
+        '/payments/transactions',
+        queryParameters: queryParams,
+      );
+      return response.data as Map<String, dynamic>;
+    } catch (e) {
+      throw handleError(e);
+    }
+  }
+
   Future<Map<String, dynamic>> requestRefund(
     String transactionId,
     String reason,

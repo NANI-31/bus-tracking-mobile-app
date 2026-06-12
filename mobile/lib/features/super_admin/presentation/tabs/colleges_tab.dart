@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:collegebus/features/admin/application/admin_provider.dart';
+import 'package:collegebus/features/super_admin/application/super_admin_provider.dart';
 import 'package:collegebus/features/college/domain/college_model.dart';
 import 'package:collegebus/core/constants/constants.dart';
 
@@ -20,8 +20,8 @@ class _CollegesTabState extends ConsumerState<CollegesTab> {
     CollegeModel college,
   ) async {
     try {
-      final saService = ref.read(superAdminServiceProvider);
-      await saService.verifyCollege(college.id);
+      final saNotifier = ref.read(superAdminServiceProvider.notifier);
+      await saNotifier.verifyCollege(college.id);
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -44,8 +44,8 @@ class _CollegesTabState extends ConsumerState<CollegesTab> {
 
   @override
   Widget build(BuildContext context) {
-    final saService = ref.watch(superAdminServiceProvider);
-    final allColleges = saService.colleges;
+    final asyncState = ref.watch(superAdminServiceProvider);
+    final allColleges = asyncState.valueOrNull?.colleges ?? [];
 
     final filteredColleges = allColleges.where((college) {
       if (_verifiedFilter != null && college.verified != _verifiedFilter) {

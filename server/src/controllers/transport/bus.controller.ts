@@ -81,7 +81,7 @@ export const getAllBuses = async (req: Request, res: Response) => {
     // Multi-tenancy: College admins only see their own college's buses
     if (role === "collegeAdmin") {
       query.collegeId = userCollegeId;
-    } else if (role === "superAdmin" || role === "admin") {
+    } else if (role === "superAdmin") {
       if (queryCollegeId) {
         query.collegeId = queryCollegeId;
       }
@@ -171,7 +171,7 @@ export const deleteBus = async (req: Request, res: Response) => {
     // Enforce multi-tenancy: College admins can only delete their own buses
     if (role === "collegeAdmin" && collegeId) {
       query.collegeId = collegeId;
-    } else if (role !== "superAdmin" && role !== "admin") {
+    } else if (role !== "superAdmin") {
       // If not superAdmin or collegeAdmin, maybe coordinator but let's stick to these for now
       // Or if coordinator, they should also have a collegeId
       if (collegeId) {
@@ -247,6 +247,7 @@ export const getBusLocation = async (req: Request, res: Response) => {
 
 export const getCollegeBusLocations = async (req: Request, res: Response) => {
   const { collegeId } = req.params;
+  const { minLat, maxLat, minLng, maxLng } = req.query;
   logger.info(`BUS: Entering getCollegeBusLocations for college: ${collegeId}`);
   try {
     // 1. Get all active buses for this college
@@ -257,8 +258,25 @@ export const getCollegeBusLocations = async (req: Request, res: Response) => {
 
     // 2. Get latest location for each bus using aggregation
     const busIds = buses.map((bus) => bus._id);
+    
+    // Construct match stage
+    const matchStage: any = { busId: { $in: busIds.map((id) => id.toString()) } };
+    
+    // Apply Bounding Box Filter if provided
+    if (minLat && maxLat && minLng && maxLng) {
+      matchStage["currentLocation.latitude"] = { 
+        $gte: parseFloat(minLat as string), 
+        $lte: parseFloat(maxLat as string) 
+      };
+      matchStage["currentLocation.longitude"] = { 
+        $gte: parseFloat(minLng as string), 
+        $lte: parseFloat(maxLng as string) 
+      };
+      logger.info(`BUS: Applied geospatial bounding box filter`);
+    }
+
     const locations = await BusLocation.aggregate([
-      { $match: { busId: { $in: busIds.map((id) => id.toString()) } } },
+      { $match: matchStage },
       { $sort: { timestamp: -1 } },
       {
         $group: {

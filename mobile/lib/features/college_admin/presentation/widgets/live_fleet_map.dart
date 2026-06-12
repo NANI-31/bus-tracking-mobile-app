@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:collegebus/features/bus/domain/bus_model.dart';
-import 'package:collegebus/features/admin/application/admin_provider.dart';
+import 'package:collegebus/features/college_admin/application/college_admin_provider.dart';
 import 'package:collegebus/shared/widgets/maps/live_bus_map.dart';
 
 class LiveFleetMap extends ConsumerStatefulWidget {
@@ -130,10 +130,10 @@ class _LiveFleetMapState extends ConsumerState<LiveFleetMap> {
   void _zoomToFitFleet() {
     if (_mapController == null || widget.buses.isEmpty) return;
 
-    final caService = ref.read(collegeAdminServiceProvider);
-    final locations = caService.fleetLocations.values
+    final asyncState = ref.read(collegeAdminServiceProvider);
+    final locations = asyncState.valueOrNull?.fleetLocations.values
         .where((l) => widget.buses.any((b) => b.id == l.busId))
-        .toList();
+        .toList() ?? [];
 
     if (locations.isEmpty) return;
 

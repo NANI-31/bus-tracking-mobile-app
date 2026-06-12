@@ -13,22 +13,27 @@ export const seedUsers = async (
   const salt = await bcrypt.genSalt(10);
   const passwordHash = await bcrypt.hash(password, salt);
 
+  const driverCount = domain === "kkr.ac.in" ? 40 : 15;
+
+  // Role configs:
+  // - "ad@domain" is the collegeAdmin for each college (e.g. ad@kkr.ac.in)
+  // - The global superAdmin is seeded separately (super@admin.com)
   const roleConfigs = [
     { name: "Student", role: UserRole.Student, prefix: "s", count: 10 },
     { name: "Teacher", role: UserRole.Teacher, prefix: "t", count: 5 },
     { name: "Parent", role: UserRole.Parent, prefix: "p", count: 5 },
-    { name: "Driver", role: UserRole.Driver, prefix: "d", count: 15 },
+    { name: "Driver", role: UserRole.Driver, prefix: "d", count: driverCount },
     {
       name: "Coordinator",
       role: UserRole.BusCoordinator,
       prefix: "c",
       count: 1,
     },
-    { name: "Admin", role: UserRole.Admin, prefix: "ad", count: 1 },
     {
+      // ad@kkr.ac.in, ad@vignannirula.ac.in, ad@rvrjcce.ac.in = collegeAdmins
       name: "College Admin",
       role: UserRole.CollegeAdmin,
-      prefix: "ca",
+      prefix: "ad",
       count: 1,
     },
   ];

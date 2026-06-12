@@ -3,9 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:collegebus/features/auth/application/auth_provider.dart';
-import 'package:collegebus/features/admin/application/admin_provider.dart';
-import 'package:collegebus/features/super_admin/services/super_admin_service.dart';
-
+import 'package:collegebus/features/super_admin/application/super_admin_provider.dart';
 // New Tab Imports
 import 'package:collegebus/features/super_admin/presentation/tabs/system_overview_tab.dart';
 import 'package:collegebus/features/super_admin/presentation/tabs/colleges_tab.dart';
@@ -45,8 +43,8 @@ class _SuperAdminDashboardState extends ConsumerState<SuperAdminDashboard> {
   }
 
   Future<void> _loadSystemData() async {
-    final saService = ref.read(superAdminServiceProvider);
-    await saService.loadSystemDashboard();
+    final saNotifier = ref.read(superAdminServiceProvider.notifier);
+    await saNotifier.loadSystemDashboard();
   }
 
   @override
@@ -54,17 +52,7 @@ class _SuperAdminDashboardState extends ConsumerState<SuperAdminDashboard> {
     final authService = ref.watch(authProvider.notifier);
     final user = ref.watch(currentUserProvider);
 
-    final saService = ref.watch(superAdminServiceProvider);
-    final allColleges = saService.colleges;
-    final allUsers = saService.globalUsers;
-    final isLoading = saService.isLoading;
-    final error = saService.error;
-
-    // Derived statistics for overview
-    final totalColleges = allColleges.length;
-    final verifiedColleges = allColleges.where((c) => c.verified).length;
-    final pendingColleges = allColleges.where((c) => !c.verified).length;
-    final totalUsers = allUsers.length;
+    final asyncState = ref.watch(superAdminServiceProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -74,7 +62,7 @@ class _SuperAdminDashboardState extends ConsumerState<SuperAdminDashboard> {
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
-            onPressed: () => saService.loadSystemDashboard(),
+            onPressed: () => ref.read(superAdminServiceProvider.notifier).loadSystemDashboard(),
           ),
           IconButton(
             icon: const Icon(Icons.notifications_outlined),
@@ -197,17 +185,27 @@ class _SuperAdminDashboardState extends ConsumerState<SuperAdminDashboard> {
           ),
         ],
       ),
-      body: isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : error != null
-          ? Center(child: Text('Error: $error'))
-          : _buildCurrentTab(
-              totalColleges,
-              verifiedColleges,
-              pendingColleges,
-              totalUsers,
-              saService,
-            ),
+      body: asyncState.when(
+        data: (state) {
+          final allColleges = state.colleges;
+          final allUsers = state.globalUsers;
+          
+          final totalColleges = allColleges.length;
+          final verifiedColleges = allColleges.where((c) => c.verified).length;
+          final pendingColleges = allColleges.where((c) => !c.verified).length;
+          final totalUsers = allUsers.length;
+
+          return _buildCurrentTab(
+            totalColleges,
+            verifiedColleges,
+            pendingColleges,
+            totalUsers,
+            state,
+          );
+        },
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (error, st) => Center(child: Text('Error: $error')),
+      ),
     );
   }
 
@@ -216,7 +214,7 @@ class _SuperAdminDashboardState extends ConsumerState<SuperAdminDashboard> {
     int verifiedColleges,
     int pendingColleges,
     int totalUsers,
-    SuperAdminService saService,
+    dynamic state,
   ) {
     switch (_selectedDrawerIndex) {
       case 0:
@@ -225,8 +223,8 @@ class _SuperAdminDashboardState extends ConsumerState<SuperAdminDashboard> {
           verifiedColleges: verifiedColleges,
           totalUsers: totalUsers,
           pendingColleges: pendingColleges,
-          allUsers: saService.globalUsers,
-          auditLogs: saService.auditLogs,
+          allUsers: state.globalUsers,
+          auditLogs: state.auditLogs,
           onNavigate: (index) => setState(() => _selectedDrawerIndex = index),
           onVerifyColleges: () => setState(() {
             _selectedDrawerIndex = 1;
@@ -241,16 +239,16 @@ class _SuperAdminDashboardState extends ConsumerState<SuperAdminDashboard> {
       case 3:
         return const ConfigurationTab();
       case 4:
-        return AuditTab(auditLogs: saService.auditLogs);
+        return AuditTab(auditLogs: state.auditLogs);
       case 5:
         return SosLogsTab(
-          sosLogs: saService.sosLogs,
-          colleges: saService.colleges,
+          sosLogs: state.sosLogs,
+          colleges: state.colleges,
         );
       case 6:
-        return TransactionsTab(transactions: saService.transactions);
+        return const TransactionsTab();
       case 7:
-        return SafetyMonitorTab(colleges: saService.colleges);
+        return SafetyMonitorTab(colleges: state.colleges);
       case 8:
         return const DangerZoneTab();
       default:

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fl_chart/fl_chart.dart';
-import 'package:collegebus/features/admin/application/admin_provider.dart';
+import 'package:collegebus/features/super_admin/application/super_admin_provider.dart';
 import 'package:collegebus/features/user/domain/user_model.dart';
 import 'package:collegebus/features/audit/domain/audit_log_model.dart';
 import 'package:collegebus/core/constants/constants.dart';
@@ -33,8 +33,8 @@ class SystemOverviewTab extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final saService = ref.watch(superAdminServiceProvider);
-    final activeSosCount = saService.globalActiveSos.length;
+    final asyncState = ref.watch(superAdminServiceProvider);
+    final activeSosCount = asyncState.valueOrNull?.globalActiveSos.length ?? 0;
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(AppSizes.paddingMedium),

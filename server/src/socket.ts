@@ -116,7 +116,7 @@ export const initializeSocket = (io: Server) => {
         case "parent":
           idPrefix = "PAR";
           break;
-        case "admin":
+        case "superAdmin":
           idPrefix = "ADM";
           break;
         case "busCoordinator":
@@ -156,7 +156,7 @@ export const initializeSocket = (io: Server) => {
         user &&
         (user.role === "busCoordinator" ||
           user.role === "coordinator" ||
-          user.role === "admin" ||
+          user.role === "superAdmin" ||
           user.role === "collegeAdmin")
       ) {
         const coordRoom = `${collegeId}_coordinators`;
@@ -187,7 +187,7 @@ export const initializeSocket = (io: Server) => {
         user &&
         (user.role === "busCoordinator" ||
           user.role === "coordinator" ||
-          user.role === "admin")
+          user.role === "superAdmin")
       ) {
         try {
           const sockets = await io.in(collegeId).fetchSockets();

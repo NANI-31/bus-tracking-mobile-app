@@ -65,7 +65,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
     final currentUser = ref.watch(currentUserProvider);
     final isCoordinatorOrAdmin =
         currentUser?.role == UserRole.busCoordinator ||
-        currentUser?.role == UserRole.admin;
+        currentUser?.role == UserRole.superAdmin;
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: const SystemUiOverlayStyle(

@@ -25,7 +25,7 @@ router.get("/:id", protect, getUser);
 router.get(
   "/:id/history",
   protect,
-  authorize("admin", "busCoordinator"),
+  authorize("superAdmin", "busCoordinator"),
   getDriverHistory,
 );
 router.put("/:id", protect, updateUser);
@@ -49,7 +49,7 @@ router.post(
 router.delete(
   "/:id",
   protect,
-  authorize("superAdmin", "collegeAdmin", "busCoordinator", "admin"),
+  authorize("superAdmin", "collegeAdmin", "busCoordinator"),
   deleteUser,
 );
 

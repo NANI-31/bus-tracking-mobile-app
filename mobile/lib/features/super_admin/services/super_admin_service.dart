@@ -1,90 +1,78 @@
-import 'package:collegebus/features/audit/domain/audit_log_model.dart';
-import 'package:collegebus/features/system/domain/system_config_model.dart';
-import 'package:collegebus/features/college/domain/college_model.dart';
 import 'package:collegebus/features/user/domain/user_model.dart';
 import 'package:collegebus/features/sos/domain/sos_model.dart';
-import 'package:collegebus/core/constants/constants.dart';
 import 'package:collegebus/core/data/repositories.dart';
-import 'package:flutter/material.dart';
 import 'package:collegebus/core/utils/app_logger.dart';
 import 'package:collegebus/features/payment/domain/transaction_model.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:collegebus/features/super_admin/services/super_admin_state.dart';
+import 'dart:async';
+import 'package:collegebus/core/constants/constants.dart';
 
 /// Service for Super Admin operations and state management
-class SuperAdminService extends ChangeNotifier {
+class SuperAdminService extends AsyncNotifier<SuperAdminState> {
   final AuditRepository _auditRepo = AuditRepository();
   final SystemRepository _systemRepo = SystemRepository();
   final CollegeRepository _collegeRepo = CollegeRepository();
   final UserRepository _userRepo = UserRepository();
   final PaymentRepository _paymentRepo = PaymentRepository();
 
-  bool _isLoading = false;
-  String? _error;
-  List<AuditLogModel> _auditLogs = [];
-  SystemConfigModel? _systemConfig;
-  List<CollegeModel> _colleges = [];
-  List<UserModel> _globalUsers = [];
-  List<SosModel> _sosLogs = [];
-  List<SosModel> _globalActiveSos = [];
-  List<TransactionModel> _transactions = [];
-
-  bool get isLoading => _isLoading;
-  String? get error => _error;
-  List<AuditLogModel> get auditLogs => _auditLogs;
-  SystemConfigModel? get systemConfig => _systemConfig;
-  List<CollegeModel> get colleges => _colleges;
-  List<UserModel> get globalUsers => _globalUsers;
-  List<SosModel> get sosLogs => _sosLogs;
-  List<SosModel> get globalActiveSos => _globalActiveSos;
-  List<TransactionModel> get transactions => _transactions;
-
-  void clearError() {
-    _error = null;
-    notifyListeners();
+  @override
+  FutureOr<SuperAdminState> build() {
+    return const SuperAdminState();
   }
 
   /// Load all system-wide data
   Future<void> loadSystemDashboard() async {
-    _isLoading = true;
-    _error = null;
-    notifyListeners();
-
+    state = const AsyncValue.loading();
     try {
-      // DEBUG: Sequential fetch to isolate timeout
       AppLogger.d('DEBUG: Loading Audit Logs...');
-      _auditLogs = await _auditRepo.getAuditLogs(limit: 50);
+      final auditLogs = await _auditRepo.getAuditLogs(limit: 50);
 
       AppLogger.d('DEBUG: Loading Colleges...');
-      _colleges = await _collegeRepo.getAllColleges();
+      final colleges = await _collegeRepo.getAllColleges();
 
       AppLogger.d('DEBUG: Loading Global Users...');
-      _globalUsers = await _userRepo.getAllUsers();
+      final globalUsersData = await _userRepo.getPaginatedUsers(page: 1, limit: 20);
+      final globalUsers = (globalUsersData['users'] as List<UserModel>);
+      final globalUsersTotalPages = globalUsersData['totalPages'] as int;
 
       AppLogger.d('DEBUG: Loading System Config...');
-      _systemConfig = await _systemRepo.getSystemConfig();
+      final systemConfig = await _systemRepo.getSystemConfig();
 
       AppLogger.d('DEBUG: Loading SOS Logs...');
       final logsData = await IncidentRepository().getSosLogs('all');
-      _sosLogs = logsData.map((m) => SosModel.fromMap(m)).toList();
+      final sosLogs = logsData.map((m) => SosModel.fromMap(m)).toList();
 
       AppLogger.d('DEBUG: Loading Active SOS...');
       final activeData = await IncidentRepository().getActiveSos('all');
-      _globalActiveSos = activeData.map((m) => SosModel.fromMap(m)).toList();
+      final globalActiveSos = activeData.map((m) => SosModel.fromMap(m)).toList();
 
       AppLogger.d('DEBUG: Loading Transactions...');
-      final transData = await _paymentRepo.getTransactions();
-      _transactions = transData
+      final transData = await _paymentRepo.getPaginatedTransactions(page: 1, limit: 20);
+      final transactionsRaw = (transData['transactions'] as List);
+      final transactions = transactionsRaw
           .map((m) => TransactionModel.fromJson(m))
           .toList();
+      final transactionsTotalPages = transData['totalPages'] as int;
 
       AppLogger.d(
-        'System Dashboard loaded: ${_colleges.length} colleges, ${_globalUsers.length} users, ${_transactions.length} transactions',
+        'System Dashboard loaded: ${colleges.length} colleges, ${globalUsers.length} users, ${transactions.length} transactions',
       );
-    } catch (e) {
-      _error = e.toString();
+
+      state = AsyncValue.data(SuperAdminState(
+        auditLogs: auditLogs,
+        colleges: colleges,
+        globalUsers: globalUsers,
+        systemConfig: systemConfig,
+        sosLogs: sosLogs,
+        globalActiveSos: globalActiveSos,
+        transactions: transactions,
+        transactionsHasMore: 1 < transactionsTotalPages,
+        globalUsersHasMore: 1 < globalUsersTotalPages,
+      ));
+    } catch (e, st) {
       AppLogger.e('Failed to load system dashboard: $e');
-    } finally {
-      _isLoading = false;
-      notifyListeners();
+      state = AsyncValue.error(e, st);
     }
   }
 
@@ -93,13 +81,14 @@ class SuperAdminService extends ChangeNotifier {
     try {
       await _collegeRepo.verifyCollege(collegeId);
 
-      _colleges = _colleges
-          .map((c) => c.id == collegeId ? c.copyWith(verified: true) : c)
-          .toList();
-      notifyListeners();
+      if (state.hasValue) {
+        final current = state.value!;
+        final colleges = current.colleges
+            .map((c) => c.id == collegeId ? c.copyWith(verified: true) : c)
+            .toList();
+        state = AsyncValue.data(current.copyWith(colleges: colleges));
+      }
     } catch (e) {
-      _error = e.toString();
-      notifyListeners();
       rethrow;
     }
   }
@@ -109,13 +98,14 @@ class SuperAdminService extends ChangeNotifier {
     try {
       await _collegeRepo.suspendCollege(collegeId, reason);
 
-      _colleges = _colleges
-          .map((c) => c.id == collegeId ? c.copyWith(suspended: true) : c)
-          .toList();
-      notifyListeners();
+      if (state.hasValue) {
+        final current = state.value!;
+        final colleges = current.colleges
+            .map((c) => c.id == collegeId ? c.copyWith(suspended: true) : c)
+            .toList();
+        state = AsyncValue.data(current.copyWith(colleges: colleges));
+      }
     } catch (e) {
-      _error = e.toString();
-      notifyListeners();
       rethrow;
     }
   }
@@ -123,11 +113,11 @@ class SuperAdminService extends ChangeNotifier {
   /// Toggle system maintenance mode
   Future<void> toggleMaintenance(bool enabled) async {
     try {
-      _systemConfig = await _systemRepo.setMaintenanceMode(enabled);
-      notifyListeners();
+      final systemConfig = await _systemRepo.setMaintenanceMode(enabled);
+      if (state.hasValue) {
+        state = AsyncValue.data(state.value!.copyWith(systemConfig: systemConfig));
+      }
     } catch (e) {
-      _error = e.toString();
-      notifyListeners();
       rethrow;
     }
   }
@@ -136,11 +126,12 @@ class SuperAdminService extends ChangeNotifier {
   Future<void> deleteUser(String userId) async {
     try {
       await _userRepo.deleteUser(userId);
-      _globalUsers.removeWhere((u) => u.id == userId);
-      notifyListeners();
+      if (state.hasValue) {
+        final current = state.value!;
+        final users = List<UserModel>.from(current.globalUsers)..removeWhere((u) => u.id == userId);
+        state = AsyncValue.data(current.copyWith(globalUsers: users));
+      }
     } catch (e) {
-      _error = e.toString();
-      notifyListeners();
       rethrow;
     }
   }
@@ -152,18 +143,8 @@ class SuperAdminService extends ChangeNotifier {
   ) async {
     try {
       await _collegeRepo.updateCollege(collegeId, data);
-      _colleges = _colleges.map((c) {
-        if (c.id == collegeId) {
-          // Ideally we'd have a fromMap but we can use copyWith if fields are primitive
-          // For now, reload dashboard is safer or we refresh the specific item
-          return c;
-        }
-        return c;
-      }).toList();
       await loadSystemDashboard(); // Safer to reload for complex updates
     } catch (e) {
-      _error = e.toString();
-      notifyListeners();
       rethrow;
     }
   }
@@ -172,30 +153,28 @@ class SuperAdminService extends ChangeNotifier {
   Future<void> updateUserRole(String userId, UserRole role) async {
     try {
       await _userRepo.updateUser(userId, {'role': role.value});
-      _globalUsers = _globalUsers
-          .map((u) => u.id == userId ? u.copyWith(role: role) : u)
-          .toList();
-      notifyListeners();
+      if (state.hasValue) {
+        final current = state.value!;
+        final users = current.globalUsers
+            .map((u) => u.id == userId ? u.copyWith(role: role) : u)
+            .toList();
+        state = AsyncValue.data(current.copyWith(globalUsers: users));
+      }
     } catch (e) {
-      _error = e.toString();
-      notifyListeners();
       rethrow;
     }
   }
 
   /// Super Admin: Clear all system logs (Danger Zone)
   Future<void> clearSystemLogs() async {
-    _isLoading = true;
-    notifyListeners();
+    state = const AsyncValue.loading();
     try {
       await IncidentRepository().dio.delete('/admin/super/logs/clear');
-      _sosLogs.clear();
-      _auditLogs.clear();
-    } catch (e) {
-      _error = e.toString();
-    } finally {
-      _isLoading = false;
-      notifyListeners();
+      if (state.hasValue) {
+        state = AsyncValue.data(state.value!.copyWith(sosLogs: [], auditLogs: []));
+      }
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
     }
   }
 
@@ -204,29 +183,86 @@ class SuperAdminService extends ChangeNotifier {
     DateTime? startDate,
     DateTime? endDate,
     String? collegeId,
+    bool isLoadMore = false,
   }) async {
     try {
-      _isLoading = true;
-      notifyListeners();
+      final current = state.value;
+      if (current == null) return;
+
+      int page = isLoadMore ? current.transactionsPage + 1 : 1;
+
       AppLogger.d(
-        'DEBUG: Fetching Transactions with filters: plan=$plan, start=$startDate, end=$endDate, collegeId=$collegeId',
+        'DEBUG: Fetching Transactions: page=$page, plan=$plan, start=$startDate, end=$endDate',
       );
-      final transData = await _paymentRepo.getTransactions(
+      
+      final transData = await _paymentRepo.getPaginatedTransactions(
         plan: plan,
         startDate: startDate,
         endDate: endDate,
         collegeId: collegeId,
+        page: page,
+        limit: 20,
       );
-      _transactions = transData
+      
+      final transactionsRaw = (transData['transactions'] as List);
+      final newTransactions = transactionsRaw
           .map((m) => TransactionModel.fromJson(m))
           .toList();
-      _error = null;
+
+      final totalPages = transData['totalPages'] as int;
+      final hasMore = page < totalPages;
+
+      final updatedTransactions = isLoadMore 
+          ? [...current.transactions, ...newTransactions]
+          : newTransactions;
+
+      state = AsyncValue.data(current.copyWith(
+        transactions: updatedTransactions,
+        transactionsPage: page,
+        transactionsHasMore: hasMore,
+      ));
     } catch (e) {
-      _error = e.toString();
       AppLogger.e('Error fetching transactions: $e');
-    } finally {
-      _isLoading = false;
-      notifyListeners();
+    }
+  }
+
+  Future<void> fetchGlobalUsers({
+    String? search,
+    String? role,
+    bool isLoadMore = false,
+  }) async {
+    try {
+      final current = state.value;
+      if (current == null) return;
+
+      int page = isLoadMore ? current.globalUsersPage + 1 : 1;
+
+      AppLogger.d(
+        'DEBUG: Fetching Global Users: page=$page, search=$search, role=$role',
+      );
+      
+      final usersData = await _userRepo.getPaginatedUsers(
+        page: page,
+        limit: 20,
+        search: search,
+        role: role,
+      );
+      
+      final newUsers = (usersData['users'] as List<UserModel>);
+      final totalPages = usersData['totalPages'] as int;
+      final hasMore = page < totalPages;
+
+      final updatedUsers = isLoadMore 
+          ? [...current.globalUsers, ...newUsers]
+          : newUsers;
+
+      state = AsyncValue.data(current.copyWith(
+        globalUsers: updatedUsers,
+        globalUsersPage: page,
+        globalUsersHasMore: hasMore,
+      ));
+    } catch (e) {
+      AppLogger.e('Error fetching global users: $e');
     }
   }
 }

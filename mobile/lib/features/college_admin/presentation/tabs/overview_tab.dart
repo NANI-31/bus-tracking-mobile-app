@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'package:collegebus/features/admin/application/admin_provider.dart';
+import 'package:collegebus/features/college_admin/application/college_admin_provider.dart';
 import 'package:collegebus/core/constants/constants.dart';
 import 'package:collegebus/widgets/analytics/analytics_charts.dart';
 import 'package:collegebus/features/college_admin/presentation/widgets/stat_card.dart';
@@ -13,8 +13,8 @@ class OverviewTab extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final collegeAdminService = ref.watch(collegeAdminServiceProvider);
-    final collegeUsers = collegeAdminService.collegeUsers;
+    final asyncState = ref.watch(collegeAdminServiceProvider);
+    final collegeUsers = asyncState.valueOrNull?.collegeUsers ?? [];
 
     debugPrint('OVERVIEW TAB: collegeUsers length: ${collegeUsers.length}');
     if (collegeUsers.isNotEmpty) {
@@ -27,7 +27,8 @@ class OverviewTab extends ConsumerWidget {
     final totalDrivers = collegeUsers
         .where((u) => u.role == UserRole.driver)
         .length;
-    final totalBuses = collegeAdminService.collegeBuses.length;
+    final buses = asyncState.valueOrNull?.collegeBuses ?? [];
+    final totalBuses = buses.length;
     final pendingApprovals = collegeUsers.where((u) => !u.approved).length;
 
     return SingleChildScrollView(
@@ -100,15 +101,15 @@ class OverviewTab extends ConsumerWidget {
                     child: AppPieChart(
                       title: 'Fleet Status',
                       data: {
-                        'On-time': collegeAdminService.collegeBuses
+                        'On-time': buses
                             .where((b) => b.status == 'on-time')
                             .length
                             .toDouble(),
-                        'Delayed': collegeAdminService.collegeBuses
+                        'Delayed': buses
                             .where((b) => b.status == 'delayed')
                             .length
                             .toDouble(),
-                        'Idle': collegeAdminService.collegeBuses
+                        'Idle': buses
                             .where(
                               (b) =>
                                   b.status != 'on-time' &&

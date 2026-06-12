@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:collection/collection.dart';
-import 'package:collegebus/features/admin/application/admin_provider.dart';
+import 'package:collegebus/features/super_admin/application/super_admin_provider.dart';
 import 'package:collegebus/features/college/domain/college_model.dart';
 import 'package:collegebus/features/sos/domain/sos_model.dart';
 import 'package:collegebus/core/constants/constants.dart';
@@ -15,9 +15,9 @@ class SafetyMonitorTab extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final saService = ref.watch(superAdminServiceProvider);
-    final activeSos = saService.globalActiveSos;
-    final resolvedSos = saService.sosLogs;
+    final asyncState = ref.watch(superAdminServiceProvider);
+    final activeSos = asyncState.valueOrNull?.globalActiveSos ?? [];
+    final resolvedSos = asyncState.valueOrNull?.sosLogs ?? [];
 
     // Calculate incidents per college for trends
     final incidentsByCollege = groupBy(

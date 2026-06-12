@@ -2,8 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:collegebus/features/sos/domain/sos_model.dart';
-import 'package:collegebus/features/admin/application/admin_provider.dart';
-import 'package:collegebus/features/college_admin/services/college_admin_service.dart';
+import 'package:collegebus/features/college_admin/application/college_admin_provider.dart';
 import 'package:collegebus/core/utils/map_marker_helper.dart';
 import 'package:intl/intl.dart';
 
@@ -44,8 +43,6 @@ class _SosDashboardState extends ConsumerState<SosDashboard> {
 
   @override
   Widget build(BuildContext context) {
-    final caService = ref.watch(collegeAdminServiceProvider);
-
     return DefaultTabController(
       length: 2,
       child: Column(
@@ -60,7 +57,10 @@ class _SosDashboardState extends ConsumerState<SosDashboard> {
           ),
           Expanded(
             child: TabBarView(
-              children: [_buildActiveTab(caService), _buildLogsTab(caService)],
+              children: [
+                _buildActiveTab(context, ref),
+                _buildLogsTab(context, ref),
+              ],
             ),
           ),
         ],
@@ -68,8 +68,9 @@ class _SosDashboardState extends ConsumerState<SosDashboard> {
     );
   }
 
-  Widget _buildActiveTab(CollegeAdminService caService) {
-    final activeSos = caService.activeSos;
+  Widget _buildActiveTab(BuildContext context, WidgetRef ref) {
+    final asyncState = ref.watch(collegeAdminServiceProvider);
+    final activeSos = asyncState.valueOrNull?.activeSos ?? [];
     _updateMarkers(activeSos);
 
     return Column(
@@ -105,8 +106,13 @@ class _SosDashboardState extends ConsumerState<SosDashboard> {
               ),
               const Spacer(),
               TextButton.icon(
-                onPressed: () =>
-                    caService.fetchActiveSos(caService.college?.id ?? ''),
+                onPressed: () {
+                  final notifier = ref.read(collegeAdminServiceProvider.notifier);
+                  final collegeId = ref.read(collegeAdminServiceProvider).valueOrNull?.college?.id ?? '';
+                  if (collegeId.isNotEmpty) {
+                    notifier.fetchActiveSos(collegeId);
+                  }
+                },
                 icon: const Icon(Icons.refresh, size: 18),
                 label: const Text('Refresh'),
               ),
@@ -128,7 +134,7 @@ class _SosDashboardState extends ConsumerState<SosDashboard> {
                   itemCount: activeSos.length,
                   itemBuilder: (context, index) {
                     final sos = activeSos[index];
-                    return _buildSosCard(sos, caService);
+                    return _buildSosCard(context, ref, sos);
                   },
                 ),
         ),
@@ -136,8 +142,9 @@ class _SosDashboardState extends ConsumerState<SosDashboard> {
     );
   }
 
-  Widget _buildLogsTab(CollegeAdminService caService) {
-    final logs = caService.sosLogs;
+  Widget _buildLogsTab(BuildContext context, WidgetRef ref) {
+    final asyncState = ref.watch(collegeAdminServiceProvider);
+    final logs = asyncState.valueOrNull?.sosLogs ?? [];
 
     return Column(
       children: [
@@ -156,8 +163,13 @@ class _SosDashboardState extends ConsumerState<SosDashboard> {
               ),
               const Spacer(),
               TextButton.icon(
-                onPressed: () =>
-                    caService.fetchSosLogs(caService.college?.id ?? ''),
+                onPressed: () {
+                  final notifier = ref.read(collegeAdminServiceProvider.notifier);
+                  final collegeId = ref.read(collegeAdminServiceProvider).valueOrNull?.college?.id ?? '';
+                  if (collegeId.isNotEmpty) {
+                    notifier.fetchSosLogs(collegeId);
+                  }
+                },
                 icon: const Icon(Icons.refresh, size: 18),
                 label: const Text('Refresh'),
               ),
@@ -238,7 +250,7 @@ class _SosDashboardState extends ConsumerState<SosDashboard> {
     );
   }
 
-  Widget _buildSosCard(SosModel sos, CollegeAdminService caService) {
+  Widget _buildSosCard(BuildContext context, WidgetRef ref, SosModel sos) {
     final bool isSelected = _selectedSos?.sosId == sos.sosId;
 
     return Card(
@@ -298,7 +310,7 @@ class _SosDashboardState extends ConsumerState<SosDashboard> {
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton.icon(
-                      onPressed: () => _showResolveDialog(sos, caService),
+                      onPressed: () => _showResolveDialog(context, ref, sos),
                       icon: const Icon(Icons.check_circle),
                       label: const Text('Resolve Emergency'),
                       style: ElevatedButton.styleFrom(
@@ -370,7 +382,7 @@ class _SosDashboardState extends ConsumerState<SosDashboard> {
     );
   }
 
-  void _showResolveDialog(SosModel sos, CollegeAdminService caService) {
+  void _showResolveDialog(BuildContext context, WidgetRef ref, SosModel sos) {
     _notesController.clear();
     showDialog(
       context: context,
@@ -402,7 +414,8 @@ class _SosDashboardState extends ConsumerState<SosDashboard> {
               final notes = _notesController.text.trim();
               Navigator.pop(dialogContext);
               try {
-                await caService.resolveSos(
+                final notifier = ref.read(collegeAdminServiceProvider.notifier);
+                await notifier.resolveSos(
                   sos.sosId,
                   notes: notes.isEmpty ? null : notes,
                 );

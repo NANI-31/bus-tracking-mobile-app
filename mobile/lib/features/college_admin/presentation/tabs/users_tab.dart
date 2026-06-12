@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:collegebus/features/admin/application/admin_provider.dart';
+import 'package:collegebus/features/college_admin/application/college_admin_provider.dart';
 import 'package:collegebus/core/constants/constants.dart';
 import 'package:collegebus/features/college_admin/presentation/widgets/user_card.dart';
 
@@ -18,8 +18,8 @@ class _UsersTabState extends ConsumerState<UsersTab> {
 
   @override
   Widget build(BuildContext context) {
-    final collegeAdminService = ref.watch(collegeAdminServiceProvider);
-    final collegeUsers = collegeAdminService.collegeUsers;
+    final asyncState = ref.watch(collegeAdminServiceProvider);
+    final collegeUsers = asyncState.valueOrNull?.collegeUsers ?? [];
 
     // Filtered users logic moved here
     final filteredUsersList = collegeUsers.where((user) {

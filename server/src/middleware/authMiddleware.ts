@@ -125,7 +125,7 @@ export const authorize = (...roles: string[]) => {
   };
 };
 
-export const superAdminOnly = authorize("superAdmin", "admin");
+export const superAdminOnly = authorize("superAdmin");
 
 export const collegeAdminOnly = (
   req: IAuthRequest,
@@ -136,8 +136,8 @@ export const collegeAdminOnly = (
     return res.status(401).json({ message: "Not authenticated" });
   }
 
-  if (req.user.role === "superAdmin" || req.user.role === "admin") {
-    return next(); // Super admin or admin can access anything
+  if (req.user.role === "superAdmin") {
+    return next(); // Super admin can access anything
   }
 
   if (req.user.role !== "collegeAdmin") {

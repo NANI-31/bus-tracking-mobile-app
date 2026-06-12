@@ -9,6 +9,7 @@ import 'package:collegebus/features/bus/application/bus_provider.dart';
 import 'package:collegebus/widgets/common/common_map_view.dart';
 import 'package:collegebus/core/providers/service_providers.dart';
 import 'package:collegebus/core/utils/map_marker_helper.dart';
+import 'package:collegebus/core/providers/repository_providers.dart';
 
 class LiveBusMap extends ConsumerStatefulWidget {
   final List<BusModel> buses;
@@ -328,11 +329,28 @@ class LiveBusMapState extends ConsumerState<LiveBusMap>
             _mapController = controller;
             widget.onMapCreated?.call(controller);
           },
-          onCameraMove: (position) {
-            // No longer updating screen positions
-          },
-          onCameraIdle: () {
-            // No longer updating screen positions
+          onCameraMove: (position) {},
+          onCameraIdle: () async {
+            if (_mapController != null && collegeId != null) {
+              final bounds = await _mapController!.getVisibleRegion();
+              try {
+                final repo = ref.read(busRepositoryProvider);
+                final locations = await repo.getCollegeBusLocations(
+                  collegeId,
+                  minLat: bounds.southwest.latitude,
+                  maxLat: bounds.northeast.latitude,
+                  minLng: bounds.southwest.longitude,
+                  maxLng: bounds.northeast.longitude,
+                );
+                if (mounted) {
+                  for (var loc in locations) {
+                    _handleLocationUpdate(loc);
+                  }
+                }
+              } catch (e) {
+                debugPrint('Failed to fetch bounded buses: $e');
+              }
+            }
           },
           onCameraMoveStarted: () {
             if (!_isProgrammaticMove) {

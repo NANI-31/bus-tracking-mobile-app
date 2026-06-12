@@ -20,6 +20,7 @@ class AppColors {
 
   // --- Functional Colors ---
   static const Color success = Color(0xFF4CAF50);
+  static const Color danger = Color(0xFFE53935); // Replaces Colors.red
   static const Color error = Color.fromARGB(
     255,
     194,
@@ -59,6 +60,7 @@ class AppColors {
 
   // --- Legacy/Direct Access (Backward Compatibility) ---
   static const Color primary = turkishBlue;
+  static const Color brandPrimary = turkishBlue; // Replaces Colors.blue
   static const Color secondary = coolSlate;
 }
 
@@ -223,7 +225,6 @@ enum UserRole {
   teacher,
   driver,
   busCoordinator,
-  admin,
   parent,
   collegeAdmin,
   superAdmin,
@@ -240,8 +241,6 @@ extension UserRoleExtension on UserRole {
         return 'Driver';
       case UserRole.busCoordinator:
         return 'Bus Coordinator';
-      case UserRole.admin:
-        return 'Admin';
       case UserRole.parent:
         return 'Parent';
       case UserRole.collegeAdmin:

@@ -3,7 +3,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:collegebus/features/super_admin/presentation/tabs/transactions_tab.dart';
 import 'package:collegebus/features/payment/domain/transaction_model.dart';
-import 'package:collegebus/features/admin/application/admin_provider.dart';
 import 'package:collegebus/features/super_admin/services/super_admin_service.dart';
 import 'package:mocktail/mocktail.dart';
 
@@ -15,7 +14,6 @@ void main() {
   setUp(() {
     mockService = MockSuperAdminService();
     // Default mock behavior
-    when(() => mockService.isLoading).thenReturn(false);
     when(
       () => mockService.fetchTransactions(
         plan: any(named: 'plan'),
@@ -25,19 +23,21 @@ void main() {
     ).thenAnswer((_) async {});
   });
 
-  Widget createWidgetUnderTest(List<TransactionModel> transactions) {
+  Widget createWidgetUnderTest() {
     return ProviderScope(
       overrides: [superAdminServiceProvider.overrideWith((ref) => mockService)],
       child: MaterialApp(
-        home: Scaffold(body: TransactionsTab(transactions: transactions)),
+        home: Scaffold(body: TransactionsTab()),
       ),
     );
   }
 
+
+
   testWidgets('TransactionsTab shows filter panel when toggle is pressed', (
     tester,
   ) async {
-    await tester.pumpWidget(createWidgetUnderTest([]));
+    await tester.pumpWidget(createWidgetUnderTest());
 
     // Initially filter panel is not visible
     expect(find.text('Filter by Plan'), findsNothing);
@@ -54,7 +54,7 @@ void main() {
   testWidgets('TransactionsTab calls fetchTransactions when plan is selected', (
     tester,
   ) async {
-    await tester.pumpWidget(createWidgetUnderTest([]));
+    await tester.pumpWidget(createWidgetUnderTest());
 
     // Expand filters
     await tester.tap(find.byIcon(Icons.filter_list));

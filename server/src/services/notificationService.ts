@@ -169,7 +169,7 @@ export class NotificationService {
     // 1. Find all coordinators and admins for this college
     const targets = await User.find({
       collegeId,
-      role: { $in: [UserRole.BusCoordinator, UserRole.Admin] },
+      role: { $in: [UserRole.BusCoordinator, UserRole.SuperAdmin] },
     });
 
     if (targets.length === 0) {
@@ -257,7 +257,7 @@ export class NotificationService {
           UserRole.Teacher,
           UserRole.Parent,
           UserRole.BusCoordinator,
-          UserRole.Admin,
+          UserRole.SuperAdmin,
         ],
       },
     });
@@ -432,7 +432,7 @@ export class NotificationService {
           UserRole.Teacher,
           UserRole.Parent,
           UserRole.BusCoordinator,
-          UserRole.Admin,
+          UserRole.SuperAdmin,
         ],
       },
     });

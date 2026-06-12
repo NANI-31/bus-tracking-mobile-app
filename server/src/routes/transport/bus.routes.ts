@@ -18,7 +18,7 @@ const router = express.Router();
 router.post(
   "/",
   protect,
-  authorize("admin", "busCoordinator", "collegeAdmin"),
+  authorize("superAdmin", "busCoordinator", "collegeAdmin"),
   createBus,
 );
 router.get("/", protect, getAllBuses);
@@ -28,13 +28,13 @@ router.get("/:id", protect, getBus);
 router.put(
   "/:id",
   protect,
-  authorize("admin", "busCoordinator", "driver", "collegeAdmin"),
+  authorize("superAdmin", "busCoordinator", "driver", "collegeAdmin"),
   updateBus,
 );
 router.delete(
   "/:id",
   protect,
-  authorize("admin", "busCoordinator", "collegeAdmin"),
+  authorize("superAdmin", "busCoordinator", "collegeAdmin"),
   deleteBus,
 );
 router.post(

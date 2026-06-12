@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:collegebus/core/constants/constants.dart';
-import 'package:collegebus/features/admin/application/admin_provider.dart';
+import 'package:collegebus/features/super_admin/application/super_admin_provider.dart';
 
 class DangerZoneTab extends ConsumerWidget {
   const DangerZoneTab({super.key});
@@ -54,8 +54,8 @@ class DangerZoneTab extends ConsumerWidget {
               );
 
               if (confirm == true) {
-                final saService = ref.read(superAdminServiceProvider);
-                await saService.clearSystemLogs();
+                final saNotifier = ref.read(superAdminServiceProvider.notifier);
+                await saNotifier.clearSystemLogs();
                 if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(content: Text('System logs cleared')),
