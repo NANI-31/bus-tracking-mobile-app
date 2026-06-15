@@ -220,3 +220,58 @@ final driverBusProvider = StreamProvider.family<BusModel?, String>((
     };
   });
 });
+
+/// StreamProvider for real-time bus locations globally (across all colleges)
+final globalBusLocationsProvider =
+    StreamProvider<List<BusLocationModel>>((ref) {
+      final socket = ref.read(socketServiceProvider);
+      final repo = ref.watch(busRepositoryProvider);
+
+      return Stream.multi((controller) async {
+        List<BusLocationModel> currentLocations = [];
+
+        final subscription = socket.locationUpdateStream.listen((data) {
+          final busId = data['busId'];
+          final newLoc = BusLocationModel.fromMap(data, busId);
+          final index = currentLocations.indexWhere((l) => l.busId == busId);
+          if (index != -1) {
+            currentLocations[index] = newLoc;
+          } else {
+            currentLocations.add(newLoc);
+          }
+          if (!controller.isClosed) {
+            controller.add(List.from(currentLocations));
+          }
+        });
+
+        controller.onCancel = () => subscription.cancel();
+
+        try {
+          // Fetch all buses first
+          final buses = await repo.getAllBuses();
+          
+          // Get unique college IDs
+          final collegeIds = buses.map((b) => b.collegeId).toSet().toList();
+          
+          // Fetch locations in parallel for all colleges
+          final locationResults = await Future.wait(
+            collegeIds.map((cid) => repo.getCollegeBusLocations(cid))
+          );
+          
+          for (final locs in locationResults) {
+            for (final loc in locs) {
+              final idx = currentLocations.indexWhere((l) => l.busId == loc.busId);
+              if (idx != -1) {
+                currentLocations[idx] = loc;
+              } else {
+                currentLocations.add(loc);
+              }
+            }
+          }
+          
+          if (!controller.isClosed) controller.add(List.from(currentLocations));
+        } catch (e) {
+          // Fallback if initial fetch fails; rely solely on live socket stream
+        }
+      });
+    });

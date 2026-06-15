@@ -5,6 +5,8 @@ import 'package:collegebus/core/utils/app_logger.dart';
 import 'package:collegebus/features/payment/domain/transaction_model.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:collegebus/features/super_admin/services/super_admin_state.dart';
+import 'package:collegebus/features/college/domain/college_model.dart';
+import 'package:collegebus/features/audit/domain/audit_log_model.dart';
 import 'dart:async';
 import 'package:collegebus/core/constants/constants.dart';
 
@@ -26,7 +28,9 @@ class SuperAdminService extends AsyncNotifier<SuperAdminState> {
     state = const AsyncValue.loading();
     try {
       AppLogger.d('DEBUG: Loading Audit Logs...');
-      final auditLogs = await _auditRepo.getAuditLogs(limit: 50);
+      final auditLogsData = await _auditRepo.getPaginatedAuditLogs(limit: 50, skip: 0);
+      final auditLogs = auditLogsData['logs'] as List<AuditLogModel>;
+      final auditLogsTotal = auditLogsData['total'] as int;
 
       AppLogger.d('DEBUG: Loading Colleges...');
       final colleges = await _collegeRepo.getAllColleges();
@@ -38,6 +42,9 @@ class SuperAdminService extends AsyncNotifier<SuperAdminState> {
 
       AppLogger.d('DEBUG: Loading System Config...');
       final systemConfig = await _systemRepo.getSystemConfig();
+
+      AppLogger.d('DEBUG: Loading All System Configs...');
+      final allConfigs = await _systemRepo.getAllConfigs();
 
       AppLogger.d('DEBUG: Loading SOS Logs...');
       final logsData = await IncidentRepository().getSosLogs('all');
@@ -61,9 +68,13 @@ class SuperAdminService extends AsyncNotifier<SuperAdminState> {
 
       state = AsyncValue.data(SuperAdminState(
         auditLogs: auditLogs,
+        auditLogsTotal: auditLogsTotal,
+        auditLogsHasMore: auditLogs.length < auditLogsTotal,
+        auditLogsPage: 0,
         colleges: colleges,
         globalUsers: globalUsers,
         systemConfig: systemConfig,
+        allConfigs: allConfigs,
         sosLogs: sosLogs,
         globalActiveSos: globalActiveSos,
         transactions: transactions,
@@ -101,9 +112,103 @@ class SuperAdminService extends AsyncNotifier<SuperAdminState> {
       if (state.hasValue) {
         final current = state.value!;
         final colleges = current.colleges
-            .map((c) => c.id == collegeId ? c.copyWith(suspended: true) : c)
+            .map((c) => c.id == collegeId ? c.copyWith(suspended: true, suspensionReason: reason) : c)
             .toList();
         state = AsyncValue.data(current.copyWith(colleges: colleges));
+      }
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  /// Unsuspend a college
+  Future<void> unsuspendCollege(String collegeId) async {
+    try {
+      await _collegeRepo.unsuspendCollege(collegeId);
+
+      if (state.hasValue) {
+        final current = state.value!;
+        final colleges = current.colleges
+            .map((c) => c.id == collegeId ? c.copyWith(suspended: false, suspensionReason: '') : c)
+            .toList();
+        state = AsyncValue.data(current.copyWith(colleges: colleges));
+      }
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  /// Super Admin: Create a new college
+  Future<void> createCollege(String name, List<String> allowedDomains) async {
+    try {
+      final newCollege = await _collegeRepo.createCollege(name, allowedDomains);
+      if (state.hasValue) {
+        final current = state.value!;
+        final colleges = [newCollege, ...current.colleges];
+        state = AsyncValue.data(current.copyWith(colleges: colleges));
+      }
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  /// Super Admin: Toggle manual premium override
+  Future<void> toggleManualPremium(String collegeId, bool allowManualPremium) async {
+    try {
+      await _collegeRepo.toggleManualPremium(collegeId, allowManualPremium);
+      if (state.hasValue) {
+        final current = state.value!;
+        final colleges = current.colleges
+            .map((c) => c.id == collegeId ? c.copyWith(allowManualPremium: allowManualPremium) : c)
+            .toList();
+        state = AsyncValue.data(current.copyWith(colleges: colleges));
+      }
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  /// Super Admin: Wipe college data (Danger Zone)
+  Future<void> wipeCollegeData(String collegeId, bool deleteCollegeRecord) async {
+    try {
+      await _collegeRepo.wipeCollegeData(collegeId, deleteCollegeRecord);
+      if (state.hasValue) {
+        final current = state.value!;
+        if (collegeId == 'all') {
+          if (deleteCollegeRecord) {
+            state = AsyncValue.data(current.copyWith(colleges: []));
+          } else {
+            final colleges = current.colleges.map((c) => c.copyWith(
+              adminId: null,
+              address: null,
+              adminName: null,
+              shifts: [],
+              shiftCount: 0,
+              allowManualPremium: false,
+            )).toList();
+            state = AsyncValue.data(current.copyWith(colleges: colleges));
+          }
+        } else {
+          List<CollegeModel> colleges;
+          if (deleteCollegeRecord) {
+            colleges = current.colleges.where((c) => c.id != collegeId).toList();
+          } else {
+            colleges = current.colleges.map((c) {
+              if (c.id == collegeId) {
+                return c.copyWith(
+                  adminId: null,
+                  address: null,
+                  adminName: null,
+                  shifts: [],
+                  shiftCount: 0,
+                  allowManualPremium: false,
+                );
+              }
+              return c;
+            }).toList();
+          }
+          state = AsyncValue.data(current.copyWith(colleges: colleges));
+        }
       }
     } catch (e) {
       rethrow;
@@ -115,7 +220,23 @@ class SuperAdminService extends AsyncNotifier<SuperAdminState> {
     try {
       final systemConfig = await _systemRepo.setMaintenanceMode(enabled);
       if (state.hasValue) {
-        state = AsyncValue.data(state.value!.copyWith(systemConfig: systemConfig));
+        final current = state.value!;
+        final updatedConfigs = current.allConfigs.map((c) {
+          if (c.key == 'maintenanceMode') {
+            return systemConfig;
+          }
+          return c;
+        }).toList();
+        
+        // If maintenanceMode config isn't in the list yet, add it
+        if (!updatedConfigs.any((c) => c.key == 'maintenanceMode')) {
+          updatedConfigs.add(systemConfig);
+        }
+
+        state = AsyncValue.data(current.copyWith(
+          systemConfig: systemConfig,
+          allConfigs: updatedConfigs,
+        ));
       }
     } catch (e) {
       rethrow;
@@ -229,6 +350,7 @@ class SuperAdminService extends AsyncNotifier<SuperAdminState> {
   Future<void> fetchGlobalUsers({
     String? search,
     String? role,
+    String? collegeId,
     bool isLoadMore = false,
   }) async {
     try {
@@ -238,7 +360,7 @@ class SuperAdminService extends AsyncNotifier<SuperAdminState> {
       int page = isLoadMore ? current.globalUsersPage + 1 : 1;
 
       AppLogger.d(
-        'DEBUG: Fetching Global Users: page=$page, search=$search, role=$role',
+        'DEBUG: Fetching Global Users: page=$page, search=$search, role=$role, collegeId=$collegeId',
       );
       
       final usersData = await _userRepo.getPaginatedUsers(
@@ -246,6 +368,7 @@ class SuperAdminService extends AsyncNotifier<SuperAdminState> {
         limit: 20,
         search: search,
         role: role,
+        collegeId: collegeId,
       );
       
       final newUsers = (usersData['users'] as List<UserModel>);
@@ -263,6 +386,69 @@ class SuperAdminService extends AsyncNotifier<SuperAdminState> {
       ));
     } catch (e) {
       AppLogger.e('Error fetching global users: $e');
+    }
+  }
+
+  /// Fetch system audit logs with filters and pagination
+  Future<void> fetchAuditLogs({
+    String? collegeId,
+    List<String>? actions,
+    List<String>? resources,
+    DateTime? date,
+    bool isLoadMore = false,
+  }) async {
+    try {
+      final current = state.value;
+      if (current == null) return;
+
+      int page = isLoadMore ? current.auditLogsPage + 1 : 0;
+      int limit = 50;
+      int skip = page * limit;
+
+      AppLogger.d(
+        'DEBUG: Fetching Audit Logs: page=$page, collegeId=$collegeId, actions=$actions, resources=$resources, date=$date',
+      );
+
+      final dateStr = date != null ? date.toIso8601String().split('T')[0] : null;
+
+      final result = await _auditRepo.getPaginatedAuditLogs(
+        collegeId: collegeId,
+        action: actions != null && actions.isNotEmpty ? actions.join(',') : null,
+        resource: resources != null && resources.isNotEmpty ? resources.join(',') : null,
+        date: dateStr,
+        limit: limit,
+        skip: skip,
+      );
+
+      final List<AuditLogModel> newLogs = result['logs'] as List<AuditLogModel>;
+      final int total = result['total'] as int;
+      final bool hasMore = (skip + newLogs.length) < total;
+
+      final updatedLogs = isLoadMore
+          ? [...current.auditLogs, ...newLogs]
+          : newLogs;
+
+      state = AsyncValue.data(current.copyWith(
+        auditLogs: updatedLogs,
+        auditLogsPage: page,
+        auditLogsHasMore: hasMore,
+        auditLogsTotal: total,
+      ));
+    } catch (e) {
+      AppLogger.e('Error fetching audit logs: $e');
+    }
+  }
+
+  /// Prepend a real-time socket audit log entry
+  void addLiveLog(AuditLogModel newLog) {
+    if (state.hasValue) {
+      final current = state.value!;
+      // Prevent duplicates
+      if (current.auditLogs.any((l) => l.id == newLog.id)) return;
+      state = AsyncValue.data(current.copyWith(
+        auditLogs: [newLog, ...current.auditLogs],
+        auditLogsTotal: current.auditLogsTotal + 1,
+      ));
     }
   }
 }

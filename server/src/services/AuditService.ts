@@ -52,7 +52,7 @@ export class AuditService {
 
       // Emit Live Log via Socket
       try {
-        const { getIO } = require("../socket");
+        const { getIO } = require("../socket/index");
         const io = getIO();
 
         // 1. Emit to Super Admins (Global)

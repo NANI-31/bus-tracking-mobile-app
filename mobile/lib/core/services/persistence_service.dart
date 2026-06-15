@@ -56,15 +56,32 @@ class PersistenceService {
       _prefs!.setBool(_keyIsSharingLocation, isSharing);
 
   // Dashboard Preferences
-  static String? getSelectedBusId() => _prefs?.getString(_keySelectedBusId);
-  static Future<void> setSelectedBusId(String busId) =>
-      _prefs!.setString(_keySelectedBusId, busId);
-  static Future<void> removeSelectedBusId() =>
-      _prefs!.remove(_keySelectedBusId);
+  static String? getSelectedBusId([String? userId]) {
+    final suffix = userId != null ? '_$userId' : '';
+    return _prefs?.getString('$_keySelectedBusId$suffix');
+  }
+
+  static Future<void> setSelectedBusId(String busId, [String? userId]) {
+    final suffix = userId != null ? '_$userId' : '';
+    return _prefs!.setString('$_keySelectedBusId$suffix', busId);
+  }
+
+  static Future<void> removeSelectedBusId([String? userId]) {
+    if (userId != null) {
+      _prefs!.remove(_keySelectedBusId); // Also clear old global format
+      return _prefs!.remove('${_keySelectedBusId}_$userId');
+    }
+    return _prefs!.remove(_keySelectedBusId);
+  }
 
   static int getBottomNavIndex() => _prefs?.getInt(_keyBottomNavIndex) ?? 0;
   static Future<void> setBottomNavIndex(int index) =>
       _prefs!.setInt(_keyBottomNavIndex, index);
+
+  // Generic key-value helpers for double/float types (lat, lng, zoom, sheet extent)
+  static double? getDouble(String key) => _prefs?.getDouble(key);
+  static Future<void> setDouble(String key, double value) =>
+      _prefs!.setDouble(key, value);
 
   // Generic key for driver selections (bus_number, route_id)
   static String? getString(String key) => _prefs?.getString(key);

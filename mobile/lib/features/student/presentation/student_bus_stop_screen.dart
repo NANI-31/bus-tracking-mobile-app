@@ -4,6 +4,10 @@ import 'package:collegebus/features/auth/application/auth_provider.dart';
 import 'package:collegebus/core/providers/repository_providers.dart';
 import 'package:collegebus/features/route/application/route_provider.dart';
 import 'package:velocity_x/velocity_x.dart';
+import 'package:collegebus/shared/widgets/api_error_modal.dart';
+import 'package:collegebus/shared/widgets/success_modal.dart';
+
+import 'widgets/home/student_skeletons.dart';
 
 class StudentBusStopScreen extends ConsumerStatefulWidget {
   const StudentBusStopScreen({super.key});
@@ -46,23 +50,18 @@ class _StudentBusStopScreenState extends ConsumerState<StudentBusStopScreen> {
       });
       authNotifier.updateCurrentUser(updatedUser);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Stop updated to $stopName ($routeName)'),
-            backgroundColor: Colors.green,
-            duration: const Duration(seconds: 2),
-            behavior:
-                SnackBarBehavior.floating, // Make it float to avoid overlapping
-          ),
+        SuccessModal.show(
+          context: context,
+          title: 'Stop Updated',
+          message: 'Stop updated to $stopName ($routeName)',
+          primaryActionText: 'OK',
         );
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error updating stop: $e'),
-            backgroundColor: Colors.red,
-          ),
+        ApiErrorModal.show(
+          context: context,
+          error: 'Error updating stop: $e',
         );
       }
     } finally {
@@ -77,7 +76,7 @@ class _StudentBusStopScreenState extends ConsumerState<StudentBusStopScreen> {
     final user = ref.watch(currentUserProvider);
 
     if (user == null) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      return const Scaffold(body: StudentBusStopSkeleton());
     }
 
     return Scaffold(
@@ -228,8 +227,7 @@ class _StudentBusStopScreenState extends ConsumerState<StudentBusStopScreen> {
                   },
                 ).expand();
               },
-              loading: () =>
-                  const CircularProgressIndicator().centered().expand(),
+              loading: () => const StudentBusStopSkeleton().expand(),
               error: (e, s) => Center(child: Text('Error: $e')).expand(),
             ),
       ]),

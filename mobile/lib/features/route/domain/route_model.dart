@@ -1,4 +1,5 @@
 import 'package:collegebus/core/utils/type_converters.dart';
+import 'package:collegebus/core/services/directions_result.dart';
 
 class RoutePoint {
   final String name;
@@ -38,8 +39,10 @@ class RouteModel {
   final String collegeId;
   final String createdBy;
   final bool isActive;
+  final DirectionsResult? directions;
   final DateTime createdAt;
   final DateTime? updatedAt;
+  final String color;
 
   RouteModel({
     required this.id,
@@ -51,8 +54,10 @@ class RouteModel {
     required this.collegeId,
     required this.createdBy,
     this.isActive = true,
+    this.directions,
     required this.createdAt,
     this.updatedAt,
+    this.color = '#0097B2',
   });
 
   factory RouteModel.fromMap(Map<String, dynamic> map, String id) {
@@ -68,10 +73,14 @@ class RouteModel {
       collegeId: map['collegeId'] ?? '',
       createdBy: map['createdBy'] ?? '',
       isActive: parseBool(map['isActive'], true),
+      directions: map['directions'] != null
+          ? DirectionsResult.fromMap(Map<String, dynamic>.from(map['directions']))
+          : null,
       createdAt: parseDateTime(map['createdAt']),
       updatedAt: map['updatedAt'] != null
           ? parseDateTime(map['updatedAt'])
           : null,
+      color: map['color'] ?? '#0097B2',
     );
   }
 
@@ -85,8 +94,10 @@ class RouteModel {
       'collegeId': collegeId,
       'createdBy': createdBy,
       'isActive': isActive,
+      'directions': directions?.toMap(),
       'createdAt': createdAt.toIso8601String(),
       'updatedAt': updatedAt?.toIso8601String(),
+      'color': color,
     };
   }
 
@@ -100,8 +111,10 @@ class RouteModel {
     String? collegeId,
     String? createdBy,
     bool? isActive,
+    DirectionsResult? directions,
     DateTime? createdAt,
     DateTime? updatedAt,
+    String? color,
   }) {
     return RouteModel(
       id: id ?? this.id,
@@ -113,8 +126,10 @@ class RouteModel {
       collegeId: collegeId ?? this.collegeId,
       createdBy: createdBy ?? this.createdBy,
       isActive: isActive ?? this.isActive,
+      directions: directions ?? this.directions,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
+      color: color ?? this.color,
     );
   }
 

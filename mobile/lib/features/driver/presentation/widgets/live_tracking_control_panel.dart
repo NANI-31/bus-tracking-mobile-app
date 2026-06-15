@@ -13,6 +13,7 @@ class LiveTrackingControlPanel extends StatelessWidget {
   final bool isSharing;
   final LatLng? currentLocation;
   final VoidCallback onToggleSharing;
+  final VoidCallback? onCompleteTrip;
 
   const LiveTrackingControlPanel({
     super.key,
@@ -21,6 +22,7 @@ class LiveTrackingControlPanel extends StatelessWidget {
     required this.isSharing,
     required this.currentLocation,
     required this.onToggleSharing,
+    this.onCompleteTrip,
   });
 
   @override
@@ -63,22 +65,39 @@ class LiveTrackingControlPanel extends StatelessWidget {
                 ]),
               AppSizes.paddingMedium.heightBox,
             ]),
-          CustomButton(
-            text: isSharing
-                ? DriverLocalizations.of(context)!.stopSharingLocation
-                : DriverLocalizations.of(context)!.startSharingLocation,
-            onPressed: onToggleSharing,
-            backgroundColor: isSharing
-                ? Theme.of(context).colorScheme.error
-                : Theme.of(context).colorScheme.secondary,
-            icon: Icon(
-              isSharing ? Icons.stop : Icons.play_arrow,
-              color: isSharing
-                  ? Theme.of(context).colorScheme.onError
-                  : Theme.of(context).colorScheme.onSecondary,
+          if (isSharing)
+            HStack([
+              CustomButton(
+                text: 'STOP',
+                onPressed: onToggleSharing,
+                backgroundColor: Theme.of(context).colorScheme.error,
+                icon: Icon(
+                  Icons.stop,
+                  color: Theme.of(context).colorScheme.onError,
+                ),
+              ).expand(),
+              12.widthBox,
+              CustomButton(
+                text: 'TRIP COMPLETE',
+                onPressed: onCompleteTrip,
+                backgroundColor: AppColors.success,
+                textColor: Colors.white,
+                icon: const Icon(
+                  Icons.check_circle_outline,
+                  color: Colors.white,
+                ),
+              ).expand(),
+            ])
+          else
+            CustomButton(
+              text: DriverLocalizations.of(context)!.startSharingLocation,
+              onPressed: onToggleSharing,
+              backgroundColor: Theme.of(context).colorScheme.secondary,
+              icon: Icon(
+                Icons.play_arrow,
+                color: Theme.of(context).colorScheme.onSecondary,
+              ),
             ),
-          ),
-          // if (isSharing) _buildSharingStatus(context), // Removed per user request
         ])
         .p(AppSizes.paddingMedium)
         .box

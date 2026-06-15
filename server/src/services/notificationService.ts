@@ -72,7 +72,7 @@ export class NotificationService {
 
     // Send Socket Notification
     try {
-      const { getIO } = require("../socket");
+      const { getIO } = require("../socket/index");
       const io = getIO();
       io.to(userId).emit("notification_received", {
         id: newNotification._id.toString(),
@@ -125,7 +125,7 @@ export class NotificationService {
 
     // Send Socket Notification
     try {
-      const { getIO } = require("../socket");
+      const { getIO } = require("../socket/index");
       const io = getIO();
       io.to(receiverId).emit("notification_received", {
         id: newNotification._id.toString(),
@@ -196,7 +196,7 @@ export class NotificationService {
 
     // 3. Emit Socket Notifications
     try {
-      const { getIO } = require("../socket");
+      const { getIO } = require("../socket/index");
       const io = getIO();
       // To individual rooms
       targets.forEach((u) => {
@@ -286,7 +286,7 @@ export class NotificationService {
 
     // 3. Send Socket Notifications
     try {
-      const { getIO } = require("../socket");
+      const { getIO } = require("../socket/index");
       const io = getIO();
       io.to(collegeId).emit("notification_received", {
         title,
@@ -483,7 +483,7 @@ export class NotificationService {
 
     // 4. Send Socket Notification to College Room
     try {
-      const { getIO } = require("../socket");
+      const { getIO } = require("../socket/index");
       const io = getIO();
       io.to(collegeId).emit("notification_received", {
         title,

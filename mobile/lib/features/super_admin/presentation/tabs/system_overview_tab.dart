@@ -8,6 +8,7 @@ import 'package:collegebus/core/constants/constants.dart';
 import 'package:collegebus/widgets/analytics/analytics_charts.dart';
 import 'package:collegebus/features/super_admin/presentation/widgets/super_admin_stat_card.dart';
 import 'package:collegebus/features/super_admin/presentation/widgets/system_health_card.dart';
+import 'package:collegebus/features/system/domain/system_config_model.dart';
 
 class SystemOverviewTab extends ConsumerWidget {
   final int totalColleges;
@@ -36,6 +37,32 @@ class SystemOverviewTab extends ConsumerWidget {
     final asyncState = ref.watch(superAdminServiceProvider);
     final activeSosCount = asyncState.valueOrNull?.globalActiveSos.length ?? 0;
 
+    final configs = asyncState.valueOrNull?.allConfigs ?? [];
+
+    // Find the googleApiUsageCount config
+    final googleApiConfig = configs.firstWhere(
+      (c) => c.key == 'googleApiUsageCount',
+      orElse: () => SystemConfigModel(
+        key: 'googleApiUsageCount',
+        value: 0,
+        dataType: ConfigDataType.number,
+        updatedAt: DateTime.now(),
+      ),
+    );
+    final googleApiCalls = googleApiConfig.asInt;
+
+    // Find the maintenanceMode config
+    final maintenanceConfig = configs.firstWhere(
+      (c) => c.key == 'maintenanceMode',
+      orElse: () => SystemConfigModel(
+        key: 'maintenanceMode',
+        value: false,
+        dataType: ConfigDataType.boolean,
+        updatedAt: DateTime.now(),
+      ),
+    );
+    final isMaintenanceMode = maintenanceConfig.asBool;
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(AppSizes.paddingMedium),
       child: Column(
@@ -43,7 +70,7 @@ class SystemOverviewTab extends ConsumerWidget {
         children: [
           SystemHealthCard(
             activeSosCount: activeSosCount,
-            onViewMonitor: () => onNavigate(6), // Safety Monitor index
+            onViewMonitor: () => onNavigate(8), // Safety Monitor index
           ),
 
           const SizedBox(height: AppSizes.paddingLarge),
@@ -90,6 +117,18 @@ class SystemOverviewTab extends ConsumerWidget {
                 value: activeSosCount.toString(),
                 icon: Icons.emergency,
                 color: activeSosCount > 0 ? Colors.red : Colors.grey,
+              ),
+              SuperAdminStatCard(
+                title: 'Google API Calls',
+                value: googleApiCalls.toString(),
+                icon: Icons.map_outlined,
+                color: Colors.teal,
+              ),
+              SuperAdminStatCard(
+                title: 'Maintenance Mode',
+                value: isMaintenanceMode ? 'Active' : 'Inactive',
+                icon: Icons.construction,
+                color: isMaintenanceMode ? Colors.orange : Colors.blueGrey,
               ),
             ],
           ),

@@ -5,6 +5,8 @@ import 'package:collegebus/features/auth/application/auth_provider.dart';
 import 'package:velocity_x/velocity_x.dart';
 import 'package:share_plus/share_plus.dart';
 
+import 'package:collegebus/shared/widgets/success_modal.dart';
+
 class ReferralScreen extends ConsumerWidget {
   const ReferralScreen({super.key});
 
@@ -64,8 +66,11 @@ class ReferralScreen extends ConsumerWidget {
             GestureDetector(
               onTap: () {
                 Clipboard.setData(ClipboardData(text: referralCode));
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text("Code copied to clipboard!")),
+                SuccessModal.show(
+                  context: context,
+                  title: 'Copied',
+                  message: 'Code copied to clipboard!',
+                  primaryActionText: 'OK',
                 );
               },
               child:

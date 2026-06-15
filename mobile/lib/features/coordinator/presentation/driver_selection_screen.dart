@@ -14,6 +14,7 @@ import 'package:collegebus/features/route/domain/route_model.dart';
 import 'package:collegebus/features/bus/domain/bus_model.dart';
 import 'package:collegebus/core/providers/socket_provider.dart';
 import 'modules/bus_tab_components/route_selection_modal.dart';
+import 'package:collegebus/shared/widgets/shimmer_skeletons.dart';
 
 class DriverSelectionScreen extends ConsumerStatefulWidget {
   final String busNumber;
@@ -91,7 +92,7 @@ class _DriverSelectionScreenState extends ConsumerState<DriverSelectionScreen> {
             onPressed: () => Navigator.pop(dialogContext),
             child: const Text('Cancel'),
           ),
-          ElevatedButton(
+          FilledButton(
             onPressed: () async {
               try {
                 final repo = ref.read(busRepositoryProvider);
@@ -154,8 +155,7 @@ class _DriverSelectionScreenState extends ConsumerState<DriverSelectionScreen> {
                 }
               }
             },
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
-            child: const Text('Assign', style: TextStyle(color: Colors.white)),
+            child: const Text('Assign'),
           ),
         ],
       ),
@@ -183,126 +183,140 @@ class _DriverSelectionScreenState extends ConsumerState<DriverSelectionScreen> {
     final busesAsync = ref.watch(allCollegeBusesStreamProvider(collegeId));
     final routesAsync = ref.watch(collegeRoutesProvider(collegeId));
 
+    final isLoading = driversAsync.isLoading || busesAsync.isLoading || routesAsync.isLoading;
+    final hasError = driversAsync.hasError || busesAsync.hasError || routesAsync.hasError;
+
+    if (isLoading) {
+      return Scaffold(
+        appBar: AppBar(
+          title: Text('Assign Driver to ${widget.busNumber}'),
+          backgroundColor: AppColors.primary,
+          foregroundColor: Colors.white,
+        ),
+        body: const DriverSelectionSkeleton(),
+      );
+    }
+
+    if (hasError) {
+      final error = driversAsync.error ?? busesAsync.error ?? routesAsync.error;
+      return Scaffold(
+        appBar: AppBar(
+          title: Text('Assign Driver to ${widget.busNumber}'),
+          backgroundColor: AppColors.primary,
+          foregroundColor: Colors.white,
+        ),
+        body: Center(child: Text('Error loading assignment data: $error')),
+      );
+    }
+
+    final drivers = driversAsync.value ?? [];
+    final buses = busesAsync.value ?? [];
+    final routes = routesAsync.value ?? [];
+
+    // Identify drivers who are already assigned to a bus
+    final assignedDriverIds = buses
+        .where((b) => b.driverId.isNotEmpty)
+        .map((b) => b.driverId)
+        .toSet();
+
+    final availableDrivers = drivers
+        .where((d) => !assignedDriverIds.contains(d.id))
+        .toList();
+
+    final filteredDrivers = availableDrivers.where((d) {
+      final name = d.fullName.toLowerCase();
+      final email = d.email.toLowerCase();
+      final query = _searchQuery.toLowerCase();
+      return name.contains(query) || email.contains(query);
+    }).toList();
+
     return Scaffold(
       appBar: AppBar(
         title: Text('Assign Driver to ${widget.busNumber}'),
         backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
       ),
-      body: driversAsync.when(
-        data: (drivers) => busesAsync.when(
-          data: (buses) => routesAsync.when(
-            data: (routes) {
-              // Identify drivers who are already assigned to a bus
-              final assignedDriverIds = buses
-                  .where((b) => b.driverId.isNotEmpty)
-                  .map((b) => b.driverId)
-                  .toSet();
-
-              final availableDrivers = drivers
-                  .where((d) => !assignedDriverIds.contains(d.id))
-                  .toList();
-
-              final filteredDrivers = availableDrivers.where((d) {
-                final name = d.fullName.toLowerCase();
-                final email = d.email.toLowerCase();
-                final query = _searchQuery.toLowerCase();
-                return name.contains(query) || email.contains(query);
-              }).toList();
-
-              return VStack([
-                // Search Bar
-                TextField(
-                  controller: _searchController,
-                  onChanged: (val) => setState(() => _searchQuery = val),
-                  decoration: InputDecoration(
-                    hintText: 'Search drivers by name or email...',
-                    prefixIcon: const Icon(Icons.search),
-                    suffixIcon: _searchQuery.isNotEmpty
-                        ? IconButton(
-                            icon: const Icon(Icons.clear),
-                            onPressed: () {
-                              _searchController.clear();
-                              setState(() => _searchQuery = '');
-                            },
-                          )
-                        : null,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(
-                        AppSizes.radiusMedium,
-                      ),
-                    ),
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 0,
-                    ),
-                  ),
-                ).p(AppSizes.paddingMedium),
-
-                if (filteredDrivers.isEmpty)
-                  VStack([
-                    Icon(
-                      Icons.person_off_outlined,
-                      size: 64,
-                      color: context.colorScheme.onSurface.withValues(
-                        alpha: 0.4,
-                      ),
-                    ),
-                    16.heightBox,
-                    'No available drivers found'.text
-                        .size(18)
-                        .color(
-                          context.colorScheme.onSurface.withValues(alpha: 0.6),
-                        )
-                        .make(),
-                  ]).centered().expand()
-                else
-                  ListView.builder(
-                    itemCount: filteredDrivers.length,
-                    itemBuilder: (context, index) {
-                      final driver = filteredDrivers[index];
-                      return Card(
-                        margin: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 8,
-                        ),
-                        child: ListTile(
-                          leading: CircleAvatar(
-                            backgroundColor: AppColors.primary,
-                            child:
-                                (driver.fullName.isNotEmpty
-                                        ? driver.fullName[0]
-                                        : '?')
-                                    .text
-                                    .white
-                                    .bold
-                                    .make(),
-                          ),
-                          title: driver.fullName.text.semiBold.make(),
-                          subtitle: driver.email.text.make(),
-                          onTap: () => _showAssignConfirmation(
-                            driver: driver,
-                            routes: routes,
-                            buses: buses,
-                          ),
-                          trailing: const Icon(Icons.chevron_right),
-                        ),
-                      );
+      body: VStack([
+        // Search Bar
+        TextField(
+          controller: _searchController,
+          onChanged: (val) => setState(() => _searchQuery = val),
+          decoration: InputDecoration(
+            hintText: 'Search drivers by name or email...',
+            prefixIcon: const Icon(Icons.search),
+            suffixIcon: _searchQuery.isNotEmpty
+                ? IconButton(
+                    icon: const Icon(Icons.clear),
+                    onPressed: () {
+                      _searchController.clear();
+                      setState(() => _searchQuery = '');
                     },
-                  ).expand(),
-              ]);
-            },
-            loading: () =>
-                const CircularProgressIndicator().centered().expand(),
-            error: (e, s) =>
-                Text('Error loading routes: $e').centered().expand(),
+                  )
+                : null,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(
+                AppSizes.radiusMedium,
+              ),
+            ),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 0,
+            ),
           ),
-          loading: () => const CircularProgressIndicator().centered().expand(),
-          error: (e, s) => Text('Error loading buses: $e').centered().expand(),
-        ),
-        loading: () => const CircularProgressIndicator().centered().expand(),
-        error: (e, s) => Text('Error loading drivers: $e').centered().expand(),
-      ),
+        ).p(AppSizes.paddingMedium),
+
+        if (filteredDrivers.isEmpty)
+          VStack([
+            Icon(
+              Icons.person_off_outlined,
+              size: 64,
+              color: context.colorScheme.onSurface.withValues(
+                alpha: 0.4,
+              ),
+            ),
+            16.heightBox,
+            'No available drivers found'.text
+                .size(18)
+                .color(
+                  context.colorScheme.onSurface.withValues(alpha: 0.6),
+                )
+                .make(),
+          ]).centered().expand()
+        else
+          ListView.builder(
+            itemCount: filteredDrivers.length,
+            itemBuilder: (context, index) {
+              final driver = filteredDrivers[index];
+              return Card(
+                margin: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
+                child: ListTile(
+                  leading: CircleAvatar(
+                    backgroundColor: AppColors.primary,
+                    child:
+                        (driver.fullName.isNotEmpty
+                                ? driver.fullName[0]
+                                : '?')
+                            .text
+                            .white
+                            .bold
+                            .make(),
+                  ),
+                  title: driver.fullName.text.semiBold.make(),
+                  subtitle: driver.email.text.make(),
+                  onTap: () => _showAssignConfirmation(
+                    driver: driver,
+                    routes: routes,
+                    buses: buses,
+                  ),
+                  trailing: const Icon(Icons.chevron_right),
+                ),
+              );
+            },
+          ).expand(),
+      ]),
     );
   }
 }

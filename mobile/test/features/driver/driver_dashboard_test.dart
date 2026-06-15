@@ -7,6 +7,7 @@ import 'package:collegebus/features/driver/presentation/driver_dashboard.dart';
 import 'package:collegebus/features/auth/application/auth_provider.dart';
 import 'package:collegebus/features/bus/application/bus_provider.dart';
 import 'package:collegebus/features/route/application/route_provider.dart';
+import 'package:collegebus/features/route/domain/route_model.dart';
 import 'package:collegebus/core/providers/service_providers.dart';
 import 'package:collegebus/core/providers/socket_provider.dart';
 import 'package:collegebus/core/providers/repository_providers.dart';
@@ -28,6 +29,11 @@ class MockSocketService extends Mock implements SocketService {}
 class MockLocationService extends Mock implements LocationService {}
 class MockBusRepository extends Mock implements BusRepository {}
 class MockRouteRepository extends Mock implements RouteRepository {}
+
+class MockCollegeRoutesNotifier extends CollegeRoutesNotifier {
+  @override
+  Future<List<RouteModel>> build(String arg) async => [];
+}
 
 void main() {
   late MockUserModel mockUser;
@@ -85,7 +91,7 @@ void main() {
         themeServiceProvider.overrideWith(() => MockThemeNotifier()),
         // Override the family providers
         driverBusProvider('driver_123').overrideWith((ref) => Stream.value(null)),
-        collegeRoutesProvider('college_123').overrideWith((ref) => Stream.value([])),
+        collegeRoutesProvider.overrideWith(() => MockCollegeRoutesNotifier()),
         busNumbersProvider('college_123').overrideWith((ref) => Stream.value([])),
         localeServiceProvider.overrideWith(() => MockLocaleNotifier()),
       ],
@@ -132,7 +138,7 @@ void main() {
         collegeServiceProvider.overrideWith(() => MockCollegeNotifier()),
         themeServiceProvider.overrideWith(() => MockThemeNotifier()),
         driverBusProvider('driver_123').overrideWith((ref) => Stream.value(myBus)),
-        collegeRoutesProvider('college_123').overrideWith((ref) => Stream.value([])),
+        collegeRoutesProvider.overrideWith(() => MockCollegeRoutesNotifier()),
         busNumbersProvider('college_123').overrideWith((ref) => Stream.value(['555'])),
         localeServiceProvider.overrideWith(() => MockLocaleNotifier()),
       ],

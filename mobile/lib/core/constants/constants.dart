@@ -17,6 +17,7 @@ class AppColors {
   static const Color gunmetal = Color(0xFF12181F); // Dark Background
   static const Color coolSlate = Color(0xFF546E7A); // Secondary
   static const Color amberAccent = Color(0xFFFFC107); // Tertiary/Accent
+  static const Color googleBlue = Color(0xFF1967D2); // Google Maps Deep Blue
 
   // --- Functional Colors ---
   static const Color success = Color(0xFF4CAF50);
@@ -89,20 +90,61 @@ class AppTheme {
       centerTitle: true,
       foregroundColor: AppColors.lightOnSurface,
     ),
+    bottomSheetTheme: BottomSheetThemeData(
+      showDragHandle: true,
+      dragHandleColor: AppColors.lightOutline.withValues(alpha: 0.4),
+      dragHandleSize: const Size(36, 4),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      backgroundColor: AppColors.lightSurface,
+      elevation: 8,
+    ),
     cardTheme: CardThemeData(
       color: AppColors.lightSurface,
-      elevation: 2,
-      shadowColor: Colors.black.withValues(alpha: 0.1),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(
+          color: AppColors.lightOutline.withValues(alpha: 0.1),
+          width: 1.2,
+        ),
+      ),
     ),
     elevatedButtonTheme: ElevatedButtonThemeData(
       style: ElevatedButton.styleFrom(
-        backgroundColor: AppColors.lightPrimary,
-        foregroundColor: AppColors.lightOnPrimary,
-        elevation: 2,
+        elevation: 1,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
       ),
+    ),
+    filledButtonTheme: FilledButtonThemeData(
+      style: FilledButton.styleFrom(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+      ),
+    ),
+    outlinedButtonTheme: OutlinedButtonThemeData(
+      style: OutlinedButton.styleFrom(
+        side: BorderSide(color: AppColors.lightOutline.withValues(alpha: 0.3)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+      ),
+    ),
+    inputDecorationTheme: InputDecorationTheme(
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: AppColors.lightOutline.withValues(alpha: 0.3)),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: AppColors.lightOutline.withValues(alpha: 0.3)),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: AppColors.lightPrimary, width: 2),
+      ),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
     ),
     textTheme: TextTheme(
       displayLarge: TextStyle(
@@ -121,9 +163,62 @@ class AppTheme {
       ),
       labelLarge: TextStyle(
         color: AppColors.lightOnSurface,
-      ), // Button text usually
+      ),
     ),
     iconTheme: IconThemeData(color: AppColors.lightOnSurface),
+    extensions: <ThemeExtension<dynamic>>[
+      const MapThemeExtension(
+        routeColor: Color(0xFF1565C0), // Deep Royal Blue for high contrast on light maps
+        startStopColor: Color(0xFF4CAF50), // Green (Success)
+        intermediateStopColor: Color(0xFFFF9800), // Orange (Warning)
+        endStopColor: Color(0xFFE53935), // Red (Danger)
+      ),
+      DesignSystemThemeExtension(
+        mobileBreakpoint: 600.0,
+        tabletBreakpoint: 1024.0,
+        desktopBreakpoint: 1440.0,
+        cardHeaderStyle: const TextStyle(
+          fontSize: 20,
+          fontWeight: FontWeight.w800,
+          color: AppColors.lightOnSurface,
+        ),
+        cardBodyStyle: const TextStyle(
+          fontSize: 14,
+          height: 1.5,
+          color: Color(0x99111418),
+        ),
+        badgeStyle: const TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.bold,
+          color: Colors.white,
+        ),
+        primaryButtonElevation: 1.0,
+        secondaryButtonElevation: 0.0,
+        cardDecoration: BoxDecoration(
+          color: AppColors.lightSurface,
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(
+            color: const Color(0x14111418),
+            width: 1.5,
+          ),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x05000000),
+              blurRadius: 12,
+              offset: Offset(0, 6),
+            ),
+          ],
+        ),
+        glassDecoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.65),
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(
+            color: Colors.white.withValues(alpha: 0.4),
+            width: 1.5,
+          ),
+        ),
+      ),
+    ],
   );
 
   static final ThemeData darkTheme = ThemeData(
@@ -150,22 +245,61 @@ class AppTheme {
       centerTitle: true,
       foregroundColor: AppColors.darkOnSurface,
     ),
+    bottomSheetTheme: BottomSheetThemeData(
+      showDragHandle: true,
+      dragHandleColor: AppColors.darkSecondary.withValues(alpha: 0.3),
+      dragHandleSize: const Size(36, 4),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      backgroundColor: AppColors.darkSurface,
+      elevation: 8,
+    ),
     cardTheme: CardThemeData(
       color: AppColors.darkSurface,
       elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
-        side: BorderSide(color: Colors.white.withValues(alpha: 0.1), width: 1),
+        side: BorderSide(
+          color: Colors.white.withValues(alpha: 0.08),
+          width: 1.2,
+        ),
       ),
     ),
     elevatedButtonTheme: ElevatedButtonThemeData(
       style: ElevatedButton.styleFrom(
-        backgroundColor: AppColors.darkPrimary,
-        foregroundColor: AppColors.darkOnPrimary,
         elevation: 0,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
       ),
+    ),
+    filledButtonTheme: FilledButtonThemeData(
+      style: FilledButton.styleFrom(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+      ),
+    ),
+    outlinedButtonTheme: OutlinedButtonThemeData(
+      style: OutlinedButton.styleFrom(
+        side: BorderSide(color: AppColors.darkSecondary.withValues(alpha: 0.3)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+      ),
+    ),
+    inputDecorationTheme: InputDecorationTheme(
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: AppColors.darkSecondary.withValues(alpha: 0.3)),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: AppColors.darkSecondary.withValues(alpha: 0.3)),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: AppColors.darkPrimary, width: 2),
+      ),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
     ),
     textTheme: TextTheme(
       displayLarge: TextStyle(
@@ -185,6 +319,59 @@ class AppTheme {
       labelLarge: TextStyle(color: AppColors.darkOnSurface),
     ),
     iconTheme: IconThemeData(color: AppColors.darkOnSurface),
+    extensions: <ThemeExtension<dynamic>>[
+      const MapThemeExtension(
+        routeColor: Color(0xFF00E5FF), // Electric Cyan for high contrast on dark maps
+        startStopColor: Color(0xFF00E676), // Bright Green
+        intermediateStopColor: Color(0xFFFF9100), // Bright Orange
+        endStopColor: Color(0xFFFF1744), // Bright Red
+      ),
+      DesignSystemThemeExtension(
+        mobileBreakpoint: 600.0,
+        tabletBreakpoint: 1024.0,
+        desktopBreakpoint: 1440.0,
+        cardHeaderStyle: const TextStyle(
+          fontSize: 20,
+          fontWeight: FontWeight.w800,
+          color: AppColors.darkOnSurface,
+        ),
+        cardBodyStyle: const TextStyle(
+          fontSize: 14,
+          height: 1.5,
+          color: Color(0x99E1E3E6),
+        ),
+        badgeStyle: const TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.bold,
+          color: Colors.white,
+        ),
+        primaryButtonElevation: 0.0,
+        secondaryButtonElevation: 0.0,
+        cardDecoration: BoxDecoration(
+          color: AppColors.darkSurface,
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(
+            color: const Color(0x14E1E3E6),
+            width: 1.5,
+          ),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x05000000),
+              blurRadius: 12,
+              offset: Offset(0, 6),
+            ),
+          ],
+        ),
+        glassDecoration: BoxDecoration(
+          color: AppColors.darkSurface.withValues(alpha: 0.65),
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(
+            color: Colors.white.withValues(alpha: 0.1),
+            width: 1.5,
+          ),
+        ),
+      ),
+    ],
   );
 }
 
@@ -281,3 +468,125 @@ class AppConstants {
   static const String baseUrl = kReleaseMode ? _prodUrl : _devUrl;
   static const String apiBaseUrl = '$baseUrl/api/v1';
 }
+
+class MapThemeExtension extends ThemeExtension<MapThemeExtension> {
+  final Color routeColor;
+  final Color startStopColor;
+  final Color intermediateStopColor;
+  final Color endStopColor;
+
+  const MapThemeExtension({
+    required this.routeColor,
+    required this.startStopColor,
+    required this.intermediateStopColor,
+    required this.endStopColor,
+  });
+
+  @override
+  MapThemeExtension copyWith({
+    Color? routeColor,
+    Color? startStopColor,
+    Color? intermediateStopColor,
+    Color? endStopColor,
+  }) {
+    return MapThemeExtension(
+      routeColor: routeColor ?? this.routeColor,
+      startStopColor: startStopColor ?? this.startStopColor,
+      intermediateStopColor: intermediateStopColor ?? this.intermediateStopColor,
+      endStopColor: endStopColor ?? this.endStopColor,
+    );
+  }
+
+  @override
+  MapThemeExtension lerp(ThemeExtension<MapThemeExtension>? other, double t) {
+    if (other is! MapThemeExtension) {
+      return this;
+    }
+    return MapThemeExtension(
+      routeColor: Color.lerp(routeColor, other.routeColor, t)!,
+      startStopColor: Color.lerp(startStopColor, other.startStopColor, t)!,
+      intermediateStopColor: Color.lerp(intermediateStopColor, other.intermediateStopColor, t)!,
+      endStopColor: Color.lerp(endStopColor, other.endStopColor, t)!,
+    );
+  }
+}
+
+class DesignSystemThemeExtension extends ThemeExtension<DesignSystemThemeExtension> {
+  final double mobileBreakpoint;
+  final double tabletBreakpoint;
+  final double desktopBreakpoint;
+  final TextStyle cardHeaderStyle;
+  final TextStyle cardBodyStyle;
+  final TextStyle badgeStyle;
+  final double primaryButtonElevation;
+  final double secondaryButtonElevation;
+  final BoxDecoration cardDecoration;
+  final BoxDecoration glassDecoration;
+
+  const DesignSystemThemeExtension({
+    required this.mobileBreakpoint,
+    required this.tabletBreakpoint,
+    required this.desktopBreakpoint,
+    required this.cardHeaderStyle,
+    required this.cardBodyStyle,
+    required this.badgeStyle,
+    required this.primaryButtonElevation,
+    required this.secondaryButtonElevation,
+    required this.cardDecoration,
+    required this.glassDecoration,
+  });
+
+  @override
+  DesignSystemThemeExtension copyWith({
+    double? mobileBreakpoint,
+    double? tabletBreakpoint,
+    double? desktopBreakpoint,
+    TextStyle? cardHeaderStyle,
+    TextStyle? cardBodyStyle,
+    TextStyle? badgeStyle,
+    double? primaryButtonElevation,
+    double? secondaryButtonElevation,
+    BoxDecoration? cardDecoration,
+    BoxDecoration? glassDecoration,
+  }) {
+    return DesignSystemThemeExtension(
+      mobileBreakpoint: mobileBreakpoint ?? this.mobileBreakpoint,
+      tabletBreakpoint: tabletBreakpoint ?? this.tabletBreakpoint,
+      desktopBreakpoint: desktopBreakpoint ?? this.desktopBreakpoint,
+      cardHeaderStyle: cardHeaderStyle ?? this.cardHeaderStyle,
+      cardBodyStyle: cardBodyStyle ?? this.cardBodyStyle,
+      badgeStyle: badgeStyle ?? this.badgeStyle,
+      primaryButtonElevation: primaryButtonElevation ?? this.primaryButtonElevation,
+      secondaryButtonElevation: secondaryButtonElevation ?? this.secondaryButtonElevation,
+      cardDecoration: cardDecoration ?? this.cardDecoration,
+      glassDecoration: glassDecoration ?? this.glassDecoration,
+    );
+  }
+
+  @override
+  DesignSystemThemeExtension lerp(ThemeExtension<DesignSystemThemeExtension>? other, double t) {
+    if (other is! DesignSystemThemeExtension) {
+      return this;
+    }
+    return DesignSystemThemeExtension(
+      mobileBreakpoint: mobileBreakpoint + (other.mobileBreakpoint - mobileBreakpoint) * t,
+      tabletBreakpoint: tabletBreakpoint + (other.tabletBreakpoint - tabletBreakpoint) * t,
+      desktopBreakpoint: desktopBreakpoint + (other.desktopBreakpoint - desktopBreakpoint) * t,
+      cardHeaderStyle: TextStyle.lerp(cardHeaderStyle, other.cardHeaderStyle, t)!,
+      cardBodyStyle: TextStyle.lerp(cardBodyStyle, other.cardBodyStyle, t)!,
+      badgeStyle: TextStyle.lerp(badgeStyle, other.badgeStyle, t)!,
+      primaryButtonElevation: primaryButtonElevation + (other.primaryButtonElevation - primaryButtonElevation) * t,
+      secondaryButtonElevation: secondaryButtonElevation + (other.secondaryButtonElevation - secondaryButtonElevation) * t,
+      cardDecoration: BoxDecoration.lerp(cardDecoration, other.cardDecoration, t)!,
+      glassDecoration: BoxDecoration.lerp(glassDecoration, other.glassDecoration, t)!,
+    );
+  }
+}
+
+extension DesignSystemThemeExtensionContext on BuildContext {
+  DesignSystemThemeExtension get designTheme => Theme.of(this).extension<DesignSystemThemeExtension>()!;
+  bool get isTabletLayout => MediaQuery.of(this).size.width >= designTheme.mobileBreakpoint && MediaQuery.of(this).size.width < designTheme.tabletBreakpoint;
+  bool get isDesktopLayout => MediaQuery.of(this).size.width >= designTheme.tabletBreakpoint;
+  bool get isMobileLayout => MediaQuery.of(this).size.width < designTheme.mobileBreakpoint;
+}
+

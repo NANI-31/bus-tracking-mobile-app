@@ -56,36 +56,50 @@ final allUsersStreamProvider = StreamProvider<List<UserModel>>((ref) {
   });
 });
 
-/// StreamProvider for users filtered by role and college
-final usersByRoleProvider =
-    StreamProvider.family<List<UserModel>, ({UserRole role, String collegeId})>(
-      (ref, arg) {
-        final repo = ref.watch(userRepositoryProvider);
-        final socket = ref.watch(socketServiceProvider);
+class UsersByRoleNotifier extends FamilyAsyncNotifier<List<UserModel>, ({UserRole role, String collegeId})> {
+  @override
+  Future<List<UserModel>> build(({UserRole role, String collegeId}) arg) async {
+    final repo = ref.watch(userRepositoryProvider);
+    final socket = ref.watch(socketServiceProvider);
 
-        return Stream.multi((controller) async {
-          Future<void> fetch() async {
-            try {
-              final allUsers = await repo.getAllUsers();
-              final filteredUsers = allUsers
-                  .where(
-                    (u) => u.role == arg.role && u.collegeId == arg.collegeId,
-                  )
-                  .toList();
-              if (!controller.isClosed) controller.add(filteredUsers);
-            } catch (e) {
-              if (!controller.isClosed) controller.addError(e);
-            }
-          }
+    final sub = socket.userListUpdateStream.listen((_) async {
+      state = const AsyncValue.loading();
+      state = await AsyncValue.guard(() async {
+        final allUsers = await repo.getAllUsers();
+        return allUsers
+            .where((u) => u.role == arg.role && u.collegeId == arg.collegeId)
+            .toList();
+      });
+    });
 
-          await fetch();
-          final subscription = socket.userListUpdateStream.listen(
-            (_) => fetch(),
-          );
-          controller.onCancel = () => subscription.cancel();
-        });
-      },
-    );
+    ref.onDispose(() {
+      sub.cancel();
+    });
+
+    final allUsers = await repo.getAllUsers();
+    return allUsers
+        .where((u) => u.role == arg.role && u.collegeId == arg.collegeId)
+        .toList();
+  }
+
+  Future<void> refresh() async {
+    state = const AsyncValue.loading();
+    state = await AsyncValue.guard(() async {
+      final repo = ref.read(userRepositoryProvider);
+      final allUsers = await repo.getAllUsers();
+      return allUsers
+          .where((u) => u.role == arg.role && u.collegeId == arg.collegeId)
+          .toList();
+    });
+  }
+}
+
+/// AsyncNotifierProvider for users filtered by role and college
+final usersByRoleProvider = AsyncNotifierProvider.family<
+    UsersByRoleNotifier,
+    List<UserModel>,
+    ({UserRole role, String collegeId})
+>(UsersByRoleNotifier.new);
 
 /// StreamProvider for pending approvals in a college
 final pendingApprovalsProvider = StreamProvider.family<List<UserModel>, String>(

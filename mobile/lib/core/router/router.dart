@@ -18,6 +18,7 @@ import 'package:collegebus/features/coordinator/presentation/coordinator_dashboa
 import 'package:collegebus/features/coordinator/presentation/schedule_management_screen.dart';
 import 'package:collegebus/features/college_admin/presentation/college_admin_dashboard.dart';
 import 'package:collegebus/features/super_admin/presentation/super_admin_dashboard.dart';
+import 'package:collegebus/features/super_admin/presentation/screens/college_details_screen.dart';
 import 'package:collegebus/features/user/presentation/screens/profile_screen.dart';
 import 'package:collegebus/features/student/presentation/student_change_password_screen.dart';
 import 'package:collegebus/features/user/presentation/screens/language_selection_screen.dart';
@@ -33,6 +34,7 @@ import 'package:collegebus/features/coordinator/presentation/modules/edit_bus_sc
 import 'package:collegebus/features/coordinator/presentation/modules/edit_driver_screen.dart';
 import 'package:collegebus/features/bus/domain/bus_model.dart';
 import 'package:collegebus/features/user/domain/user_model.dart';
+import 'package:collegebus/features/college/domain/college_model.dart';
 
 final routerProvider = riverpod.Provider<GoRouter>((ref) {
   // Simple notifier to trigger router refresh on auth state changes
@@ -279,6 +281,46 @@ final routerProvider = riverpod.Provider<GoRouter>((ref) {
       GoRoute(
         path: '/super-admin',
         builder: (context, state) => const SuperAdminDashboard(),
+        routes: [
+          GoRoute(
+            path: 'colleges/:id',
+            builder: (context, state) {
+              final collegeId = state.pathParameters['id']!;
+              final college = state.extra as CollegeModel?;
+              return CollegeDetailsScreen(
+                collegeId: collegeId,
+                college: college,
+              );
+            },
+          ),
+          GoRoute(
+            path: 'buses/:busNumber',
+            builder: (context, state) {
+              final busNumber = state.pathParameters['busNumber']!;
+              final bus = state.extra as BusModel?;
+              final isBusEditable = state.uri.queryParameters['editable'] != 'false';
+              return EditBusScreen(
+                busNumber: busNumber,
+                bus: bus,
+                isBusEditable: isBusEditable,
+              );
+            },
+          ),
+          GoRoute(
+            path: 'drivers/:driverId',
+            builder: (context, state) {
+              final driverId = state.pathParameters['driverId']!;
+              final driver = state.extra as UserModel?;
+              return EditDriverScreen(driverId: driverId, driver: driver);
+            },
+          ),
+          GoRoute(
+            path: 'schedules',
+            builder: (context, state) {
+              return const ScheduleManagementScreen();
+            },
+          ),
+        ],
       ),
     ],
   );

@@ -71,15 +71,10 @@ class BusRouteSelectors extends StatelessWidget {
       AppSizes.paddingLarge.heightBox,
       SizedBox(
         width: double.infinity,
-        child: ElevatedButton.icon(
+        child: FilledButton.icon(
           onPressed: canAssign ? onAssign : null,
           icon: const Icon(Icons.directions_bus),
           label: Text(DriverLocalizations.of(context)!.assignBusButton),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Theme.of(context).primaryColor,
-            foregroundColor: Theme.of(context).colorScheme.onPrimary,
-            padding: const EdgeInsets.symmetric(vertical: 16),
-          ),
         ),
       ),
     ]);

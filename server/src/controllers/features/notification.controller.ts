@@ -92,7 +92,7 @@ export const markNotificationAsRead = async (req: Request, res: Response) => {
 
     // Sync across devices via Socket
     try {
-      const { getIO } = require("../../socket");
+      const { getIO } = require("../../socket/index");
       const io = getIO();
       if (notification.receiverId) {
         io.to(notification.receiverId).emit("notification_read", {
@@ -142,7 +142,7 @@ export const markAllNotificationsAsRead = async (
 
     // Sync across devices via Socket
     try {
-      const { getIO } = require("../../socket");
+      const { getIO } = require("../../socket/index");
       const { userId } = req.params;
       getIO().to(userId).emit("notifications_read_all", { userId });
     } catch (err) {
@@ -410,7 +410,7 @@ export const deleteNotification = async (req: Request, res: Response) => {
 
     // 3. SYNC: Emit Socket event
     try {
-      const { getIO } = require("../../socket");
+      const { getIO } = require("../../socket/index");
       const io = getIO();
       if ((isVoice && voiceKey) || groupId) {
         if (collegeId) {

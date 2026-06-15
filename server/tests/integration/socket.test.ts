@@ -9,7 +9,7 @@ import User from "../../src/models/User.model";
 import College from "../../src/models/College.model";
 import { Bus, BusLocation } from "../../src/models/Bus.model";
 import { Sos } from "../../src/models/Sos.model";
-import { stopSocketInterval } from "../../src/socket";
+import { stopSocketInterval } from "../../src/socket/index";
 
 // Increase timeout for MongoDB binary download
 jest.setTimeout(300000);

@@ -20,6 +20,7 @@ import { History } from "@/models/History.model";
 import AuditLog from "@/models/AuditLog.model";
 import Transaction from "@/models/Transaction.model";
 import { BusAssignmentLog } from "@/models/BusAssignmentLog.model";
+import SystemConfig from "@/models/SystemConfig.model";
 
 /**
  * Get storage statistics for Super Admin (MongoDB & Redis)
@@ -115,20 +116,37 @@ export const getCollegeStorageHistory = async (
  */
 export const getSystemStats = async (req: IAuthRequest, res: Response) => {
   try {
-    const [collegeCount, userCount, activeBuses, pendingColleges] =
-      await Promise.all([
-        College.countDocuments(),
-        User.countDocuments(),
-        // Assuming 'running' is the status for active buses
-        User.countDocuments({ role: "driver" }), // Simple proxy for now
-        College.countDocuments({ verified: false }),
-      ]);
+    const [
+      collegeCount,
+      userCount,
+      activeBuses,
+      pendingColleges,
+      activeAlerts,
+      googleApiConfig,
+      maintenanceConfig,
+    ] = await Promise.all([
+      College.countDocuments(),
+      User.countDocuments(),
+      // Assuming 'running' is the status for active buses
+      User.countDocuments({ role: "driver" }), // Simple proxy for now
+      College.countDocuments({ verified: false }),
+      Sos.countDocuments({ status: "ACTIVE" }),
+      SystemConfig.findOne({ key: "googleApiUsageCount" }),
+      SystemConfig.findOne({ key: "maintenanceMode" }),
+    ]);
 
     res.json({
       collegeCount,
       userCount,
       activeBuses,
       pendingColleges,
+      // Frontend expected keys
+      totalColleges: collegeCount,
+      totalUsers: userCount,
+      activeAlerts,
+      // Google API and Maintenance tracking
+      googleApiUsageCount: googleApiConfig ? googleApiConfig.value : 0,
+      maintenanceMode: maintenanceConfig ? maintenanceConfig.value : false,
     });
   } catch (error) {
     res.status(500).json({ message: (error as Error).message });
@@ -164,7 +182,7 @@ export const verifyCollege = async (req: IAuthRequest, res: Response) => {
     const { collegeId } = req.params;
     const college = await College.findByIdAndUpdate(
       collegeId,
-      { verified: true, updatedAt: new Date() },
+      { verified: true, verifiedAt: new Date(), updatedAt: new Date() },
       { returnDocument: 'after' },
     );
 
@@ -200,6 +218,7 @@ export const suspendCollege = async (req: IAuthRequest, res: Response) => {
       collegeId,
       {
         suspended: true,
+        suspendedAt: new Date(),
         suspensionReason: reason,
         updatedAt: new Date(),
       },
@@ -215,6 +234,45 @@ export const suspendCollege = async (req: IAuthRequest, res: Response) => {
     res.status(500).json({ message: (error as Error).message });
   }
 };
+
+/**
+ * Unsuspend (revoke suspension) of a college
+ */
+export const unsuspendCollege = async (req: IAuthRequest, res: Response) => {
+  try {
+    const { collegeId } = req.params;
+
+    const college = await College.findByIdAndUpdate(
+      collegeId,
+      {
+        suspended: false,
+        suspendedAt: null,
+        suspensionReason: null,
+        updatedAt: new Date(),
+      },
+      { returnDocument: 'after' },
+    );
+
+    if (!college) {
+      return res.status(404).json({ message: "College not found" });
+    }
+
+    // Audit Log
+    await AuditService.log({
+      req,
+      action: "COLLEGE_UNSUSPEND",
+      resource: "College",
+      resourceId: collegeId,
+      resourceName: college.name,
+      newState: { suspended: false },
+    });
+
+    res.json(college);
+  } catch (error) {
+    res.status(500).json({ message: (error as Error).message });
+  }
+};
+
 
 /**
  * Wipe out all data for a specific college or all colleges (Super Admin only)

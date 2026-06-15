@@ -24,14 +24,15 @@ import {
   CartesianGrid,
 } from "recharts";
 import { getStorageStats } from "@/features/super-admin/slices/superAdminSlice";
+import GlassmorphicTooltip from "@/components/common/GlassmorphicTooltip";
 
 const MetricRow = ({ label, value, subtext }) => (
-  <div className="flex justify-between items-center py-2 border-b border-slate-50 last:border-0">
-    <span className="text-slate-500 text-sm">{label}</span>
+  <div className="flex justify-between items-center py-2 border-b border-border-theme/40 last:border-0">
+    <span className="text-text-theme-secondary text-sm">{label}</span>
     <div className="text-right">
-      <span className="text-slate-800 font-semibold text-sm">{value}</span>
+      <span className="text-text-theme-primary font-semibold text-sm">{value}</span>
       {subtext && (
-        <p className="text-[10px] text-slate-400 leading-none">{subtext}</p>
+        <p className="text-[10px] text-text-theme-secondary leading-none mt-0.5">{subtext}</p>
       )}
     </div>
   </div>
@@ -57,9 +58,9 @@ const StorageAnalysis = () => {
 
   if (loading && !storageStats) {
     return (
-      <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-8 text-center">
-        <ArrowPathIcon className="w-8 h-8 text-indigo-500 animate-spin mx-auto mb-2" />
-        <p className="text-slate-500 text-sm">Analyzing storage usage...</p>
+      <div className="bg-background-paper rounded-xl shadow-sm border border-border-theme p-8 text-center text-text-theme-primary transition-colors duration-300">
+        <ArrowPathIcon className="w-8 h-8 text-[#1E90FF] animate-spin mx-auto mb-2" />
+        <p className="text-text-theme-secondary text-sm">Analyzing storage usage...</p>
       </div>
     );
   }
@@ -80,7 +81,7 @@ const StorageAnalysis = () => {
           parseSize(mongodb.dataSize) -
           parseSize(mongodb.indexSize),
       ),
-      color: "#c7d2fe",
+      color: "#a5b4fc",
     },
   ];
 
@@ -111,16 +112,16 @@ const StorageAnalysis = () => {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden flex flex-col"
+          className="bg-background-paper rounded-xl shadow-sm border border-border-theme overflow-hidden flex flex-col text-text-theme-primary transition-all duration-300"
         >
-          <div className="bg-[#1E90FF] p-4 flex justify-between items-center text-white">
+          <div className="bg-[#1E90FF] p-4 flex justify-between items-center text-white shrink-0">
             <div className="flex items-center space-x-2">
               <CircleStackIcon className="w-5 h-5" />
               <h2 className="font-bold">MongoDB Analysis</h2>
             </div>
             <button
               onClick={refreshStats}
-              className="p-1 hover:bg-white/20 rounded-full transition-colors"
+              className="p-1 hover:bg-white/20 rounded-full transition-colors cursor-pointer"
               title="Refresh"
             >
               <ArrowPathIcon
@@ -141,19 +142,14 @@ const StorageAnalysis = () => {
                     outerRadius={80}
                     paddingAngle={5}
                     dataKey="value"
+                    stroke="var(--background-paper)"
+                    strokeWidth={2}
                   >
                     {mongoChartData.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={entry.color} />
                     ))}
                   </Pie>
-                  <RechartsTooltip
-                    contentStyle={{
-                      borderRadius: "8px",
-                      border: "none",
-                      boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
-                    }}
-                    formatter={(value) => [`${value.toFixed(2)} MB`, "Size"]}
-                  />
+                  <RechartsTooltip content={<GlassmorphicTooltip formatter={(value) => `${value.toFixed(2)} MB`} />} />
                 </PieChart>
               </ResponsiveContainer>
             </div>
@@ -172,16 +168,16 @@ const StorageAnalysis = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden flex flex-col"
+          className="bg-background-paper rounded-xl shadow-sm border border-border-theme overflow-hidden flex flex-col text-text-theme-primary transition-all duration-300"
         >
-          <div className="bg-rose-600 p-4 flex justify-between items-center text-white">
+          <div className="bg-rose-650 bg-rose-600 p-4 flex justify-between items-center text-white shrink-0">
             <div className="flex items-center space-x-2">
               <ServerIcon className="w-5 h-5" />
               <h2 className="font-bold">Redis Cloud Analysis</h2>
             </div>
             <button
               onClick={refreshStats}
-              className="p-1 hover:bg-white/20 rounded-full transition-colors"
+              className="p-1 hover:bg-white/20 rounded-full transition-colors cursor-pointer"
               title="Refresh"
             >
               <ArrowPathIcon
@@ -199,14 +195,7 @@ const StorageAnalysis = () => {
                 >
                   <XAxis dataKey="name" hide />
                   <YAxis hide />
-                  <RechartsTooltip
-                    cursor={{ fill: "#fff5f5" }}
-                    contentStyle={{
-                      borderRadius: "8px",
-                      border: "none",
-                      boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
-                    }}
-                  />
+                  <RechartsTooltip cursor={{ fill: "var(--border-color)", opacity: 0.15 }} content={<GlassmorphicTooltip formatter={(value) => `${value} MB`} />} />
                   <Legend verticalAlign="top" iconType="circle" />
                   <Bar
                     dataKey="used"
@@ -227,7 +216,7 @@ const StorageAnalysis = () => {
               <MetricRow label="Used Memory" value={redis.usedMemory} />
               <MetricRow label="Peak Memory" value={redis.peakMemory} />
               <MetricRow label="Fragmentation" value={redis.fragmentation} />
-              <div className="mt-4 p-3 bg-slate-50 rounded-lg border border-slate-100 italic text-[11px] text-slate-500 ring-1 ring-slate-200 ring-inset">
+              <div className="mt-4 p-3 bg-background-default border border-border-theme italic text-[11px] text-text-theme-secondary rounded-lg">
                 Real-time memory pressure for Pub/Sub adapter and session cache.
               </div>
             </div>
@@ -239,16 +228,16 @@ const StorageAnalysis = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
-          className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden flex flex-col"
+          className="bg-background-paper rounded-xl shadow-sm border border-border-theme overflow-hidden flex flex-col text-text-theme-primary transition-all duration-300"
         >
-          <div className="bg-[#FF9900] p-4 flex justify-between items-center text-white">
+          <div className="bg-[#FF9900] p-4 flex justify-between items-center text-white shrink-0">
             <div className="flex items-center space-x-2">
               <CloudIcon className="w-5 h-5" />
               <h2 className="font-bold">AWS S3 Assets</h2>
             </div>
             <button
               onClick={refreshStats}
-              className="p-1 hover:bg-white/20 rounded-full transition-colors"
+              className="p-1 hover:bg-white/20 rounded-full transition-colors cursor-pointer"
               title="Refresh"
             >
               <ArrowPathIcon
@@ -260,10 +249,10 @@ const StorageAnalysis = () => {
           <div className="p-5 flex-1 flex flex-col justify-center">
             <div className="flex items-center justify-center mb-6">
               <div className="text-center">
-                <span className="text-4xl font-black text-slate-800">
+                <span className="text-4xl font-black text-text-theme-primary">
                   {storageStats.s3?.totalSize || "0 MB"}
                 </span>
-                <p className="text-slate-500 text-xs mt-1 uppercase tracking-widest font-bold">
+                <p className="text-text-theme-secondary text-[10px] mt-1.5 uppercase tracking-widest font-black">
                   Total Audio Storage
                 </p>
               </div>
@@ -275,7 +264,7 @@ const StorageAnalysis = () => {
                 value={storageStats.s3?.objectCount || 0}
               />
               <MetricRow label="Retention" value="5 Days" />
-              <div className="mt-4 p-3 bg-slate-50 rounded-lg border border-slate-100 italic text-[11px] text-slate-500 ring-1 ring-slate-200 ring-inset">
+              <div className="mt-4 p-3 bg-background-default border border-border-theme italic text-[11px] text-text-theme-secondary rounded-lg">
                 Managed storage for all broadcast and directed voice messages
                 across the platform.
               </div>
@@ -289,11 +278,11 @@ const StorageAnalysis = () => {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.2 }}
-        className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden"
+        className="bg-background-paper rounded-xl shadow-sm border border-border-theme overflow-hidden text-text-theme-primary transition-all duration-300"
       >
-        <div className="p-4 border-b border-slate-100 flex items-center space-x-2">
-          <ChartBarIcon className="w-5 h-5 text-slate-400" />
-          <h2 className="font-bold text-slate-800 uppercase tracking-wider text-xs">
+        <div className="p-4 border-b border-border-theme flex items-center space-x-2 bg-slate-50/50 dark:bg-slate-900/30">
+          <ChartBarIcon className="w-5 h-5 text-text-theme-secondary" />
+          <h2 className="font-bold text-text-theme-primary uppercase tracking-wider text-xs">
             24-Hour Storage Trends
           </h2>
         </div>
@@ -302,31 +291,31 @@ const StorageAnalysis = () => {
             <AreaChart data={trendData}>
               <defs>
                 <linearGradient id="colorMongo" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#1E90FF" stopOpacity={0.1} />
+                  <stop offset="5%" stopColor="#1E90FF" stopOpacity={0.15} />
                   <stop offset="95%" stopColor="#1E90FF" stopOpacity={0} />
                 </linearGradient>
                 <linearGradient id="colorRedis" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#f43f5e" stopOpacity={0.1} />
+                  <stop offset="5%" stopColor="#f43f5e" stopOpacity={0.15} />
                   <stop offset="95%" stopColor="#f43f5e" stopOpacity={0} />
                 </linearGradient>
                 <linearGradient id="colorS3" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#FF9900" stopOpacity={0.1} />
+                  <stop offset="5%" stopColor="#FF9900" stopOpacity={0.15} />
                   <stop offset="95%" stopColor="#FF9900" stopOpacity={0} />
                 </linearGradient>
               </defs>
               <CartesianGrid
                 strokeDasharray="3 3"
                 vertical={false}
-                stroke="#f1f5f9"
+                stroke="var(--border-color)"
               />
               <XAxis
                 dataKey="time"
-                tick={{ fontSize: 10, fill: "#94a3b8" }}
+                tick={{ fontSize: 10, fill: "var(--text-secondary)" }}
                 axisLine={false}
                 tickLine={false}
               />
               <YAxis
-                tick={{ fontSize: 10, fill: "#94a3b8" }}
+                tick={{ fontSize: 10, fill: "var(--text-secondary)" }}
                 axisLine={false}
                 tickLine={false}
                 label={{
@@ -334,16 +323,10 @@ const StorageAnalysis = () => {
                   angle: -90,
                   position: "insideLeft",
                   fontSize: 10,
-                  fill: "#cbd5e1",
+                  fill: "var(--text-secondary)",
                 }}
               />
-              <RechartsTooltip
-                contentStyle={{
-                  borderRadius: "12px",
-                  border: "none",
-                  boxShadow: "0 10px 15px -3px rgb(0 0 0 / 0.1)",
-                }}
-              />
+              <RechartsTooltip content={<GlassmorphicTooltip formatter={(value) => `${value.toFixed(2)} MB`} />} />
               <Legend
                 verticalAlign="top"
                 align="right"

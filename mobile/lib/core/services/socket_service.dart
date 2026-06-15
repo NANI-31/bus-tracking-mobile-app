@@ -44,6 +44,8 @@ class SocketService extends ChangeNotifier {
   Stream<Map<String, dynamic>> get notificationReadAllStream =>
       _notificationReadAllController.stream;
   Stream<String?> get errorStream => _errorController.stream;
+  Stream<Map<String, dynamic>> get newAuditLogStream =>
+      _newAuditLogController.stream;
 
   SocketService() {
     _locationUpdateController =
@@ -65,6 +67,8 @@ class SocketService extends ChangeNotifier {
     _notificationReadAllController =
         StreamController<Map<String, dynamic>>.broadcast();
     _errorController = StreamController<String?>.broadcast();
+    _newAuditLogController =
+        StreamController<Map<String, dynamic>>.broadcast();
   }
 
   late final StreamController<Map<String, dynamic>> _locationUpdateController;
@@ -82,6 +86,7 @@ class SocketService extends ChangeNotifier {
   late final StreamController<Map<String, dynamic>>
   _notificationReadAllController;
   late final StreamController<String?> _errorController;
+  late final StreamController<Map<String, dynamic>> _newAuditLogController;
 
   Future<void> init(String url, {String? token}) async {
     _currentUrl = url;
@@ -126,9 +131,9 @@ class SocketService extends ChangeNotifier {
   /// Proactively ensures the socket is connected and in the correct room.
   /// Called when app resumes from background.
   void ensureConnected() {
-    if (_socket == null || !_isConnected) {
+    if (_socket == null || !_socket!.connected) {
       AppLogger.i(
-        '[SocketService] ensureConnected: Socket disconnected, reconnecting...',
+        '[SocketService] ensureConnected: Socket is null or disconnected, recreating socket...',
       );
       _reconnect();
     } else {
@@ -156,8 +161,7 @@ class SocketService extends ChangeNotifier {
     final options = io.OptionBuilder()
         .setTransports(['websocket', 'polling'])
         .enableAutoConnect()
-        .setReconnectionAttempts(20)
-        .setReconnectionDelay(10000); // 10s wait between retries
+        .setReconnectionDelay(2000); // 2s wait between retries (infinite attempts by default)
 
     if (_token != null) {
       options.setAuth({'token': _token});
@@ -316,6 +320,11 @@ class SocketService extends ChangeNotifier {
       AppLogger.i('[SocketService] Received notifications_read_all: $data');
       _notificationReadAllController.add(Map<String, dynamic>.from(data));
     });
+
+    _socket!.on('new_audit_log', (data) {
+      AppLogger.i('[SocketService] Received new_audit_log: $data');
+      _newAuditLogController.add(Map<String, dynamic>.from(data));
+    });
   }
 
   void joinCollege(String collegeId) {
@@ -448,6 +457,7 @@ class SocketService extends ChangeNotifier {
     _sosResolvedController.close();
     _notificationController.close();
     _errorController.close();
+    _newAuditLogController.close();
     super.dispose();
   }
 }

@@ -16,6 +16,7 @@ router.get(
 router.get("/colleges/:collegeId", SuperAdminController.getCollegeDetails);
 router.put("/colleges/:collegeId/verify", SuperAdminController.verifyCollege);
 router.put("/colleges/:collegeId/suspend", SuperAdminController.suspendCollege);
+router.put("/colleges/:collegeId/unsuspend", SuperAdminController.unsuspendCollege);
 router.delete(
   "/colleges/:collegeId/wipe-data",
   SuperAdminController.wipeCollegeData,

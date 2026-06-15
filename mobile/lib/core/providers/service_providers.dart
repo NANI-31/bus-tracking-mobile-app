@@ -90,15 +90,34 @@ class ThemeNotifier extends Notifier<ThemeState> {
   }
 
   static const String _themeKey = 'is_dark_mode';
+  static const String _mapThemeKey = 'map_theme';
+  static const String _accentKey = 'accent_color';
+
   Future<void> _loadTheme() async {
     final prefs = await SharedPreferences.getInstance();
-    state = state.copyWith(isDarkMode: prefs.getBool(_themeKey) ?? false);
+    state = state.copyWith(
+      isDarkMode: prefs.getBool(_themeKey) ?? false,
+      mapTheme: prefs.getString(_mapThemeKey) ?? 'auto',
+      accentColorValue: prefs.getInt(_accentKey) ?? 0xFF00C6E6,
+    );
   }
 
   Future<void> toggleTheme(bool isDark) async {
     state = state.copyWith(isDarkMode: isDark);
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_themeKey, isDark);
+  }
+
+  Future<void> setMapTheme(String mapTheme) async {
+    state = state.copyWith(mapTheme: mapTheme);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_mapThemeKey, mapTheme);
+  }
+
+  Future<void> setAccentColor(int colorValue) async {
+    state = state.copyWith(accentColorValue: colorValue);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(_accentKey, colorValue);
   }
 }
 
@@ -141,6 +160,9 @@ final localeServiceProvider = NotifierProvider<LocaleNotifier, Locale>(
 
 /// MapStyle provider (async)
 final mapStyleProvider = FutureProvider<String?>((ref) async {
-  final isDarkMode = ref.watch(themeServiceProvider).isDarkMode;
-  return await MapStyleHelper.getStyle(isDarkMode);
+  final themeState = ref.watch(themeServiceProvider);
+  return await MapStyleHelper.getStyleForTheme(
+    themeState.mapTheme,
+    themeState.isDarkMode,
+  );
 });

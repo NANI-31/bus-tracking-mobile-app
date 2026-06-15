@@ -12,6 +12,7 @@ import 'package:collegebus/core/constants/constants.dart';
 import 'package:collegebus/core/data/base_repository.dart';
 import 'package:collegebus/features/auth/data/auth_service.dart';
 import 'package:collegebus/core/providers/repository_providers.dart';
+import 'package:collegebus/features/student/application/map_navigation_provider.dart';
 
 // Repository providers (moved to repository_providers.dart)
 
@@ -209,7 +210,14 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
 
     // Clear Dashboard Preferences
     await PersistenceService.setBottomNavIndex(0);
-    await PersistenceService.removeSelectedBusId();
+    if (currentUser != null) {
+      await PersistenceService.removeSelectedBusId(currentUser.id);
+    } else {
+      await PersistenceService.removeSelectedBusId();
+    }
+
+    // Invalidate map navigation provider to reset state across logins
+    ref.invalidate(mapNavigationProvider);
 
     _premiumExpiryTimer?.cancel();
     state = AsyncValue.data(const AuthState());

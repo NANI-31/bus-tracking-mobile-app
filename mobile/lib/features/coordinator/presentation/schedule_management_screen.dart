@@ -12,6 +12,8 @@ import 'package:collegebus/core/constants/constants.dart';
 import 'package:collegebus/features/college/application/college_provider.dart';
 import 'package:collegebus/features/college/domain/college_model.dart';
 import 'package:collegebus/features/coordinator/presentation/edit_schedule_screen.dart';
+import 'package:collegebus/shared/widgets/api_error_modal.dart';
+import 'package:collegebus/shared/widgets/success_modal.dart';
 
 class ScheduleManagementScreen extends ConsumerStatefulWidget {
   const ScheduleManagementScreen({super.key});
@@ -292,33 +294,19 @@ class _ScheduleManagementScreenState
                                         );
                                         if (!context.mounted) return;
                                         Navigator.of(context).pop();
-                                        ScaffoldMessenger.of(
-                                          context,
-                                        ).showSnackBar(
-                                          SnackBar(
-                                            content: Text(
-                                              '$shift shift timetable created successfully',
-                                            ),
-                                            backgroundColor: Theme.of(
-                                              context,
-                                            ).colorScheme.secondary,
-                                          ),
+                                        SuccessModal.show(
+                                          context: context,
+                                          title: 'Timetable Created',
+                                          message: '$shift shift timetable created successfully',
+                                          primaryActionText: 'OK',
                                         );
                                       } catch (e) {
-                                        ScaffoldMessenger.of(
-                                          context,
-                                        ).showSnackBar(
-                                          SnackBar(
-                                            content: Text(
-                                              e.toString().replaceAll(
+                                        ApiErrorModal.show(
+                                          context: context,
+                                          error: e.toString().replaceAll(
                                                 'Exception: ',
                                                 '',
                                               ),
-                                            ),
-                                            backgroundColor: Theme.of(
-                                              context,
-                                            ).colorScheme.error,
-                                          ),
                                         );
                                       }
                                     }
@@ -709,15 +697,11 @@ class _ScheduleManagementScreenState
                                       ),
                                     );
                                     if (!context.mounted) return;
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
-                                        content: const Text(
-                                          'Timetable deleted successfully',
-                                        ),
-                                        backgroundColor: Theme.of(
-                                          context,
-                                        ).colorScheme.secondary,
-                                      ),
+                                    SuccessModal.show(
+                                      context: context,
+                                      title: 'Timetable Deleted',
+                                      message: 'Timetable deleted successfully',
+                                      primaryActionText: 'OK',
                                     );
                                   }
                                 },

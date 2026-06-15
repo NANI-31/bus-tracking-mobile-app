@@ -14,6 +14,7 @@ import 'package:collegebus/l10n/coordinator/app_localizations.dart'
 import 'bus_tab_components/bus_search_bar.dart';
 import 'bus_tab_components/bus_list_card.dart';
 import 'bus_tab_components/bus_empty_state.dart';
+import 'package:collegebus/shared/widgets/shimmer_skeletons.dart';
 
 class BusNumbersTab extends ConsumerStatefulWidget {
   const BusNumbersTab({super.key});
@@ -116,20 +117,27 @@ class _BusNumbersTabState extends ConsumerState<BusNumbersTab>
 
     if (collegeId == null) return const SizedBox.shrink();
 
-    final busNumbers = ref.watch(busNumbersProvider(collegeId)).value ?? [];
-    final buses =
-        ref.watch(allCollegeBusesStreamProvider(collegeId)).value ?? [];
+    final busNumbersAsync = ref.watch(busNumbersProvider(collegeId));
+    final busesAsync = ref.watch(allCollegeBusesStreamProvider(collegeId));
+    final allDriversAsync = ref.watch(
+      usersByRoleProvider((
+        role: UserRole.driver,
+        collegeId: collegeId,
+      )),
+    );
 
-    final allDrivers =
-        ref
-            .watch(
-              usersByRoleProvider((
-                role: UserRole.driver,
-                collegeId: collegeId,
-              )),
-            )
-            .value ??
-        [];
+    if (busNumbersAsync.isLoading || busesAsync.isLoading || allDriversAsync.isLoading) {
+      return const BusListSkeleton();
+    }
+
+    if (busNumbersAsync.hasError || busesAsync.hasError || allDriversAsync.hasError) {
+      final error = busNumbersAsync.error ?? busesAsync.error ?? allDriversAsync.error;
+      return Center(child: Text('Error loading buses: $error'));
+    }
+
+    final busNumbers = busNumbersAsync.value ?? [];
+    final buses = busesAsync.value ?? [];
+    final allDrivers = allDriversAsync.value ?? [];
 
     final l10n = coord_l10n.CoordinatorLocalizations.of(context)!;
 
@@ -162,19 +170,21 @@ class _BusNumbersTabState extends ConsumerState<BusNumbersTab>
                 ),
 
                 // Tab Bar
-                Container(
+                 Container(
                   margin: const EdgeInsets.symmetric(
                     horizontal: AppSizes.paddingMedium,
                     vertical: 8,
                   ),
                   decoration: BoxDecoration(
-                    color: const Color(
-                      0xFF2C3E50,
-                    ), // Dark background for the capsule
+                    color: Theme.of(context).colorScheme.surfaceContainerHighest, // Semantic color token
                     borderRadius: BorderRadius.circular(50),
+                    border: Border.all(
+                      color: Theme.of(context).dividerColor.withValues(alpha: 0.15),
+                      width: 1,
+                    ),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.1),
+                        color: Colors.black.withValues(alpha: 0.05),
                         blurRadius: 10,
                         offset: const Offset(0, 4),
                       ),
@@ -183,7 +193,7 @@ class _BusNumbersTabState extends ConsumerState<BusNumbersTab>
                   child: TabBar(
                     isScrollable: false,
                     labelColor: Colors.white,
-                    unselectedLabelColor: Colors.grey.shade400,
+                    unselectedLabelColor: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                     indicatorSize: TabBarIndicatorSize.tab,
                     indicator: BoxDecoration(
                       color: AppColors.primary,

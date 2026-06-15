@@ -211,7 +211,7 @@ const AuditLogs = () => {
   return (
     <div className="space-y-6">
       <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
-        <h1 className="text-2xl font-bold text-slate-800">System Logs</h1>
+        <h1 className="text-xl sm:text-2xl font-bold text-slate-800">System Logs</h1>
         <div className="flex flex-wrap items-center gap-3">
           {Object.values(filters).some((v) => v !== "") && (
             <button
@@ -350,7 +350,7 @@ const AuditLogs = () => {
         sx={{
           borderRadius: "16px",
           border: "1px solid #e2e8f0",
-          overflow: "hidden",
+          overflow: "auto",
         }}
       >
         <Table stickyHeader>

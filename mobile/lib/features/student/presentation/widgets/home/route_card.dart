@@ -22,21 +22,27 @@ class RouteCard extends StatelessWidget {
         color: colorScheme.surface,
         borderRadius: BorderRadius.circular(24),
         boxShadow: context.isDarkMode
-            ? []
+            ? [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.2),
+                  blurRadius: 16,
+                  offset: const Offset(0, 8),
+                )
+              ]
             : [
                 BoxShadow(
                   color: Colors.black.withValues(alpha: 0.03),
-                  blurRadius: 20,
-                  offset: const Offset(0, 10),
+                  blurRadius: 24,
+                  offset: const Offset(0, 12),
                 ),
               ],
-        border: context.isDarkMode
-            ? Border.all(
-                color: context.colorScheme.onSurface.withValues(alpha: 0.1),
-              )
-            : null,
+        border: Border.all(
+          color: colorScheme.onSurface.withValues(alpha: context.isDarkMode ? 0.08 : 0.05),
+          width: 1.0,
+        ),
       ),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
@@ -47,47 +53,57 @@ class RouteCard extends StatelessWidget {
                     Text(
                       "CURRENT ROUTE",
                       style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.bold,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w900,
                         letterSpacing: 1.2,
-                        color: colorScheme.onSurface.withValues(alpha: 0.5),
+                        color: colorScheme.onSurface.withValues(alpha: 0.45),
                       ),
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 6),
                     Text(
                       routeName,
                       style: TextStyle(
-                        fontSize: 20,
+                        fontSize: 22,
                         fontWeight: FontWeight.bold,
                         color: colorScheme.onSurface,
+                        letterSpacing: -0.3,
                       ),
                     ),
                   ],
                 ),
               ),
               if (route != null)
-                TextButton(
+                TextButton.icon(
                   onPressed: () => _showFullRouteSheet(context),
-                  child: const Text(
+                  icon: const Icon(Icons.arrow_forward_ios_rounded, size: 10),
+                  label: const Text(
                     "View Full",
                     style: TextStyle(
-                      color: AppColors.primary,
-                      fontWeight: FontWeight.w600,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12,
                     ),
                   ),
+                  style: TextButton.styleFrom(
+                    foregroundColor: AppColors.primary,
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    backgroundColor: AppColors.primary.withValues(alpha: 0.08),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                )
+              else
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: colorScheme.onSurface.withValues(alpha: 0.04),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Icon(
+                    Icons.alt_route_rounded,
+                    color: colorScheme.onSurface.withValues(alpha: 0.4),
+                  ),
                 ),
-              const SizedBox(width: 12),
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: colorScheme.onSurface.withValues(alpha: 0.05),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(
-                  Icons.alt_route_rounded,
-                  color: colorScheme.onSurface.withValues(alpha: 0.5),
-                ),
-              ),
             ],
           ),
 
@@ -113,7 +129,7 @@ class RouteCard extends StatelessWidget {
                   TimelineItem(
                     title: "YOUR STOP",
                     location: userStop!,
-                    subtext: "Assigned Stop",
+                    subtext: "Assigned Boarding Stop",
                     isActive: true,
                     isLast: false,
                   ),
@@ -129,13 +145,27 @@ class RouteCard extends StatelessWidget {
               ],
             )
           else
-            Center(
-              child: Text(
-                "Please select a bus stop in profile to see your route details.",
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontStyle: FontStyle.italic,
-                  color: context.colorScheme.onSurface.withValues(alpha: 0.4),
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              child: Center(
+                child: Column(
+                  children: [
+                    Icon(
+                      Icons.location_off_rounded,
+                      size: 40,
+                      color: colorScheme.onSurface.withValues(alpha: 0.3),
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      "Please select a bus stop in profile to see your route details.",
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: colorScheme.onSurface.withValues(alpha: 0.5),
+                        height: 1.4,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -176,36 +206,34 @@ class RouteCard extends StatelessWidget {
             ),
             const SizedBox(height: 20),
             Expanded(
-              child: SingleChildScrollView(
-                child: Column(
-                  children: [
-                    // Start Point
-                    TimelineItem(
+              child: ListView.builder(
+                padding: EdgeInsets.zero,
+                itemCount: route!.stopPoints.length + 2,
+                itemBuilder: (context, index) {
+                  if (index == 0) {
+                    return TimelineItem(
                       title: "START",
                       location: route!.startPoint.name,
                       isActive: route!.startPoint.name == userStop,
                       isLast: false,
-                    ),
-
-                    // All Intermediate Stops
-                    ...route!.stopPoints.map(
-                      (stop) => TimelineItem(
-                        title: "STOP",
-                        location: stop.name,
-                        isActive: stop.name == userStop,
-                        isLast: false,
-                      ),
-                    ),
-
-                    // End Point
-                    TimelineItem(
+                    );
+                  } else if (index == route!.stopPoints.length + 1) {
+                    return TimelineItem(
                       title: "DESTINATION",
                       location: route!.endPoint.name,
                       isActive: route!.endPoint.name == userStop,
                       isLast: true,
-                    ),
-                  ],
-                ),
+                    );
+                  } else {
+                    final stop = route!.stopPoints[index - 1];
+                    return TimelineItem(
+                      title: "STOP",
+                      location: stop.name,
+                      isActive: stop.name == userStop,
+                      isLast: false,
+                    );
+                  }
+                },
               ),
             ),
           ],

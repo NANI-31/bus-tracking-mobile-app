@@ -2,10 +2,19 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:collegebus/features/bus/domain/bus_model.dart';
-import 'package:collegebus/core/providers/repository_providers.dart';
+import 'package:collegebus/features/route/domain/route_model.dart';
+import 'package:collegebus/features/bus/application/bus_provider.dart';
+import 'package:collegebus/features/auth/application/auth_provider.dart';
 import 'package:collegebus/core/constants/constants.dart';
+import 'package:collegebus/core/services/directions_result.dart';
 import 'package:collegebus/shared/widgets/maps/live_bus_map.dart';
+import 'package:collegebus/shared/widgets/maps/trip_progress_sheet.dart';
+import 'package:collegebus/features/student/application/map_navigation_provider.dart';
 import 'package:velocity_x/velocity_x.dart';
+import 'package:collegebus/shared/widgets/maps/map_skeleton_loader.dart';
+import 'package:collegebus/shared/widgets/maps/map_error_boundary.dart';
+import 'package:collegebus/shared/widgets/glass_card.dart';
+
 
 class StudentMapTab extends ConsumerStatefulWidget {
   final LatLng? currentLocation;
@@ -20,6 +29,12 @@ class StudentMapTab extends ConsumerStatefulWidget {
   final VoidCallback onClearFilters;
   final Function(BusModel?) onBusSelected;
 
+  /// The active route for the selected bus.
+  final RouteModel? activeRoute;
+
+  /// Callback when directions are fetched.
+  final Function(DirectionsResult?)? onDirectionsLoaded;
+
   const StudentMapTab({
     super.key,
     required this.currentLocation,
@@ -33,6 +48,8 @@ class StudentMapTab extends ConsumerStatefulWidget {
     required this.onBusNumberSelected,
     required this.onClearFilters,
     required this.onBusSelected,
+    this.activeRoute,
+    this.onDirectionsLoaded,
   });
 
   @override
@@ -41,11 +58,10 @@ class StudentMapTab extends ConsumerStatefulWidget {
 
 class _StudentMapTabState extends ConsumerState<StudentMapTab>
     with AutomaticKeepAliveClientMixin {
-  GoogleMapController? _mapController;
-  final GlobalKey<LiveBusMapState> _mapStateKey = GlobalKey<LiveBusMapState>();
   final TextEditingController _searchController = TextEditingController();
   bool _isSearchExpanded = false;
   String _searchQuery = '';
+  DirectionsResult? _directionsResult;
 
   @override
   void dispose() {
@@ -54,7 +70,6 @@ class _StudentMapTabState extends ConsumerState<StudentMapTab>
   }
 
   void _onMapCreated(GoogleMapController controller) {
-    _mapController = controller;
     widget.onMapCreated(controller);
   }
 
@@ -65,9 +80,21 @@ class _StudentMapTabState extends ConsumerState<StudentMapTab>
   Widget build(BuildContext context) {
     super.build(context);
 
+    final user = ref.watch(currentUserProvider);
+    final collegeId = user?.collegeId;
+    final Set<String> liveBusIds = {};
+    if (collegeId != null) {
+      final locationsAsync = ref.watch(collegeBusLocationsProvider(collegeId));
+      locationsAsync.whenData((locations) {
+        liveBusIds.addAll(locations.map((loc) => loc.busId));
+      });
+    }
+
     final filteredBuses = widget.allBuses
         .where(
-          (b) => b.busNumber.toLowerCase().contains(_searchQuery.toLowerCase()),
+          (b) => b.busNumber.toLowerCase().contains(_searchQuery.toLowerCase()) &&
+                 (b.status != 'not-running' || liveBusIds.contains(b.id)) &&
+                 b.assignmentStatus != 'unassigned',
         )
         .toList();
 
@@ -76,15 +103,31 @@ class _StudentMapTabState extends ConsumerState<StudentMapTab>
         // Map as bottom layer
         Positioned.fill(
           child: widget.currentLocation != null
-              ? LiveBusMap(
-                  key: _mapStateKey,
-                  buses: widget.buses,
-                  selectedBus: widget.selectedBus,
-                  onMapCreated: _onMapCreated,
-                  onBusTap: (bus) => widget.onBusSelected(bus),
-                  bottomPadding: widget.selectedBus != null ? 100.0 : 0.0,
+              ? MapErrorBoundary(
+                  onRetry: () {
+                    final collegeId = ref.read(currentUserProvider)?.collegeId;
+                    if (collegeId != null) {
+                      ref.invalidate(collegeBusesStreamProvider(collegeId));
+                    }
+                  },
+                  child: LiveBusMap(
+                    buses: widget.buses,
+                    selectedBus: widget.selectedBus,
+                    activeRoute: widget.activeRoute,
+                    onDirectionsLoaded: (result) {
+                      WidgetsBinding.instance.addPostFrameCallback((_) {
+                        if (mounted) {
+                          setState(() => _directionsResult = result);
+                          widget.onDirectionsLoaded?.call(result);
+                        }
+                      });
+                    },
+                    onMapCreated: _onMapCreated,
+                    onBusTap: (bus) => widget.onBusSelected(bus),
+                    bottomPadding: widget.selectedBus != null ? 180.0 : 0.0,
+                  ),
                 )
-              : const Center(child: CircularProgressIndicator()),
+              : const MapSkeletonLoader(),
         ),
 
         // Floating Search Bar & Expanded Results
@@ -95,18 +138,8 @@ class _StudentMapTabState extends ConsumerState<StudentMapTab>
           child: Column(
             children: [
               // Search Bar
-              Container(
-                decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.surface,
-                  borderRadius: BorderRadius.circular(12),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.1),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
+              GlassCard(
+                borderRadius: 12,
                 child: TextField(
                   controller: _searchController,
                   onChanged: (val) {
@@ -148,20 +181,11 @@ class _StudentMapTabState extends ConsumerState<StudentMapTab>
                   constraints: BoxConstraints(
                     maxHeight: MediaQuery.of(context).size.height * 0.4,
                   ),
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.surface,
-                    borderRadius: BorderRadius.circular(12),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.1),
-                        blurRadius: 10,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
+                  child: GlassCard(
+                    borderRadius: 12,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
                       Padding(
                         padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
                         child: Row(
@@ -302,32 +326,24 @@ class _StudentMapTabState extends ConsumerState<StudentMapTab>
                     ],
                   ),
                 ),
+              ),
             ],
           ),
         ),
 
-        // Selected bus info at bottom
-        if (widget.selectedBus != null)
+        // Trip Progress Sheet (Ola/Uber style)
+        if (widget.selectedBus != null && widget.activeRoute != null)
+          _buildTripProgressSheet(),
+
+        // Simple close button if bus selected but no route
+        if (widget.selectedBus != null && widget.activeRoute == null)
           Positioned(
             left: 0,
             right: 0,
             bottom: 0,
             child: GestureDetector(
               onTap: () {
-                _mapStateKey.currentState?.resumeFollowing();
-                if (_mapController != null) {
-                  final repo = ref.read(busRepositoryProvider);
-                  repo.getBusLocation(widget.selectedBus!.id).then((location) {
-                    if (location != null && mounted) {
-                      _mapController!.animateCamera(
-                        CameraUpdate.newLatLngZoom(
-                          location.currentLocation,
-                          17.0,
-                        ),
-                      );
-                    }
-                  });
-                }
+                ref.read(mapNavigationProvider.notifier).setFollowing(true);
               },
               child:
                   VxBox(
@@ -375,6 +391,35 @@ class _StudentMapTabState extends ConsumerState<StudentMapTab>
             ),
           ),
       ],
+    );
+  }
+
+  Widget _buildTripProgressSheet() {
+    // Get live bus location
+    final user = ref.watch(currentUserProvider);
+    final collegeId = user?.collegeId;
+    LatLng? liveBusLocation;
+
+    if (collegeId != null) {
+      final locationsAsync = ref.watch(
+        collegeBusLocationsProvider(collegeId),
+      );
+      locationsAsync.whenData((locations) {
+        final busLoc = locations
+            .where((l) => l.busId == widget.selectedBus!.id)
+            .toList();
+        if (busLoc.isNotEmpty) {
+          liveBusLocation = busLoc.first.currentLocation;
+        }
+      });
+    }
+
+    return TripProgressSheet(
+      route: widget.activeRoute!,
+      directionsResult: _directionsResult,
+      busLocation: liveBusLocation,
+      busNumber: widget.selectedBus!.busNumber,
+      preferredStop: user?.preferredStop,
     );
   }
 }

@@ -4,6 +4,7 @@ import { getCache, setCache, delCache } from "@/utils/cache";
 import { IAuthRequest } from "@/types";
 import logger from "@/utils/logger";
 import { AuditService } from "@/services/AuditService";
+import { DirectionsService } from "@/services/DirectionsService";
 
 const CACHE_TTL = 3600; // 1 hour
 
@@ -21,6 +22,17 @@ export const createRoute = async (req: Request, res: Response) => {
       collegeId,
       createdBy: userId,
     });
+
+    // Pre-calculate directions on route creation
+    try {
+      const directions = await DirectionsService.getDirectionsForRoute(newRoute);
+      if (directions) {
+        newRoute.directions = directions;
+      }
+    } catch (dirErr) {
+      logger.error("[RouteController] Failed to pre-calculate directions on route creation:", dirErr);
+    }
+
     const savedRoute = await newRoute.save();
 
     // Audit Log
@@ -103,29 +115,63 @@ export const updateRoute = async (req: Request, res: Response) => {
       query.collegeId = collegeId;
     }
 
-    const route = await Route.findOneAndUpdate(query, req.body, {
-      returnDocument: 'after',
-    });
+    const route = await Route.findOne(query);
     if (!route) return res.status(404).json({ message: "Route not found" });
+
+    // Enforce name and properties updates
+    if (req.body.routeName) route.routeName = req.body.routeName;
+    if (req.body.routeType) route.routeType = req.body.routeType;
+    if (req.body.isActive !== undefined) route.isActive = req.body.isActive;
+
+    // Apply stops updates and automatically ensure start/end points match
+    if (req.body.stopPoints) {
+      route.stopPoints = req.body.stopPoints;
+      if (req.body.stopPoints.length >= 2) {
+        route.startPoint = {
+          name: req.body.stopPoints[0].name,
+          location: req.body.stopPoints[0].location,
+        };
+        route.endPoint = {
+          name: route.stopPoints[route.stopPoints.length - 1].name,
+          location: route.stopPoints[route.stopPoints.length - 1].location,
+        };
+      }
+    }
+
+    // Update directions caching on route update
+    try {
+      const directions = await DirectionsService.getDirectionsForRoute(route);
+      if (directions) {
+        route.directions = directions;
+        await setCache(`directions:route:${route._id}`, directions, 30 * 24 * 3600); // 30 days
+      } else {
+        route.directions = undefined;
+        await delCache(`directions:route:${route._id}`);
+      }
+    } catch (dirErr) {
+      logger.error("[RouteController] Failed to update directions on route update:", dirErr);
+    }
+
+    const savedRoute = await route.save();
 
     // Audit Log
     await AuditService.log({
       req: authReq,
       action: "ROUTE_UPDATE",
       resource: "Route",
-      resourceId: route._id.toString(),
-      resourceName: route.routeName,
-      newState: route.toObject(),
+      resourceId: savedRoute._id.toString(),
+      resourceName: savedRoute.routeName,
+      newState: savedRoute.toObject(),
     });
 
     // Invalidate cache
-    await delCache(`routes:${route.collegeId}`);
+    await delCache(`routes:${savedRoute.collegeId}`);
 
     // Broadcast update to college room
     const io = req.app.get("io");
-    io.to(route.collegeId.toString()).emit("route_list_updated");
+    io.to(savedRoute.collegeId.toString()).emit("route_list_updated");
 
-    res.status(200).json(route);
+    res.status(200).json(savedRoute);
   } catch (error) {
     res.status(500).json({ message: (error as Error).message });
   }
@@ -162,6 +208,47 @@ export const deleteRoute = async (req: Request, res: Response) => {
     io.to(route.collegeId.toString()).emit("route_list_updated");
 
     res.status(200).json({ message: "Route deleted successfully" });
+  } catch (error) {
+    res.status(500).json({ message: (error as Error).message });
+  }
+};
+
+export const getRouteDirections = async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const cacheKey = `directions:route:${id}`;
+
+  try {
+    // 1. Check Redis cache first
+    const cachedDirections = await getCache<any>(cacheKey);
+    if (cachedDirections) {
+      return res.status(200).json(cachedDirections);
+    }
+
+    // 2. Fetch Route from MongoDB
+    const route = await Route.findById(id);
+    if (!route) {
+      return res.status(404).json({ message: "Route not found" });
+    }
+
+    // 3. If directions exist in MongoDB, cache in Redis and return
+    if (route.directions && route.directions.polylinePoints && route.directions.polylinePoints.length > 0) {
+      await setCache(cacheKey, route.directions, 30 * 24 * 3600); // 30 days
+      return res.status(200).json(route.directions);
+    }
+
+    // 4. Otherwise calculate directions via Google API
+    const directions = await DirectionsService.getDirectionsForRoute(route);
+    if (!directions) {
+      return res.status(400).json({ message: "Failed to generate directions for this route" });
+    }
+
+    // 5. Save to MongoDB & Redis
+    route.directions = directions;
+    await route.save();
+    await setCache(cacheKey, directions, 30 * 24 * 3600); // 30 days
+
+    logger.info(`[RouteController] Generated & cached directions for route ${id}`);
+    res.status(200).json(directions);
   } catch (error) {
     res.status(500).json({ message: (error as Error).message });
   }

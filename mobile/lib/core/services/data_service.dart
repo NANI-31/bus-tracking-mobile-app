@@ -192,10 +192,25 @@ class DataService extends ChangeNotifier {
   Future<void> updateUser(String userId, Map<String, dynamic> data) =>
       _userService.updateUser(userId, data);
 
-  Stream<List<UserModel>> getUsersByRole(UserRole role, String collegeId) =>
-      _ref.watch(
-        usersByRoleProvider((role: role, collegeId: collegeId)).stream,
-      );
+  Stream<List<UserModel>> getUsersByRole(UserRole role, String collegeId) {
+    final controller = StreamController<List<UserModel>>();
+    final arg = (role: role, collegeId: collegeId);
+    final subscription = _ref.listen<AsyncValue<List<UserModel>>>(
+      usersByRoleProvider(arg),
+      (previous, next) {
+        if (next.hasValue && !controller.isClosed) {
+          controller.add(next.value!);
+        } else if (next.hasError && !controller.isClosed) {
+          controller.addError(next.error!, next.stackTrace);
+        }
+      },
+      fireImmediately: true,
+    );
+    controller.onCancel = () {
+      subscription.close();
+    };
+    return controller.stream;
+  }
 
   Stream<List<UserModel>> getAllUsers() =>
       _ref.watch(allUsersStreamProvider.stream);
@@ -235,7 +250,27 @@ class DataService extends ChangeNotifier {
   Stream<List<RouteModel>> getRoutesByCollege(
     String collegeId, {
     bool forceRefresh = false,
-  }) => _ref.watch(collegeRoutesProvider(collegeId).stream);
+  }) {
+    if (forceRefresh) {
+      _ref.read(collegeRoutesProvider(collegeId).notifier).refresh();
+    }
+    final controller = StreamController<List<RouteModel>>();
+    final subscription = _ref.listen<AsyncValue<List<RouteModel>>>(
+      collegeRoutesProvider(collegeId),
+      (previous, next) {
+        if (next.hasValue && !controller.isClosed) {
+          controller.add(next.value!);
+        } else if (next.hasError && !controller.isClosed) {
+          controller.addError(next.error!, next.stackTrace);
+        }
+      },
+      fireImmediately: true,
+    );
+    controller.onCancel = () {
+      subscription.close();
+    };
+    return controller.stream;
+  }
 
   Future<void> deleteRoute(String routeId) =>
       _routeService.deleteRoute(routeId);

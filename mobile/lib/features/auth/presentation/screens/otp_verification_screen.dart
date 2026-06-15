@@ -82,11 +82,11 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
       if (!mounted) return;
 
       if (result['success']) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('OTP sent successfully'),
-            backgroundColor: AppColors.success,
-          ),
+        SuccessModal.show(
+          context: context,
+          title: 'OTP Resent',
+          message: 'OTP sent successfully',
+          primaryActionText: 'OK',
         );
         setState(() {
           _timerKey++;

@@ -15,6 +15,8 @@ import {
   fetchAdvancedAnalytics,
   wipeCollegeData,
   createCollege,
+  unsuspendCollege,
+  suspendCollege,
 } from "../api/superAdminApi";
 
 // Thunks
@@ -52,6 +54,30 @@ export const verifyCollegeAction = createAsyncThunk(
   async (collegeId) => {
     const response = await verifyCollege(collegeId);
     return response; // Updated college object
+  },
+);
+
+export const unsuspendCollegeAction = createAsyncThunk(
+  "superAdmin/unsuspendCollege",
+  async (collegeId, { rejectWithValue }) => {
+    try {
+      const response = await unsuspendCollege(collegeId);
+      return response;
+    } catch (error) {
+      return rejectWithValue(error);
+    }
+  },
+);
+
+export const suspendCollegeAction = createAsyncThunk(
+  "superAdmin/suspendCollege",
+  async ({ collegeId, reason }, { rejectWithValue }) => {
+    try {
+      const response = await suspendCollege(collegeId, reason);
+      return response;
+    } catch (error) {
+      return rejectWithValue(error);
+    }
   },
 );
 
@@ -228,6 +254,24 @@ const superAdminSlice = createSlice({
           : action.payload.data || [];
       })
       .addCase(verifyCollegeAction.fulfilled, (state, action) => {
+        const index = state.colleges.findIndex(
+          (c) => c._id === action.payload._id,
+        );
+        if (index !== -1) state.colleges[index] = action.payload;
+        if (state.selectedCollege?._id === action.payload._id) {
+          state.selectedCollege = action.payload;
+        }
+      })
+      .addCase(unsuspendCollegeAction.fulfilled, (state, action) => {
+        const index = state.colleges.findIndex(
+          (c) => c._id === action.payload._id,
+        );
+        if (index !== -1) state.colleges[index] = action.payload;
+        if (state.selectedCollege?._id === action.payload._id) {
+          state.selectedCollege = action.payload;
+        }
+      })
+      .addCase(suspendCollegeAction.fulfilled, (state, action) => {
         const index = state.colleges.findIndex(
           (c) => c._id === action.payload._id,
         );

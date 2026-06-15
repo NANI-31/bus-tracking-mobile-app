@@ -17,6 +17,7 @@ import 'package:collegebus/features/notification/application/notification_provid
 import 'package:collegebus/features/notification/services/fcm_service.dart';
 
 // Import the new modules
+import 'package:collegebus/features/student/application/map_navigation_provider.dart';
 import 'tabs/student_map_tab.dart';
 import 'student_notifications_screen.dart';
 import 'package:collegebus/features/user/presentation/screens/profile_screen.dart';
@@ -35,11 +36,7 @@ class _StudentDashboardState extends ConsumerState<StudentDashboard>
     with SingleTickerProviderStateMixin, WidgetsBindingObserver {
   GoogleMapController? _mapController;
 
-  BusModel? _selectedBus;
   LatLng? _currentLocation;
-  String? _selectedStop;
-  String? _selectedBusNumber;
-  String? _selectedRouteType;
   int _bottomNavIndex = 0;
   Timer? _bannerDelayTimer;
   bool _showDisconnectedBanner = false;
@@ -134,11 +131,24 @@ class _StudentDashboardState extends ConsumerState<StudentDashboard>
     final location = await locationService.getCurrentLocation();
     if (location != null && mounted) {
       setState(() => _currentLocation = location);
+      ref.read(mapNavigationProvider.notifier).updateUserLocation(location);
     }
   }
 
   void _selectBus(BusModel bus) {
-    if (mounted) setState(() => _selectedBus = bus);
+    final user = ref.read(currentUserProvider);
+    final collegeId = user?.collegeId;
+    RouteModel? activeRoute;
+    if (collegeId != null) {
+      final routes = ref.read(collegeRoutesProvider(collegeId)).value ?? [];
+      final targetRouteId = bus.routeId ?? bus.defaultRouteId;
+      activeRoute = routes.cast<RouteModel?>().firstWhere(
+            (r) => r!.id == targetRouteId,
+            orElse: () => null,
+          );
+    }
+    ref.read(mapNavigationProvider.notifier).selectBus(bus, activeRoute);
+
     final repo = ref.read(busRepositoryProvider);
     repo.getBusLocation(bus.id).then((location) {
       if (location != null && _mapController != null) {
@@ -152,36 +162,33 @@ class _StudentDashboardState extends ConsumerState<StudentDashboard>
   }
 
   void _onBusNumberSelected(String? busNumber) {
-    if (mounted) {
-      setState(() {
-        _selectedBusNumber = busNumber;
-      });
-    }
+    ref.read(mapNavigationProvider.notifier).updateFilters(
+      selectedBusNumber: () => busNumber,
+    );
   }
 
   void _onRouteTypeSelected(String? routeType) {
-    if (mounted) {
-      setState(() {
-        _selectedRouteType = routeType;
-      });
-    }
+    ref.read(mapNavigationProvider.notifier).updateFilters(
+      selectedRouteType: () => routeType,
+    );
   }
 
   void _clearFilters() {
-    if (mounted) {
-      setState(() {
-        _selectedStop = null;
-        _selectedBusNumber = null;
-        _selectedRouteType = null;
-        _selectedBus = null;
-      });
-    }
+    ref.read(mapNavigationProvider.notifier).clearFilters();
   }
 
   @override
   Widget build(BuildContext context) {
     final user = ref.watch(currentUserProvider);
     final collegeId = user?.collegeId;
+    
+    // Selectively watch only the filter/selection parameters from mapNavigationProvider
+    // to avoid rebuilding the entire dashboard on every continuous camera/zoom update.
+    final selectedBus = ref.watch(mapNavigationProvider.select((s) => s.selectedBus));
+    final selectedRouteType = ref.watch(mapNavigationProvider.select((s) => s.selectedRouteType));
+    final selectedStop = ref.watch(mapNavigationProvider.select((s) => s.selectedStop));
+    final selectedBusNumber = ref.watch(mapNavigationProvider.select((s) => s.selectedBusNumber));
+    final activeRoute = ref.watch(mapNavigationProvider.select((s) => s.activeRoute));
 
     // Initialize proximity alerts listener
     ref.listen(proximityAlertProvider, (previous, next) {});
@@ -194,14 +201,47 @@ class _StudentDashboardState extends ConsumerState<StudentDashboard>
     final routesAsync = collegeId != null
         ? ref.watch(collegeRoutesProvider(collegeId))
         : const AsyncValue<List<RouteModel>>.data([]);
+    final liveLocationsAsync = collegeId != null
+        ? ref.watch(collegeBusLocationsProvider(collegeId))
+        : const AsyncValue<List<BusLocationModel>>.data([]);
+    final liveLocations = liveLocationsAsync.value ?? [];
+    final liveBusIds = liveLocations.map((loc) => loc.busId).toSet();
 
     final allBusesRaw = busesAsync.value ?? [];
     final routes = routesAsync.value ?? [];
 
+    // Restore saved bus selection when buses list becomes available
+    final savedBusId = user != null ? PersistenceService.getSelectedBusId(user.id) : null;
+    if (savedBusId != null && selectedBus == null && busesAsync.hasValue) {
+      BusModel? match;
+      for (final b in allBusesRaw) {
+        if (b.id == savedBusId) {
+          match = b;
+          break;
+        }
+      }
+      if (match != null) {
+        final targetRouteId = match.routeId ?? match.defaultRouteId;
+        final activeRoute = targetRouteId != null
+            ? routes.cast<RouteModel?>().firstWhere(
+                  (r) => r!.id == targetRouteId,
+                  orElse: () => null,
+                )
+            : null;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          ref.read(mapNavigationProvider.notifier).selectBus(match, activeRoute);
+        });
+      }
+    }
+
     // Set default stop from preference if not set
     final preferredStop = user?.preferredStop;
-    if (_selectedStop == null && preferredStop != null) {
-      _selectedStop = preferredStop;
+    if (selectedStop == null && preferredStop != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        ref.read(mapNavigationProvider.notifier).updateFilters(
+          selectedStop: () => preferredStop,
+        );
+      });
     }
 
     // Compute filter options
@@ -228,10 +268,11 @@ class _StudentDashboardState extends ConsumerState<StudentDashboard>
     }
     // Apply filters
     var filteredBuses = allBusesRaw.where((bus) {
-      return bus.status != 'not-running' && bus.assignmentStatus == 'accepted';
+      final isLive = bus.status != 'not-running' || liveBusIds.contains(bus.id);
+      return isLive && bus.assignmentStatus != 'unassigned';
     }).toList();
 
-    if (_selectedRouteType != null) {
+    if (selectedRouteType != null) {
       filteredBuses = filteredBuses.where((bus) {
         final route = routes.firstWhere(
           (r) => r.id == bus.routeId,
@@ -248,10 +289,10 @@ class _StudentDashboardState extends ConsumerState<StudentDashboard>
             createdAt: DateTime.now(),
           ),
         );
-        return route.routeType == _selectedRouteType;
+        return route.routeType == selectedRouteType;
       }).toList();
     }
-    if (_selectedStop != null) {
+    if (selectedStop != null) {
       filteredBuses = filteredBuses.where((bus) {
         final route = routes.firstWhere(
           (r) => r.id == bus.routeId,
@@ -268,14 +309,14 @@ class _StudentDashboardState extends ConsumerState<StudentDashboard>
             createdAt: DateTime.now(),
           ),
         );
-        return route.startPoint.name == _selectedStop ||
-            route.endPoint.name == _selectedStop ||
-            route.stopPoints.any((s) => s.name == _selectedStop);
+        return route.startPoint.name == selectedStop ||
+            route.endPoint.name == selectedStop ||
+            route.stopPoints.any((s) => s.name == selectedStop);
       }).toList();
     }
-    if (_selectedBusNumber != null) {
+    if (selectedBusNumber != null) {
       filteredBuses = filteredBuses
-          .where((bus) => bus.busNumber == _selectedBusNumber)
+          .where((bus) => bus.busNumber == selectedBusNumber)
           .toList();
     }
 
@@ -284,7 +325,7 @@ class _StudentDashboardState extends ConsumerState<StudentDashboard>
       drawer: null,
       body: Stack(
         children: [
-          IndexedStack(
+          AnimatedIndexedStack(
             index: _bottomNavIndex,
             children: [
               StudentHomeScreen(
@@ -293,9 +334,9 @@ class _StudentDashboardState extends ConsumerState<StudentDashboard>
               ),
               StudentMapTab(
                 currentLocation: _currentLocation,
-                buses: _selectedBus != null ? [_selectedBus!] : [],
-                selectedBus: _selectedBus,
-                selectedRouteType: _selectedRouteType,
+                buses: selectedBus != null ? [selectedBus] : filteredBuses,
+                selectedBus: selectedBus,
+                selectedRouteType: selectedRouteType,
                 allBuses: allBusesRaw,
                 filteredBusesCount: filteredBuses.length,
                 onMapCreated: (controller) => _mapController = controller,
@@ -303,8 +344,18 @@ class _StudentDashboardState extends ConsumerState<StudentDashboard>
                 onBusNumberSelected: _onBusNumberSelected,
                 onClearFilters: _clearFilters,
                 onBusSelected: (bus) {
-                  if (mounted) setState(() => _selectedBus = bus);
+                  RouteModel? activeRoute;
+                  if (bus != null && collegeId != null) {
+                    final routes = ref.read(collegeRoutesProvider(collegeId)).value ?? [];
+                    final targetRouteId = bus.routeId ?? bus.defaultRouteId;
+                    activeRoute = routes.cast<RouteModel?>().firstWhere(
+                          (r) => r!.id == targetRouteId,
+                          orElse: () => null,
+                        );
+                  }
+                  ref.read(mapNavigationProvider.notifier).selectBus(bus, activeRoute);
                 },
+                activeRoute: activeRoute,
               ),
               BusScheduleScreen(
                 isTab: true,
@@ -447,6 +498,109 @@ class _StudentDashboardState extends ConsumerState<StudentDashboard>
     if (_bottomNavIndex == 3) return Colors.orange.shade400;
     if (_bottomNavIndex == 4) return Colors.purple.shade400;
     return Theme.of(context).colorScheme.primary;
+  }
+}
+
+class AnimatedIndexedStack extends StatefulWidget {
+  final int index;
+  final List<Widget> children;
+  final Duration duration;
+
+  const AnimatedIndexedStack({
+    super.key,
+    required this.index,
+    required this.children,
+    this.duration = const Duration(milliseconds: 500),
+  });
+
+  @override
+  State<AnimatedIndexedStack> createState() => _AnimatedIndexedStackState();
+}
+
+class _AnimatedIndexedStackState extends State<AnimatedIndexedStack>
+    with TickerProviderStateMixin {
+  late List<AnimationController> _controllers;
+  late List<Animation<double>> _animations;
+  // Track which tab indexes have been visited at least once.
+  // On revisit, we skip the slide-in animation so the tab appears
+  // immediately without looking like a fake loading state.
+  late Set<int> _visitedIndexes;
+
+  @override
+  void initState() {
+    super.initState();
+    _visitedIndexes = {widget.index}; // current tab is already "visited"
+    _controllers = List.generate(
+      widget.children.length,
+      (i) => AnimationController(
+        vsync: this,
+        duration: widget.duration,
+      ),
+    );
+
+    _animations = _controllers.map((controller) {
+      return CurvedAnimation(
+        parent: controller,
+        curve: const Cubic(0.34, 1.56, 0.64, 1.0), // Spring overshoot curve
+      );
+    }).toList();
+
+    _controllers[widget.index].value = 1.0;
+  }
+
+  @override
+  void didUpdateWidget(AnimatedIndexedStack oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.index != widget.index) {
+      _controllers[oldWidget.index].reverse();
+      final isRevisit = _visitedIndexes.contains(widget.index);
+      if (isRevisit) {
+        // Jump straight to the final value — no entrance animation on revisit
+        _controllers[widget.index].value = 1.0;
+      } else {
+        _visitedIndexes.add(widget.index);
+        _controllers[widget.index].forward();
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    for (var controller in _controllers) {
+      controller.dispose();
+    }
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      children: List.generate(widget.children.length, (i) {
+        return AnimatedBuilder(
+          animation: _animations[i],
+          builder: (context, child) {
+            final val = _animations[i].value;
+            if (val == 0.0 && widget.index != i) {
+              return const SizedBox.shrink();
+            }
+            return IgnorePointer(
+              ignoring: widget.index != i,
+              child: Opacity(
+                opacity: val.clamp(0.0, 1.0),
+                child: Transform.scale(
+                  scale: 0.95 + (0.05 * val),
+                  child: Transform.translate(
+                    offset: Offset(0.0, 30.0 * (1.0 - val)),
+                    child: child,
+                  ),
+                ),
+              ),
+            );
+          },
+          child: widget.children[i],
+        );
+      }),
+    );
   }
 }
 

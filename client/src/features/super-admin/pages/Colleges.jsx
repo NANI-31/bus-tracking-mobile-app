@@ -15,6 +15,8 @@ import {
 import {
   getColleges,
   verifyCollegeAction,
+  unsuspendCollegeAction,
+  suspendCollegeAction,
   toggleManualPremiumAction,
   wipeCollegeDataAction,
   createCollegeAction,
@@ -30,28 +32,51 @@ const Colleges = () => {
   const [search, setSearch] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [createLoading, setCreateLoading] = useState(false);
+  const [expandedCardId, setExpandedCardId] = useState(null);
 
   useEffect(() => {
     dispatch(getColleges());
   }, [dispatch]);
 
   const filteredColleges = colleges.filter((college) => {
-    const matchesFilter = filter === "all" || college.status === filter;
+    const collegeStatus = college.suspended
+      ? "suspended"
+      : college.verified
+      ? "verified"
+      : "pending";
+    const matchesFilter = filter === "all" || collegeStatus === filter;
     const matchesSearch =
       college.name.toLowerCase().includes(search.toLowerCase()) ||
-      college.email.toLowerCase().includes(search.toLowerCase());
+      (college.email || "").toLowerCase().includes(search.toLowerCase());
     return matchesFilter && matchesSearch;
   });
 
   const handleVerify = (collegeId) => {
     if (window.confirm("Are you sure you want to verify this college?")) {
-      dispatch(verifyCollegeAction(collegeId));
+      dispatch(verifyCollegeAction(collegeId))
+        .unwrap()
+        .then(() => toast.success("College verified successfully"))
+        .catch((err) => toast.error("Failed to verify college: " + (err.message || err)));
     }
   };
 
-  // Placeholder for suspend logic as backend implementation might vary
   const handleSuspend = (collegeId) => {
-    alert("Suspend functionality to be connected to backend.");
+    const reason = window.prompt("Enter the reason for suspension:");
+    if (reason !== null && reason.trim() !== "") {
+      dispatch(suspendCollegeAction({ collegeId, reason: reason.trim() }))
+        .unwrap()
+        .then(() => toast.success("College suspended successfully"))
+        .catch((err) => toast.error("Failed to suspend college: " + (err.message || err)));
+    }
+  };
+
+  const handleUnsuspend = (collegeId) => {
+    if (window.confirm("Are you sure you want to unsuspend this college?")) {
+      dispatch(unsuspendCollegeAction(collegeId))
+        .unwrap()
+        .then(() => toast.success("College unsuspended successfully"))
+        .catch((err) => toast.error("Failed to unsuspend college: " + (err.message || err)));
+    }
   };
 
   const handleToggleManualPremium = (collegeId, currentStatus) => {
@@ -103,181 +128,327 @@ const Colleges = () => {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
-        <h1 className="text-2xl font-bold text-slate-800 shrink-0">
-          College Management
-        </h1>
-        <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto">
-          <div className="relative flex-1 min-w-[200px] max-w-full md:max-w-xs">
-            <MagnifyingGlassIcon className="w-5 h-5 absolute left-3 top-2.5 text-slate-400" />
-            <input
-              type="text"
-              placeholder="Search colleges..."
-              className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1E90FF] bg-white text-sm"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
-          </div>
+    <div className="space-y-6 sm:space-y-8 text-text-theme-primary">
+      {/* Page Header */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div>
+          <h1 className="text-scale-h1 font-black tracking-tight text-text-theme-primary">
+            College Management
+          </h1>
+          <p className="text-text-theme-secondary text-xs sm:text-sm mt-1">
+            Manage registered institutions, verify applications, configure premium billing, or perform maintenance wipes.
+          </p>
+        </div>
+      </div>
+
+      {/* Search and Filters Card */}
+      <div className="bg-background-paper border border-border-theme rounded-3xl p-4 sm:p-6 shadow-sm flex flex-col md:flex-row items-stretch md:items-center gap-4">
+        {/* Search Input */}
+        <div className="relative flex-1">
+          <MagnifyingGlassIcon className="w-5 h-5 absolute left-4 top-3 text-text-theme-secondary/55" />
+          <input
+            type="text"
+            placeholder="Search colleges by name or email..."
+            className="w-full pl-11 pr-4 py-2.5 bg-background-default border border-border-theme rounded-2xl focus:outline-none focus:ring-2 focus:ring-[#1E90FF] focus:border-transparent text-text-theme-primary placeholder-text-theme-secondary/45 text-sm transition-all duration-200"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </div>
+
+        {/* Filters and Actions */}
+        <div className="flex flex-wrap items-center gap-3">
           <select
-            className="flex-1 md:flex-none border border-slate-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[#1E90FF] bg-white text-sm min-w-[120px]"
+            className="flex-1 md:flex-none bg-background-default border border-border-theme text-text-theme-primary rounded-2xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#1E90FF] text-sm min-w-[140px] cursor-pointer transition-all duration-200"
             value={filter}
             onChange={(e) => setFilter(e.target.value)}
           >
-            <option value="all">All Status</option>
+            <option value="all">All Statuses</option>
             <option value="pending">Pending</option>
             <option value="verified">Verified</option>
             <option value="suspended">Suspended</option>
           </select>
-          <button
+
+          <motion.button
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
             onClick={() => setIsModalOpen(true)}
-            className="flex items-center justify-center px-4 py-2 bg-[#1E90FF] text-white rounded-lg hover:bg-[#1E90FF]/90 transition-all text-sm font-bold shadow-sm shrink-0"
+            className="flex items-center justify-center px-5 py-2.5 bg-[#1E90FF] text-white rounded-2xl hover:bg-[#1E90FF]/90 transition-all text-sm font-bold shadow-md shadow-blue-500/10 cursor-pointer shrink-0"
           >
-            <PlusIcon className="w-5 h-5 md:mr-2" />
-            <span className="hidden md:inline">Add College</span>
-          </button>
-          <button
+            <PlusIcon className="w-5 h-5 mr-2 shrink-0" />
+            <span>Add College</span>
+          </motion.button>
+
+          <motion.button
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
             onClick={() => handleWipe({ _id: "all", name: "ALL COLLEGES" })}
-            className="flex items-center justify-center px-4 py-2 bg-red-50 text-red-600 border border-red-200 rounded-lg hover:bg-red-600 hover:text-white transition-all text-sm font-bold shadow-sm shrink-0"
+            className="flex items-center justify-center px-5 py-2.5 bg-rose-500/10 hover:bg-rose-600 text-rose-500 hover:text-white border border-rose-500/20 rounded-2xl transition-all text-sm font-bold shadow-sm cursor-pointer shrink-0"
           >
-            <TrashIcon className="w-5 h-5 md:mr-2" />
-            <span className="hidden md:inline">Wipe All Data</span>
-          </button>
+            <TrashIcon className="w-5 h-5 mr-2 shrink-0" />
+            <span>Wipe All Data</span>
+          </motion.button>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <AnimatePresence>
-          {filteredColleges.map((college) => (
-            <motion.div
-              key={college._id}
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              layout
-              className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 flex flex-col"
-            >
-              <div className="flex justify-between items-start mb-4 gap-4">
-                <div className="flex items-center space-x-3 min-w-0 flex-1">
-                  <div className="shrink-0 p-3 bg-indigo-50 rounded-lg">
-                    <BuildingLibraryIcon className="w-8 h-8 text-[#1E90FF]" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <h3
-                      className="text-lg font-bold text-slate-800 line-clamp-2 cursor-pointer hover:text-[#1E90FF] transition-colors"
-                      onClick={() =>
-                        navigate(`/super-admin/colleges/${college._id}`)
-                      }
-                      title={college.name}
-                    >
-                      {college.name}
-                    </h3>
-                    <p
-                      className="text-sm text-slate-500 truncate"
-                      title={college.email}
-                    >
-                      {college.email}
-                    </p>
-                  </div>
-                </div>
-                <div className="shrink-0 pt-1">
-                  {college.status === "verified" ? (
-                    <span className="bg-emerald-100 text-emerald-800 text-[10px] uppercase tracking-wider px-2 py-1 rounded-md font-bold border border-emerald-200">
-                      Verified
-                    </span>
-                  ) : college.status === "suspended" ? (
-                    <span className="bg-red-100 text-red-800 text-[10px] uppercase tracking-wider px-2 py-1 rounded-md font-bold border border-red-200">
-                      Suspended
-                    </span>
-                  ) : (
-                    <span className="bg-amber-100 text-amber-800 text-[10px] uppercase tracking-wider px-2 py-1 rounded-md font-bold border border-amber-200">
-                      Pending
-                    </span>
-                  )}
-                </div>
-              </div>
-
-              <div className="space-y-2 mb-6 flex-1">
-                <div className="flex justify-between text-sm">
-                  <span className="text-slate-500">Address</span>
-                  <span className="font-medium text-right line-clamp-1">
-                    {college.address || "N/A"}
-                  </span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-slate-500">Admin</span>
-                  <span className="font-medium text-right">
-                    {college.adminName || "Pending"}
-                  </span>
-                </div>
-                <div className="flex justify-between items-center pt-2">
-                  <span className="text-sm text-slate-500 flex items-center">
-                    <CurrencyDollarIcon className="w-4 h-4 mr-1" />
-                    Manual Premium
-                  </span>
-                  <button
-                    onClick={() =>
-                      handleToggleManualPremium(
-                        college._id,
-                        college.allowManualPremium,
-                      )
-                    }
-                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[#1E90FF] focus:ring-offset-2 ${
-                      college.allowManualPremium
-                        ? "bg-[#1E90FF]"
-                        : "bg-slate-200"
-                    }`}
-                  >
-                    <span
-                      className={`${
-                        college.allowManualPremium
-                          ? "translate-x-6"
-                          : "translate-x-1"
-                      } inline-block h-4 w-4 transform rounded-full bg-white transition-transform`}
-                    />
-                  </button>
-                </div>
-              </div>
-
-              <div className="flex space-x-3 pt-4 border-t border-slate-100">
-                {college.status === "pending" && (
-                  <button
-                    onClick={() => handleVerify(college._id)}
-                    className="flex-1 flex items-center justify-center py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors text-sm font-medium"
-                  >
-                    <CheckCircleIcon className="w-4 h-4 mr-2" /> Verify
-                  </button>
-                )}
-                <button
-                  onClick={() => handleSuspend(college._id)}
-                  className="flex-1 flex items-center justify-center py-2 border border-red-200 text-red-600 rounded-lg hover:bg-red-50 transition-colors text-sm font-medium"
+      {/* Grid Layout of Colleges */}
+      {loading ? (
+        <div className="flex items-center justify-center min-h-[300px]">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#1E90FF]"></div>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <AnimatePresence>
+            {filteredColleges.map((college, idx) => {
+              const collegeStatus = college.suspended
+                ? "suspended"
+                : college.verified
+                ? "verified"
+                : "pending";
+              const isExpanded = expandedCardId === college._id;
+              return (
+                <motion.div
+                  key={college._id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  transition={{ duration: 0.3, delay: idx * 0.05 }}
+                  layout
+                  className="bg-background-paper rounded-3xl border border-border-theme p-6 flex flex-col hover:shadow-xl hover:border-primary-main/30 dark:hover:border-primary-main/20 hover:shadow-primary-main/5 transition-all duration-350 relative overflow-hidden group"
                 >
-                  <NoSymbolIcon className="w-4 h-4 mr-2" /> Suspend
-                </button>
-                <button
-                  onClick={() => handleWipe(college)}
-                  className="px-3 py-2 border border-red-200 text-red-600 rounded-lg hover:bg-red-600 hover:text-white transition-all text-sm font-medium"
-                  title="Wipe Data"
-                >
-                  <TrashIcon className="w-4 h-4" />
-                </button>
-              </div>
-            </motion.div>
-          ))}
-        </AnimatePresence>
-      </div>
+                  {/* Decorative background glow */}
+                  <div className="absolute -right-8 -top-8 w-24 h-24 bg-[#1E90FF]/5 rounded-full blur-xl group-hover:bg-[#1E90FF]/10 transition-colors duration-350 pointer-events-none" />
 
+                  {/* College Info Header */}
+                  <div className="flex justify-between items-start mb-6 gap-4 relative z-10">
+                    <div className="flex items-center space-x-3.5 min-w-0 flex-1">
+                      <div className="shrink-0 p-3.5 bg-primary-main/10 text-[#1E90FF] rounded-2xl group-hover:scale-110 transition-transform duration-300">
+                        <BuildingLibraryIcon className="w-7 h-7" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <h3
+                          className="text-lg font-black text-text-theme-primary tracking-tight leading-snug truncate hover:text-[#1E90FF] cursor-pointer transition-colors"
+                          onClick={() => navigate(`/super-admin/colleges/${college._id}`)}
+                          title={college.name}
+                        >
+                          {college.name}
+                        </h3>
+                        <p
+                          className="text-xs text-text-theme-secondary/80 truncate mt-0.5"
+                          title={college.email}
+                        >
+                          {college.email}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Status Badge */}
+                    <div className="shrink-0 pt-1">
+                      {collegeStatus === "verified" ? (
+                        <span className="bg-emerald-500/10 dark:bg-emerald-500/5 text-emerald-600 dark:text-emerald-400 text-[10px] uppercase tracking-wider px-2.5 py-1 rounded-lg font-black border border-emerald-500/20 dark:border-emerald-500/10">
+                          Verified
+                        </span>
+                      ) : collegeStatus === "suspended" ? (
+                        <span className="bg-rose-500/10 dark:bg-rose-500/5 text-rose-600 dark:text-rose-400 text-[10px] uppercase tracking-wider px-2.5 py-1 rounded-lg font-black border border-rose-500/20 dark:border-rose-500/10">
+                          Suspended
+                        </span>
+                      ) : (
+                        <span className="bg-amber-500/10 dark:bg-amber-500/5 text-amber-600 dark:text-amber-400 text-[10px] uppercase tracking-wider px-2.5 py-1 rounded-lg font-black border border-amber-500/20 dark:border-amber-500/10 flex items-center gap-1">
+                          <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+                          Pending
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* College Info Fields */}
+                  <div className="space-y-3 mb-6 flex-1 relative z-10">
+                    <div className="flex justify-between items-center text-xs">
+                      <span className="text-text-theme-secondary font-semibold uppercase tracking-wider text-[10px]">
+                        Address
+                      </span>
+                      <span className="font-bold text-text-theme-primary text-right max-w-[70%] truncate" title={college.address || "N/A"}>
+                        {college.address || "Not Configured"}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center text-xs">
+                      <span className="text-text-theme-secondary font-semibold uppercase tracking-wider text-[10px]">
+                        Primary Administrator
+                      </span>
+                      <span className="font-bold text-text-theme-primary text-right truncate" title={college.adminName || "Pending Setup"}>
+                        {college.adminName || "Pending Setup"}
+                      </span>
+                    </div>
+
+                    <div className="flex justify-between items-center pt-3 border-t border-border-theme/40 mt-3">
+                      <span className="text-xs font-bold text-text-theme-primary flex items-center">
+                        <CurrencyDollarIcon className="w-4.5 h-4.5 mr-1.5 text-text-theme-secondary/80" />
+                        Manual Premium Override
+                      </span>
+                      <button
+                        onClick={() =>
+                          handleToggleManualPremium(
+                            college._id,
+                            college.allowManualPremium,
+                          )
+                        }
+                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-all duration-300 focus:outline-none cursor-pointer ${
+                          college.allowManualPremium
+                            ? "bg-[#1E90FF] shadow-[0_0_10px_rgba(30,144,255,0.35)]"
+                            : "bg-slate-200 dark:bg-slate-800"
+                        }`}
+                      >
+                        <span
+                          className={`${
+                            college.allowManualPremium
+                              ? "translate-x-6"
+                              : "translate-x-1"
+                          } inline-block h-4 w-4 transform rounded-full bg-white transition-all duration-300 shadow-sm`}
+                        />
+                      </button>
+                    </div>
+
+                    {/* Interactive Suspension Logs/Timeline */}
+                    <div className="pt-3 border-t border-border-theme/40 mt-3">
+                      <button
+                        onClick={() => setExpandedCardId(isExpanded ? null : college._id)}
+                        className="text-xs font-bold text-[#1E90FF] flex items-center hover:underline cursor-pointer focus:outline-none"
+                      >
+                        <BuildingLibraryIcon className="w-3.5 h-3.5 mr-1" />
+                        {isExpanded ? "Hide Audit Timeline" : "View Audit Timeline"}
+                      </button>
+
+                      <AnimatePresence>
+                        {isExpanded && (
+                          <motion.div
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: "auto", opacity: 1 }}
+                            exit={{ height: 0, opacity: 0 }}
+                            transition={{ duration: 0.25 }}
+                            className="overflow-hidden mt-3 pl-1"
+                          >
+                            <div className="relative border-l-2 border-slate-200 dark:border-slate-800 pl-4 space-y-3.5 py-1 text-xs">
+                              {/* Registered event */}
+                              <div className="relative">
+                                <span className="absolute left-[-21px] top-1 w-2.5 h-2.5 rounded-full bg-blue-500 border-2 border-white dark:border-slate-900" />
+                                <p className="font-bold text-text-theme-primary">Registered</p>
+                                <p className="text-[10px] text-text-theme-secondary/80">
+                                  {new Date(college.createdAt).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}
+                                </p>
+                              </div>
+
+                              {/* Verified event */}
+                              {college.verified && (
+                                <div className="relative">
+                                  <span className="absolute left-[-21px] top-1 w-2.5 h-2.5 rounded-full bg-emerald-500 border-2 border-white dark:border-slate-900" />
+                                  <p className="font-bold text-text-theme-primary">Verified</p>
+                                  <p className="text-[10px] text-text-theme-secondary/80">
+                                    {college.verifiedAt 
+                                      ? new Date(college.verifiedAt).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })
+                                      : "Autoverified / Pre-configured"}
+                                  </p>
+                                </div>
+                              )}
+
+                              {/* Suspended event */}
+                              {college.suspended && (
+                                <div className="relative">
+                                  <span className="absolute left-[-21px] top-1 w-2.5 h-2.5 rounded-full bg-rose-500 border-2 border-white dark:border-slate-900" />
+                                  <p className="font-bold text-rose-500">Suspended</p>
+                                  {college.suspensionReason && (
+                                    <p className="text-text-theme-primary font-semibold text-[11px] mt-0.5">
+                                      Reason: "{college.suspensionReason}"
+                                    </p>
+                                  )}
+                                  <p className="text-[10px] text-text-theme-secondary/80">
+                                    {college.suspendedAt 
+                                      ? new Date(college.suspendedAt).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })
+                                      : "N/A"}
+                                  </p>
+                                </div>
+                              )}
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </div>
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="flex items-center space-x-2 pt-4 border-t border-border-theme/40 relative z-10">
+                    {collegeStatus === "pending" && (
+                      <motion.button
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                        onClick={() => handleVerify(college._id)}
+                        className="flex-1 flex items-center justify-center py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl transition-colors text-xs font-bold shadow-sm shadow-emerald-500/10 cursor-pointer"
+                      >
+                        <CheckCircleIcon className="w-4 h-4 mr-1.5" />
+                        Verify
+                      </motion.button>
+                    )}
+                    
+                    {collegeStatus !== "suspended" ? (
+                      <motion.button
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                        onClick={() => handleSuspend(college._id)}
+                        className="flex-1 flex items-center justify-center py-2 border border-rose-500/35 hover:bg-rose-500 hover:text-white text-rose-500 dark:text-rose-400 rounded-xl transition-all text-xs font-bold cursor-pointer"
+                      >
+                        <NoSymbolIcon className="w-4 h-4 mr-1.5" />
+                        Suspend
+                      </motion.button>
+                    ) : (
+                      <motion.button
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                        onClick={() => handleUnsuspend(college._id)}
+                        className="flex-1 flex items-center justify-center py-2 border border-emerald-500/35 hover:bg-emerald-500 hover:text-white text-emerald-500 dark:text-emerald-400 rounded-xl transition-all text-xs font-bold cursor-pointer"
+                      >
+                        <CheckCircleIcon className="w-4 h-4 mr-1.5" />
+                        Unsuspend
+                      </motion.button>
+                    )}
+
+                    <motion.button
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={() => handleWipe(college)}
+                      className="p-2 border border-rose-500/35 text-rose-500 dark:text-rose-400 hover:bg-rose-600 hover:text-white rounded-xl transition-all cursor-pointer"
+                      title="Wipe Data"
+                    >
+                      <TrashIcon className="w-4.5 h-4.5" />
+                    </motion.button>
+                  </div>
+                </motion.div>
+              );
+            })}
+          </AnimatePresence>
+        </div>
+      )}
+
+      {/* Empty State */}
       {filteredColleges.length === 0 && !loading && (
-        <div className="text-center py-12 text-slate-500">
-          <BuildingLibraryIcon className="w-16 h-16 mx-auto mb-4 text-slate-300" />
-          <p className="text-lg">No colleges found matching criteria.</p>
-          <button
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="text-center py-16 px-6 bg-background-paper border border-dashed border-border-theme rounded-3xl"
+        >
+          <div className="w-16 h-16 mx-auto mb-4 bg-primary-main/10 rounded-full flex items-center justify-center text-[#1E90FF]">
+            <BuildingLibraryIcon className="w-8 h-8" />
+          </div>
+          <h3 className="text-lg font-bold text-text-theme-primary">No colleges found</h3>
+          <p className="text-text-theme-secondary text-sm mt-1 max-w-sm mx-auto">
+            Try adjusting your search query or filter status, or register a new college to get started.
+          </p>
+          <motion.button
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
             onClick={() => setIsModalOpen(true)}
-            className="mt-4 px-6 py-2 bg-[#1E90FF] text-white rounded-lg font-bold hover:bg-[#1E90FF]/90 transition-colors"
+            className="mt-6 px-6 py-2.5 bg-[#1E90FF] text-white rounded-2xl font-bold hover:bg-[#1E90FF]/90 transition-all text-sm shadow-md shadow-blue-500/10 cursor-pointer"
           >
             Add Your First College
-          </button>
-        </div>
+          </motion.button>
+        </motion.div>
       )}
 
       <CollegeFormModal

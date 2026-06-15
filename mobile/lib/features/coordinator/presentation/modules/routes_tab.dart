@@ -9,6 +9,7 @@ import 'package:collegebus/l10n/coordinator/app_localizations.dart'
     as coord_l10n;
 import 'route_edit_screen.dart';
 import 'bus_tab_components/bus_search_bar.dart';
+import 'package:collegebus/shared/widgets/shimmer_skeletons.dart';
 
 class RoutesTab extends ConsumerStatefulWidget {
   const RoutesTab({super.key});
@@ -57,7 +58,17 @@ class _RoutesTabState extends ConsumerState<RoutesTab>
 
     if (collegeId == null) return const SizedBox.shrink();
 
-    final allRoutes = ref.watch(collegeRoutesProvider(collegeId)).value ?? [];
+    final routesAsync = ref.watch(collegeRoutesProvider(collegeId));
+
+    if (routesAsync.isLoading) {
+      return const BusListSkeleton();
+    }
+
+    if (routesAsync.hasError) {
+      return Center(child: Text('Error loading routes: ${routesAsync.error}'));
+    }
+
+    final allRoutes = routesAsync.value ?? [];
     final l10n = coord_l10n.CoordinatorLocalizations.of(context)!;
 
     // Filter routes based on search query

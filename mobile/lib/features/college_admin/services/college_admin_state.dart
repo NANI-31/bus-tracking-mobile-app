@@ -3,6 +3,7 @@ import 'package:collegebus/features/payment/domain/transaction_model.dart';
 import 'package:collegebus/features/college/domain/college_model.dart';
 import 'package:collegebus/features/bus/domain/bus_model.dart';
 import 'package:collegebus/features/sos/domain/sos_model.dart';
+import 'package:collegebus/features/audit/domain/audit_log_model.dart';
 
 class CollegeAdminState {
   final List<UserModel> pendingUsers;
@@ -15,6 +16,15 @@ class CollegeAdminState {
   final bool transactionsHasMore;
   final int transactionsPage;
   final CollegeModel? college;
+  final List<AuditLogModel>? _auditLogs;
+  final int? _auditLogsPage;
+  final bool? _auditLogsHasMore;
+  final int? _auditLogsTotal;
+
+  List<AuditLogModel> get auditLogs => _auditLogs ?? const [];
+  int get auditLogsPage => _auditLogsPage ?? 0;
+  bool get auditLogsHasMore => _auditLogsHasMore ?? true;
+  int get auditLogsTotal => _auditLogsTotal ?? 0;
 
   const CollegeAdminState({
     this.pendingUsers = const [],
@@ -27,7 +37,14 @@ class CollegeAdminState {
     this.transactionsHasMore = true,
     this.transactionsPage = 1,
     this.college,
-  });
+    List<AuditLogModel>? auditLogs = const [],
+    int? auditLogsPage = 0,
+    bool? auditLogsHasMore = true,
+    int? auditLogsTotal = 0,
+  })  : _auditLogs = auditLogs,
+        _auditLogsPage = auditLogsPage,
+        _auditLogsHasMore = auditLogsHasMore,
+        _auditLogsTotal = auditLogsTotal;
 
   CollegeAdminState copyWith({
     List<UserModel>? pendingUsers,
@@ -40,6 +57,10 @@ class CollegeAdminState {
     bool? transactionsHasMore,
     int? transactionsPage,
     CollegeModel? college,
+    List<AuditLogModel>? auditLogs,
+    int? auditLogsPage,
+    bool? auditLogsHasMore,
+    int? auditLogsTotal,
   }) {
     return CollegeAdminState(
       pendingUsers: pendingUsers ?? this.pendingUsers,
@@ -52,6 +73,11 @@ class CollegeAdminState {
       transactionsHasMore: transactionsHasMore ?? this.transactionsHasMore,
       transactionsPage: transactionsPage ?? this.transactionsPage,
       college: college ?? this.college,
+      auditLogs: auditLogs ?? this.auditLogs,
+      auditLogsPage: auditLogsPage ?? this.auditLogsPage,
+      auditLogsHasMore: auditLogsHasMore ?? this.auditLogsHasMore,
+      auditLogsTotal: auditLogsTotal ?? this.auditLogsTotal,
     );
   }
 }
+

@@ -9,6 +9,7 @@ import 'package:collegebus/features/bus/domain/bus_model.dart';
 import 'package:collegebus/core/constants/constants.dart';
 import 'package:collegebus/features/college/application/college_provider.dart';
 import 'package:collegebus/features/college/domain/college_model.dart';
+import 'widgets/home/student_skeletons.dart';
 
 class BusScheduleScreen extends ConsumerStatefulWidget {
   final bool isTab;
@@ -66,7 +67,7 @@ class _BusScheduleScreenState extends ConsumerState<BusScheduleScreen> {
     final collegeId = user?.collegeId;
 
     if (collegeId == null) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      return const Scaffold(body: BusScheduleSkeleton());
     }
 
     final busesAsync = ref.watch(collegeBusesStreamProvider(collegeId));
@@ -86,7 +87,7 @@ class _BusScheduleScreenState extends ConsumerState<BusScheduleScreen> {
     );
 
     if (college == null || college.id.isEmpty) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      return const Scaffold(body: BusScheduleSkeleton());
     }
 
     // Ensure checks are safe
@@ -396,8 +397,7 @@ class _BusScheduleScreenState extends ConsumerState<BusScheduleScreen> {
               ),
               Expanded(
                 child: schedulesAsync.when(
-                  loading: () =>
-                      const Center(child: CircularProgressIndicator()),
+                  loading: () => const BusScheduleSkeleton(),
                   error: (err, stack) => const Center(
                     child: Text(
                       "Unable to load schedules",

@@ -100,6 +100,29 @@ export const updateCollegeStatus = async (collegeId, status) => {
     throw error.response ? error.response.data : error.message;
   }
 };
+export const unsuspendCollege = async (collegeId) => {
+  try {
+    const response = await axios.put(
+      `/admin/super/colleges/${collegeId}/unsuspend`,
+    );
+    return response.data;
+  } catch (error) {
+    throw error.response ? error.response.data : error.message;
+  }
+};
+
+export const suspendCollege = async (collegeId, reason) => {
+  try {
+    const response = await axios.put(
+      `/admin/super/colleges/${collegeId}/suspend`,
+      { reason },
+    );
+    return response.data;
+  } catch (error) {
+    throw error.response ? error.response.data : error.message;
+  }
+};
+
 
 export const toggleCollegeManualPremium = async (
   collegeId,

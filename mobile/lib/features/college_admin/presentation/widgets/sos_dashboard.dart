@@ -5,6 +5,7 @@ import 'package:collegebus/features/sos/domain/sos_model.dart';
 import 'package:collegebus/features/college_admin/application/college_admin_provider.dart';
 import 'package:collegebus/core/utils/map_marker_helper.dart';
 import 'package:intl/intl.dart';
+import 'package:collegebus/core/providers/service_providers.dart';
 
 class SosDashboard extends ConsumerStatefulWidget {
   const SosDashboard({super.key});
@@ -71,6 +72,7 @@ class _SosDashboardState extends ConsumerState<SosDashboard> {
   Widget _buildActiveTab(BuildContext context, WidgetRef ref) {
     final asyncState = ref.watch(collegeAdminServiceProvider);
     final activeSos = asyncState.valueOrNull?.activeSos ?? [];
+    final mapStyle = ref.watch(mapStyleProvider).value;
     _updateMarkers(activeSos);
 
     return Column(
@@ -87,6 +89,7 @@ class _SosDashboardState extends ConsumerState<SosDashboard> {
             onMapCreated: (controller) => _mapController = controller,
             myLocationEnabled: true,
             mapToolbarEnabled: true,
+            style: mapStyle,
           ),
         ),
 

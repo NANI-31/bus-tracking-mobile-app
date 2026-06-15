@@ -4,9 +4,11 @@ export interface ICollege extends Document {
   name: string;
   allowedDomains: string[];
   verified: boolean;
+  verifiedAt?: Date;
   busNumbers: string[];
   adminId?: string;
   suspended: boolean;
+  suspendedAt?: Date;
   suspensionReason?: string;
   settings?: Map<string, any>;
   allowManualPremium: boolean;
@@ -27,9 +29,11 @@ const CollegeSchema: Schema = new Schema({
   name: { type: String, required: true },
   allowedDomains: [{ type: String }],
   verified: { type: Boolean, default: false },
+  verifiedAt: { type: Date },
   busNumbers: [{ type: String, default: [] }],
   adminId: { type: String, ref: "User" },
   suspended: { type: Boolean, default: false },
+  suspendedAt: { type: Date },
   suspensionReason: { type: String },
   settings: { type: Map, of: Schema.Types.Mixed, default: {} },
   allowManualPremium: { type: Boolean, default: false },

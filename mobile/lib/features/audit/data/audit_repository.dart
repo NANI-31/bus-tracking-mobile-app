@@ -33,6 +33,45 @@ class AuditRepository extends BaseRepository {
     }
   }
 
+  /// Fetch audit logs with full filtering, pagination, and total count mapping
+  Future<Map<String, dynamic>> getPaginatedAuditLogs({
+    String? collegeId,
+    String? adminId,
+    String? action,
+    String? resource,
+    String? date,
+    int? limit,
+    int? skip,
+  }) async {
+    try {
+      final response = await dio.get(
+        '/admin/audit-logs',
+        queryParameters: {
+          if (collegeId != null) 'collegeId': collegeId,
+          if (adminId != null) 'adminId': adminId,
+          if (action != null) 'action': action,
+          if (resource != null) 'resource': resource,
+          if (date != null) 'date': date,
+          if (limit != null) 'limit': limit,
+          if (skip != null) 'skip': skip,
+        },
+      );
+      final data = response.data;
+      final List logsList = data is Map ? (data['logs'] ?? []) : [];
+      final int total = data is Map ? (data['total'] ?? 0) : 0;
+
+      final logs = logsList
+          .map((data) => AuditLogModel.fromMap(data, data['_id'] ?? ''))
+          .toList();
+      return {
+        'logs': logs,
+        'total': total,
+      };
+    } catch (e) {
+      throw handleError(e);
+    }
+  }
+
   /// Create a new audit log entry (usually server-side, but provided for testing)
   Future<AuditLogModel> createAuditLog(AuditLogModel log) async {
     try {

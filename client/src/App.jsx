@@ -1,33 +1,41 @@
-import React from "react";
+import React, { lazy, Suspense } from "react";
 import {
   BrowserRouter as Router,
   Routes,
   Route,
   Navigate,
 } from "react-router-dom";
-import CollegeAdminLayout from "@/layouts/CollegeAdminLayout";
 
-import Dashboard from "@/features/college-admin/pages/Dashboard";
-import Users from "@/features/college-admin/pages/Users";
-import Fleet from "@/features/college-admin/pages/Fleet";
-import CollegeRoutes from "@/features/college-admin/pages/Routes";
-import Payments from "@/features/college-admin/pages/Payments";
-import LiveTracking from "@/features/college-admin/pages/LiveTracking";
-import CollegeLogs from "@/features/college-admin/pages/Logs";
-import RefundDashboard from "@/features/college-admin/pages/RefundDashboard";
+// Loading Fallback
+import LoadingFallback from "@/components/common/LoadingFallback";
 
-import SuperAdminLayout from "@/layouts/SuperAdminLayout";
-import SuperAdminDashboard from "@/features/super-admin/pages/SuperAdminDashboard";
-import Colleges from "@/features/super-admin/pages/Colleges";
-import CollegeDetails from "@/features/super-admin/pages/CollegeDetails";
-import GlobalUsers from "@/features/super-admin/pages/GlobalUsers";
-import AuditLogs from "@/features/super-admin/pages/AuditLogs";
-import GlobalPayments from "@/features/super-admin/pages/GlobalPayments";
-import GlobalTracking from "@/features/super-admin/pages/GlobalTracking";
-import SystemAnalysis from "@/features/super-admin/pages/SystemAnalysis";
-import AdvancedAnalytics from "@/features/super-admin/pages/AdvancedAnalytics";
+// Layouts
+const CollegeAdminLayout = lazy(() => import("@/layouts/CollegeAdminLayout"));
+const SuperAdminLayout = lazy(() => import("@/layouts/SuperAdminLayout"));
 
-import Login from "@/pages/Login";
+// College Admin Pages
+const Dashboard = lazy(() => import("@/features/college-admin/pages/Dashboard"));
+const Users = lazy(() => import("@/features/college-admin/pages/Users"));
+const Fleet = lazy(() => import("@/features/college-admin/pages/Fleet"));
+const CollegeRoutes = lazy(() => import("@/features/college-admin/pages/Routes"));
+const Payments = lazy(() => import("@/features/college-admin/pages/Payments"));
+const LiveTracking = lazy(() => import("@/features/college-admin/pages/LiveTracking"));
+const CollegeLogs = lazy(() => import("@/features/college-admin/pages/Logs"));
+const RefundDashboard = lazy(() => import("@/features/college-admin/pages/RefundDashboard"));
+
+// Super Admin Pages
+const SuperAdminDashboard = lazy(() => import("@/features/super-admin/pages/SuperAdminDashboard"));
+const Colleges = lazy(() => import("@/features/super-admin/pages/Colleges"));
+const CollegeDetails = lazy(() => import("@/features/super-admin/pages/CollegeDetails"));
+const GlobalUsers = lazy(() => import("@/features/super-admin/pages/GlobalUsers"));
+const AuditLogs = lazy(() => import("@/features/super-admin/pages/AuditLogs"));
+const GlobalPayments = lazy(() => import("@/features/super-admin/pages/GlobalPayments"));
+const AdvancedAnalytics = lazy(() => import("@/features/super-admin/pages/AdvancedAnalytics"));
+const GlobalTracking = lazy(() => import("@/features/super-admin/pages/GlobalTracking"));
+const SystemAnalysis = lazy(() => import("@/features/super-admin/pages/SystemAnalysis"));
+
+// Auth & Other Pages
+const Login = lazy(() => import("@/pages/Login"));
 import PrivateRoute from "@/components/PrivateRoute";
 import { Toaster } from "react-hot-toast";
 import { APIProvider } from "@vis.gl/react-google-maps";
@@ -44,41 +52,55 @@ function App() {
     <ThemeProvider theme={theme}>
       <CssBaseline />
       <APIProvider apiKey={GOOGLE_MAPS_API_KEY}>
-        <Toaster position="top-right" reverseOrder={false} />
+        <Toaster
+          position="top-right"
+          reverseOrder={false}
+          toastOptions={{
+            className: "glass-toast",
+            success: {
+              className: "glass-toast glass-toast-success",
+            },
+            error: {
+              className: "glass-toast glass-toast-error",
+            },
+          }}
+        />
         <Router>
-          <Routes>
-            <Route path="/login" element={<Login />} />
-            <Route path="/" element={<Navigate to="/login" replace />} />
+          <Suspense fallback={<LoadingFallback />}>
+            <Routes>
+              <Route path="/login" element={<Login />} />
+              <Route path="/" element={<Navigate to="/login" replace />} />
 
-            {/* College Admin Routes */}
-            <Route element={<PrivateRoute allowedRoles={["collegeAdmin"]} />}>
-              <Route path="/college-admin" element={<CollegeAdminLayout />}>
-                <Route index element={<Dashboard />} />
-                <Route path="users" element={<Users />} />
-                <Route path="fleet" element={<Fleet />} />
-                <Route path="routes" element={<CollegeRoutes />} />
-                <Route path="payments" element={<Payments />} />
-                <Route path="refunds" element={<RefundDashboard />} />
-                <Route path="tracking" element={<LiveTracking />} />
-                <Route path="logs" element={<CollegeLogs />} />
+              {/* College Admin Routes */}
+              <Route element={<PrivateRoute allowedRoles={["collegeAdmin"]} />}>
+                <Route path="/college-admin" element={<CollegeAdminLayout />}>
+                  <Route index element={<Dashboard />} />
+                  <Route path="users" element={<Users />} />
+                  <Route path="fleet" element={<Fleet />} />
+                  <Route path="routes" element={<CollegeRoutes />} />
+                  <Route path="payments" element={<Payments />} />
+                  <Route path="refunds" element={<RefundDashboard />} />
+                  <Route path="tracking" element={<LiveTracking />} />
+                  <Route path="logs" element={<CollegeLogs />} />
+                </Route>
               </Route>
-            </Route>
 
-            {/* Super Admin Routes */}
-            <Route element={<PrivateRoute allowedRoles={["superAdmin"]} />}>
-              <Route path="/super-admin" element={<SuperAdminLayout />}>
-                <Route index element={<SuperAdminDashboard />} />
-                <Route path="colleges" element={<Colleges />} />
-                <Route path="colleges/:id" element={<CollegeDetails />} />
-                <Route path="users" element={<GlobalUsers />} />
-                <Route path="audit" element={<AuditLogs />} />
-                <Route path="payments" element={<GlobalPayments />} />
-                <Route path="analytics" element={<AdvancedAnalytics />} />
-                <Route path="tracking" element={<GlobalTracking />} />
-                <Route path="analysis" element={<SystemAnalysis />} />
+              {/* Super Admin Routes */}
+              <Route element={<PrivateRoute allowedRoles={["superAdmin"]} />}>
+                <Route path="/super-admin" element={<SuperAdminLayout />}>
+                  <Route index element={<SuperAdminDashboard />} />
+                  <Route path="colleges" element={<Colleges />} />
+                  <Route path="colleges/:id" element={<CollegeDetails />} />
+                  <Route path="users" element={<GlobalUsers />} />
+                  <Route path="audit" element={<AuditLogs />} />
+                  <Route path="payments" element={<GlobalPayments />} />
+                  <Route path="analytics" element={<AdvancedAnalytics />} />
+                  <Route path="tracking" element={<GlobalTracking />} />
+                  <Route path="analysis" element={<SystemAnalysis />} />
+                </Route>
               </Route>
-            </Route>
-          </Routes>
+            </Routes>
+          </Suspense>
         </Router>
       </APIProvider>
     </ThemeProvider>

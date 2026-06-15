@@ -8,7 +8,6 @@ import 'package:velocity_x/velocity_x.dart';
 
 import 'package:collegebus/core/constants/constants.dart';
 import 'package:collegebus/shared/widgets/api_error_modal.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:collegebus/l10n/auth/login/auth_login_localizations.dart';
 import 'package:collegebus/shared/widgets/language_selector.dart';
 import 'package:collegebus/shared/widgets/buttons/rive_loading_button.dart';
@@ -25,8 +24,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
   final _formKey = GlobalKey<FormState>();
   late AnimationController _animationController;
   late Animation<double> _bounceAnimation;
-  final _emailController = TextEditingController();
-  final _passwordController = TextEditingController();
+  final _emailController = TextEditingController(text: 'c1@kkr.ac.in');
+  final _passwordController = TextEditingController(text: 'a');
   bool _isLoading = false;
 
   @override
@@ -167,10 +166,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                 // Background Image
                 VxBox()
                     .bgImage(
-                      DecorationImage(
-                        image: CachedNetworkImageProvider(
-                          'https://lh3.googleusercontent.com/aida-public/AB6AXuAhoVjzOMAAtG2ZhYD-_E4cE8rln6afXo2yCEcciNGD-ETd6sJlt_OR5iE5TVIWrcY0JwmrUmn8VEV2Zlcmu-4aT3JKaN2lWbBU_AOLHjKFAtKYbJWGQ1cAtLiEc4-roVY0L5XDKurzZXwWHlHbGCzQMHxWCMzzfYc3yfLkok2ulqHzUdm39kVAqaSy9_4pKylchOvtBqv2qJQGzbd38cEODfoaAjfJCsln4aXfowd69XBQLr4Sbx8-33NOJjziZW-FFtvvuAUOmJke',
-                        ),
+                      const DecorationImage(
+                        image: AssetImage('assets/images/login.png'),
                         fit: BoxFit.cover,
                       ),
                     )

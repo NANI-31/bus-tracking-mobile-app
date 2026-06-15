@@ -16,6 +16,7 @@ import SubscriptionAnalytics from "../components/Payments/SubscriptionAnalytics"
 
 import PaymentTable from "../components/Payments/PaymentTable";
 import PaymentFilters from "../components/Payments/PaymentFilters";
+import DensitySelector from "@/components/common/DensitySelector";
 
 const Payments = () => {
   const dispatch = useDispatch();
@@ -24,6 +25,7 @@ const Payments = () => {
   );
 
   const [search, setSearch] = useState("");
+  const [density, setDensity] = useState("default");
   const [showFilters, setShowFilters] = useState(false);
   const [plan, setPlan] = useState("");
   const [startDate, setStartDate] = useState("");
@@ -52,7 +54,7 @@ const Payments = () => {
       {/* Header Snippet */}
       <div className="flex justify-between items-center bg-white p-6 rounded-xl shadow-sm border border-slate-200">
         <div>
-          <h1 className="text-2xl font-bold text-slate-800 flex items-center">
+          <h1 className="text-scale-h1 text-slate-800 flex items-center">
             <CreditCardIcon className="w-8 h-8 mr-2 text-[#1E90FF]" />
             Premium Subscriptions
           </h1>
@@ -61,6 +63,7 @@ const Payments = () => {
           </p>
         </div>
         <div className="flex items-center space-x-3">
+          <DensitySelector currentDensity={density} onChange={setDensity} />
           <button
             onClick={() => setShowFilters(!showFilters)}
             className={`flex items-center px-4 py-2 rounded-lg border transition-all ${
@@ -77,7 +80,7 @@ const Payments = () => {
             <input
               type="text"
               placeholder="Search student, order..."
-              className="pl-10 pr-4 py-2 w-64 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="pl-10 pr-4 py-2 w-64 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
@@ -98,7 +101,7 @@ const Payments = () => {
 
       <SubscriptionAnalytics data={analytics} />
 
-      <PaymentTable transactions={transactions} loading={loading} />
+      <PaymentTable transactions={transactions} loading={loading} density={density} />
     </div>
   );
 };

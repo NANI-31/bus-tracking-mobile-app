@@ -2,8 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:rive/rive.dart';
 import 'package:collegebus/core/providers/repository_providers.dart';
 import 'package:collegebus/core/constants/constants.dart';
+import 'package:collegebus/shared/widgets/api_error_modal.dart';
+import 'package:collegebus/shared/widgets/success_modal.dart';
 
 class SOSButton extends ConsumerStatefulWidget {
   final LatLng? currentLocation;
@@ -25,6 +28,9 @@ class _SOSButtonState extends ConsumerState<SOSButton>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   bool _isPressed = false;
+  
+  StateMachineController? _riveController;
+  SMIInput<bool>? _activeInput;
 
   @override
   void initState() {
@@ -42,9 +48,25 @@ class _SOSButtonState extends ConsumerState<SOSButton>
     });
   }
 
+  void _onRiveInit(Artboard artboard) {
+    _riveController = StateMachineController.fromArtboard(
+      artboard,
+      'State Machine 1',
+    );
+    if (_riveController != null) {
+      artboard.addController(_riveController!);
+      _activeInput = _riveController!.findInput<bool>('active') ?? 
+                     _riveController!.findInput<bool>('pressed');
+      _activeInput?.value = _isPressed;
+    }
+  }
+
   void _reset() {
     _controller.reset();
-    setState(() => _isPressed = false);
+    setState(() {
+      _isPressed = false;
+      _activeInput?.value = false;
+    });
   }
 
   Future<void> _triggerSOS() async {
@@ -52,8 +74,9 @@ class _SOSButtonState extends ConsumerState<SOSButton>
 
     if (widget.currentLocation == null) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Cannot send SOS: Location unknown')),
+        ApiErrorModal.show(
+          context: context,
+          error: 'Cannot send SOS: Location unknown',
         );
       }
       return;
@@ -71,24 +94,18 @@ class _SOSButtonState extends ConsumerState<SOSButton>
       if (mounted) {
         // Success feedback
         HapticFeedback.mediumImpact();
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text(
-              'SOS ALERT SENT! Coordinators have been notified.',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-            backgroundColor: AppColors.error,
-            duration: const Duration(seconds: 5),
-          ),
+        SuccessModal.show(
+          context: context,
+          title: 'SOS Alert Sent',
+          message: 'SOS ALERT SENT! Coordinators have been notified.',
+          primaryActionText: 'OK',
         );
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to send SOS: $e'),
-            backgroundColor: Colors.black,
-          ),
+        ApiErrorModal.show(
+          context: context,
+          error: 'Failed to send SOS: $e',
         );
       }
     }
@@ -104,7 +121,10 @@ class _SOSButtonState extends ConsumerState<SOSButton>
   Widget build(BuildContext context) {
     return GestureDetector(
       onTapDown: (_) {
-        setState(() => _isPressed = true);
+        setState(() {
+          _isPressed = true;
+          _activeInput?.value = true;
+        });
         _controller.forward();
         HapticFeedback.selectionClick();
       },
@@ -138,17 +158,36 @@ class _SOSButtonState extends ConsumerState<SOSButton>
                 ),
               ],
             ),
-            child: const Column(
-              mainAxisAlignment: MainAxisAlignment.center,
+            child: Stack(
+              alignment: Alignment.center,
               children: [
-                Icon(Icons.sos_rounded, color: Colors.white, size: 32),
-                Text(
-                  'SOS',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 12,
+                ClipOval(
+                  child: RiveAnimation.network(
+                    'https://cdn.rive.app/animations/vehicles.riv',
+                    artboard: 'Truck',
+                    fit: BoxFit.cover,
+                    onInit: _onRiveInit,
                   ),
+                ),
+                ClipOval(
+                  child: Container(
+                    color: Colors.black.withValues(alpha: 0.25),
+                  ),
+                ),
+                const Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.sos_rounded, color: Colors.white, size: 28),
+                    Text(
+                      'SOS',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w900,
+                        fontSize: 12,
+                        letterSpacing: 1.0,
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),

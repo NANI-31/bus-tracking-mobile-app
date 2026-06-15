@@ -109,10 +109,56 @@ class CollegeRepository extends BaseRepository {
     }
   }
 
+  /// Super Admin: Unsuspend a college
+  Future<void> unsuspendCollege(String collegeId) async {
+    try {
+      await dio.put('/admin/super/colleges/$collegeId/unsuspend');
+    } catch (e) {
+      throw handleError(e);
+    }
+  }
+
   /// Super Admin: Update college details
   Future<void> updateCollege(String id, Map<String, dynamic> data) async {
     try {
       await dio.put('/admin/super/colleges/$id', data: data);
+    } catch (e) {
+      throw handleError(e);
+    }
+  }
+
+  /// Super Admin: Create a college
+  Future<CollegeModel> createCollege(String name, List<String> allowedDomains) async {
+    try {
+      final response = await dio.post(
+        '/colleges',
+        data: {'name': name, 'allowedDomains': allowedDomains},
+      );
+      return CollegeModel.fromMap(response.data, response.data['_id'] ?? '');
+    } catch (e) {
+      throw handleError(e);
+    }
+  }
+
+  /// Super Admin: Toggle manual premium override
+  Future<void> toggleManualPremium(String collegeId, bool allowManualPremium) async {
+    try {
+      await dio.put(
+        '/colleges/$collegeId/toggle-manual-premium',
+        data: {'allowManualPremium': allowManualPremium},
+      );
+    } catch (e) {
+      throw handleError(e);
+    }
+  }
+
+  /// Super Admin: Wipe college data (Danger Zone)
+  Future<void> wipeCollegeData(String collegeId, bool deleteCollegeRecord) async {
+    try {
+      await dio.delete(
+        '/admin/super/colleges/$collegeId/wipe-data',
+        data: {'deleteCollegeRecord': deleteCollegeRecord},
+      );
     } catch (e) {
       throw handleError(e);
     }

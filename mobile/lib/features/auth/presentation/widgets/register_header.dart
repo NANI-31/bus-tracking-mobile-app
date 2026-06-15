@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:go_router/go_router.dart';
 import 'package:collegebus/core/constants/constants.dart';
 import 'package:velocity_x/velocity_x.dart';
@@ -17,10 +16,8 @@ class RegisterHeader extends StatelessWidget {
           width: double.infinity,
           height: 260,
           decoration: BoxDecoration(
-            image: DecorationImage(
-              image: CachedNetworkImageProvider(
-                'https://lh3.googleusercontent.com/aida-public/AB6AXuBJItvO1MgqjYaxS_PfHAyRmbVhVWYpLXUl8F4KCUTCh4_c_itizw_oquqb5HY7la0sDtQ9HLqA9IKUFzmL9yULoXzIOVLeIiVFwpzx7XqL_ng2ylqv2J4hwd0Wagvhyv0X064b8Wu7tjLGDgW-LzwRaTxVYYiGQ3xOn4_5_D9WaLw5NxQGPXhSz3MyyVKu1tGRPOrYtRkoT9yWxa5T_CXnz-wUJcVF79QNONhwV87nLeP3Efjd81tkpq0g8l5qKG7lfyr5aQ4jC25B',
-              ),
+            image: const DecorationImage(
+              image: AssetImage('assets/images/registration.png'),
               fit: BoxFit.cover,
             ),
           ),

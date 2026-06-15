@@ -36,7 +36,7 @@ const LogTable = ({
       sx={{
         borderRadius: "16px",
         border: "1px solid #f1f5f9",
-        overflow: "hidden",
+        overflow: "auto",
       }}
     >
       <Table stickyHeader>

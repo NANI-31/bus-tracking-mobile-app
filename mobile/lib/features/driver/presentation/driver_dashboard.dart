@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:collegebus/shared/widgets/logout_confirmation_dialog.dart';
-import 'package:collegebus/shared/widgets/logout_loading_dialog.dart';
+import 'package:flutter/services.dart';
 import 'package:collegebus/l10n/driver/app_localizations.dart';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
-import 'package:go_router/go_router.dart';
 import 'package:velocity_x/velocity_x.dart';
 import 'package:collegebus/core/services/persistence_service.dart';
 import 'package:collegebus/core/services/secure_storage_service.dart';
@@ -31,7 +29,16 @@ import 'package:collegebus/shared/widgets/success_modal.dart';
 import 'package:collegebus/shared/widgets/sos_button.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:collegebus/features/user/presentation/screens/profile_screen.dart';
+
+import 'package:collegebus/core/services/directions_result.dart';
 import 'widgets/voice_message_button.dart';
+import 'package:collegebus/features/driver/application/driver_location_provider.dart';
+import 'package:collegebus/features/driver/application/driver_map_provider.dart';
+import 'package:collegebus/features/driver/application/driver_ui_provider.dart';
+import 'package:collegebus/core/utils/map_marker_helper.dart';
+import 'package:collegebus/shared/widgets/shimmer_skeletons.dart';
+import 'package:collegebus/shared/widgets/api_error_modal.dart';
+
 
 class DriverDashboard extends ConsumerStatefulWidget {
   const DriverDashboard({super.key});
@@ -42,33 +49,86 @@ class DriverDashboard extends ConsumerStatefulWidget {
 
 class _DriverDashboardState extends ConsumerState<DriverDashboard>
     with SingleTickerProviderStateMixin, WidgetsBindingObserver {
-  int _bottomNavIndex = 0;
-  LatLng? _currentLocation;
   bool _isSharing = false;
   bool _hasInitialized = false; // Prevent auto-resume during first build
 
-  // Selection state
-  RouteModel? _selectedRoute;
-
-  Set<Marker> _markers = {};
-
   DateTime? _lastDeviationAlertTime;
-  String? _nextStopETA;
   Timer? _bannerDelayTimer;
-  bool _showDisconnectedBanner = false;
+  BitmapDescriptor? _busIcon;
+  BitmapDescriptor? _startStopIcon;
+  BitmapDescriptor? _intermediateStopIcon;
+  BitmapDescriptor? _endStopIcon;
+  Color? _lastStartColor;
+  Color? _lastStopColor;
+  Color? _lastEndColor;
+
+  Future<void> _loadBusIcon() async {
+    try {
+      final icon = await MapMarkerHelper.createBusMarker();
+      if (mounted) {
+        setState(() {
+          _busIcon = icon;
+        });
+      }
+    } catch (e) {
+      debugPrint('[DriverDashboard] Error loading bus icon: $e');
+    }
+  }
+
+  Future<void> _loadCustomStopMarkers(
+    Color startColor,
+    Color stopColor,
+    Color endColor,
+  ) async {
+    if (_lastStartColor == startColor &&
+        _lastStopColor == stopColor &&
+        _lastEndColor == endColor) {
+      return;
+    }
+    _lastStartColor = startColor;
+    _lastStopColor = stopColor;
+    _lastEndColor = endColor;
+
+    try {
+      final startIcon = await MapMarkerHelper.getStartMarker(color: startColor);
+      final stopIcon = await MapMarkerHelper.getStopMarker(color: stopColor);
+      final endIcon = await MapMarkerHelper.getEndMarker(color: endColor);
+      if (mounted) {
+        setState(() {
+          _startStopIcon = startIcon;
+          _intermediateStopIcon = stopIcon;
+          _endStopIcon = endIcon;
+        });
+      }
+    } catch (e) {
+      debugPrint('[DriverDashboard] Error loading custom stop markers: $e');
+    }
+  }
 
   @override
   void initState() {
     super.initState();
+    // Restore/Enable Status Bar (timer, battery, signals, etc.)
+    SystemChrome.setEnabledSystemUIMode(
+      SystemUiMode.manual,
+      overlays: SystemUiOverlay.values,
+    );
     debugPrint('[DriverDashboard] initState START');
     WidgetsBinding.instance.addObserver(this);
     _isSharing = PersistenceService.getIsSharingLocation();
     debugPrint('[DriverDashboard] _isSharing from persistence: $_isSharing');
+    _loadBusIcon();
+    _loadCustomStopMarkers(
+      const Color(0xFF4CAF50),
+      const Color(0xFFFF9800),
+      const Color(0xFFE53935),
+    );
     _getCurrentLocation();
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       debugPrint('[DriverDashboard] postFrameCallback - marking initialized');
       _hasInitialized = true;
+      ref.read(driverLocationProvider.notifier).updateSharing(_isSharing);
       final socketService = ref.read(socketServiceProvider);
       final user = ref.read(currentUserProvider);
       if (user != null) {
@@ -96,11 +156,7 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
         state == AppLifecycleState.inactive) {
       // Cancel any pending banner timer when going to background
       _bannerDelayTimer?.cancel();
-      if (mounted) {
-        setState(() {
-          _showDisconnectedBanner = false;
-        });
-      }
+      ref.read(driverUiStateProvider.notifier).setShowDisconnectedBanner(false);
     }
   }
 
@@ -122,18 +178,13 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
       if (!granted) {
         if (!mounted) return;
         if (!silent) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                DriverLocalizations.of(context)!.locationNotAvailable,
-              ),
-              backgroundColor: AppColors.error,
-              duration: const Duration(seconds: 4),
-            ),
+          ApiErrorModal.show(
+            context: context,
+            error: DriverLocalizations.of(context)!.locationNotAvailable,
           );
         }
         // If we can't share, update state to false
-        setState(() => _isSharing = false);
+        ref.read(driverLocationProvider.notifier).updateSharing(false);
         await PersistenceService.setIsSharingLocation(false);
         return;
       }
@@ -153,120 +204,47 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
           'speed': position.speed,
           'heading': position.heading,
         });
-        if (mounted) {
-          setState(
-            () => _currentLocation = LatLng(
-              position.latitude,
-              position.longitude,
-            ),
-          );
-          _checkRouteDeviation(position, myBus);
-        }
+        
+        final latLng = LatLng(position.latitude, position.longitude);
+        ref.read(driverLocationProvider.notifier).updateLocation(
+          latLng,
+          heading: position.heading,
+          speed: position.speed,
+        );
+        _checkRouteDeviation(position, myBus);
       },
     );
 
-    if (mounted) {
-      setState(() => _isSharing = true);
-    }
+    ref.read(driverLocationProvider.notifier).updateSharing(true);
     _saveSelections(myBus);
 
     if (!mounted) return;
-    if (!silent) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            DriverLocalizations.of(context)!.locationSharingStarted,
-          ),
-          backgroundColor: AppColors.success,
-        ),
-      );
-    }
   }
 
   Future<void> _saveSelections(BusModel? myBus) async {
     if (myBus != null) {
       await SecureStorageService.setDriverBusId(myBus.id);
       await SecureStorageService.setDriverBusNumber(myBus.busNumber);
-      if (_selectedRoute != null) {
-        await SecureStorageService.setDriverRouteId(_selectedRoute!.id);
+      final selectedRoute = ref.read(driverMapStateProvider).selectedRoute;
+      if (selectedRoute != null) {
+        await SecureStorageService.setDriverRouteId(selectedRoute.id);
       }
     }
-    await PersistenceService.setIsSharingLocation(_isSharing);
+    final isSharing = ref.read(driverLocationProvider).isSharing;
+    await PersistenceService.setIsSharingLocation(isSharing);
   }
 
   Future<void> _getCurrentLocation() async {
     final locationService = ref.read(locationServiceProvider);
     final location = await locationService.getCurrentLocation();
-    if (location != null && mounted) {
-      setState(() => _currentLocation = location);
-      _updateMarkers();
+    if (location != null) {
+      ref.read(driverLocationProvider.notifier).updateLocation(location);
     }
-  }
-
-  void _updateMarkers() {
-    if (_selectedRoute == null) {
-      setState(() => _markers = {});
-      return;
-    }
-    final markers = <Marker>{};
-    final route = _selectedRoute!;
-    final startCoord = route.startPoint.lat != 0
-        ? LatLng(route.startPoint.lat, route.startPoint.lng)
-        : _getMockCoordinateForLocation(route.startPoint.name);
-    markers.add(
-      Marker(
-        markerId: const MarkerId('start'),
-        position: startCoord,
-        infoWindow: InfoWindow(
-          title: DriverLocalizations.of(
-            context,
-          )!.startPointMarker(route.startPoint.name),
-        ),
-        icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen),
-      ),
-    );
-    final endCoord = route.endPoint.lat != 0
-        ? LatLng(route.endPoint.lat, route.endPoint.lng)
-        : _getMockCoordinateForLocation(route.endPoint.name);
-    markers.add(
-      Marker(
-        markerId: const MarkerId('end'),
-        position: endCoord,
-        infoWindow: InfoWindow(
-          title: DriverLocalizations.of(
-            context,
-          )!.endPointMarker(route.endPoint.name),
-        ),
-        icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
-      ),
-    );
-    for (var i = 0; i < route.stopPoints.length; i++) {
-      final stop = route.stopPoints[i];
-      final coord = stop.lat != 0
-          ? LatLng(stop.lat, stop.lng)
-          : _getMockCoordinateForLocation(stop.name);
-      markers.add(
-        Marker(
-          markerId: MarkerId('stop_$i'),
-          position: coord,
-          infoWindow: InfoWindow(
-            title: DriverLocalizations.of(
-              context,
-            )!.stopPointMarker(i + 1, stop.name),
-          ),
-          icon: BitmapDescriptor.defaultMarkerWithHue(
-            BitmapDescriptor.hueOrange,
-          ),
-        ),
-      );
-    }
-    setState(() {
-      _markers = markers;
-    });
   }
 
   LatLng _getMockCoordinateForLocation(String location) {
-    final base = _currentLocation ?? const LatLng(17.385, 78.4867);
+    final currentLoc = ref.read(driverLocationProvider).currentLocation;
+    final base = currentLoc ?? const LatLng(17.385, 78.4867);
     final hash = location.hashCode;
     return LatLng(
       base.latitude + (hash % 100) / 10000.0,
@@ -275,14 +253,12 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
   }
 
   Future<void> _toggleLocationSharing(BusModel? myBus) async {
-    if (!_isSharing) {
+    final isSharing = ref.read(driverLocationProvider).isSharing;
+    if (!isSharing) {
       if (myBus == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              DriverLocalizations.of(context)!.pleaseAssignBusFirst,
-            ),
-          ),
+        ApiErrorModal.show(
+          context: context,
+          error: DriverLocalizations.of(context)!.pleaseAssignBusFirst,
         );
         return;
       }
@@ -293,13 +269,14 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
   }
 
   void _checkRouteDeviation(Position position, BusModel? myBus) {
-    if (_selectedRoute == null) return;
+    final selectedRoute = ref.read(driverMapStateProvider).selectedRoute;
+    if (selectedRoute == null) return;
 
     // Build ordered list of points: Start -> Stops -> End
     final points = [
-      LatLng(_selectedRoute!.startPoint.lat, _selectedRoute!.startPoint.lng),
-      ..._selectedRoute!.stopPoints.map((s) => LatLng(s.lat, s.lng)),
-      LatLng(_selectedRoute!.endPoint.lat, _selectedRoute!.endPoint.lng),
+      LatLng(selectedRoute.startPoint.lat, selectedRoute.startPoint.lng),
+      ...selectedRoute.stopPoints.map((s) => LatLng(s.lat, s.lng)),
+      LatLng(selectedRoute.endPoint.lat, selectedRoute.endPoint.lng),
     ];
 
     double minDistance = double.infinity;
@@ -322,17 +299,9 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
           now.difference(_lastDeviationAlertTime!) >
               const Duration(minutes: 1)) {
         _lastDeviationAlertTime = now;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              DriverLocalizations.of(
-                context,
-              )!.offRouteAlert(minDistance.toInt()),
-            ),
-            backgroundColor: AppColors.warning,
-            duration: const Duration(seconds: 5),
-            behavior: SnackBarBehavior.floating,
-          ),
+        ApiErrorModal.show(
+          context: context,
+          error: DriverLocalizations.of(context)!.offRouteAlert(minDistance.toInt()),
         );
       }
     }
@@ -342,12 +311,13 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
   }
 
   void _calculateETA(Position position, BusModel? myBus) {
-    if (_selectedRoute == null) return;
+    final selectedRoute = ref.read(driverMapStateProvider).selectedRoute;
+    if (selectedRoute == null) return;
 
     double minDistance = double.infinity;
     RoutePoint? nextStop;
 
-    for (final stop in _selectedRoute!.stopPoints) {
+    for (final stop in selectedRoute.stopPoints) {
       final dist = Geolocator.distanceBetween(
         position.latitude,
         position.longitude,
@@ -365,13 +335,10 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
       final timeSeconds = minDistance / 8.33;
       final timeMinutes = (timeSeconds / 60).ceil();
 
-      if (mounted) {
-        setState(() {
-          _nextStopETA = DriverLocalizations.of(
-            context,
-          )!.etaToNextStop(timeMinutes, nextStop?.name ?? '');
-        });
-      }
+      final etaStr = DriverLocalizations.of(
+        context,
+      )!.etaToNextStop(timeMinutes, nextStop.name);
+      ref.read(driverLocationProvider.notifier).updateETA(etaStr);
     }
   }
 
@@ -425,17 +392,14 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
       });
     }
 
-    if (mounted) {
-      setState(() {
-        _isSharing = false;
-        _nextStopETA = null;
-      });
-    }
+    ref.read(driverLocationProvider.notifier).updateSharing(false);
+    ref.read(driverLocationProvider.notifier).updateETA(null);
     _saveSelections(myBus);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(DriverLocalizations.of(context)!.locationSharingStopped),
-      ),
+    SuccessModal.show(
+      context: context,
+      title: 'Location Sharing',
+      message: DriverLocalizations.of(context)!.locationSharingStopped,
+      primaryActionText: 'OK',
     );
   }
 
@@ -447,27 +411,18 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
       await PersistenceService.remove('driver_bus_number');
       await PersistenceService.remove('driver_route_id');
       if (!mounted) return;
-      setState(() {
-        _selectedRoute = null;
-      });
-      _updateMarkers();
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(DriverLocalizations.of(context)!.busAssignmentRemoved),
-          backgroundColor: Theme.of(context).colorScheme.secondary,
-        ),
+      ref.read(driverMapStateProvider.notifier).setSelectedRoute(null);
+      SuccessModal.show(
+        context: context,
+        title: 'Assignment Removed',
+        message: DriverLocalizations.of(context)!.busAssignmentRemoved,
+        primaryActionText: 'OK',
       );
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            DriverLocalizations.of(
-              context,
-            )!.removeAssignmentError(e.toString()),
-          ),
-          backgroundColor: AppColors.error,
-        ),
+      ApiErrorModal.show(
+        context: context,
+        error: DriverLocalizations.of(context)!.removeAssignmentError(e.toString()),
       );
     }
   }
@@ -477,30 +432,22 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
     try {
       await repo.updateBus(bus.id, {'assignmentStatus': 'accepted'});
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(DriverLocalizations.of(context)!.assignmentAccepted),
-            backgroundColor: AppColors.success,
-          ),
+        SuccessModal.show(
+          context: context,
+          title: 'Assignment Accepted',
+          message: DriverLocalizations.of(context)!.assignmentAccepted,
+          primaryActionText: 'OK',
         );
         // Auto-start location sharing
         await _startLocationSharing(bus);
         // Switch to Live Tracking tab
-        setState(() {
-          _bottomNavIndex = 1;
-        });
+        ref.read(driverUiStateProvider.notifier).setBottomNavIndex(1);
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              DriverLocalizations.of(
-                context,
-              )!.acceptAssignmentError(e.toString()),
-            ),
-            backgroundColor: AppColors.error,
-          ),
+        ApiErrorModal.show(
+          context: context,
+          error: DriverLocalizations.of(context)!.acceptAssignmentError(e.toString()),
         );
       }
     }
@@ -515,24 +462,18 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
         'status': 'not-running',
       });
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(DriverLocalizations.of(context)!.assignmentDeclined),
-            backgroundColor: Theme.of(context).colorScheme.secondary,
-          ),
+        SuccessModal.show(
+          context: context,
+          title: 'Assignment Declined',
+          message: DriverLocalizations.of(context)!.assignmentDeclined,
+          primaryActionText: 'OK',
         );
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              DriverLocalizations.of(
-                context,
-              )!.declineAssignmentError(e.toString()),
-            ),
-            backgroundColor: AppColors.error,
-          ),
+        ApiErrorModal.show(
+          context: context,
+          error: DriverLocalizations.of(context)!.declineAssignmentError(e.toString()),
         );
       }
     }
@@ -544,32 +485,33 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
         final socketService = ref.watch(socketServiceProvider);
         final isConnected = socketService.isConnected;
         final isConnecting = socketService.isConnecting;
+        final showDisconnectedBanner = ref.watch(driverUiStateProvider.select((s) => s.showDisconnectedBanner));
 
         // If connected, hide banner and cancel any pending timer
         if (isConnected && !isConnecting) {
           _bannerDelayTimer?.cancel();
-          if (_showDisconnectedBanner) {
-            _showDisconnectedBanner = false;
+          if (showDisconnectedBanner) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              ref.read(driverUiStateProvider.notifier).setShowDisconnectedBanner(false);
+            });
           }
           return const SizedBox.shrink();
         }
 
         // If just came back from background or briefly disconnected,
         // add a 3-second grace period before showing the banner
-        if (!_showDisconnectedBanner && !isConnecting) {
+        if (!showDisconnectedBanner && !isConnecting) {
           _bannerDelayTimer?.cancel();
           _bannerDelayTimer = Timer(const Duration(seconds: 3), () {
             if (mounted && !socketService.isConnected) {
-              setState(() {
-                _showDisconnectedBanner = true;
-              });
+              ref.read(driverUiStateProvider.notifier).setShowDisconnectedBanner(true);
             }
           });
           return const SizedBox.shrink();
         }
 
         // Show "Connecting..." immediately but "Disconnected" after grace period
-        if (!isConnecting && !_showDisconnectedBanner) {
+        if (!isConnecting && !showDisconnectedBanner) {
           return const SizedBox.shrink();
         }
 
@@ -621,6 +563,7 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
     );
   }
 
+
   @override
   Widget build(BuildContext context) {
     debugPrint('[DriverDashboard] build() START');
@@ -628,9 +571,17 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
     final collegeId = ref.watch(
       currentUserProvider.select((u) => u?.collegeId),
     );
-    final fullName = ref.watch(
-      currentUserProvider.select((u) => u?.fullName ?? 'Driver'),
-    );
+
+
+    final mapTheme = Theme.of(context).extension<MapThemeExtension>();
+    final startColor = mapTheme?.startStopColor ?? const Color(0xFF4CAF50);
+    final stopColor = mapTheme?.intermediateStopColor ?? const Color(0xFFFF9800);
+    final endColor = mapTheme?.endStopColor ?? const Color(0xFFE53935);
+
+    _loadCustomStopMarkers(startColor, stopColor, endColor);
+
+
+
 
     if (userId == null || collegeId == null) {
       debugPrint(
@@ -657,11 +608,7 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
 
         // 2. If new bus is pending or unassigned, force back to setup tab
         if (newBus == null || newBus.assignmentStatus == 'pending') {
-          if (mounted) {
-            setState(() {
-              _bottomNavIndex = 0;
-            });
-          }
+          ref.read(driverUiStateProvider.notifier).setBottomNavIndex(0);
         }
       }
     });
@@ -685,7 +632,7 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
             '[DriverDashboard] Bus data received: ${bus.busNumber}, assignmentStatus=${bus.assignmentStatus}',
           );
 
-          // 1. Handle auto-resume location sharing (ONLY after init)
+          // 2. Handle auto-resume location sharing (ONLY after init)
           if (_isSharing && _hasInitialized) {
             final locationService = ref.read(locationServiceProvider);
             if (!locationService.isTracking) {
@@ -700,7 +647,8 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
           }
 
           // 2. Handle initial route selection if matching preference
-          if (_selectedRoute == null && bus.routeId != null) {
+          final currentRoute = ref.read(driverMapStateProvider).selectedRoute;
+          if (currentRoute == null && bus.routeId != null) {
             debugPrint(
               '[DriverDashboard] Matching route for routeId=${bus.routeId}',
             );
@@ -709,12 +657,7 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
             if (routes != null) {
               try {
                 final route = routes.firstWhere((r) => r.id == bus.routeId);
-                if (mounted) {
-                  setState(() {
-                    _selectedRoute = route;
-                  });
-                  _updateMarkers();
-                }
+                ref.read(driverMapStateProvider.notifier).setSelectedRoute(route);
               } catch (e) {
                 AppLogger.e('Error matching route selection: $e');
               }
@@ -732,18 +675,14 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
     // Match selection if routes load after bus
     ref.listen(collegeRoutesProvider(collegeId), (previous, next) {
       try {
-        if (_selectedRoute == null) {
+        final currentRoute = ref.read(driverMapStateProvider).selectedRoute;
+        if (currentRoute == null) {
           final bus = ref.read(driverBusProvider(userId)).valueOrNull;
           if (bus != null && bus.routeId != null) {
             next.whenData((routes) {
               try {
                 final route = routes.firstWhere((r) => r.id == bus.routeId);
-                if (mounted) {
-                  setState(() {
-                    _selectedRoute = route;
-                  });
-                  _updateMarkers();
-                }
+                ref.read(driverMapStateProvider.notifier).setSelectedRoute(route);
               } catch (e) {
                 AppLogger.e('Error matching route from route listener: $e');
               }
@@ -764,54 +703,131 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
       '[DriverDashboard] myBus=${myBus?.busNumber}, assignmentStatus=${myBus?.assignmentStatus}',
     );
 
+    final bottomNavIndex = ref.watch(driverUiStateProvider.select((s) => s.bottomNavIndex));
+    final isTabletOrDesktop = context.isTabletLayout || context.isDesktopLayout;
+
+    if (isTabletOrDesktop) {
+      return Scaffold(
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+        body: Stack(
+          children: [
+            Row(
+              children: [
+                // Left navigation rail
+                NavigationRail(
+                  selectedIndex: bottomNavIndex,
+                  onDestinationSelected: (index) {
+                    ref.read(driverUiStateProvider.notifier).setBottomNavIndex(index);
+                  },
+                  backgroundColor: Theme.of(context).cardColor,
+                  labelType: NavigationRailLabelType.all,
+                  selectedIconTheme: IconThemeData(color: _getDriverActiveColor(context)),
+                  destinations: [
+                    NavigationRailDestination(
+                      icon: const Icon(Icons.settings_outlined),
+                      selectedIcon: const Icon(Icons.settings),
+                      label: Text(DriverLocalizations.of(context)!.busSetupTab),
+                    ),
+                    NavigationRailDestination(
+                      icon: const Icon(Icons.map_outlined),
+                      selectedIcon: const Icon(Icons.map),
+                      label: Text(DriverLocalizations.of(context)!.liveTrackingTab),
+                    ),
+                    const NavigationRailDestination(
+                      icon: Icon(Icons.person_outline),
+                      selectedIcon: Icon(Icons.person),
+                      label: Text('Profile'),
+                    ),
+                  ],
+                ),
+                const VerticalDivider(width: 1, thickness: 1),
+                
+                // Content pane
+                if (bottomNavIndex == 0)
+                  Expanded(
+                    flex: 4,
+                    child: SafeArea(
+                      child: _buildBusSetupTab(myBus, routesAsync, busNumbersAsync),
+                    ),
+                  )
+                else if (bottomNavIndex == 2)
+                  const Expanded(
+                    flex: 4,
+                    child: SafeArea(
+                      child: ProfileScreen(),
+                    ),
+                  )
+                else
+                  Expanded(
+                    flex: 4,
+                    child: SafeArea(
+                      child: myBusAsync.isLoading && !myBusAsync.hasValue
+                          ? const BusAssignmentSkeleton()
+                          : Consumer(
+                              builder: (context, ref, child) {
+                                final currentLocation = ref.watch(
+                                  driverLocationProvider.select((s) => s.currentLocation),
+                                );
+                                final isSharing = ref.watch(
+                                  driverLocationProvider.select((s) => s.isSharing),
+                                );
+                                final selectedRoute = ref.watch(
+                                  driverMapStateProvider.select((s) => s.selectedRoute),
+                                );
+                                return LiveTrackingControlPanel(
+                                  bus: myBus,
+                                  route: selectedRoute,
+                                  isSharing: isSharing,
+                                  currentLocation: currentLocation,
+                                  onToggleSharing: () => _toggleLocationSharing(myBus),
+                                  onCompleteTrip: () => _handleTripComplete(myBus),
+                                );
+                              },
+                            ),
+                    ),
+                  ),
+                
+                // Right Pane: Active Map View (always visible on tablet/desktop)
+                Expanded(
+                  flex: 6,
+                  child: Container(
+                    color: Theme.of(context).cardColor,
+                    child: _buildLiveTrackingTab(myBus),
+                  ),
+                ),
+              ],
+            ),
+            SafeArea(child: _buildConnectivityBanner()),
+          ],
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      appBar: AppBar(
-        title: DriverLocalizations.of(
-          context,
-        )!.welcomeDriver(fullName).text.ellipsis.make(),
-        backgroundColor: Theme.of(context).primaryColor,
-        foregroundColor: Theme.of(context).colorScheme.onPrimary,
-        actions: [
-          IconButton(icon: const Icon(Icons.notifications), onPressed: () {}),
-          IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: () async {
-              final confirmed = await LogoutConfirmationDialog.show(context);
-              if (confirmed) {
-                if (context.mounted) {
-                  LogoutLoadingDialog.show(context);
-                }
-                await ref.read(authProvider.notifier).signOut();
-                if (context.mounted) context.go('/login');
-              }
-            },
-          ),
-        ],
-      ),
       body: Stack(
         children: [
           // Main Content
           if (myBusAsync.isLoading && !myBusAsync.hasValue)
-            const Center(child: CircularProgressIndicator())
+            const SafeArea(child: BusAssignmentSkeleton())
           else
             IndexedStack(
-              index: _bottomNavIndex,
+              index: bottomNavIndex,
               children: [
-                _buildBusSetupTab(myBus, routesAsync, busNumbersAsync),
-                _buildLiveTrackingTab(myBus),
+                SafeArea(child: _buildBusSetupTab(myBus, routesAsync, busNumbersAsync)),
+                SafeArea(child: _buildLiveTrackingTab(myBus)),
                 const ProfileScreen(),
               ],
             ),
 
           // Connectivity Banner
-          _buildConnectivityBanner(),
+          SafeArea(child: _buildConnectivityBanner()),
         ],
       ),
       bottomNavigationBar: CurvedBottomNavBar(
-        currentIndex: _bottomNavIndex,
+        currentIndex: bottomNavIndex,
         onTap: (index) {
-          setState(() => _bottomNavIndex = index);
+          ref.read(driverUiStateProvider.notifier).setBottomNavIndex(index);
         },
         activeColor: _getDriverActiveColor(context),
         backgroundColor: Theme.of(context).cardColor,
@@ -842,50 +858,80 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
       return _buildPendingAssignmentUI(myBus).p(AppSizes.paddingMedium);
     }
 
+    final designTheme = Theme.of(context).extension<DesignSystemThemeExtension>();
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(AppSizes.paddingMedium),
-      child: VStack([
-        LocationDisplay(currentLocation: _currentLocation),
-        VStack([
+      child: Column(
+        children: [
+          const LocationDisplay(),
           if (myBus == null)
-            Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.assignment_late_outlined,
-                    size: 64,
-                    color: Theme.of(context).disabledColor,
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'There are no assignments.',
-                    style: TextStyle(
-                      fontSize: 18,
-                      color: Theme.of(context).disabledColor,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Please contact the coordinator.',
-                    style: TextStyle(
-                      color: Theme.of(
-                        context,
-                      ).disabledColor.withValues(alpha: 0.7),
-                    ),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(AppSizes.paddingLarge),
+              decoration: designTheme?.cardDecoration ?? BoxDecoration(
+                color: Theme.of(context).cardColor,
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(
+                  color: Theme.of(context).dividerColor.withValues(alpha: 0.08),
+                  width: 1.5,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.02),
+                    blurRadius: 12,
+                    offset: const Offset(0, 6),
                   ),
                 ],
               ),
-            ).pOnly(top: 40)
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  const SizedBox(height: 16),
+                  Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).disabledColor.withValues(alpha: 0.05),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      Icons.assignment_ind_outlined,
+                      size: 56,
+                      color: Theme.of(context).disabledColor.withValues(alpha: 0.6),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  Text(
+                    'No Assignments Yet',
+                    style: designTheme?.cardHeaderStyle ?? TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w800,
+                      color: Theme.of(context).colorScheme.onSurface,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    'You are not currently assigned to any bus or route. Please contact your administrator or bus coordinator to receive an assignment.',
+                    textAlign: TextAlign.center,
+                    style: designTheme?.cardBodyStyle ?? TextStyle(
+                      fontSize: 14,
+                      height: 1.5,
+                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                ],
+              ),
+            )
           else
             BusAssignmentCard(
               bus: myBus,
-              route: _selectedRoute,
+              route: ref.watch(driverMapStateProvider.select((s) => s.selectedRoute)),
               onRemove: () => _handleRemoveAssignment(myBus),
             ),
-        ]),
-      ]),
+        ],
+      ),
     );
   }
 
@@ -1035,10 +1081,7 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
         await PersistenceService.remove('driver_route_id');
 
         if (mounted) {
-          setState(() {
-            _selectedRoute = null;
-          });
-          _updateMarkers();
+          ref.read(driverMapStateProvider.notifier).setSelectedRoute(null);
 
           SuccessModal.show(
             context: context,
@@ -1049,11 +1092,9 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
         }
       } catch (e) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Error completing trip: $e'),
-              backgroundColor: AppColors.error,
-            ),
+          ApiErrorModal.show(
+            context: context,
+            error: 'Error completing trip: $e',
           );
         }
       }
@@ -1065,46 +1106,287 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
       children: [
         Column(
           children: [
-            CommonMapView(
-              currentLocation: _currentLocation,
-              markers: _markers,
-              polylines: const {},
-              onMapCreated: (controller) {},
-              initialZoom: 17.0,
+            Consumer(
+              builder: (context, ref, child) {
+                final currentLocation = ref.watch(
+                  driverLocationProvider.select((s) => s.currentLocation),
+                );
+                final heading = ref.watch(
+                  driverLocationProvider.select((s) => s.heading),
+                );
+                final mapState = ref.watch(driverMapStateProvider);
+                final route = mapState.selectedRoute;
+                final result = mapState.directionsResult;
+
+                final mapTheme = Theme.of(context).extension<MapThemeExtension>();
+                final routeColorTheme = mapTheme?.routeColor ?? const Color(0xFF1565C0);
+
+                // 1. Build stop markers dynamically
+                final stopMarkers = <Marker>{};
+                if (route != null) {
+                  if (route.startPoint.lat != 0 && route.startPoint.lng != 0) {
+                    stopMarkers.add(Marker(
+                      markerId: const MarkerId('dstop_start'),
+                      position: LatLng(route.startPoint.lat, route.startPoint.lng),
+                      icon: _startStopIcon ?? BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen),
+                      infoWindow: InfoWindow(title: 'Start: ${route.startPoint.name}'),
+                      anchor: const Offset(0.5, 0.5),
+                      zIndex: 1,
+                    ));
+                  }
+                  for (int i = 0; i < route.stopPoints.length; i++) {
+                    final stop = route.stopPoints[i];
+                    if (stop.lat == 0 && stop.lng == 0) continue;
+                    stopMarkers.add(Marker(
+                      markerId: MarkerId('dstop_$i'),
+                      position: LatLng(stop.lat, stop.lng),
+                      icon: _intermediateStopIcon ?? BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueOrange),
+                      infoWindow: InfoWindow(title: 'Stop ${i + 1}: ${stop.name}'),
+                      anchor: const Offset(0.5, 0.5),
+                      zIndex: 1,
+                    ));
+                  }
+                  if (route.endPoint.lat != 0 && route.endPoint.lng != 0) {
+                    stopMarkers.add(Marker(
+                      markerId: const MarkerId('dstop_end'),
+                      position: LatLng(route.endPoint.lat, route.endPoint.lng),
+                      icon: _endStopIcon ?? BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
+                      infoWindow: InfoWindow(title: 'End: ${route.endPoint.name}'),
+                      anchor: const Offset(0.5, 0.5),
+                      zIndex: 1,
+                    ));
+                  }
+                }
+
+                // 2. Build polylines dynamically
+                final polylines = <Polyline>{};
+                if (result != null && result.hasRoute) {
+                  polylines.addAll({
+                    Polyline(
+                      polylineId: const PolylineId('driver_route_glow'),
+                      points: result.polylinePoints,
+                      color: routeColorTheme.withValues(alpha: 0.3),
+                      width: 10,
+                      startCap: Cap.roundCap,
+                      endCap: Cap.roundCap,
+                      geodesic: true,
+                    ),
+                    Polyline(
+                      polylineId: const PolylineId('driver_route'),
+                      points: result.polylinePoints,
+                      color: routeColorTheme,
+                      width: 6,
+                      startCap: Cap.roundCap,
+                      endCap: Cap.roundCap,
+                      geodesic: true,
+                    ),
+                  });
+                }
+
+                final mapMarkers = {...stopMarkers};
+                if (mapMarkers.isEmpty && route != null) {
+                  // Fallback: draw basic markers if stopMarkers are empty
+                  final startCoord = route.startPoint.lat != 0
+                      ? LatLng(route.startPoint.lat, route.startPoint.lng)
+                      : _getMockCoordinateForLocation(route.startPoint.name);
+                  mapMarkers.add(Marker(
+                    markerId: const MarkerId('start'),
+                    position: startCoord,
+                    infoWindow: InfoWindow(
+                      title: DriverLocalizations.of(context)!.startPointMarker(route.startPoint.name),
+                    ),
+                    icon: _startStopIcon ?? BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen),
+                    anchor: const Offset(0.5, 0.5),
+                  ));
+                  
+                  final endCoord = route.endPoint.lat != 0
+                      ? LatLng(route.endPoint.lat, route.endPoint.lng)
+                      : _getMockCoordinateForLocation(route.endPoint.name);
+                  mapMarkers.add(Marker(
+                    markerId: const MarkerId('end'),
+                    position: endCoord,
+                    infoWindow: InfoWindow(
+                      title: DriverLocalizations.of(context)!.endPointMarker(route.endPoint.name),
+                    ),
+                    icon: _endStopIcon ?? BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
+                    anchor: const Offset(0.5, 0.5),
+                  ));
+
+                  for (var i = 0; i < route.stopPoints.length; i++) {
+                    final stop = route.stopPoints[i];
+                    final coord = stop.lat != 0
+                        ? LatLng(stop.lat, stop.lng)
+                        : _getMockCoordinateForLocation(stop.name);
+                    mapMarkers.add(Marker(
+                      markerId: MarkerId('stop_$i'),
+                      position: coord,
+                      infoWindow: InfoWindow(
+                        title: DriverLocalizations.of(context)!.stopPointMarker(i + 1, stop.name),
+                      ),
+                      icon: _intermediateStopIcon ?? BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueOrange),
+                      anchor: const Offset(0.5, 0.5),
+                    ));
+                  }
+                }
+
+                if (currentLocation != null) {
+                  mapMarkers.add(
+                    Marker(
+                      markerId: const MarkerId('driver_bus'),
+                      position: currentLocation,
+                      icon: _busIcon ?? BitmapDescriptor.defaultMarker,
+                      rotation: heading,
+                      anchor: const Offset(0.5, 0.5),
+                      flat: true,
+                      zIndex: 2,
+                    ),
+                  );
+                }
+
+                return CommonMapView(
+                  currentLocation: currentLocation,
+                  markers: mapMarkers,
+                  polylines: polylines,
+                  onMapCreated: (controller) {},
+                  initialZoom: 17.0,
+                );
+              },
             ).expand(),
-            LiveTrackingControlPanel(
-              bus: myBus,
-              route: _selectedRoute,
-              isSharing: _isSharing,
-              currentLocation: _currentLocation,
-              onToggleSharing: () => _toggleLocationSharing(myBus),
+            Consumer(
+              builder: (context, ref, child) {
+                final currentLocation = ref.watch(
+                  driverLocationProvider.select((s) => s.currentLocation),
+                );
+                final isSharing = ref.watch(
+                  driverLocationProvider.select((s) => s.isSharing),
+                );
+                final selectedRoute = ref.watch(
+                  driverMapStateProvider.select((s) => s.selectedRoute),
+                );
+
+                return LiveTrackingControlPanel(
+                  bus: myBus,
+                  route: selectedRoute,
+                  isSharing: isSharing,
+                  currentLocation: currentLocation,
+                  onToggleSharing: () => _toggleLocationSharing(myBus),
+                  onCompleteTrip: () => _handleTripComplete(myBus),
+                );
+              },
             ),
           ],
         ),
-        // Trip Complete Floating Button
-        if (myBus != null && myBus.assignmentStatus == 'accepted')
-          Positioned(
-            top: 16,
-            right: 16,
-            child: FloatingActionButton.extended(
-              onPressed: () => _handleTripComplete(myBus),
-              backgroundColor: AppColors.success,
-              icon: const Icon(Icons.check_circle_outline, color: Colors.white),
-              label: const Text(
-                'Trip Complete',
-                style: TextStyle(color: Colors.white),
+        // Next Stop ETA Card (navigation style)
+        Consumer(
+          builder: (context, ref, child) {
+            final currentLocation = ref.watch(
+              driverLocationProvider.select((s) => s.currentLocation),
+            );
+            final nextStopETA = ref.watch(
+              driverLocationProvider.select((s) => s.nextStopETA),
+            );
+            final isSharing = ref.watch(
+              driverLocationProvider.select((s) => s.isSharing),
+            );
+            final mapState = ref.watch(driverMapStateProvider);
+            final selectedRoute = mapState.selectedRoute;
+            final result = mapState.directionsResult;
+
+            if (!isSharing || selectedRoute == null) {
+              return const SizedBox.shrink();
+            }
+
+            // Compute next stop ETA from directions
+            String? directionsETA;
+            if (result != null && currentLocation != null) {
+              directionsETA = _computeNextStopETAFromDirections(
+                currentLocation,
+                selectedRoute,
+                result,
+              );
+            }
+
+            final displayETA = directionsETA ?? (nextStopETA != null ? 'ETA: $nextStopETA' : null);
+            if (displayETA == null) {
+              return const SizedBox.shrink();
+            }
+
+            return Positioned(
+              bottom: 240, // Above control panel
+              left: 16,
+              right: 16,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                decoration: BoxDecoration(
+                  color: Colors.black87,
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.3),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: AppColors.turkishBlue.withValues(alpha: 0.2),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Icon(
+                        Icons.navigation_rounded,
+                        color: AppColors.turkishBlue,
+                        size: 20,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        displayETA,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 15,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    if (result != null)
+                      Text(
+                        '${result.totalDistanceKm.toStringAsFixed(1)} km',
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.6),
+                          fontSize: 12,
+                        ),
+                      ),
+                  ],
+                ),
               ),
-            ),
-          ),
+            );
+          },
+        ),
+
         Positioned(
           top: 16,
           left: 16,
           child: Column(
             children: [
-              SOSButton(
-                currentLocation: _currentLocation,
-                busId: myBus?.id,
-                routeId: _selectedRoute?.id,
+              Consumer(
+                builder: (context, ref, child) {
+                  final currentLocation = ref.watch(
+                    driverLocationProvider.select((s) => s.currentLocation),
+                  );
+                  final selectedRoute = ref.watch(
+                    driverMapStateProvider.select((s) => s.selectedRoute),
+                  );
+                  return SOSButton(
+                    currentLocation: currentLocation,
+                    busId: myBus?.id,
+                    routeId: selectedRoute?.id,
+                  );
+                },
               ),
               if (myBus != null && myBus.assignmentStatus == 'accepted') ...[
                 16.heightBox,
@@ -1113,33 +1395,98 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
             ],
           ),
         ),
-        if (_nextStopETA != null && _isSharing)
-          Positioned(
-            bottom: 240, // Above control panel
-            left: 16,
-            right: 16,
-            child: Card(
-              color: Colors.black87,
-              child: Padding(
-                padding: const EdgeInsets.all(12.0),
-                child: Text(
-                  'ETA: $_nextStopETA',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-              ),
-            ),
-          ),
       ],
     );
   }
 
+  /// Compute next stop ETA using Directions API leg data and driver progress.
+  String? _computeNextStopETAFromDirections(
+    LatLng currentLocation,
+    RouteModel selectedRoute,
+    DirectionsResult directionsResult,
+  ) {
+    final polyline = directionsResult.polylinePoints;
+    if (polyline.isEmpty) return null;
+
+    final allStops = [
+      selectedRoute.startPoint,
+      ...selectedRoute.stopPoints,
+      selectedRoute.endPoint,
+    ];
+
+    // Helper to find the closest index in the polyline points to a given target coordinate
+    int findClosestIndex(LatLng target) {
+      double minDistance = double.infinity;
+      int closestIndex = 0;
+      for (int i = 0; i < polyline.length; i++) {
+        final dist = Geolocator.distanceBetween(
+          target.latitude,
+          target.longitude,
+          polyline[i].latitude,
+          polyline[i].longitude,
+        );
+        if (dist < minDistance) {
+          minDistance = dist;
+          closestIndex = i;
+        }
+      }
+      return closestIndex;
+    }
+
+    // Find the driver's current index along the polyline path
+    final driverIdx = findClosestIndex(currentLocation);
+
+    // Find the next upcoming stop
+    int nextStopIndex = -1;
+    for (int i = 0; i < allStops.length; i++) {
+      final stop = allStops[i];
+      if (stop.lat == 0 && stop.lng == 0) continue;
+      
+      final stopIdx = findClosestIndex(LatLng(stop.lat, stop.lng));
+      // Stop is ahead of the driver's path index
+      if (stopIdx > driverIdx) {
+        nextStopIndex = i;
+        break;
+      }
+    }
+
+    if (nextStopIndex < 0) return null;
+
+    final nextStop = allStops[nextStopIndex];
+    
+    // Distance remaining to the next stop in kilometers
+    final remainingDistanceKm = Geolocator.distanceBetween(
+      currentLocation.latitude,
+      currentLocation.longitude,
+      nextStop.lat,
+      nextStop.lng,
+    ) / 1000.0;
+
+    int etaMin = 1;
+
+    if (directionsResult.legs.isNotEmpty) {
+      // The leg leading to the next stop
+      final legIndex = (nextStopIndex - 1).clamp(0, directionsResult.legs.length - 1);
+      final leg = directionsResult.legs[legIndex];
+      
+      if (leg.distanceKm > 0) {
+        // Calculate proportion of the remaining leg
+        final proportion = (remainingDistanceKm / leg.distanceKm).clamp(0.0, 1.0);
+        etaMin = (proportion * leg.durationMin).round().clamp(1, leg.durationMin);
+      } else {
+        etaMin = leg.durationMin;
+      }
+    } else {
+      // Fallback if no leg details are present (average speed 30km/h = 0.5km/min)
+      etaMin = (remainingDistanceKm / 0.5).ceil().clamp(1, 120);
+    }
+
+    return 'Next: ${nextStop.name} · ${etaMin} min';
+  }
+
   Color _getDriverActiveColor(BuildContext context) {
-    switch (_bottomNavIndex) {
+    final bottomNavIndex = ref.read(driverUiStateProvider).bottomNavIndex;
+    switch (bottomNavIndex) {
       case 0:
         return Theme.of(context).primaryColor;
       case 1:

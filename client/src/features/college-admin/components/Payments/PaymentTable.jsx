@@ -1,25 +1,39 @@
 import React from "react";
+import EmptyState from "@/components/common/EmptyState";
+import { CreditCardIcon } from "@heroicons/react/24/outline";
 
-const PaymentTable = ({ transactions, loading }) => {
+const PaymentTable = ({ transactions, loading, density = "default" }) => {
+  const paddingTh = {
+    compact: "px-4 py-2",
+    default: "px-6 py-4",
+    relaxed: "px-8 py-6",
+  }[density] || "px-6 py-4";
+
+  const paddingTd = {
+    compact: "px-4 py-2",
+    default: "px-6 py-4",
+    relaxed: "px-8 py-6",
+  }[density] || "px-6 py-4";
+
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-      <div className="overflow-x-auto">
+    <div className="bg-background-paper rounded-xl shadow-sm border border-border-theme overflow-hidden">
+      <div className="overflow-x-auto max-h-[600px] overflow-y-auto">
         <table className="min-w-full divide-y divide-slate-200">
-          <thead className="bg-slate-50">
+          <thead className="bg-slate-50/95 dark:bg-slate-800/95 backdrop-blur-xs sticky top-0 z-10">
             <tr>
-              <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase">
+              <th className={`${paddingTh} text-left text-scale-table-header text-slate-500`}>
                 Student
               </th>
-              <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase">
+              <th className={`${paddingTh} text-left text-scale-table-header text-slate-500`}>
                 Transaction
               </th>
-              <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase">
+              <th className={`${paddingTh} text-left text-scale-table-header text-slate-500`}>
                 Plan & Amount
               </th>
-              <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase">
+              <th className={`${paddingTh} text-left text-scale-table-header text-slate-500`}>
                 Date
               </th>
-              <th className="px-6 py-4 text-right text-xs font-semibold text-slate-500 uppercase">
+              <th className={`${paddingTh} text-right text-scale-table-header text-slate-500`}>
                 Status
               </th>
             </tr>
@@ -30,13 +44,13 @@ const PaymentTable = ({ transactions, loading }) => {
                 key={tx._id}
                 className="hover:bg-slate-50/50 transition-colors"
               >
-                <td className="px-6 py-4 whitespace-nowrap">
+                <td className={`${paddingTd} whitespace-nowrap`}>
                   <div className="flex items-center">
-                    <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center text-[#1E90FF] font-bold">
+                    <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center text-[#1E90FF] font-bold shrink-0">
                       {tx.userId?.fullName?.charAt(0) || "?"}
                     </div>
                     <div className="ml-4">
-                      <div className="text-sm font-semibold text-slate-900">
+                      <div className="text-scale-table-body text-slate-900">
                         {tx.userId?.fullName || "N/A"}
                       </div>
                       <div className="text-xs text-slate-500">
@@ -45,12 +59,12 @@ const PaymentTable = ({ transactions, loading }) => {
                     </div>
                   </div>
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap">
+                <td className={`${paddingTd} whitespace-nowrap`}>
                   <div className="text-xs font-mono text-slate-500">
                     ID: {tx.paymentId}
                   </div>
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap">
+                <td className={`${paddingTd} whitespace-nowrap`}>
                   <div className="flex flex-col">
                     <span
                       className={`text-xs font-bold uppercase ${
@@ -66,12 +80,12 @@ const PaymentTable = ({ transactions, loading }) => {
                     </span>
                   </div>
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap">
+                <td className={`${paddingTd} whitespace-nowrap`}>
                   <div className="text-sm text-slate-600">
                     {new Date(tx.createdAt).toLocaleDateString()}
                   </div>
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-right">
+                <td className={`${paddingTd} whitespace-nowrap text-right`}>
                   <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-bold">
                     Successful
                   </span>
@@ -81,11 +95,12 @@ const PaymentTable = ({ transactions, loading }) => {
 
             {transactions.length === 0 && !loading && (
               <tr>
-                <td
-                  colSpan="5"
-                  className="px-6 py-12 text-center text-slate-400"
-                >
-                  No transactions found for the selected criteria.
+                <td colSpan="5" className="px-6 py-12">
+                  <EmptyState 
+                    message="No transaction records found"
+                    description="Ensure your date filters are correct or look up a different user email."
+                    icon={CreditCardIcon}
+                  />
                 </td>
               </tr>
             )}

@@ -22,6 +22,7 @@ import {
   getColleges,
   getCollegeStorageHistory,
 } from "../slices/superAdminSlice";
+import GlassmorphicTooltip from "@/components/common/GlassmorphicTooltip";
 
 const CollegeStorageAnalysis = () => {
   const dispatch = useDispatch();
@@ -218,13 +219,7 @@ const CollegeStorageAnalysis = () => {
                       axisLine={false}
                       tickLine={false}
                     />
-                    <Tooltip
-                      contentStyle={{
-                        borderRadius: "12px",
-                        border: "none",
-                        boxShadow: "0 10px 15px -3px rgb(0 0 0 / 0.1)",
-                      }}
-                    />
+                    <Tooltip content={<GlassmorphicTooltip />} />
                     <Legend
                       verticalAlign="top"
                       align="right"

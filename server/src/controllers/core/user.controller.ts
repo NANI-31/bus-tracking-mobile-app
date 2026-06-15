@@ -56,7 +56,7 @@ export const getAllUsers = async (req: IAuthRequest, res: Response) => {
     let query: any = {};
     const page = req.query.page ? parseInt(req.query.page as string, 10) : undefined;
     const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : undefined;
-    const { search, role } = req.query;
+    const { search, role, collegeId } = req.query;
 
     // Multi-tenancy: College admins and coordinators only see their own college's users
     if (
@@ -69,7 +69,27 @@ export const getAllUsers = async (req: IAuthRequest, res: Response) => {
     }
 
     if (role) {
-      query.role = role;
+      if (typeof role === 'string') {
+        if (role.includes(',')) {
+          query.role = { $in: role.split(',') };
+        } else {
+          query.role = role;
+        }
+      } else if (Array.isArray(role)) {
+        query.role = { $in: role };
+      }
+    }
+
+    if (collegeId) {
+      if (typeof collegeId === 'string') {
+        if (collegeId.includes(',')) {
+          query.collegeId = { $in: collegeId.split(',') };
+        } else {
+          query.collegeId = collegeId;
+        }
+      } else if (Array.isArray(collegeId)) {
+        query.collegeId = { $in: collegeId };
+      }
     }
 
     if (search) {

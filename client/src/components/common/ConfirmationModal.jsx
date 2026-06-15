@@ -15,8 +15,6 @@ const ConfirmationModal = ({
   cancelText = "Cancel",
   type = "danger", // 'danger' or 'info'
 }) => {
-  if (!isOpen) return null;
-
   return (
     <AnimatePresence>
       {isOpen && (
@@ -27,7 +25,7 @@ const ConfirmationModal = ({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
-            className="absolute inset-0 bg-black/40"
+            className="absolute inset-0 modal-backdrop"
           />
 
           {/* Modal content */}
@@ -35,30 +33,31 @@ const ConfirmationModal = ({
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            className="relative w-full max-w-md overflow-hidden rounded-2xl bg-white p-6 shadow-2xl"
+            transition={{ type: "spring", damping: 25, stiffness: 350 }}
+            className="relative w-full max-w-md overflow-hidden rounded-3xl backdrop-blur-xl bg-white/75 dark:bg-slate-900/90 border border-white/30 dark:border-slate-850 p-6 shadow-2xl z-10"
           >
             <div className="flex items-start justify-between">
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-red-100">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-red-100 dark:bg-red-950/30">
                 <ExclamationTriangleIcon
-                  className="h-6 w-6 text-red-600"
+                  className="h-6 w-6 text-red-600 dark:text-red-400"
                   aria-hidden="true"
                 />
               </div>
               <button
                 type="button"
                 onClick={onClose}
-                className="rounded-full p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-500 transition-colors"
+                className="rounded-full p-1 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-500 dark:hover:text-slate-300 transition-colors"
               >
                 <XMarkIcon className="h-6 w-6" />
               </button>
             </div>
 
             <div className="mt-4 text-left">
-              <h3 className="text-lg font-semibold leading-6 text-gray-900">
+              <h3 className="text-lg font-semibold leading-6 text-slate-900 dark:text-slate-100">
                 {title}
               </h3>
               <div className="mt-2">
-                <p className="text-sm text-gray-500">{message}</p>
+                <p className="text-sm text-slate-500 dark:text-slate-400">{message}</p>
               </div>
             </div>
 
@@ -66,7 +65,7 @@ const ConfirmationModal = ({
               <button
                 type="button"
                 onClick={onClose}
-                className="w-full inline-flex justify-center items-center rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:w-auto transition-all"
+                className="w-full inline-flex justify-center items-center rounded-xl bg-white dark:bg-slate-800 px-4 py-2.5 text-sm font-semibold text-slate-900 dark:text-slate-100 shadow-sm ring-1 ring-inset ring-slate-300 dark:ring-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 sm:w-auto transition-all"
               >
                 {cancelText}
               </button>

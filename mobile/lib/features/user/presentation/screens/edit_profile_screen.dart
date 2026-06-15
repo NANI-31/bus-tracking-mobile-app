@@ -88,6 +88,45 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              Consumer(
+                builder: (context, ref, _) {
+                  final user = ref.watch(currentUserProvider);
+                  return Center(
+                    child: Hero(
+                      tag: 'profile-avatar',
+                      child: Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).scaffoldBackgroundColor,
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.1),
+                              blurRadius: 16,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: CircleAvatar(
+                          radius: 50,
+                          backgroundColor: Theme.of(context).brightness == Brightness.dark
+                              ? const Color(0xFF24303E)
+                              : Colors.white,
+                          child: (user?.fullName.isNotEmpty == true
+                                  ? user!.fullName.substring(0, 1).toUpperCase()
+                                  : 'U')
+                              .text
+                              .size(36)
+                              .bold
+                              .color(Theme.of(context).primaryColor)
+                              .make(),
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+              24.heightBox,
               'Update your basic information to keep your profile current.'
                   .text
                   .gray500

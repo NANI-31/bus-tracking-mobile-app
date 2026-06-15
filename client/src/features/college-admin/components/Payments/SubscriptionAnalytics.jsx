@@ -10,6 +10,7 @@ import {
   Legend,
   Cell,
 } from "recharts";
+import GlassmorphicTooltip from "@/components/common/GlassmorphicTooltip";
 
 const SubscriptionAnalytics = ({ data }) => {
   // Transform data for the chart if needed
@@ -29,8 +30,8 @@ const SubscriptionAnalytics = ({ data }) => {
   };
 
   return (
-    <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-      <h3 className="text-lg font-bold text-slate-800 mb-6">
+    <div className="bg-background-paper p-6 rounded-xl shadow-sm border border-border-theme text-text-theme-primary transition-all duration-300">
+      <h3 className="text-scale-h3 text-text-theme-primary mb-6">
         Subscription Trends
       </h3>
       <div className="h-80 w-full">
@@ -39,26 +40,20 @@ const SubscriptionAnalytics = ({ data }) => {
             <CartesianGrid
               strokeDasharray="3 3"
               vertical={false}
-              stroke="#E2E8F0"
+              stroke="var(--border-color)"
             />
             <XAxis
               dataKey="name"
               axisLine={false}
               tickLine={false}
-              tick={{ fill: "#64748B", fontSize: 12 }}
+              tick={{ fill: "var(--text-secondary)", fontSize: 12 }}
             />
             <YAxis
               axisLine={false}
               tickLine={false}
-              tick={{ fill: "#64748B", fontSize: 12 }}
+              tick={{ fill: "var(--text-secondary)", fontSize: 12 }}
             />
-            <Tooltip
-              contentStyle={{
-                borderRadius: "12px",
-                border: "none",
-                boxShadow: "0 10px 15px -3px rgb(0 0 0 / 0.1)",
-              }}
-            />
+            <Tooltip content={<GlassmorphicTooltip />} />
             <Legend verticalAlign="top" height={36} />
             <Bar
               dataKey="count"

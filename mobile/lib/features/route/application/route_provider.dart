@@ -39,29 +39,41 @@ class RouteNotifier extends AsyncNotifier<List<RouteModel>> {
 final routeMutatorProvider =
     AsyncNotifierProvider<RouteNotifier, List<RouteModel>>(RouteNotifier.new);
 
-/// StreamProvider for routes of a specific college
-final collegeRoutesProvider = StreamProvider.family<List<RouteModel>, String>((
-  ref,
-  collegeId,
-) {
-  final repo = ref.watch(routeRepositoryProvider);
-  final socket = ref.watch(socketServiceProvider);
+class CollegeRoutesNotifier extends FamilyAsyncNotifier<List<RouteModel>, String> {
+  @override
+  Future<List<RouteModel>> build(String arg) async {
+    final repo = ref.watch(routeRepositoryProvider);
+    final socket = ref.watch(socketServiceProvider);
 
-  return Stream.multi((controller) async {
-    Future<void> fetch() async {
-      try {
-        final routes = await repo.getRoutesByCollege(collegeId);
-        if (!controller.isClosed) controller.add(routes);
-      } catch (e) {
-        if (!controller.isClosed) controller.addError(e);
-      }
-    }
+    final sub = socket.routeListUpdateStream.listen((_) async {
+      state = const AsyncValue.loading();
+      state = await AsyncValue.guard(() async {
+        return await repo.getRoutesByCollege(arg);
+      });
+    });
 
-    await fetch();
-    final subscription = socket.routeListUpdateStream.listen((_) => fetch());
-    controller.onCancel = () => subscription.cancel();
-  });
-});
+    ref.onDispose(() {
+      sub.cancel();
+    });
+
+    return await repo.getRoutesByCollege(arg);
+  }
+
+  Future<void> refresh() async {
+    state = const AsyncValue.loading();
+    state = await AsyncValue.guard(() async {
+      final repo = ref.read(routeRepositoryProvider);
+      return await repo.getRoutesByCollege(arg);
+    });
+  }
+}
+
+/// AsyncNotifierProvider for routes of a specific college
+final collegeRoutesProvider = AsyncNotifierProvider.family<
+    CollegeRoutesNotifier,
+    List<RouteModel>,
+    String
+>(CollegeRoutesNotifier.new);
 
 /// StreamProvider for schedules of a specific college
 final collegeSchedulesProvider =

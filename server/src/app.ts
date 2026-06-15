@@ -8,7 +8,7 @@ import path from "path";
 import { Server } from "socket.io";
 import { createServer } from "http";
 import { router } from "@/routes";
-import { initializeSocket } from "@/socket";
+import { initializeSocket } from "@/socket/index";
 import logger from "@/utils/logger";
 import { errorHandler } from "@/middleware/errorMiddleware";
 import { requestIdMiddleware } from "@/middleware/requestIdMiddleware";
@@ -34,6 +34,7 @@ export const createApp = () => {
   const allowedOrigins = [
     "http://localhost:5173",
     "http://localhost:3000",
+    `http://${process.env.VITE_CLIENT_IP_URL}`,
     (process.env.VITE_CLIENT_URL || "").trim(),
   ].filter(Boolean);
 

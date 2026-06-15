@@ -1,11 +1,444 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Outfit:wght@400;500;600;700;800;900&display=swap');
 @import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *));
 @import "leaflet/dist/leaflet.css";
 
-body {
-	font-family: 'Inter', 'Outfit', sans-serif;
-	-webkit-font-smoothing: antialiased;
-	-moz-osx-font-smoothing: grayscale;
+:root {
+  /* System Design Tokens (Light Mode Default) */
+  --primary-main: #1E90FF;
+  --primary-light: #60A5FA;
+  --primary-dark: #1C64F2;
+  
+  --secondary-main: #A78BFA;
+  --secondary-light: #C4B5FD;
+  --secondary-dark: #8B5CF6;
+  
+  --accent-main: #00FFD1;
+  --success-main: #4ADE80;
+  --warning-main: #FACC15;
+  --error-main: #F87171;
+  
+  --background-default: #F5F5F5;
+  --background-paper: #ffffff;
+  --border-color: #e2e8f0;
+  
+  --text-primary: #1F1F1F;
+  --text-secondary: #6B7280;
 }
 
-@import "leaflet/dist/leaflet.css";
+@media (prefers-color-scheme: dark) {
+  :root:not(.light) {
+    --background-default: #0f172a; /* Slate 900 */
+    --background-paper: #1e293b;   /* Slate 800 */
+    --border-color: #334155;       /* Slate 700 */
+    
+    --text-primary: #f8fafc;       /* Slate 50 */
+    --text-secondary: #94a3b8;     /* Slate 400 */
+  }
+}
+
+:root.dark {
+  --background-default: #0f172a; /* Slate 900 */
+  --background-paper: #1e293b;   /* Slate 800 */
+  --border-color: #334155;       /* Slate 700 */
+  
+  --text-primary: #f8fafc;       /* Slate 50 */
+  --text-secondary: #94a3b8;     /* Slate 400 */
+}
+
+@theme {
+  /* Sync design tokens as Tailwind v4 utility variables */
+  --color-primary-main: var(--primary-main);
+  --color-primary-light: var(--primary-light);
+  --color-primary-dark: var(--primary-dark);
+  
+  --color-secondary-main: var(--secondary-main);
+  --color-secondary-light: var(--secondary-light);
+  --color-secondary-dark: var(--secondary-dark);
+  
+  --color-accent-main: var(--accent-main);
+  --color-success-main: var(--success-main);
+  --color-warning-main: var(--warning-main);
+  --color-error-main: var(--error-main);
+
+  --color-background-default: var(--background-default);
+  --color-background-paper: var(--background-paper);
+  --color-border-theme: var(--border-color);
+  --color-text-theme-primary: var(--text-primary);
+  --color-text-theme-secondary: var(--text-secondary);
+}
+
+:root {
+  /* Typography Variables */
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-display: 'Outfit', system-ui, -apple-system, sans-serif;
+  
+  --text-h1-size: clamp(1.5rem, 2.2vw + 1rem, 2.5rem);
+  --text-h2-size: clamp(1.25rem, 1.6vw + 0.85rem, 2rem);
+  --text-h3-size: clamp(1.1rem, 1.1vw + 0.8rem, 1.4rem);
+  --text-body-size: 0.875rem; /* 14px */
+  --text-caption-size: 0.75rem; /* 12px */
+}
+
+body {
+  font-family: var(--font-sans);
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Unified Typography Tokens */
+.text-scale-h1 {
+  font-family: var(--font-display);
+  font-size: var(--text-h1-size);
+  font-weight: 800;
+  letter-spacing: -0.025em;
+  line-height: 1.25;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.text-scale-h2 {
+  font-family: var(--font-display);
+  font-size: var(--text-h2-size);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.3;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.text-scale-h3 {
+  font-family: var(--font-sans);
+  font-size: var(--text-h3-size);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  line-height: 1.4;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.text-scale-sidebar {
+  font-family: var(--font-sans);
+  font-size: 0.875rem;
+  font-weight: 700;
+  letter-spacing: 0.025em;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.text-scale-table-header {
+  font-family: var(--font-sans);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.text-scale-table-body {
+  font-family: var(--font-sans);
+  font-size: 0.875rem;
+  font-weight: 500;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+@keyframes shimmerAnimation {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.shimmer {
+  background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+  background-size: 200% 100%;
+  animation: shimmerAnimation 1.5s infinite linear;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not(.light) .shimmer {
+    background: linear-gradient(90deg, #1e293b 25%, #334155 50%, #1e293b 75%);
+  }
+}
+
+:root.dark .shimmer {
+  background: linear-gradient(90deg, #1e293b 25%, #334155 50%, #1e293b 75%);
+}
+
+/* Accessibility Focus Ring Utility */
+.focus-ring {
+  outline: none;
+  transition: box-shadow 0.15s ease-in-out, border-color 0.15s ease-in-out;
+}
+
+.focus-ring:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(30, 144, 255, 0.4);
+  border-color: #1E90FF;
+}
+
+/* Global Form Controls & Theme Specific Overrides */
+input,
+select,
+textarea {
+  background-color: var(--background-paper) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--border-color) !important;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--text-secondary) !important;
+  opacity: 0.7 !important;
+}
+
+.dark {
+  /* Override bg-white to use theme paper background */
+  .bg-white,
+  .bg-gray-50,
+  .bg-slate-50 {
+    background-color: var(--background-paper) !important;
+  }
+
+  .bg-slate-100,
+  .bg-gray-100 {
+    background-color: rgba(255, 255, 255, 0.03) !important;
+  }
+  
+  .bg-slate-200,
+  .bg-gray-200 {
+    background-color: rgba(255, 255, 255, 0.06) !important;
+  }
+
+  /* Hover overrides */
+  .hover\:bg-slate-50:hover,
+  .hover\:bg-slate-100:hover,
+  .hover\:bg-gray-50:hover,
+  .hover\:bg-gray-100:hover {
+    background-color: rgba(255, 255, 255, 0.05) !important;
+  }
+
+  /* Override text colors */
+  .text-slate-950,
+  .text-slate-900,
+  .text-slate-800,
+  .text-slate-750,
+  .text-slate-700,
+  .text-slate-650,
+  .text-slate-600,
+  .text-gray-900,
+  .text-gray-800,
+  .text-gray-700,
+  .text-gray-650,
+  .text-gray-600 {
+    color: var(--text-primary) !important;
+  }
+
+  .text-slate-500,
+  .text-slate-400,
+  .text-gray-500,
+  .text-gray-400 {
+    color: var(--text-secondary) !important;
+  }
+
+  /* Override borders */
+  .border-slate-100,
+  .border-slate-200,
+  .border-slate-300,
+  .border-slate-400,
+  .border-gray-100,
+  .border-gray-200,
+  .border-gray-300,
+  .border-gray-400 {
+    border-color: var(--border-color) !important;
+  }
+
+  /* Divider overrides */
+  .divide-slate-100 > :not([hidden]) ~ :not([hidden]),
+  .divide-slate-200 > :not([hidden]) ~ :not([hidden]),
+  .divide-slate-300 > :not([hidden]) ~ :not([hidden]),
+  .divide-gray-100 > :not([hidden]) ~ :not([hidden]),
+  .divide-gray-200 > :not([hidden]) ~ :not([hidden]),
+  .divide-gray-300 > :not([hidden]) ~ :not([hidden]) {
+    border-color: var(--border-color) !important;
+  }
+  
+  /* Leaflet map specific popup overrides */
+  .leaflet-popup-content-wrapper,
+  .leaflet-popup-tip {
+    background-color: var(--background-paper) !important;
+    color: var(--text-primary) !important;
+    border: 1px solid var(--border-color);
+  }
+
+  /* MUI Component overrides for Dark Mode */
+  .MuiPaper-root,
+  .MuiCard-root {
+    background-color: var(--background-paper) !important;
+    color: var(--text-primary) !important;
+    border-color: var(--border-color) !important;
+  }
+
+  .MuiTableCell-root {
+    color: var(--text-primary) !important;
+    border-color: var(--border-color) !important;
+  }
+
+  .MuiTypography-root {
+    color: var(--text-primary) !important;
+  }
+
+  .MuiTypography-colorTextSecondary {
+    color: var(--text-secondary) !important;
+  }
+
+  .MuiIconButton-root {
+    color: var(--text-secondary) !important;
+  }
+
+  .MuiInputBase-root {
+    background-color: var(--background-paper) !important;
+    color: var(--text-primary) !important;
+    & fieldset {
+      border-color: var(--border-color) !important;
+    }
+  }
+
+  .MuiOutlinedInput-root {
+    & fieldset {
+      border-color: var(--border-color) !important;
+    }
+    &:hover fieldset {
+      border-color: #1E90FF !important;
+    }
+  }
+
+  .MuiFormLabel-root {
+    color: var(--text-secondary) !important;
+  }
+}
+
+/* Sleek, Modern Custom Scrollbars */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: 9999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+  transition: background 0.2s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-secondary);
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+/* Firefox scrollbar compatibility */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-color) transparent;
+}
+
+/* Glassmorphic Toast Customization */
+.glass-toast {
+  background: rgba(255, 255, 255, 0.8) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  color: #1f2937 !important;
+  border: 1px solid rgba(229, 231, 235, 0.5) !important;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.05) !important;
+  border-radius: 20px !important;
+  font-family: var(--font-sans) !important;
+  font-weight: 700 !important;
+  font-size: 0.875rem !important;
+  padding: 12px 20px !important;
+  transition: all 0.3s ease !important;
+}
+
+.dark .glass-toast {
+  background: rgba(30, 41, 59, 0.8) !important;
+  color: #f8fafc !important;
+  border: 1px solid rgba(71, 85, 105, 0.4) !important;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2), 0 8px 10px -6px rgba(0, 0, 0, 0.2) !important;
+}
+
+.glass-toast-success {
+  border-left: 5px solid #4ADE80 !important;
+}
+
+.glass-toast-error {
+  border-left: 5px solid #F87171 !important;
+}
+
+/* Premium Modal Backdrop - 8px backdrop blur filter style */
+.modal-backdrop {
+  background-color: rgba(15, 23, 42, 0.45) !important;
+  backdrop-filter: blur(8px) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
+}
+
+/* Premium Leaflet Custom Styling Overrides */
+.leaflet-container {
+  border-radius: 24px !important;
+  font-family: var(--font-sans) !important;
+  box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.05) !important;
+}
+
+/* Midnight tactical dark mode tiles map style */
+.dark .leaflet-container .leaflet-tile-pane {
+  filter: invert(100%) hue-rotate(180deg) brightness(95%) contrast(90%);
+}
+
+.leaflet-control-zoom {
+  border: none !important;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1) !important;
+}
+
+.leaflet-control-zoom-in,
+.leaflet-control-zoom-out {
+  background-color: var(--background-paper) !important;
+  color: var(--text-primary) !important;
+  border: 1px solid var(--border-color) !important;
+  transition: all 0.2s ease !important;
+}
+
+.leaflet-control-zoom-in:hover,
+.leaflet-control-zoom-out:hover {
+  background-color: var(--background-default) !important;
+  color: var(--primary-main) !important;
+}
+
+.leaflet-popup-content-wrapper {
+  background-color: var(--background-paper) !important;
+  color: var(--text-primary) !important;
+  border: 1px solid var(--border-color) !important;
+  border-radius: 16px !important;
+  padding: 4px !important;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04) !important;
+}
+
+.leaflet-popup-tip {
+  background-color: var(--background-paper) !important;
+  border-left: 1px solid var(--border-color) !important;
+  border-bottom: 1px solid var(--border-color) !important;
+}
+
+.leaflet-popup-content {
+  margin: 8px 12px !important;
+  font-size: 0.75rem !important;
+  font-weight: 600 !important;
+}

@@ -27,12 +27,12 @@ const theme = createTheme({
       main: "#F87171", // Error Red
     },
     background: {
-      default: "#F5F5F5", // Light Grey
+      default: "#F5F5F5",
       paper: "#ffffff",
     },
     text: {
-      primary: "#1F1F1F", // Dark Grey
-      secondary: "#6B7280", // Medium Grey
+      primary: "#1F1F1F",
+      secondary: "#6B7280",
       disabled: "#94a3b8",
     },
     divider: "rgba(226, 232, 240, 0.8)",
@@ -70,6 +70,7 @@ const theme = createTheme({
         root: {
           borderRadius: 24,
           border: "1px solid rgba(226, 232, 240, 0.8)",
+          backgroundColor: "#ffffff",
           boxShadow:
             "0 4px 6px -1px rgba(0, 0, 0, 0.02), 0 2px 4px -2px rgba(0, 0, 0, 0.02)",
           transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",

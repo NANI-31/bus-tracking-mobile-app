@@ -5,6 +5,7 @@ class CollegeModel {
   final String name;
   final List<String> allowedDomains;
   final bool verified;
+  final DateTime? verifiedAt;
   final String createdBy;
   final DateTime createdAt;
   final DateTime? updatedAt;
@@ -16,12 +17,16 @@ class CollegeModel {
   final String? suspensionReason;
   final int shiftCount;
   final List<ShiftConfig> shifts;
+  final bool allowManualPremium;
+  final String? address;
+  final String? adminName;
 
   CollegeModel({
     required this.id,
     required this.name,
     required this.allowedDomains,
     this.verified = false,
+    this.verifiedAt,
     required this.createdBy,
     required this.createdAt,
     this.updatedAt,
@@ -32,6 +37,9 @@ class CollegeModel {
     this.suspensionReason,
     this.shiftCount = 1,
     this.shifts = const [],
+    this.allowManualPremium = false,
+    this.address,
+    this.adminName,
   });
 
   factory CollegeModel.fromMap(Map<String, dynamic> map, String id) {
@@ -40,11 +48,17 @@ class CollegeModel {
       return DateTime.now();
     }
 
+    DateTime? parseNullableDate(dynamic value) {
+      if (value is String) return DateTime.parse(value);
+      return null;
+    }
+
     return CollegeModel(
       id: id,
       name: map['name'] ?? '',
       allowedDomains: List<String>.from(map['allowedDomains'] ?? []),
       verified: parseBool(map['verified'], false),
+      verifiedAt: parseNullableDate(map['verifiedAt']),
       createdBy: map['createdBy'] ?? '',
       createdAt: parseDate(map['createdAt']),
       updatedAt: map['updatedAt'] != null ? parseDate(map['updatedAt']) : null,
@@ -54,7 +68,7 @@ class CollegeModel {
           ? Map<String, dynamic>.from(map['settings'])
           : null,
       suspendedAt: map['suspendedAt'] != null
-          ? parseDate(map['suspendedAt'])
+          ? parseNullableDate(map['suspendedAt'])
           : null,
       suspensionReason: map['suspensionReason'],
       shiftCount: map['shiftCount'] ?? 1,
@@ -63,6 +77,9 @@ class CollegeModel {
               ?.map((s) => ShiftConfig.fromMap(s))
               .toList() ??
           [],
+      allowManualPremium: parseBool(map['allowManualPremium'], false),
+      address: map['address'],
+      adminName: map['adminName'],
     );
   }
 
@@ -71,6 +88,7 @@ class CollegeModel {
       'name': name,
       'allowedDomains': allowedDomains,
       'verified': verified,
+      'verifiedAt': verifiedAt?.toIso8601String(),
       'createdBy': createdBy,
       'createdAt': createdAt.toIso8601String(),
       'updatedAt': updatedAt?.toIso8601String(),
@@ -81,6 +99,9 @@ class CollegeModel {
       'suspensionReason': suspensionReason,
       'shiftCount': shiftCount,
       'shifts': shifts.map((s) => s.toMap()).toList(),
+      'allowManualPremium': allowManualPremium,
+      'address': address,
+      'adminName': adminName,
     };
   }
 
@@ -89,6 +110,7 @@ class CollegeModel {
     String? name,
     List<String>? allowedDomains,
     bool? verified,
+    DateTime? verifiedAt,
     String? createdBy,
     DateTime? createdAt,
     DateTime? updatedAt,
@@ -99,12 +121,16 @@ class CollegeModel {
     String? suspensionReason,
     int? shiftCount,
     List<ShiftConfig>? shifts,
+    bool? allowManualPremium,
+    String? address,
+    String? adminName,
   }) {
     return CollegeModel(
       id: id ?? this.id,
       name: name ?? this.name,
       allowedDomains: allowedDomains ?? this.allowedDomains,
       verified: verified ?? this.verified,
+      verifiedAt: verifiedAt ?? this.verifiedAt,
       createdBy: createdBy ?? this.createdBy,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
@@ -115,6 +141,9 @@ class CollegeModel {
       suspensionReason: suspensionReason ?? this.suspensionReason,
       shiftCount: shiftCount ?? this.shiftCount,
       shifts: shifts ?? this.shifts,
+      allowManualPremium: allowManualPremium ?? this.allowManualPremium,
+      address: address ?? this.address,
+      adminName: adminName ?? this.adminName,
     );
   }
 

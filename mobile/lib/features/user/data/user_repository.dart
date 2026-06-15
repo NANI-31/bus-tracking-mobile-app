@@ -31,11 +31,13 @@ class UserRepository extends BaseRepository {
     int limit = 20,
     String? search,
     String? role,
+    String? collegeId,
   }) async {
     try {
       final params = <String, dynamic>{'page': page, 'limit': limit};
       if (search != null && search.isNotEmpty) params['search'] = search;
       if (role != null && role.isNotEmpty) params['role'] = role;
+      if (collegeId != null && collegeId.isNotEmpty) params['collegeId'] = collegeId;
 
       final response = await dio.get('/users', queryParameters: params);
       final data = response.data;

@@ -28,6 +28,8 @@ import 'package:collegebus/features/coordinator/presentation/modules/routes_tab.
 import 'package:collegebus/features/coordinator/presentation/modules/bus_numbers_tab.dart';
 import 'package:collegebus/shared/widgets/navigation/curved_bottom_nav_bar.dart';
 import 'package:collegebus/features/notification/application/notification_provider.dart';
+import 'package:collegebus/shared/widgets/api_error_modal.dart';
+import 'package:collegebus/shared/widgets/success_modal.dart';
 
 import 'package:collegebus/features/coordinator/presentation/modules/live_map_tab.dart';
 import 'package:collegebus/features/settings/presentation/sos_sound_settings.dart';
@@ -60,6 +62,11 @@ class _CoordinatorDashboardState extends ConsumerState<CoordinatorDashboard>
     );
 
     _tabController = TabController(length: 5, vsync: this);
+    _tabController.addListener(() {
+      if (mounted) {
+        setState(() {});
+      }
+    });
 
     // Listen for user data to join socket room
     // This handles both initial load and re-auth scenarios
@@ -434,17 +441,118 @@ class _CoordinatorDashboardState extends ConsumerState<CoordinatorDashboard>
         ref.invalidate(activeSosProvider(user!.collegeId));
       }
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('SOS alert resolved.')));
+        SuccessModal.show(
+          context: context,
+          title: 'SOS Resolved',
+          message: 'SOS alert resolved.',
+          primaryActionText: 'OK',
+        );
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Failed to resolve SOS: $e')));
+        ApiErrorModal.show(
+          context: context,
+          error: 'Failed to resolve SOS: $e',
+        );
       }
     }
+  }
+
+  Widget _buildCapsuleTabBar(BuildContext context) {
+    final l10n = coord_l10n.CoordinatorLocalizations.of(context)!;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    final tabs = [
+      {'text': l10n.overview, 'icon': Icons.dashboard},
+      {'text': 'Live Map', 'icon': Icons.map},
+      {'text': l10n.drivers, 'icon': Icons.approval},
+      {'text': l10n.buses, 'icon': Icons.directions_bus},
+      {'text': l10n.routes, 'icon': Icons.route},
+    ];
+
+    return Container(
+      height: 60,
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        physics: const BouncingScrollPhysics(),
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        itemCount: tabs.length,
+        itemBuilder: (context, index) {
+          final tab = tabs[index];
+          final isSelected = _tabController.index == index;
+          final icon = tab['icon'] as IconData;
+          final text = tab['text'] as String;
+
+          return GestureDetector(
+            onTap: () {
+              _tabController.animateTo(index);
+              setState(() {});
+            },
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 250),
+              curve: Curves.easeInOut,
+              margin: const EdgeInsets.only(right: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              decoration: BoxDecoration(
+                gradient: isSelected
+                    ? const LinearGradient(
+                        colors: [Color(0xFF0097B2), Color(0xFF00C6E6)],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      )
+                    : null,
+                color: isSelected
+                    ? null
+                    : (isDark
+                        ? const Color(0xFF23303B)
+                        : const Color(0xFFE0F7FA)),
+                borderRadius: BorderRadius.circular(30),
+                boxShadow: isSelected
+                    ? [
+                        BoxShadow(
+                          color: const Color(0xFF00C6E6).withValues(alpha: 0.3),
+                          blurRadius: 8,
+                          offset: const Offset(0, 4),
+                        ),
+                      ]
+                    : null,
+                border: Border.all(
+                  color: isSelected
+                      ? Colors.transparent
+                      : (isDark
+                          ? Colors.white.withValues(alpha: 0.08)
+                          : Colors.black.withValues(alpha: 0.05)),
+                  width: 1,
+                ),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    icon,
+                    size: 18,
+                    color: isSelected
+                        ? Colors.white
+                        : (isDark ? Colors.white70 : const Color(0xFF004D40)),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    text,
+                    style: TextStyle(
+                      fontWeight: isSelected ? FontWeight.bold : FontWeight.bold,
+                      color: isSelected
+                          ? Colors.white
+                          : (isDark ? Colors.white70 : const Color(0xFF004D40)),
+                      fontSize: 14,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
   }
 
   @override
@@ -452,6 +560,7 @@ class _CoordinatorDashboardState extends ConsumerState<CoordinatorDashboard>
     final user = ref.watch(currentUserProvider);
     final collegeId = user?.collegeId;
     final l10n = coord_l10n.CoordinatorLocalizations.of(context)!;
+    final isWide = context.isTabletLayout || context.isDesktopLayout;
 
     // We only need activeSosAlerts list for the FAB at dashboard level
     final activeSosAlerts = collegeId != null
@@ -482,59 +591,151 @@ class _CoordinatorDashboardState extends ConsumerState<CoordinatorDashboard>
       });
     }
 
+    final mainBody = IndexedStack(
+      index: _bottomNavIndex,
+      children: [
+        // 0: Dashboard (TabBarView with Custom Capsule Bar)
+        Column(
+          children: [
+            _buildCapsuleTabBar(context),
+            Expanded(
+              child: TabBarView(
+                controller: _tabController,
+                physics: const NeverScrollableScrollPhysics(),
+                children: [
+                  OverviewTab(
+                    onSosTap: () => _tabController.animateTo(1), // Go to Live Map
+                  ),
+                  LiveMapTab(selectedBus: _selectedBus),
+                  DriverManagementTab(
+                    onTrack: _handleTrackBus,
+                    onEditDriver: _handleEditDriver,
+                  ),
+                  const BusNumbersTab(),
+                  const RoutesTab(),
+                ],
+              ),
+            ),
+          ],
+        ),
+        // 1: Notifications
+        const NotificationsScreen(),
+        // 2: Manage Schedule
+        const ScheduleManagementScreen(),
+        // 3: Profile
+        const ProfileScreen(),
+      ],
+    );
+
+    if (isWide) {
+      return Scaffold(
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+        body: Row(
+          children: [
+            NavigationRail(
+              selectedIndex: _bottomNavIndex,
+              onDestinationSelected: (index) {
+                if (_bottomNavIndex != index) {
+                  _stopSosSound(); // Stop sound when switching tabs
+                }
+                setState(() {
+                  _bottomNavIndex = index;
+                });
+              },
+              labelType: NavigationRailLabelType.all,
+              backgroundColor: Theme.of(context).cardColor,
+              selectedIconTheme: IconThemeData(color: _getCoordinatorActiveColor(context)),
+              selectedLabelTextStyle: TextStyle(
+                color: _getCoordinatorActiveColor(context),
+                fontWeight: FontWeight.bold,
+              ),
+              unselectedIconTheme: const IconThemeData(color: Colors.grey),
+              unselectedLabelTextStyle: const TextStyle(color: Colors.grey),
+              indicatorColor: _getCoordinatorActiveColor(context).withValues(alpha: 0.12),
+              destinations: [
+                const NavigationRailDestination(
+                  icon: Icon(Icons.dashboard_outlined),
+                  selectedIcon: Icon(Icons.dashboard),
+                  label: Text('Dashboard'),
+                ),
+                NavigationRailDestination(
+                  icon: Badge(
+                    label: Text(ref.watch(unreadNotificationsCountProvider).toString()),
+                    isLabelVisible: ref.watch(unreadNotificationsCountProvider) > 0,
+                    child: const Icon(Icons.notifications_none_outlined),
+                  ),
+                  selectedIcon: Badge(
+                    label: Text(ref.watch(unreadNotificationsCountProvider).toString()),
+                    isLabelVisible: ref.watch(unreadNotificationsCountProvider) > 0,
+                    child: const Icon(Icons.notifications),
+                  ),
+                  label: const Text('Notifications'),
+                ),
+                const NavigationRailDestination(
+                  icon: Icon(Icons.edit_calendar_outlined),
+                  selectedIcon: Icon(Icons.edit_calendar),
+                  label: Text('Schedule'),
+                ),
+                const NavigationRailDestination(
+                  icon: Icon(Icons.person_outline),
+                  selectedIcon: Icon(Icons.person),
+                  label: Text('Profile'),
+                ),
+              ],
+            ),
+            const VerticalDivider(thickness: 1, width: 1),
+            Expanded(
+              child: Scaffold(
+                backgroundColor: Colors.transparent,
+                appBar: _bottomNavIndex == 0
+                    ? AppBar(
+                        title: Text(l10n.dashboardTitle),
+                        backgroundColor: Theme.of(context).primaryColor,
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                      )
+                    : null,
+                body: mainBody,
+                floatingActionButton: activeSosAlerts.isNotEmpty
+                    ? FloatingActionButton.extended(
+                        onPressed: () {
+                          if (activeSosAlerts.length > 1) {
+                            _showActiveSosList();
+                          } else {
+                            _showSOSAlert(activeSosAlerts.first);
+                          }
+                        },
+                        backgroundColor: AppColors.error,
+                        icon: const Icon(Icons.warning, color: Colors.white),
+                        label: Text(
+                          activeSosAlerts.length > 1
+                              ? '(${activeSosAlerts.length}) ACTIVE ALERTS'
+                              : 'ACTIVE SOS',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      )
+                    : null,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      drawer: null,
       appBar: _bottomNavIndex == 0
           ? AppBar(
               title: Text(l10n.dashboardTitle),
               backgroundColor: Theme.of(context).primaryColor,
               foregroundColor: Colors.white,
-              bottom: TabBar(
-                controller: _tabController,
-                labelColor: Colors.white,
-                unselectedLabelColor: Colors.white.withValues(alpha: 0.7),
-                indicatorColor: Colors.white,
-                isScrollable: false,
-                tabs: [
-                  Tab(text: l10n.overview, icon: const Icon(Icons.dashboard)),
-                  const Tab(text: 'Live Map', icon: Icon(Icons.map)),
-                  Tab(text: l10n.drivers, icon: const Icon(Icons.approval)),
-                  Tab(text: l10n.buses, icon: const Icon(Icons.directions_bus)),
-                  Tab(text: l10n.routes, icon: const Icon(Icons.route)),
-                ],
-              ),
+              elevation: 0,
             )
           : null,
-
-      body: IndexedStack(
-        index: _bottomNavIndex,
-        children: [
-          // 0: Dashboard (TabBarView)
-          TabBarView(
-            controller: _tabController,
-            physics: const NeverScrollableScrollPhysics(),
-            children: [
-              OverviewTab(
-                onSosTap: () => _tabController.animateTo(1), // Go to Live Map
-              ),
-              LiveMapTab(selectedBus: _selectedBus),
-              DriverManagementTab(
-                onTrack: _handleTrackBus,
-                onEditDriver: _handleEditDriver,
-              ),
-              const BusNumbersTab(),
-              const RoutesTab(),
-            ],
-          ),
-          // 1: Notifications
-          const NotificationsScreen(),
-          // 2: Manage Schedule
-          const ScheduleManagementScreen(),
-          // 3: Profile
-          const ProfileScreen(),
-        ],
-      ),
+      body: mainBody,
       bottomNavigationBar: CurvedBottomNavBar(
         currentIndex: _bottomNavIndex,
         onTap: (index) {

@@ -9,6 +9,7 @@ import 'dart:async';
 import 'package:collegebus/core/providers/socket_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:collegebus/features/college_admin/services/college_admin_state.dart';
+import 'package:collegebus/features/audit/domain/audit_log_model.dart';
 
 /// Service for College Admin operations and state management
 class CollegeAdminService extends AsyncNotifier<CollegeAdminState> {
@@ -16,6 +17,7 @@ class CollegeAdminService extends AsyncNotifier<CollegeAdminState> {
   final UserRepository _userRepo = UserRepository();
   final BusRepository _busRepo = BusRepository();
   final PaymentRepository _paymentRepo = PaymentRepository();
+  final AuditRepository _auditRepo = AuditRepository();
 
   // Socket management
   StreamSubscription? _locationSubscription;
@@ -87,6 +89,16 @@ class CollegeAdminService extends AsyncNotifier<CollegeAdminState> {
       final transactions = transactionsRaw.map((m) => TransactionModel.fromJson(m)).toList();
       final transactionsTotalPages = transData['totalPages'] as int;
 
+      // Initial Audit Logs
+      AppLogger.d('DEBUG: Loading Audit Logs...');
+      final auditLogsData = await _auditRepo.getPaginatedAuditLogs(
+        collegeId: collegeId,
+        limit: 50,
+        skip: 0,
+      );
+      final auditLogs = auditLogsData['logs'] as List<AuditLogModel>;
+      final auditLogsTotal = auditLogsData['total'] as int;
+
       AppLogger.d('College Dashboard fully loaded for $collegeId');
 
       state = AsyncValue.data(
@@ -100,6 +112,10 @@ class CollegeAdminService extends AsyncNotifier<CollegeAdminState> {
           sosLogs: sosLogs,
           transactions: transactions,
           transactionsHasMore: 1 < transactionsTotalPages,
+          auditLogs: auditLogs,
+          auditLogsTotal: auditLogsTotal,
+          auditLogsHasMore: auditLogs.length < auditLogsTotal,
+          auditLogsPage: 0,
         ),
       );
     } catch (e, st) {
@@ -287,6 +303,97 @@ class CollegeAdminService extends AsyncNotifier<CollegeAdminState> {
 
       final socketService = ref.read(socketServiceProvider);
       socketService.resolveSos(sosId); 
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  /// Fetch college audit logs with filters and pagination
+  Future<void> fetchAuditLogs({
+    required String collegeId,
+    List<String>? actions,
+    List<String>? resources,
+    DateTime? date,
+    bool isLoadMore = false,
+  }) async {
+    try {
+      final current = state.value;
+      if (current == null) return;
+
+      int page = isLoadMore ? current.auditLogsPage + 1 : 0;
+      int limit = 50;
+      int skip = page * limit;
+
+      AppLogger.d(
+        'DEBUG: College Admin Fetching Audit Logs: page=$page, collegeId=$collegeId, actions=$actions, resources=$resources, date=$date',
+      );
+
+      final dateStr = date != null ? date.toIso8601String().split('T')[0] : null;
+
+      final result = await _auditRepo.getPaginatedAuditLogs(
+        collegeId: collegeId,
+        action: actions != null && actions.isNotEmpty ? actions.join(',') : null,
+        resource: resources != null && resources.isNotEmpty ? resources.join(',') : null,
+        date: dateStr,
+        limit: limit,
+        skip: skip,
+      );
+
+      final List<AuditLogModel> newLogs = result['logs'] as List<AuditLogModel>;
+      final int total = result['total'] as int;
+      final bool hasMore = (skip + newLogs.length) < total;
+
+      final updatedLogs = isLoadMore
+          ? [...current.auditLogs, ...newLogs]
+          : newLogs;
+
+      state = AsyncValue.data(current.copyWith(
+        auditLogs: updatedLogs,
+        auditLogsPage: page,
+        auditLogsHasMore: hasMore,
+        auditLogsTotal: total,
+      ));
+    } catch (e) {
+      AppLogger.e('Error fetching audit logs: $e');
+    }
+  }
+
+  /// Prepend a real-time socket audit log entry
+  void addLiveLog(AuditLogModel newLog) {
+    if (state.hasValue) {
+      final current = state.value!;
+      // Prevent duplicates
+      if (current.auditLogs.any((l) => l.id == newLog.id)) return;
+      state = AsyncValue.data(current.copyWith(
+        auditLogs: [newLog, ...current.auditLogs],
+        auditLogsTotal: current.auditLogsTotal + 1,
+      ));
+    }
+  }
+
+  /// Add a new bus
+  Future<void> addBus(BusModel bus) async {
+    try {
+      final newBus = await _busRepo.createBus(bus);
+      if (state.hasValue) {
+        final current = state.value!;
+        final buses = [...current.collegeBuses, newBus];
+        state = AsyncValue.data(current.copyWith(collegeBuses: buses));
+      }
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  /// Delete a bus
+  Future<void> deleteBus(String busId) async {
+    try {
+      await _busRepo.deleteBus(busId);
+      if (state.hasValue) {
+        final current = state.value!;
+        final buses = List<BusModel>.from(current.collegeBuses)..removeWhere((b) => b.id == busId);
+        state = AsyncValue.data(current.copyWith(collegeBuses: buses));
+      }
     } catch (e) {
       rethrow;
     }

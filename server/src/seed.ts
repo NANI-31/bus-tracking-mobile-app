@@ -112,7 +112,7 @@ const runSeed = async () => {
 
     // 4. Seed Global Super Admin
     console.log("\n--- Seeding Global Super Admin ---");
-    const password = "password123"; // Fixed password for dev
+    const password = "a"; // Fixed password for dev
     const salt = await import("bcryptjs").then((bcrypt) => bcrypt.genSalt(10));
     const passwordHash = await import("bcryptjs").then((bcrypt) =>
       bcrypt.hash(password, salt),
@@ -121,7 +121,7 @@ const runSeed = async () => {
     await User.create({
       _id: (await import("crypto")).randomUUID(),
       fullName: "System Super Admin",
-      email: "super@admin.com",
+      email: "sad@kkr.ac.in",
       password: passwordHash,
       role: UserRole.SuperAdmin,
       approved: true,

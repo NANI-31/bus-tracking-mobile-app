@@ -173,12 +173,12 @@ class OverviewTab extends ConsumerWidget {
               ActionChip(
                 avatar: Icon(Icons.route, size: 18, color: AppColors.success),
                 label: const Text('Manage Fleet'),
-                onPressed: () => onNavigate(3), // Fleet Tab index
+                onPressed: () => onNavigate(2), // Fleet Tab index
               ),
               ActionChip(
                 avatar: const Icon(Icons.map, size: 18, color: Colors.blue),
                 label: const Text('Live Map'),
-                onPressed: () => onNavigate(3), // Fleet/Map Tab index
+                onPressed: () => onNavigate(3), // Live Tracking Tab index
               ),
             ],
           ),

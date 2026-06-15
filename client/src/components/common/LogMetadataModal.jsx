@@ -8,28 +8,28 @@ import {
 } from "@heroicons/react/24/outline";
 
 const LogMetadataModal = ({ isOpen, onClose, log }) => {
-  if (!isOpen || !log) return null;
-
-  const hasBothStates = log.previousState && log.newState;
-  const metadata = log.details || log.metadata || {};
+  const hasBothStates = log?.previousState && log?.newState;
+  const metadata = log?.details || log?.metadata || {};
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-100 flex items-center justify-center p-4">
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          onClick={onClose}
-          className="absolute inset-0 bg-black/40 backdrop-blur-sm"
-        />
+      {isOpen && log && (
+        <div className="fixed inset-0 z-100 flex items-center justify-center p-4">
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={onClose}
+            className="absolute inset-0 modal-backdrop"
+          />
 
-        <motion.div
-          initial={{ scale: 0.9, opacity: 0, y: 20 }}
-          animate={{ scale: 1, opacity: 1, y: 0 }}
-          exit={{ scale: 0.9, opacity: 0, y: 20 }}
-          className="relative bg-white rounded-3xl shadow-2xl w-full max-w-2xl max-h-[80vh] flex flex-col overflow-hidden"
-        >
+          <motion.div
+            initial={{ scale: 0.95, opacity: 0, y: 20 }}
+            animate={{ scale: 1, opacity: 1, y: 0 }}
+            exit={{ scale: 0.95, opacity: 0, y: 20 }}
+            transition={{ type: "spring", damping: 25, stiffness: 350 }}
+            className="relative bg-white/75 backdrop-blur-xl rounded-3xl border border-white/30 shadow-2xl w-full max-w-2xl max-h-[80vh] flex flex-col overflow-hidden z-10"
+          >
           {/* Header */}
           <div className="p-6 border-b flex justify-between items-center bg-gray-50/50">
             <div className="flex items-center space-x-3">
@@ -159,7 +159,8 @@ const LogMetadataModal = ({ isOpen, onClose, log }) => {
             </button>
           </div>
         </motion.div>
-      </div>
+        </div>
+      )}
     </AnimatePresence>
   );
 };

@@ -69,87 +69,95 @@ class BusStatusCard extends ConsumerWidget {
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 24),
+      padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
         color: colorScheme.surface,
         borderRadius: BorderRadius.circular(24),
         boxShadow: context.isDarkMode
-            ? []
+            ? [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.2),
+                  blurRadius: 16,
+                  offset: const Offset(0, 8),
+                )
+              ]
             : [
                 BoxShadow(
                   color: Colors.black.withValues(alpha: 0.03),
-                  blurRadius: 20,
-                  offset: const Offset(0, 10),
+                  blurRadius: 24,
+                  offset: const Offset(0, 12),
                 ),
               ],
-        border: context.isDarkMode
-            ? Border.all(
-                color: context.colorScheme.onSurface.withValues(alpha: 0.1),
-              )
-            : null,
+        border: Border.all(
+          color: colorScheme.onSurface.withValues(alpha: context.isDarkMode ? 0.08 : 0.05),
+          width: 1.0,
+        ),
       ),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Header Section
           Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      "BUS NUMBER",
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 1.2,
-                        color: colorScheme.onSurface.withValues(alpha: 0.4),
-                      ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    "ASSIGNED VEHICLE",
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 1.2,
+                      color: colorScheme.onSurface.withValues(alpha: 0.45),
                     ),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        const Icon(
+                  ),
+                  const SizedBox(height: 6),
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withValues(alpha: 0.1),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
                           Icons.directions_bus_filled_rounded,
                           color: AppColors.primary,
-                          size: 28,
+                          size: 20,
                         ),
-                        const SizedBox(width: 8.0),
-                        Text(
-                          busNumber,
-                          style: TextStyle(
-                            fontSize: 32,
-                            fontWeight: FontWeight.bold,
-                            color: colorScheme.onSurface,
-                          ),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        busNumber == '---' ? '---' : "Bus $busNumber",
+                        style: TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.w900,
+                          color: colorScheme.onSurface,
+                          letterSpacing: -0.5,
                         ),
-                      ],
-                    ),
-                  ],
-                ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
 
               // Status Badge
               Container(
                 padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 10,
+                  horizontal: 14,
+                  vertical: 8,
                 ),
                 decoration: BoxDecoration(
                   color: (isRunning ? Colors.green : colorScheme.onSurface)
-                      .withValues(alpha: 0.05),
-                  borderRadius: BorderRadius.circular(24),
+                      .withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(20),
                 ),
                 child: Row(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(
-                      Icons.circle,
-                      size: 10,
-                      color: isRunning
-                          ? Colors.greenAccent
-                          : colorScheme.onSurface.withValues(alpha: 0.4),
-                    ),
-                    const SizedBox(width: 8.0),
+                    _PulsingDot(color: isRunning ? Colors.green : Colors.grey),
+                    const SizedBox(width: 8),
                     Text(
                       status.isNotEmpty
                           ? status
@@ -158,10 +166,10 @@ class BusStatusCard extends ConsumerWidget {
                                 .join(' ')
                           : '',
                       style: TextStyle(
+                        fontSize: 12,
                         fontWeight: FontWeight.bold,
-                        color:
-                            (isRunning ? Colors.green : colorScheme.onSurface)
-                                .withValues(alpha: 0.7),
+                        color: (isRunning ? Colors.green : colorScheme.onSurface)
+                            .withValues(alpha: 0.8),
                       ),
                     ),
                   ],
@@ -170,9 +178,9 @@ class BusStatusCard extends ConsumerWidget {
             ],
           ),
 
-          const SizedBox(height: 8),
-          Divider(color: colorScheme.onSurface.withValues(alpha: 0.2)),
-          const SizedBox(height: 8),
+          const SizedBox(height: 16),
+          Divider(color: colorScheme.onSurface.withValues(alpha: 0.08)),
+          const SizedBox(height: 16),
 
           Row(
             children: [
@@ -181,27 +189,27 @@ class BusStatusCard extends ConsumerWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      "ESTIMATED ARRIVAL",
+                      "ESTIMATED BOARDING TIME",
                       style: TextStyle(
-                        fontSize: 8,
-                        fontWeight: FontWeight.bold,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w900,
                         letterSpacing: 1.2,
-                        color: colorScheme.onSurface.withValues(alpha: 0.5),
+                        color: colorScheme.onSurface.withValues(alpha: 0.45),
                       ),
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 6),
                     Row(
                       children: [
                         const Icon(
                           Icons.access_time_filled_rounded,
                           color: AppColors.primary,
-                          size: 24,
+                          size: 22,
                         ),
-                        const SizedBox(width: 8.0),
+                        const SizedBox(width: 8),
                         Text(
                           arrivalText,
                           style: const TextStyle(
-                            fontSize: 22,
+                            fontSize: 20,
                             fontWeight: FontWeight.w900,
                             color: AppColors.primary,
                           ),
@@ -217,21 +225,28 @@ class BusStatusCard extends ConsumerWidget {
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     Text(
-                      "REMAINING",
+                      "ETA IN MINUTES",
                       style: TextStyle(
-                        fontSize: 8,
-                        fontWeight: FontWeight.bold,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w900,
                         letterSpacing: 1.2,
-                        color: colorScheme.onSurface.withValues(alpha: 0.5),
+                        color: colorScheme.onSurface.withValues(alpha: 0.45),
                       ),
                     ),
-                    const SizedBox(height: 8),
-                    Text(
-                      etaText,
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: colorScheme.onSurface,
+                    const SizedBox(height: 6),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: AppColors.primary.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Text(
+                        etaText,
+                        style: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.primary,
+                        ),
                       ),
                     ),
                   ],
@@ -243,3 +258,63 @@ class BusStatusCard extends ConsumerWidget {
     );
   }
 }
+
+class _PulsingDot extends StatefulWidget {
+  final Color color;
+
+  const _PulsingDot({required this.color});
+
+  @override
+  State<_PulsingDot> createState() => _PulsingDotState();
+}
+
+class _PulsingDotState extends State<_PulsingDot>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 2),
+    )..repeat();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, child) {
+        return Stack(
+          alignment: Alignment.center,
+          children: [
+            Container(
+              width: 14 * _controller.value,
+              height: 14 * _controller.value,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: widget.color.withValues(alpha: 1.0 - _controller.value),
+              ),
+            ),
+            Container(
+              width: 8,
+              height: 8,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: widget.color,
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+
