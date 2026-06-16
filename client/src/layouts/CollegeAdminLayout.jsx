@@ -30,7 +30,6 @@ import {
 } from "../services/socket";
 import SosAlertBanner from "@/components/common/SosAlertBanner";
 import SosManager from "@/components/common/SosManager";
-import Breadcrumbs from "@/components/common/Breadcrumbs";
 import NetworkStatusIndicator from "@/components/common/NetworkStatusIndicator";
 import { Avatar, Tooltip } from "@mui/material";
 
@@ -422,19 +421,7 @@ const CollegeAdminLayout = () => {
           sosLogs={sosLogs}
         />
 
-        <Breadcrumbs />
-
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={location.pathname}
-            initial={{ opacity: 0, y: 15 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -15 }}
-            transition={{ duration: 0.25, ease: "easeInOut" }}
-          >
-            <Outlet />
-          </motion.div>
-        </AnimatePresence>
+        <Outlet />
       </main>
     </div>
   );

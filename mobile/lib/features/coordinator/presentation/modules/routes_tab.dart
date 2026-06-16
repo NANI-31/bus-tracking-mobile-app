@@ -11,6 +11,8 @@ import 'route_edit_screen.dart';
 import 'bus_tab_components/bus_search_bar.dart';
 import 'package:collegebus/shared/widgets/shimmer_skeletons.dart';
 
+import 'package:collegebus/shared/widgets/navigation/curved_bottom_nav_bar.dart';
+
 class RoutesTab extends ConsumerStatefulWidget {
   const RoutesTab({super.key});
 
@@ -150,17 +152,21 @@ class _RoutesTabState extends ConsumerState<RoutesTab>
                         padding: const EdgeInsets.only(
                           left: AppSizes.paddingMedium,
                           right: AppSizes.paddingMedium,
-                          bottom: 80,
+                          bottom: 16,
                           top: 8,
                         ),
-                        itemCount: filteredRoutes.length,
+                        itemCount: filteredRoutes.length + 1,
                         itemBuilder: (context, index) {
+                          if (index == filteredRoutes.length) {
+                            return const BottomNavSpacer();
+                          }
                           final route = filteredRoutes[index];
                           final displayType = route.routeType == 'pickup'
                               ? l10n.pickup.toUpperCase()
                               : (route.routeType == 'drop'
                                     ? l10n.drop.toUpperCase()
                                     : route.routeType.toUpperCase());
+
 
                           return Card(
                             margin: const EdgeInsets.only(
@@ -291,7 +297,7 @@ class _RoutesTabState extends ConsumerState<RoutesTab>
           ),
           // Floating Action Button
           Positioned(
-            bottom: AppSizes.paddingMedium,
+            bottom: CurvedBottomNavBar.clearance(context) + AppSizes.paddingMedium,
             right: AppSizes.paddingMedium,
             child: FloatingActionButton(
               onPressed: () async {

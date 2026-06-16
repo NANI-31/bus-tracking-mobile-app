@@ -17,6 +17,7 @@ import {
   createCollege,
   unsuspendCollege,
   suspendCollege,
+  updateGlobalUser,
 } from "../api/superAdminApi";
 
 // Thunks
@@ -106,6 +107,14 @@ export const removeGlobalUser = createAsyncThunk(
   async (userId) => {
     await deleteGlobalUser(userId);
     return userId;
+  },
+);
+
+export const editGlobalUser = createAsyncThunk(
+  "superAdmin/editGlobalUser",
+  async ({ userId, data }) => {
+    const response = await updateGlobalUser(userId, data);
+    return response;
   },
 );
 
@@ -314,13 +323,37 @@ const superAdminSlice = createSlice({
       })
 
       // Users
+      .addCase(getGlobalUsers.pending, (state, action) => {
+        const page = action.meta.arg?.page || 1;
+        if (page === 1) {
+          state.loading = true;
+        }
+        state.error = null;
+      })
       .addCase(getGlobalUsers.fulfilled, (state, action) => {
-        state.users = Array.isArray(action.payload)
-          ? action.payload
-          : action.payload.data || [];
+        state.loading = false;
+        const response = action.payload;
+        const isPaginated = response && response.users !== undefined;
+        const newUsers = isPaginated ? response.users : (Array.isArray(response) ? response : []);
+        const params = action.meta.arg;
+        
+        if (params && params.page > 1) {
+          const existingIds = new Set(state.users.map((u) => u._id));
+          const uniqueNewUsers = newUsers.filter((u) => !existingIds.has(u._id));
+          state.users = [...state.users, ...uniqueNewUsers];
+        } else {
+          state.users = newUsers;
+        }
+        state.totalCount = isPaginated ? response.totalCount : state.users.length;
       })
       .addCase(removeGlobalUser.fulfilled, (state, action) => {
         state.users = state.users.filter((u) => u._id !== action.payload);
+      })
+      .addCase(editGlobalUser.fulfilled, (state, action) => {
+        const index = state.users.findIndex((u) => u._id === action.payload._id);
+        if (index !== -1) {
+          state.users[index] = action.payload;
+        }
       })
 
       // Audit Logs

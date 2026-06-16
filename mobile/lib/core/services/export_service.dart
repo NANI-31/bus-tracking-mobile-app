@@ -51,10 +51,12 @@ class ExportService {
       final file = File('${directory.path}/$fileName');
       await file.writeAsString(content);
 
-      // ignore: deprecated_member_use
-      await Share.shareXFiles([
-        XFile(file.path),
-      ], text: 'Exported Report: $fileName');
+      await SharePlus.instance.share(
+        ShareParams(
+          files: [XFile(file.path)],
+          text: 'Exported Report: $fileName',
+        ),
+      );
     } catch (e) {
       AppLogger.e('Error exporting file: $e');
       rethrow;

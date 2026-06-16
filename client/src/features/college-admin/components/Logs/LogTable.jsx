@@ -42,7 +42,7 @@ const LogTable = ({
       <Table stickyHeader>
         <TableHead>
           <TableRow>
-            <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase bg-slate-50">
+            <th className="pl-4 pr-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase bg-slate-50 border-l-4 border-transparent">
               TIMESTAMP
             </th>
             <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase bg-slate-50">
@@ -60,10 +60,16 @@ const LogTable = ({
           </TableRow>
         </TableHead>
         <TableBody>
-          {loading ? (
+          {loading && (!auditLogs || auditLogs.length === 0) ? (
             [...Array(10)].map((_, i) => (
               <TableRow key={i}>
-                <TableCell sx={{ py: 2 }}>
+                <TableCell
+                  sx={{
+                    py: 2,
+                    borderLeft: "4px solid transparent",
+                    pl: 2.5,
+                  }}
+                >
                   <Skeleton variant="text" width={140} />
                 </TableCell>
                 <TableCell sx={{ py: 2 }}>
@@ -94,12 +100,13 @@ const LogTable = ({
                 <TableRow
                   key={log._id}
                   component={motion.tr}
+                  layout
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, scale: 0.95 }}
                   hover
                   sx={{
-                    transition: "all 0.2s ease-in-out",
+                    transition: "all 0.2s ease-in-out, border-left 0s, background-color 0.2s ease-in-out",
                     "&:hover": {
                       bgcolor: "rgba(30, 144, 255, 0.04) !important",
                       transform: "scale(1.002)",
@@ -107,8 +114,19 @@ const LogTable = ({
                     "&:last-child td, &:last-child th": { border: 0 },
                   }}
                 >
-                  <TableCell>
-                    <div className="flex items-center text-gray-500 font-medium">
+                  <TableCell
+                    sx={{
+                      borderLeft: `4px solid var(--${
+                        log.action.includes("DELETE")
+                          ? "rose-main"
+                          : log.action.includes("CREATE")
+                            ? "emerald-main"
+                            : "indigo-main"
+                      })`,
+                      pl: 2.5,
+                    }}
+                  >
+                    <div className="flex items-center text-gray-500 font-medium text-xs">
                       <ClockIcon className="w-4 h-4 mr-2 text-gray-300" />
                       {formatDate(log.createdAt)}
                     </div>
@@ -117,10 +135,10 @@ const LogTable = ({
                     <span
                       className={`px-3 py-1.5 inline-flex text-[10px] leading-4 font-black rounded-lg border uppercase tracking-wider shadow-sm transition-all hover:shadow-md ${
                         log.action.includes("DELETE")
-                          ? "bg-red-50 text-red-700 border-red-100"
+                          ? "bg-rose-main/10 text-rose-main border-rose-main/20"
                           : log.action.includes("CREATE")
-                            ? "bg-emerald-50 text-emerald-700 border-emerald-100"
-                            : "bg-blue-50 text-[#1E90FF] border-blue-100"
+                            ? "bg-emerald-main/10 text-emerald-main border-emerald-main/20"
+                            : "bg-indigo-main/10 text-indigo-main border-indigo-main/20"
                       }`}
                     >
                       {log.action.replace(/_/g, " ")}
@@ -158,8 +176,8 @@ const LogTable = ({
                       <div
                         className={`p-2 rounded-xl border ${
                           log.action.includes("CREATE")
-                            ? "bg-emerald-50 border-emerald-100 text-emerald-600"
-                            : "bg-slate-50 border-slate-100 text-slate-500"
+                            ? "bg-emerald-main/10 border-emerald-main/20 text-emerald-main"
+                            : "bg-slate-500/10 border-slate-500/20 text-slate-500 dark:text-slate-400"
                         }`}
                       >
                         {getResourceIcon(log.resource)}

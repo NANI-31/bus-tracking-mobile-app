@@ -14,6 +14,7 @@ import 'package:collegebus/features/college/domain/college_model.dart';
 import 'package:collegebus/features/coordinator/presentation/edit_schedule_screen.dart';
 import 'package:collegebus/shared/widgets/api_error_modal.dart';
 import 'package:collegebus/shared/widgets/success_modal.dart';
+import 'package:collegebus/shared/widgets/navigation/curved_bottom_nav_bar.dart';
 
 class ScheduleManagementScreen extends ConsumerStatefulWidget {
   const ScheduleManagementScreen({super.key});
@@ -371,6 +372,7 @@ class _ScheduleManagementScreenState
       key: ValueKey('mgmt_shift_tabs_$tabLength'),
       length: tabLength,
       child: Scaffold(
+        backgroundColor: Colors.transparent,
         appBar: AppBar(
           title: const Text('Manage Schedules'),
           backgroundColor: Theme.of(context).primaryColor,
@@ -440,26 +442,31 @@ class _ScheduleManagementScreenState
         ),
         floatingActionButton: Builder(
           builder: (context) {
-            return FloatingActionButton.extended(
-              onPressed: () {
-                // If single shift, just take the first one; multiple shifts use the tab index
-                final currentShift = hasMultipleShifts
-                    ? college
-                          .shifts[DefaultTabController.of(context).index]
-                          .shiftId
-                    : (college.shifts.isNotEmpty
-                          ? college.shifts.first.shiftId
-                          : '1st');
-                _showCreateScheduleDialog(
-                  shift: currentShift,
-                  routes: routesAsync.value ?? [],
-                  buses: busesAsync.value ?? [],
-                );
-              },
-              backgroundColor: AppColors.primary,
-              foregroundColor: Colors.white,
-              label: const Text('Add Timetable'),
-              icon: const Icon(Icons.add),
+            return Padding(
+              padding: EdgeInsets.only(
+                bottom: CurvedBottomNavBar.clearance(context),
+              ),
+              child: FloatingActionButton.extended(
+                onPressed: () {
+                  // If single shift, just take the first one; multiple shifts use the tab index
+                  final currentShift = hasMultipleShifts
+                      ? college
+                            .shifts[DefaultTabController.of(context).index]
+                            .shiftId
+                      : (college.shifts.isNotEmpty
+                            ? college.shifts.first.shiftId
+                            : '1st');
+                  _showCreateScheduleDialog(
+                    shift: currentShift,
+                    routes: routesAsync.value ?? [],
+                    buses: busesAsync.value ?? [],
+                  );
+                },
+                backgroundColor: AppColors.primary,
+                foregroundColor: Colors.white,
+                label: const Text('Add Timetable'),
+                icon: const Icon(Icons.add),
+              ),
             );
           },
         ),
@@ -553,8 +560,11 @@ class _ScheduleManagementScreenState
     return ListView.builder(
       key: PageStorageKey('mgmt_schedule_list_${shift}_$_searchQuery'),
       padding: const EdgeInsets.all(AppSizes.paddingMedium),
-      itemCount: filteredSchedules.length,
+      itemCount: filteredSchedules.length + 1,
       itemBuilder: (context, index) {
+        if (index == filteredSchedules.length) {
+          return const BottomNavSpacer();
+        }
         try {
           final schedule = filteredSchedules[index];
           final isExpanded = _expandedScheduleIds.contains(schedule.id);

@@ -62,6 +62,11 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
   Color? _lastStopColor;
   Color? _lastEndColor;
 
+  /// Key for the [RepaintBoundary] that wraps the mobile content body.
+  /// Passed to [CurvedBottomNavBar] so the liquid-glass lens shader can
+  /// sample the real pixels rendered behind the navigation bar.
+  final GlobalKey _backgroundKey = GlobalKey();
+
   Future<void> _loadBusIcon() async {
     try {
       final icon = await MapMarkerHelper.createBusMarker();
@@ -632,8 +637,8 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
             '[DriverDashboard] Bus data received: ${bus.busNumber}, assignmentStatus=${bus.assignmentStatus}',
           );
 
-          // 2. Handle auto-resume location sharing (ONLY after init)
-          if (_isSharing && _hasInitialized) {
+          // 2. Handle auto-resume location sharing (ONLY after init and status is accepted)
+          if (_isSharing && _hasInitialized && bus.assignmentStatus == 'accepted') {
             final locationService = ref.read(locationServiceProvider);
             if (!locationService.isTracking) {
               debugPrint('[DriverDashboard] Auto-resuming location sharing...');
@@ -807,42 +812,54 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: Stack(
         children: [
-          // Main Content
-          if (myBusAsync.isLoading && !myBusAsync.hasValue)
-            const SafeArea(child: BusAssignmentSkeleton())
-          else
-            IndexedStack(
-              index: bottomNavIndex,
-              children: [
-                SafeArea(child: _buildBusSetupTab(myBus, routesAsync, busNumbersAsync)),
-                SafeArea(child: _buildLiveTrackingTab(myBus)),
-                const ProfileScreen(),
-              ],
+          // Main Content — always inside RepaintBoundary so the nav bar's
+          // glass shader key is always attached regardless of loading state.
+          RepaintBoundary(
+            key: _backgroundKey,
+            child: ColoredBox(
+              color: Theme.of(context).scaffoldBackgroundColor,
+              child: (myBusAsync.isLoading && !myBusAsync.hasValue)
+                  ? const SafeArea(bottom: false, child: BusAssignmentSkeleton())
+                  : IndexedStack(
+                      index: bottomNavIndex,
+                      children: [
+                        SafeArea(bottom: false, child: _buildBusSetupTab(myBus, routesAsync, busNumbersAsync)),
+                        SafeArea(bottom: false, child: _buildLiveTrackingTab(myBus)),
+                        const ProfileScreen(),
+                      ],
+                    ),
             ),
+          ),
 
           // Connectivity Banner
           SafeArea(child: _buildConnectivityBanner()),
-        ],
-      ),
-      bottomNavigationBar: CurvedBottomNavBar(
-        currentIndex: bottomNavIndex,
-        onTap: (index) {
-          ref.read(driverUiStateProvider.notifier).setBottomNavIndex(index);
-        },
-        activeColor: _getDriverActiveColor(context),
-        backgroundColor: Theme.of(context).cardColor,
-        items: [
-          CurvedBottomNavItem(
-            icon: Icons.settings_outlined,
-            label: DriverLocalizations.of(context)!.busSetupTab,
-          ),
-          CurvedBottomNavItem(
-            icon: Icons.map_outlined,
-            label: DriverLocalizations.of(context)!.liveTrackingTab,
-          ),
-          const CurvedBottomNavItem(
-            icon: Icons.person_outline,
-            label: 'Profile',
+
+          // Floating bottom navigation bar placed directly in Stack overlay
+          Align(
+            alignment: Alignment.bottomCenter,
+            child: CurvedBottomNavBar(
+              currentIndex: bottomNavIndex,
+              onTap: (index) {
+                ref.read(driverUiStateProvider.notifier).setBottomNavIndex(index);
+              },
+              activeColor: _getDriverActiveColor(context),
+              backgroundColor: Theme.of(context).cardColor,
+              backgroundKey: _backgroundKey,
+              items: [
+                CurvedBottomNavItem(
+                  icon: Icons.settings_outlined,
+                  label: DriverLocalizations.of(context)!.busSetupTab,
+                ),
+                CurvedBottomNavItem(
+                  icon: Icons.map_outlined,
+                  label: DriverLocalizations.of(context)!.liveTrackingTab,
+                ),
+                const CurvedBottomNavItem(
+                  icon: Icons.person_outline,
+                  label: 'Profile',
+                ),
+              ],
+            ),
           ),
         ],
       ),
@@ -855,7 +872,15 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
     AsyncValue<List<String>> busNumbersAsync,
   ) {
     if (myBus != null && myBus.assignmentStatus == 'pending') {
-      return _buildPendingAssignmentUI(myBus).p(AppSizes.paddingMedium);
+      return SingleChildScrollView(
+        padding: const EdgeInsets.all(AppSizes.paddingMedium),
+        child: Column(
+          children: [
+            _buildPendingAssignmentUI(myBus),
+            const BottomNavSpacer(),
+          ],
+        ),
+      );
     }
 
     final designTheme = Theme.of(context).extension<DesignSystemThemeExtension>();
@@ -930,10 +955,12 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
               route: ref.watch(driverMapStateProvider.select((s) => s.selectedRoute)),
               onRemove: () => _handleRemoveAssignment(myBus),
             ),
+          const BottomNavSpacer(),
         ],
       ),
     );
   }
+
 
   Widget _buildPendingAssignmentUI(BusModel bus) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -1131,7 +1158,7 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
                       icon: _startStopIcon ?? BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen),
                       infoWindow: InfoWindow(title: 'Start: ${route.startPoint.name}'),
                       anchor: const Offset(0.5, 0.5),
-                      zIndex: 1,
+                      zIndexInt: 1,
                     ));
                   }
                   for (int i = 0; i < route.stopPoints.length; i++) {
@@ -1143,7 +1170,7 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
                       icon: _intermediateStopIcon ?? BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueOrange),
                       infoWindow: InfoWindow(title: 'Stop ${i + 1}: ${stop.name}'),
                       anchor: const Offset(0.5, 0.5),
-                      zIndex: 1,
+                      zIndexInt: 1,
                     ));
                   }
                   if (route.endPoint.lat != 0 && route.endPoint.lng != 0) {
@@ -1153,7 +1180,7 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
                       icon: _endStopIcon ?? BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
                       infoWindow: InfoWindow(title: 'End: ${route.endPoint.name}'),
                       anchor: const Offset(0.5, 0.5),
-                      zIndex: 1,
+                      zIndexInt: 1,
                     ));
                   }
                 }
@@ -1238,7 +1265,7 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
                       rotation: heading,
                       anchor: const Offset(0.5, 0.5),
                       flat: true,
-                      zIndex: 2,
+                      zIndexInt: 2,
                     ),
                   );
                 }
@@ -1481,7 +1508,7 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
       etaMin = (remainingDistanceKm / 0.5).ceil().clamp(1, 120);
     }
 
-    return 'Next: ${nextStop.name} · ${etaMin} min';
+    return 'Next: ${nextStop.name} · $etaMin min';
   }
 
   Color _getDriverActiveColor(BuildContext context) {

@@ -165,7 +165,7 @@ class UserCard extends ConsumerWidget {
             ? []
             : [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.03),
+                  color: Colors.black.withValues(alpha: 0.03),
                   blurRadius: 10,
                   offset: const Offset(0, 4),
                 ),
@@ -245,9 +245,9 @@ class UserCard extends ConsumerWidget {
                                 margin: const EdgeInsets.only(left: 6),
                                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                                 decoration: BoxDecoration(
-                                  color: Colors.amber.withOpacity(0.15),
+                                  color: Colors.amber.withValues(alpha: 0.15),
                                   borderRadius: BorderRadius.circular(6),
-                                  border: Border.all(color: Colors.amber.withOpacity(0.3)),
+                                  border: Border.all(color: Colors.amber.withValues(alpha: 0.3)),
                                 ),
                                 child: const Row(
                                   mainAxisSize: MainAxisSize.min,
@@ -275,9 +275,9 @@ class UserCard extends ConsumerWidget {
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                               decoration: BoxDecoration(
-                                color: roleColor.withOpacity(0.08),
+                                color: roleColor.withValues(alpha: 0.08),
                                 borderRadius: BorderRadius.circular(8),
-                                border: Border.all(color: roleColor.withOpacity(0.2)),
+                                border: Border.all(color: roleColor.withValues(alpha: 0.2)),
                               ),
                               child: Text(
                                 user.role.displayName,
@@ -294,13 +294,13 @@ class UserCard extends ConsumerWidget {
                               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                               decoration: BoxDecoration(
                                 color: isApproved
-                                    ? Colors.green.withOpacity(0.08)
-                                    : Colors.amber.withOpacity(0.08),
+                                    ? Colors.green.withValues(alpha: 0.08)
+                                    : Colors.amber.withValues(alpha: 0.08),
                                 borderRadius: BorderRadius.circular(8),
                                 border: Border.all(
                                   color: isApproved
-                                      ? Colors.green.withOpacity(0.2)
-                                      : Colors.amber.withOpacity(0.2),
+                                      ? Colors.green.withValues(alpha: 0.2)
+                                      : Colors.amber.withValues(alpha: 0.2),
                                 ),
                               ),
                               child: Text(
@@ -346,7 +346,7 @@ class UserCard extends ConsumerWidget {
                           ],
                         ),
                       ),
-                      const PopupMenuItem(
+                      PopupMenuItem(
                         value: 'delete',
                         child: Row(
                           children: [

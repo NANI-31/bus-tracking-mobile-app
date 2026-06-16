@@ -191,7 +191,7 @@ const Colleges = () => {
       </div>
 
       {/* Grid Layout of Colleges */}
-      {loading ? (
+      {loading && (!colleges || colleges.length === 0) ? (
         <div className="flex items-center justify-center min-h-[300px]">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#1E90FF]"></div>
         </div>

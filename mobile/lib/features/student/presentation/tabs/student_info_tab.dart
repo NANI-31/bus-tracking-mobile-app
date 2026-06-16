@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:collegebus/core/constants/constants.dart';
 import 'package:velocity_x/velocity_x.dart';
 
+import 'package:collegebus/shared/widgets/navigation/curved_bottom_nav_bar.dart';
+
 class StudentInfoTab extends ConsumerWidget {
   final List<String> allBusNumbers;
   final List<String> allStops;
@@ -76,6 +78,7 @@ class StudentInfoTab extends ConsumerWidget {
                 .pOnly(bottom: AppSizes.paddingSmall);
           },
         ),
+      const BottomNavSpacer(),
     ]).p(AppSizes.paddingMedium).scrollVertical();
   }
 }

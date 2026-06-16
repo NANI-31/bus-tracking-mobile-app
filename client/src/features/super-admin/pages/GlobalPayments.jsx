@@ -13,6 +13,7 @@ import {
   getTransactions,
   getColleges,
 } from "@/features/super-admin/slices/superAdminSlice";
+import DatePicker from "@/components/common/DatePicker";
 
 const GlobalPayments = () => {
   const dispatch = useDispatch();
@@ -143,15 +144,12 @@ const GlobalPayments = () => {
                 <label className="text-sm font-semibold text-slate-700 block">
                   From Date
                 </label>
-                <div className="relative">
-                  <CalendarIcon className="w-5 h-5 absolute left-3 top-2.5 text-slate-400" />
-                  <input
-                    type="date"
-                    className="pl-10 pr-4 py-2 w-full border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#1E90FF] bg-slate-50/50"
-                    value={startDate}
-                    onChange={(e) => setStartDate(e.target.value)}
-                  />
-                </div>
+                <DatePicker
+                  value={startDate}
+                  onChange={setStartDate}
+                  placeholder="Select Start Date"
+                  className="w-full"
+                />
               </div>
 
               {/* Date End */}
@@ -160,15 +158,12 @@ const GlobalPayments = () => {
                   To Date
                 </label>
                 <div className="flex space-x-2">
-                  <div className="relative grow">
-                    <CalendarIcon className="w-5 h-5 absolute left-3 top-2.5 text-slate-400" />
-                    <input
-                      type="date"
-                      className="pl-10 pr-4 py-2 w-full border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#1E90FF] bg-slate-50/50"
-                      value={endDate}
-                      onChange={(e) => setEndDate(e.target.value)}
-                    />
-                  </div>
+                  <DatePicker
+                    value={endDate}
+                    onChange={setEndDate}
+                    placeholder="Select End Date"
+                    className="grow"
+                  />
                   <button
                     onClick={resetFilters}
                     className="px-4 py-2 text-slate-500 hover:text-[#1E90FF] hover:bg-indigo-50 rounded-lg transition-colors border border-slate-200"

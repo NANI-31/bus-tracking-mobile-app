@@ -1,3 +1,4 @@
+import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:velocity_x/velocity_x.dart';
 
@@ -27,28 +28,47 @@ class NotificationCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final isDark = theme.brightness == Brightness.dark;
 
     return GestureDetector(
       onTap: onTap,
       child: Container(
         margin: const EdgeInsets.only(bottom: 16),
-        padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: colorScheme.surface,
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
+              color: Colors.black.withValues(alpha: isDark ? 0.25 : 0.05),
               blurRadius: 10,
               offset: const Offset(0, 4),
             ),
+            BoxShadow(
+              color: (isUnread ? iconColor : colorScheme.primary).withValues(alpha: isDark ? 0.12 : 0.08),
+              blurRadius: 16,
+              spreadRadius: -2,
+              offset: const Offset(0, 8),
+            ),
           ],
-          border: isUnread
-              ? Border.all(color: iconColor.withValues(alpha: 0.3), width: 1.5)
-              : null,
         ),
-        child: Row(
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(16),
+          child: BackdropFilter(
+            filter: ui.ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+            child: Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: isDark
+                    ? colorScheme.surface.withValues(alpha: 0.45)
+                    : colorScheme.surface,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: (isUnread ? iconColor : colorScheme.primary).withValues(alpha: isDark ? 0.25 : 0.15),
+                  width: 1.0,
+                ),
+              ),
+              child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Icon
@@ -109,6 +129,9 @@ class NotificationCard extends StatelessWidget {
           ],
         ),
       ),
-    );
+    ),
+  ),
+),
+);
   }
 }

@@ -158,6 +158,15 @@ export const deleteGlobalUser = async (userId) => {
   }
 };
 
+export const updateGlobalUser = async (userId, data) => {
+  try {
+    const response = await axios.put(`/users/${userId}`, data);
+    return response.data;
+  } catch (error) {
+    throw error.response ? error.response.data : error.message;
+  }
+};
+
 // Audit Logs
 export const fetchAuditLogs = async (params) => {
   try {

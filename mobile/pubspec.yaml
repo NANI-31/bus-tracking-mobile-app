@@ -51,6 +51,7 @@ dependencies:
 
   # Navigation
   go_router: ^14.6.2
+  animations: ^2.0.11
 
   # Location services
   geolocator: ^13.0.1
@@ -143,6 +144,10 @@ flutter:
 
   shaders:
     - shaders/glow_route.frag
+    - shaders/liquid_glass.frag
+    - shaders/shimmer.frag
+    - shaders/refraction.frag
+    - shaders/liquid_glass_lens.frag
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

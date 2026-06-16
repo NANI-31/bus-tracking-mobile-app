@@ -37,7 +37,7 @@ class AppColors {
   static const Color lightOnPrimaryContainer = Color(0xFF004D40);
   static const Color lightSecondary = coolSlate;
   static const Color lightOnSecondary = Colors.white;
-  static const Color lightBackground = Color(0xFFF5F7FA);
+  static const Color lightBackground = Color(0xFFF2F2F7);
   static const Color lightSurface = Colors.white;
   static const Color lightOnSurface = Color(0xFF111418);
   static const Color lightOutline = Color(0xFF78909C);

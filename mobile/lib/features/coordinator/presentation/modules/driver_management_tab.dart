@@ -14,6 +14,7 @@ import 'package:collegebus/features/bus/application/bus_provider.dart';
 import 'package:collegebus/features/user/application/user_provider.dart';
 import 'package:collegebus/features/sos/application/sos_provider.dart';
 import 'package:collegebus/core/providers/repository_providers.dart';
+import 'package:collegebus/shared/widgets/navigation/curved_bottom_nav_bar.dart';
 
 class DriverManagementTab extends ConsumerWidget {
   final Function(UserModel)? onEditDriver;
@@ -141,19 +142,39 @@ class DriverManagementTab extends ConsumerWidget {
         Icons.check_circle_outline,
       );
     }
-    return ListView.builder(
+
+    final double screenWidth = MediaQuery.of(context).size.width;
+    double cardWidth = double.infinity;
+    if (screenWidth >= 1000) {
+      cardWidth = (screenWidth - 32 - 24) / 3;
+    } else if (screenWidth >= 650) {
+      cardWidth = (screenWidth - 32 - 12) / 2;
+    }
+
+    return SingleChildScrollView(
       padding: const EdgeInsets.all(AppSizes.paddingMedium),
-      itemCount: pendingApprovals.length,
-      itemBuilder: (context, index) {
-        final driver = pendingApprovals[index];
-        return DriverCard(
-          driver: driver,
-          ref: ref,
-          isApproval: true,
-          onEditDriver: onEditDriver,
-          onTrack: onTrack,
-        );
-      },
+      child: Column(
+        children: [
+          Wrap(
+            spacing: 12,
+            runSpacing: 12,
+            children: List.generate(pendingApprovals.length, (index) {
+              final driver = pendingApprovals[index];
+              return SizedBox(
+                width: cardWidth,
+                child: DriverCard(
+                  driver: driver,
+                  ref: ref,
+                  isApproval: true,
+                  onEditDriver: onEditDriver,
+                  onTrack: onTrack,
+                ),
+              );
+            }),
+          ),
+          const BottomNavSpacer(),
+        ],
+      ),
     );
   }
 
@@ -198,40 +219,59 @@ class DriverManagementTab extends ConsumerWidget {
       );
     }
 
-    return ListView.builder(
+    final double screenWidth = MediaQuery.of(context).size.width;
+    double cardWidth = double.infinity;
+    if (screenWidth >= 1000) {
+      cardWidth = (screenWidth - 32 - 24) / 3;
+    } else if (screenWidth >= 650) {
+      cardWidth = (screenWidth - 32 - 12) / 2;
+    }
+
+    return SingleChildScrollView(
       padding: const EdgeInsets.all(AppSizes.paddingMedium),
-      itemCount: filteredDrivers.length,
-      itemBuilder: (context, index) {
-        final driver = filteredDrivers[index];
-        BusModel? bus;
-        try {
-          bus = buses.firstWhere((b) => b.driverId == driver.id);
-        } catch (_) {
-          bus = null;
-        }
-        return TweenAnimationBuilder<double>(
-          duration: const Duration(milliseconds: 400),
-          tween: Tween(begin: 50.0, end: 0.0),
-          builder: (context, value, child) {
-            return Transform.translate(
-              offset: Offset(0, value),
-              child: Opacity(
-                opacity: (1 - value / 50.0).clamp(0.0, 1.0),
-                child: child,
-              ),
-            );
-          },
-          child: DriverCard(
-            driver: driver,
-            ref: ref,
-            isApproval: false,
-            bus: bus,
-            onlineDriverIds: onlineDriverIds,
-            onEditDriver: onEditDriver,
-            onTrack: onTrack,
+      child: Column(
+        children: [
+          Wrap(
+            spacing: 12,
+            runSpacing: 12,
+            children: List.generate(filteredDrivers.length, (index) {
+              final driver = filteredDrivers[index];
+              BusModel? bus;
+              try {
+                bus = buses.firstWhere((b) => b.driverId == driver.id);
+              } catch (_) {
+                bus = null;
+              }
+              return SizedBox(
+                width: cardWidth,
+                child: TweenAnimationBuilder<double>(
+                  duration: const Duration(milliseconds: 400),
+                  tween: Tween(begin: 50.0, end: 0.0),
+                  builder: (context, value, child) {
+                    return Transform.translate(
+                      offset: Offset(0, value),
+                      child: Opacity(
+                        opacity: (1 - value / 50.0).clamp(0.0, 1.0),
+                        child: child,
+                      ),
+                    );
+                  },
+                  child: DriverCard(
+                    driver: driver,
+                    ref: ref,
+                    isApproval: false,
+                    bus: bus,
+                    onlineDriverIds: onlineDriverIds,
+                    onEditDriver: onEditDriver,
+                    onTrack: onTrack,
+                  ),
+                ),
+              );
+            }),
           ),
-        );
-      },
+          const BottomNavSpacer(),
+        ],
+      ),
     );
   }
 

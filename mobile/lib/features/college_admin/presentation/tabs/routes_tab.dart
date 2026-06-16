@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:math' as math;
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:fl_chart/fl_chart.dart';
@@ -25,7 +24,7 @@ Color _parseHexColor(String hex) {
 }
 
 String _colorToHex(Color color) {
-  return '#${color.value.toRadixString(16).padLeft(8, '0').substring(2).toUpperCase()}';
+  return '#${color.toARGB32().toRadixString(16).padLeft(8, '0').substring(2).toUpperCase()}';
 }
 
 double _calculateDistance(double lat1, double lon1, double lat2, double lon2) {
@@ -97,11 +96,11 @@ class _RoutesTabState extends ConsumerState<RoutesTab> {
     
     final img = await recorder.endRecording().toImage(size.toInt(), size.toInt());
     final data = await img.toByteData(format: ui.ImageByteFormat.png);
-    return BitmapDescriptor.fromBytes(data!.buffer.asUint8List());
+    return BitmapDescriptor.bytes(data!.buffer.asUint8List());
   }
 
   Future<BitmapDescriptor> _getMarkerIcon(String text, Color bgColor) async {
-    final key = '${text}_${bgColor.value}';
+    final key = '${text}_${bgColor.toARGB32()}';
     if (_markerIconCache.containsKey(key)) {
       return _markerIconCache[key]!;
     }
@@ -411,7 +410,7 @@ class _RoutesTabState extends ConsumerState<RoutesTab> {
                           isDense: true,
                           filled: true,
                           fillColor: isDark
-                              ? const Color(0xFF0F172A).withOpacity(0.6)
+                              ? const Color(0xFF0F172A).withValues(alpha: 0.6)
                               : Colors.grey.shade100,
                           contentPadding: const EdgeInsets.symmetric(
                             horizontal: 16,
@@ -448,17 +447,17 @@ class _RoutesTabState extends ConsumerState<RoutesTab> {
                         decoration: BoxDecoration(
                           color: _showStats
                               ? (isDark
-                                  ? primaryColor.withOpacity(0.15)
-                                  : primaryColor.withOpacity(0.08))
+                                  ? primaryColor.withValues(alpha: 0.15)
+                                  : primaryColor.withValues(alpha: 0.08))
                               : (isDark
-                                  ? const Color(0xFF0F172A).withOpacity(0.6)
+                                  ? const Color(0xFF0F172A).withValues(alpha: 0.6)
                                   : Colors.grey.shade100),
                           borderRadius: BorderRadius.circular(16),
                           border: Border.all(
                             color: _showStats
                                 ? (isDark
-                                    ? primaryColor.withOpacity(0.4)
-                                    : primaryColor.withOpacity(0.2))
+                                    ? primaryColor.withValues(alpha: 0.4)
+                                    : primaryColor.withValues(alpha: 0.2))
                                 : (isDark ? Colors.white10 : Colors.grey.shade200),
                           ),
                         ),
@@ -490,7 +489,7 @@ class _RoutesTabState extends ConsumerState<RoutesTab> {
                             'TOTAL LINES',
                             totalRoutes.toString(),
                             Icons.route_outlined,
-                            primaryColor.withOpacity(0.12),
+                            primaryColor.withValues(alpha: 0.12),
                             primaryColor,
                             isDark,
                           ),
@@ -498,7 +497,7 @@ class _RoutesTabState extends ConsumerState<RoutesTab> {
                             'CONFIG STATIONS',
                             totalStops.toString(),
                             Icons.place_outlined,
-                            const Color(0xFF10B981).withOpacity(0.12),
+                            const Color(0xFF10B981).withValues(alpha: 0.12),
                             const Color(0xFF10B981),
                             isDark,
                           ),
@@ -506,7 +505,7 @@ class _RoutesTabState extends ConsumerState<RoutesTab> {
                             'AVG STOPS / LINE',
                             avgStops,
                             Icons.show_chart_rounded,
-                            const Color(0xFF8B5CF6).withOpacity(0.12),
+                            const Color(0xFF8B5CF6).withValues(alpha: 0.12),
                             const Color(0xFF8B5CF6),
                             isDark,
                           ),
@@ -638,7 +637,7 @@ class _RoutesTabState extends ConsumerState<RoutesTab> {
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(isDark ? 0.2 : 0.03),
+            color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.03),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -752,7 +751,7 @@ class _RoutesTabState extends ConsumerState<RoutesTab> {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
-                      color: routeColor.withOpacity(0.12),
+                      color: routeColor.withValues(alpha: 0.12),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
@@ -798,7 +797,7 @@ class _RoutesTabState extends ConsumerState<RoutesTab> {
                     width: 40,
                     height: 4,
                     decoration: BoxDecoration(
-                      color: Colors.grey.withOpacity(0.3),
+                      color: Colors.grey.withValues(alpha: 0.3),
                       borderRadius: BorderRadius.circular(2),
                     ),
                   ),
@@ -871,7 +870,7 @@ class _RoutesTabState extends ConsumerState<RoutesTab> {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(24),
         side: BorderSide(
-          color: routeColor.withOpacity(0.3),
+          color: routeColor.withValues(alpha: 0.3),
           width: 1.5,
         ),
       ),
@@ -924,11 +923,11 @@ class _RoutesTabState extends ConsumerState<RoutesTab> {
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                       decoration: BoxDecoration(
-                        color: isDark ? const Color(0xFF1E293B).withOpacity(0.9) : Colors.white.withOpacity(0.9),
+                        color: isDark ? const Color(0xFF1E293B).withValues(alpha: 0.9) : Colors.white.withValues(alpha: 0.9),
                         borderRadius: BorderRadius.circular(12),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.1),
+                            color: Colors.black.withValues(alpha: 0.1),
                             blurRadius: 8,
                             offset: const Offset(0, 2),
                           ),
@@ -1044,7 +1043,7 @@ class _RoutesTabState extends ConsumerState<RoutesTab> {
                               ),
                               belowBarData: BarAreaData(
                                 show: true,
-                                color: routeColor.withOpacity(0.2),
+                                color: routeColor.withValues(alpha: 0.2),
                               ),
                             ),
                           ],
@@ -1314,31 +1313,29 @@ class _RouteFormDialogState extends ConsumerState<_RouteFormDialog> {
                         style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey),
                       ),
                       const SizedBox(height: 8),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: RadioListTile<String>(
-                              title: const Text('Pickup', style: TextStyle(fontSize: 13)),
-                              value: 'pickup',
-                              groupValue: _routeType,
-                              onChanged: (val) {
-                                if (val != null) setState(() => _routeType = val);
-                              },
-                              contentPadding: EdgeInsets.zero,
+                      RadioGroup<String>(
+                        groupValue: _routeType,
+                        onChanged: (val) {
+                          if (val != null) setState(() => _routeType = val);
+                        },
+                        child: Row(
+                          children: const [
+                            Expanded(
+                              child: RadioListTile<String>(
+                                title: Text('Pickup', style: TextStyle(fontSize: 13)),
+                                value: 'pickup',
+                                contentPadding: EdgeInsets.zero,
+                              ),
                             ),
-                          ),
-                          Expanded(
-                            child: RadioListTile<String>(
-                              title: const Text('Drop', style: TextStyle(fontSize: 13)),
-                              value: 'drop',
-                              groupValue: _routeType,
-                              onChanged: (val) {
-                                if (val != null) setState(() => _routeType = val);
-                              },
-                              contentPadding: EdgeInsets.zero,
+                            Expanded(
+                              child: RadioListTile<String>(
+                                title: Text('Drop', style: TextStyle(fontSize: 13)),
+                                value: 'drop',
+                                contentPadding: EdgeInsets.zero,
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                       const SizedBox(height: 16),
 
@@ -1352,7 +1349,7 @@ class _RouteFormDialogState extends ConsumerState<_RouteFormDialog> {
                         scrollDirection: Axis.horizontal,
                         child: Row(
                           children: _colorOptions.map((color) {
-                            final isSel = _selectedColor.value == color.value;
+                            final isSel = _selectedColor.toARGB32() == color.toARGB32();
                             return Padding(
                               padding: const EdgeInsets.only(right: 8.0),
                               child: ChoiceChip(
@@ -1367,7 +1364,7 @@ class _RouteFormDialogState extends ConsumerState<_RouteFormDialog> {
                                 },
                                 shape: const CircleBorder(),
                                 selectedColor: color,
-                                backgroundColor: color.withOpacity(0.5),
+                                backgroundColor: color.withValues(alpha: 0.5),
                                 showCheckmark: false,
                                 padding: const EdgeInsets.all(8),
                               ),
@@ -1556,7 +1553,7 @@ class _StopBuilderCardState extends State<_StopBuilderCard> {
       decoration: BoxDecoration(
         color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: Colors.grey.withOpacity(0.2)),
+        border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
       ),
       child: Row(
         children: [

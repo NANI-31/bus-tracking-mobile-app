@@ -15,6 +15,8 @@ export const getAuditLogs = async (req: IAuthRequest, res: Response) => {
       action,
       resource,
       date,
+      startDate,
+      endDate,
       limit = 50,
       skip = 0,
     } = req.query;
@@ -58,6 +60,16 @@ export const getAuditLogs = async (req: IAuthRequest, res: Response) => {
         $gte: startOfDay,
         $lte: endOfDay,
       };
+    } else if (startDate || endDate) {
+      query.createdAt = {};
+      if (startDate) {
+        const start = new Date(startDate as string);
+        query.createdAt.$gte = new Date(start.setHours(0, 0, 0, 0));
+      }
+      if (endDate) {
+        const end = new Date(endDate as string);
+        query.createdAt.$lte = new Date(end.setHours(23, 59, 59, 999));
+      }
     }
 
     const logs = await AuditLog.find(query)

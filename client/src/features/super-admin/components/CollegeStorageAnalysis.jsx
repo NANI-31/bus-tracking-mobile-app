@@ -23,6 +23,7 @@ import {
   getCollegeStorageHistory,
 } from "../slices/superAdminSlice";
 import GlassmorphicTooltip from "@/components/common/GlassmorphicTooltip";
+import DatePicker from "@/components/common/DatePicker";
 
 const CollegeStorageAnalysis = () => {
   const dispatch = useDispatch();
@@ -115,22 +116,19 @@ const CollegeStorageAnalysis = () => {
               </select>
             </div>
 
-            <div className="flex items-center space-x-2 bg-white border border-slate-200 rounded-lg px-3 py-1.5 shadow-sm">
-              <CalendarDaysIcon className="w-4 h-4 text-slate-400" />
-              <input
-                type="date"
-                name="start"
+            <div className="flex items-center space-x-2">
+              <DatePicker
                 value={dateRange.start}
-                onChange={handleDateChange}
-                className="text-sm font-medium text-slate-700 outline-none bg-transparent"
+                onChange={(val) => setDateRange((prev) => ({ ...prev, start: val }))}
+                placeholder="Start Date"
+                className="w-[140px]"
               />
-              <span className="text-slate-300">to</span>
-              <input
-                type="date"
-                name="end"
+              <span className="text-slate-400 text-xs font-semibold">to</span>
+              <DatePicker
                 value={dateRange.end}
-                onChange={handleDateChange}
-                className="text-sm font-medium text-slate-700 outline-none bg-transparent"
+                onChange={(val) => setDateRange((prev) => ({ ...prev, end: val }))}
+                placeholder="End Date"
+                className="w-[140px]"
               />
             </div>
           </div>

@@ -93,8 +93,8 @@ class _StudentMapTabState extends ConsumerState<StudentMapTab>
     final filteredBuses = widget.allBuses
         .where(
           (b) => b.busNumber.toLowerCase().contains(_searchQuery.toLowerCase()) &&
-                 (b.status != 'not-running' || liveBusIds.contains(b.id)) &&
-                 b.assignmentStatus != 'unassigned',
+                 liveBusIds.contains(b.id) &&
+                 b.assignmentStatus == 'accepted',
         )
         .toList();
 

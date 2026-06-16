@@ -42,9 +42,9 @@ export const getCollegeStats = createAsyncThunk(
 );
 
 // Users
-export const getUsers = createAsyncThunk("collegeAdmin/getUsers", async () => {
-  const response = await fetchUsers();
-  return response;
+export const getUsers = createAsyncThunk("collegeAdmin/getUsers", async (params = {}) => {
+  const response = await fetchUsers(params);
+  return { response, params };
 });
 
 export const editUser = createAsyncThunk(
@@ -239,13 +239,27 @@ const collegeAdminSlice = createSlice({
   extraReducers: (builder) => {
     builder
       // Users
-      .addCase(getUsers.pending, (state) => {
-        state.loading = true;
+      .addCase(getUsers.pending, (state, action) => {
+        const page = action.meta.arg?.page || 1;
+        if (page === 1) {
+          state.loading = true;
+        }
         state.error = null;
       })
       .addCase(getUsers.fulfilled, (state, action) => {
         state.loading = false;
-        state.users = Array.isArray(action.payload) ? action.payload : [];
+        const { response, params } = action.payload;
+        const isPaginated = response && response.users !== undefined;
+        const newUsers = isPaginated ? response.users : (Array.isArray(response) ? response : []);
+        
+        if (params && params.page > 1) {
+          const existingIds = new Set(state.users.map((u) => u._id));
+          const uniqueNewUsers = newUsers.filter((u) => !existingIds.has(u._id));
+          state.users = [...state.users, ...uniqueNewUsers];
+        } else {
+          state.users = newUsers;
+        }
+        state.totalCount = isPaginated ? response.totalCount : state.users.length;
       })
       .addCase(getUsers.rejected, (state, action) => {
         state.loading = false;

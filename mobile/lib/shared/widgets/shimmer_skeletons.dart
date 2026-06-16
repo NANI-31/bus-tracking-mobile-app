@@ -299,19 +299,50 @@ class StatCardsSkeleton extends StatelessWidget {
         AppSizes.paddingLarge.heightBox,
 
         // Statistics Cards grid (shimmering containers mirroring StatCard shape)
-        HStack([
-          _buildCardPlaceholder(context, colorScheme).expand(),
-          AppSizes.paddingMedium.widthBox,
-          _buildCardPlaceholder(context, colorScheme).expand(),
-        ]),
-
-        AppSizes.paddingMedium.heightBox,
-
-        HStack([
-          _buildCardPlaceholder(context, colorScheme).expand(),
-          AppSizes.paddingMedium.widthBox,
-          _buildCardPlaceholder(context, colorScheme).expand(),
-        ]),
+        Builder(
+          builder: (context) {
+            final double screenWidth = MediaQuery.of(context).size.width;
+            
+            final card1 = _buildCardPlaceholder(context, colorScheme);
+            final card2 = _buildCardPlaceholder(context, colorScheme);
+            final card3 = _buildCardPlaceholder(context, colorScheme);
+            final card4 = _buildCardPlaceholder(context, colorScheme);
+            
+            if (screenWidth >= 650) {
+              return Row(
+                children: [
+                  Expanded(child: card1),
+                  const SizedBox(width: 12),
+                  Expanded(child: card2),
+                  const SizedBox(width: 12),
+                  Expanded(child: card3),
+                  const SizedBox(width: 12),
+                  Expanded(child: card4),
+                ],
+              );
+            } else {
+              return Column(
+                children: [
+                  Row(
+                    children: [
+                      Expanded(child: card1),
+                      const SizedBox(width: 12),
+                      Expanded(child: card2),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(child: card3),
+                      const SizedBox(width: 12),
+                      Expanded(child: card4),
+                    ],
+                  ),
+                ],
+              );
+            }
+          },
+        ),
 
         AppSizes.paddingMedium.heightBox,
 

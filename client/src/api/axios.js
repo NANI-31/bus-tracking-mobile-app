@@ -1,7 +1,8 @@
 import axios from "axios";
 import toast from "react-hot-toast";
+import { getDynamicApiUrl } from "../utils/url";
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+const API_URL = getDynamicApiUrl();
 const BASE_URL = API_URL.endsWith("/api/v1") ? API_URL : `${API_URL}/api/v1`;
 
 const axiosInstance = axios.create({

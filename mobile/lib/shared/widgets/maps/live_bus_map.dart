@@ -119,11 +119,13 @@ class LiveBusMapState extends ConsumerState<LiveBusMap>
       final Map<String, Offset> nextPositions = {};
       for (var bus in widget.buses) {
         final isSelectedBus = widget.selectedBus?.id == bus.id;
-        final isLive = bus.status != 'not-running' || liveBusIds.contains(bus.id) || isSelectedBus;
-        // Skip buses that are not live — EXCEPT the selected bus which should
-        // always project if it has a known position (even if temporarily unassigned).
+        // A bus is only considered "live" on the map when the driver is
+        // ACTIVELY broadcasting GPS via socket (liveBusIds). bus.status is a
+        // stale DB field — it changes on assignment, not on broadcast start,
+        // so it must NOT be used as a visibility gate here.
+        final isLive = liveBusIds.contains(bus.id) || isSelectedBus;
         if (!isLive) continue;
-        if (bus.assignmentStatus == 'unassigned' && !isSelectedBus) continue;
+        if (bus.assignmentStatus != 'accepted' && !isSelectedBus) continue;
         var pos = _animatedLocations[bus.id] ?? _liveLocations[bus.id]?.currentLocation;
         if (pos != null) {
           projectedCount++;
@@ -610,10 +612,12 @@ class LiveBusMapState extends ConsumerState<LiveBusMap>
 
     for (var bus in widget.buses) {
       final isSelectedBus = widget.selectedBus?.id == bus.id;
-      final isLive = bus.status != 'not-running' || liveBusIds.contains(bus.id) || isSelectedBus;
-      // If bus is not live, or it's unassigned AND not the coordinator-selected bus,
-      // remove it from the map and clear its cached position data.
-      if (!isLive || (bus.assignmentStatus == 'unassigned' && !isSelectedBus)) {
+      // Only show a bus on the map when its driver is actively broadcasting GPS
+      // (liveBusIds). bus.status alone is NOT sufficient — it updates on DB
+      // assignment, not when the driver actually starts sending location data.
+      final isLive = liveBusIds.contains(bus.id) || isSelectedBus;
+      // Remove marker if bus has no live broadcast AND is not the selected bus.
+      if (!isLive || (bus.assignmentStatus != 'accepted' && !isSelectedBus)) {
         // Preserve the selected bus's data even if temporarily unassigned —
         // clearing it would prevent the BusTrackerMarker from ever projecting.
         _liveLocations.remove(bus.id);
@@ -785,7 +789,7 @@ class LiveBusMapState extends ConsumerState<LiveBusMap>
           snippet: 'Route start point',
         ),
         anchor: const Offset(0.5, 0.5),
-        zIndex: 1,
+        zIndexInt: 1,
       );
     }
 
@@ -801,7 +805,7 @@ class LiveBusMapState extends ConsumerState<LiveBusMap>
           title: 'Stop ${i + 1}: ${stop.name}',
         ),
         anchor: const Offset(0.5, 0.5),
-        zIndex: 1,
+        zIndexInt: 1,
       );
     }
 
@@ -816,7 +820,7 @@ class LiveBusMapState extends ConsumerState<LiveBusMap>
           snippet: 'Route end point',
         ),
         anchor: const Offset(0.5, 0.5),
-        zIndex: 1,
+        zIndexInt: 1,
       );
     }
   }
@@ -1303,10 +1307,10 @@ class RoutePainter extends CustomPainter {
       shader!.setFloat(1, size.height);
       shader!.setFloat(2, time * 10.0);
       shader!.setFloat(3, trafficDensity);
-      shader!.setFloat(4, routeColor.red / 255.0);
-      shader!.setFloat(5, routeColor.green / 255.0);
-      shader!.setFloat(6, routeColor.blue / 255.0);
-      shader!.setFloat(7, routeColor.opacity);
+      shader!.setFloat(4, routeColor.r);
+      shader!.setFloat(5, routeColor.g);
+      shader!.setFloat(6, routeColor.b);
+      shader!.setFloat(7, routeColor.a);
 
       final paint = Paint()
         ..shader = shader

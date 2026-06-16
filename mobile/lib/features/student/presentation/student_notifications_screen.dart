@@ -4,9 +4,11 @@ import 'package:collegebus/features/notification/application/notification_provid
 import 'package:collegebus/features/notification/domain/notification_model.dart';
 import 'package:collegebus/features/notification/presentation/widgets/notification_skeleton.dart';
 import 'package:collegebus/features/notification/presentation/widgets/voice_notification_card.dart';
+import 'package:collegebus/features/notification/presentation/widgets/notification_card.dart';
 import 'package:collegebus/core/constants/constants.dart';
 import 'package:velocity_x/velocity_x.dart';
 import 'package:flutter/services.dart';
+import 'package:collegebus/shared/widgets/navigation/curved_bottom_nav_bar.dart';
 
 class StudentNotificationsScreen extends ConsumerStatefulWidget {
   const StudentNotificationsScreen({super.key});
@@ -37,9 +39,12 @@ class _StudentNotificationsScreenState
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: const SystemUiOverlayStyle(
-        statusBarColor: Colors.white,
+        statusBarColor: Colors.transparent,
         statusBarIconBrightness: Brightness.dark,
         statusBarBrightness: Brightness.light,
+        systemNavigationBarColor: Colors.transparent,
+        systemNavigationBarDividerColor: Colors.transparent,
+        systemNavigationBarIconBrightness: Brightness.dark,
       ),
       child: Scaffold(
         backgroundColor: Theme.of(context).scaffoldBackgroundColor,
@@ -110,14 +115,18 @@ class _StudentNotificationsScreenState
                             style: TextStyle(fontSize: 16, color: Colors.grey),
                           ),
                         ),
+                        const BottomNavSpacer(),
                       ],
                     );
                   }
 
                   return ListView.builder(
                     padding: const EdgeInsets.symmetric(horizontal: 24),
-                    itemCount: filtered.length,
+                    itemCount: filtered.length + 1,
                     itemBuilder: (context, index) {
+                      if (index == filtered.length) {
+                        return const BottomNavSpacer();
+                      }
                       final notif = filtered[index];
 
                       if (notif.isVoice) {
@@ -205,8 +214,7 @@ class _StudentNotificationsScreenState
                                 .markAsRead(notif.id);
                           }
                         },
-                        child: _buildNotificationCard(
-                          context,
+                        child: NotificationCard(
                           title: derivedTitle,
                           description: notif.message,
                           time: timeStr,
@@ -300,87 +308,7 @@ class _StudentNotificationsScreenState
     );
   }
 
-  Widget _buildNotificationCard(
-    BuildContext context, {
-    required String title,
-    required String description,
-    required String time,
-    required IconData icon,
-    required Color iconColor,
-    required Color iconBgColor,
-    bool isUnread = false,
-  }) {
-    final colorScheme = Theme.of(context).colorScheme;
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: colorScheme.surface,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(
-          color: isUnread
-              ? AppColors.primary.withValues(alpha: 0.1)
-              : Colors.transparent,
-          width: 1.0,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.02),
-            blurRadius: 15,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
-      child: HStack([
-        // Icon
-        Container(
-          width: 54,
-          height: 54,
-          decoration: BoxDecoration(color: iconBgColor, shape: BoxShape.circle),
-          child: Icon(icon, color: iconColor, size: 26),
-        ),
-
-        20.widthBox,
-
-        // Content
-        VStack([
-          HStack([
-            title.text.lg.bold.color(colorScheme.onSurface).make().expand(),
-            HStack([
-              time.text
-                  .size(12)
-                  .color(isSelectedColor(context, isUnread))
-                  .make(),
-              if (isUnread) ...[
-                8.widthBox,
-                Container(
-                  width: 8.0,
-                  height: 8,
-                  decoration: BoxDecoration(
-                    color: AppColors.primary,
-                    shape: BoxShape.circle,
-                  ),
-                ),
-              ],
-            ]),
-          ]),
-
-          6.heightBox,
-
-          description.text
-              .color(colorScheme.onSurface.withValues(alpha: 0.6))
-              .lineHeight(1.4)
-              .make(),
-        ]).expand(),
-      ], crossAlignment: CrossAxisAlignment.start),
-    );
-  }
-
-  Color isSelectedColor(BuildContext context, bool isUnread) {
-    if (isUnread) return AppColors.primary;
-    return Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4);
-  }
 
   String _formatTimestamp(DateTime timestamp) {
     final now = DateTime.now();

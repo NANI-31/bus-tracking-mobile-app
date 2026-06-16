@@ -106,12 +106,12 @@ class _UsersTabState extends ConsumerState<UsersTab> {
             borderRadius: BorderRadius.circular(24),
             border: Border.all(
               color: isDark
-                  ? Colors.white.withOpacity(0.08)
-                  : Colors.black.withOpacity(0.05),
+                  ? Colors.white.withValues(alpha: 0.08)
+                  : Colors.black.withValues(alpha: 0.05),
             ),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(isDark ? 0.3 : 0.04),
+                color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.04),
                 blurRadius: 18,
                 offset: const Offset(0, 8),
               ),
@@ -153,7 +153,7 @@ class _UsersTabState extends ConsumerState<UsersTab> {
                         isDense: true,
                         filled: true,
                         fillColor: isDark
-                            ? const Color(0xFF0F172A).withOpacity(0.6)
+                            ? const Color(0xFF0F172A).withValues(alpha: 0.6)
                             : Colors.grey.shade100,
                         contentPadding: const EdgeInsets.symmetric(
                           horizontal: 16,
@@ -206,17 +206,17 @@ class _UsersTabState extends ConsumerState<UsersTab> {
                       decoration: BoxDecoration(
                         color: (_selectedRoles.isNotEmpty || _selectedStatuses.isNotEmpty)
                             ? (isDark
-                                ? primaryColor.withOpacity(0.15)
-                                : primaryColor.withOpacity(0.08))
+                                  ? primaryColor.withValues(alpha: 0.15)
+                                  : primaryColor.withValues(alpha: 0.08))
                             : (isDark
-                                ? const Color(0xFF0F172A).withOpacity(0.6)
+                                ? const Color(0xFF0F172A).withValues(alpha: 0.6)
                                 : Colors.grey.shade100),
                         borderRadius: BorderRadius.circular(16),
                         border: Border.all(
                           color: (_selectedRoles.isNotEmpty || _selectedStatuses.isNotEmpty)
                               ? (isDark
-                                  ? primaryColor.withOpacity(0.4)
-                                  : primaryColor.withOpacity(0.2))
+                                    ? primaryColor.withValues(alpha: 0.4)
+                                    : primaryColor.withValues(alpha: 0.2))
                               : (isDark ? Colors.white10 : Colors.grey.shade200),
                         ),
                       ),
@@ -255,17 +255,17 @@ class _UsersTabState extends ConsumerState<UsersTab> {
                       decoration: BoxDecoration(
                         color: _showStats
                             ? (isDark
-                                ? primaryColor.withOpacity(0.15)
-                                : primaryColor.withOpacity(0.08))
+                                  ? primaryColor.withValues(alpha: 0.15)
+                                  : primaryColor.withValues(alpha: 0.08))
                             : (isDark
-                                ? const Color(0xFF0F172A).withOpacity(0.6)
+                                ? const Color(0xFF0F172A).withValues(alpha: 0.6)
                                 : Colors.grey.shade100),
                         borderRadius: BorderRadius.circular(16),
                         border: Border.all(
                           color: _showStats
                               ? (isDark
-                                  ? primaryColor.withOpacity(0.4)
-                                  : primaryColor.withOpacity(0.2))
+                                    ? primaryColor.withValues(alpha: 0.4)
+                                    : primaryColor.withValues(alpha: 0.2))
                               : (isDark ? Colors.white10 : Colors.grey.shade200),
                         ),
                       ),
@@ -298,7 +298,7 @@ class _UsersTabState extends ConsumerState<UsersTab> {
                           'TOTAL USERS',
                           totalUsers.toString(),
                           Icons.people_alt_outlined,
-                          primaryColor.withOpacity(0.12),
+                          primaryColor.withValues(alpha: 0.12),
                           primaryColor,
                           isDark,
                         ),
@@ -306,7 +306,7 @@ class _UsersTabState extends ConsumerState<UsersTab> {
                           'APPROVED',
                           approvedUsers.toString(),
                           Icons.check_circle_outline_rounded,
-                          const Color(0xFF10B981).withOpacity(0.12),
+                          const Color(0xFF10B981).withValues(alpha: 0.12),
                           const Color(0xFF10B981),
                           isDark,
                         ),
@@ -314,7 +314,7 @@ class _UsersTabState extends ConsumerState<UsersTab> {
                           'PENDING',
                           pendingCount.toString(),
                           Icons.pending_actions_rounded,
-                          const Color(0xFFF59E0B).withOpacity(0.12),
+                          const Color(0xFFF59E0B).withValues(alpha: 0.12),
                           const Color(0xFFF59E0B),
                           isDark,
                         ),
@@ -322,7 +322,7 @@ class _UsersTabState extends ConsumerState<UsersTab> {
                           'STUDENTS',
                           studentCount.toString(),
                           Icons.school_outlined,
-                          const Color(0xFF3B82F6).withOpacity(0.12),
+                          const Color(0xFF3B82F6).withValues(alpha: 0.12),
                           const Color(0xFF3B82F6),
                           isDark,
                         ),
@@ -330,7 +330,7 @@ class _UsersTabState extends ConsumerState<UsersTab> {
                           'TEACHERS',
                           teacherCount.toString(),
                           Icons.assignment_ind_outlined,
-                          const Color(0xFFEC4899).withOpacity(0.12),
+                          const Color(0xFFEC4899).withValues(alpha: 0.12),
                           const Color(0xFFEC4899),
                           isDark,
                         ),
@@ -338,7 +338,7 @@ class _UsersTabState extends ConsumerState<UsersTab> {
                           'DRIVERS',
                           driverCount.toString(),
                           Icons.directions_bus_outlined,
-                          const Color(0xFF06B6D4).withOpacity(0.12),
+                          const Color(0xFF06B6D4).withValues(alpha: 0.12),
                           const Color(0xFF06B6D4),
                           isDark,
                         ),
@@ -346,7 +346,7 @@ class _UsersTabState extends ConsumerState<UsersTab> {
                           'COORDINATORS',
                           coordinatorCount.toString(),
                           Icons.admin_panel_settings_outlined,
-                          const Color(0xFF8B5CF6).withOpacity(0.12),
+                          const Color(0xFF8B5CF6).withValues(alpha: 0.12),
                           const Color(0xFF8B5CF6),
                           isDark,
                         ),
@@ -509,7 +509,7 @@ class _UsersTabState extends ConsumerState<UsersTab> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: isDark ? Colors.white.withOpacity(0.08) : Colors.grey.shade100,
+        color: isDark ? Colors.white.withValues(alpha: 0.08) : Colors.grey.shade100,
         borderRadius: BorderRadius.circular(10),
         border: Border.all(
           color: isDark ? Colors.white10 : Colors.grey.shade200,
@@ -523,7 +523,7 @@ class _UsersTabState extends ConsumerState<UsersTab> {
             style: TextStyle(
               fontSize: 10.5,
               fontWeight: FontWeight.bold,
-              color: isDark ? Colors.white.withOpacity(0.87) : Colors.black87,
+              color: isDark ? Colors.white.withValues(alpha: 0.87) : Colors.black87,
             ),
           ),
           const SizedBox(width: 4),
@@ -706,7 +706,7 @@ class _UserFilterBottomSheetState extends State<_UserFilterBottomSheet> {
                 VerticalDivider(
                   width: 1,
                   color: isDark
-                      ? Colors.white.withOpacity(0.06)
+                      ? Colors.white.withValues(alpha: 0.06)
                       : Colors.grey.shade200,
                 ),
                 Expanded(
@@ -757,7 +757,7 @@ class _UserFilterBottomSheetState extends State<_UserFilterBottomSheet> {
                       borderRadius: BorderRadius.circular(16),
                       boxShadow: [
                         BoxShadow(
-                          color: const Color(0xFF0097B2).withOpacity(0.3),
+                          color: const Color(0xFF0097B2).withValues(alpha: 0.3),
                           blurRadius: 8,
                           offset: const Offset(0, 3),
                         ),

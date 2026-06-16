@@ -98,8 +98,10 @@ class ReferralScreen extends ConsumerWidget {
               width: double.infinity,
               child: ElevatedButton.icon(
                 onPressed: () {
-                  Share.share(
-                    "Hey! Join me on CollegeBus, the best bus tracking app. Use my referral code $referralCode to get started! Download now: https://collegebus.app",
+                  SharePlus.instance.share(
+                    ShareParams(
+                      text: "Hey! Join me on CollegeBus, the best bus tracking app. Use my referral code $referralCode to get started! Download now: https://collegebus.app",
+                    ),
                   );
                 },
                 icon: const Icon(Icons.share_rounded),

@@ -11,6 +11,7 @@ import '../widgets/voice_notification_card.dart';
 import '../widgets/filter_tabs.dart';
 import '../widgets/notification_skeleton.dart';
 import 'package:flutter/services.dart';
+import 'package:collegebus/shared/widgets/navigation/curved_bottom_nav_bar.dart';
 
 class NotificationsScreen extends ConsumerStatefulWidget {
   const NotificationsScreen({super.key});
@@ -69,9 +70,12 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: const SystemUiOverlayStyle(
-        statusBarColor: Colors.white,
+        statusBarColor: Colors.transparent,
         statusBarIconBrightness: Brightness.dark,
         statusBarBrightness: Brightness.light,
+        systemNavigationBarColor: Colors.transparent,
+        systemNavigationBarDividerColor: Colors.transparent,
+        systemNavigationBarIconBrightness: Brightness.dark,
       ),
       child: Scaffold(
         backgroundColor: Theme.of(context).scaffoldBackgroundColor,
@@ -149,23 +153,27 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                             SizedBox(
                               height: MediaQuery.of(context).size.height * 0.2,
                             ),
-                            const Center(
-                              child: Text(
-                                "No notifications yet.",
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  color: Colors.grey,
-                                ),
-                              ),
-                            ),
-                          ],
-                        );
-                      }
+                             const Center(
+                               child: Text(
+                                 "No notifications yet.",
+                                 style: TextStyle(
+                                   fontSize: 16,
+                                   color: Colors.grey,
+                                 ),
+                               ),
+                             ),
+                             const BottomNavSpacer(),
+                           ],
+                         );
+                       }
 
                       return ListView.builder(
                         padding: const EdgeInsets.symmetric(horizontal: 24),
-                        itemCount: filtered.length,
+                        itemCount: filtered.length + 1,
                         itemBuilder: (context, index) {
+                          if (index == filtered.length) {
+                            return const BottomNavSpacer();
+                          }
                           final notif = filtered[index];
 
                           if (notif.isVoice) {

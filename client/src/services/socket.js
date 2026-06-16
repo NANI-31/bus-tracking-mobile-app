@@ -1,6 +1,7 @@
 import { io } from "socket.io-client";
+import { getDynamicApiUrl } from "../utils/url";
 
-const SOCKET_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+const SOCKET_URL = getDynamicApiUrl();
 
 let socket;
 let pendingRoomJoins = []; // Track rooms to rejoin on reconnect
@@ -12,7 +13,7 @@ export const initiateSocketConnection = (token) => {
     auth: {
       token,
     },
-    transports: ["websocket"],
+    transports: ["polling", "websocket"],
     reconnection: true,
     reconnectionAttempts: Infinity,
     reconnectionDelay: 1000,

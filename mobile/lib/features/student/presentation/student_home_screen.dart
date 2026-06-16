@@ -12,6 +12,7 @@ import 'package:collegebus/features/notification/application/notification_provid
 
 import 'widgets/home/student_skeletons.dart';
 import 'package:collegebus/shared/widgets/skeleton_transition.dart';
+import 'package:collegebus/shared/widgets/navigation/curved_bottom_nav_bar.dart';
 import 'widgets/home/welcome_section.dart';
 import 'widgets/home/bus_status_card.dart';
 import 'widgets/home/route_card.dart';
@@ -142,6 +143,7 @@ class StudentHomeScreen extends ConsumerWidget {
     final isWide = context.isTabletLayout || context.isDesktopLayout;
 
     return SafeArea(
+      bottom: false,
       child: RefreshIndicator(
         onRefresh: () async {
           ref.invalidate(collegeBusesStreamProvider(user.collegeId));
@@ -265,6 +267,7 @@ class StudentHomeScreen extends ConsumerWidget {
                 ],
               ),
               const SizedBox(height: 24),
+              BottomNavSpacer(),
             ],
           ),
         ),

@@ -146,7 +146,7 @@ class _PaymentsTabState extends ConsumerState<PaymentsTab> {
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(isDark ? 0.2 : 0.05),
+                      color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.05),
                       blurRadius: 10,
                       offset: const Offset(0, 4),
                     ),
@@ -160,7 +160,7 @@ class _PaymentsTabState extends ConsumerState<PaymentsTab> {
                         Container(
                           padding: const EdgeInsets.all(8),
                           decoration: BoxDecoration(
-                            color: Colors.blue.withOpacity(0.15),
+                            color: Colors.blue.withValues(alpha: 0.15),
                             shape: BoxShape.circle,
                           ),
                           child: const Icon(
@@ -235,7 +235,7 @@ class _PaymentsTabState extends ConsumerState<PaymentsTab> {
                                   : (isDark ? Colors.white24 : Colors.grey.shade300),
                             ),
                             backgroundColor: hasActiveFilters
-                                ? const Color(0xFF1E90FF).withOpacity(0.08)
+                                ? const Color(0xFF1E90FF).withValues(alpha: 0.08)
                                 : null,
                           ),
                         ),
@@ -254,7 +254,7 @@ class _PaymentsTabState extends ConsumerState<PaymentsTab> {
                               prefixIcon: const Icon(Icons.search, size: 16),
                               isDense: true,
                               contentPadding: const EdgeInsets.symmetric(vertical: 8),
-                              fillColor: isDark ? Colors.white.withOpacity(0.05) : Colors.grey.shade50,
+                              fillColor: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey.shade50,
                               filled: true,
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(10),
@@ -304,7 +304,7 @@ class _PaymentsTabState extends ConsumerState<PaymentsTab> {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 12),
                         decoration: BoxDecoration(
-                          color: isDark ? Colors.white.withOpacity(0.05) : Colors.grey.shade50,
+                          color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey.shade50,
                           borderRadius: BorderRadius.circular(8),
                           border: Border.all(
                             color: isDark ? Colors.white10 : Colors.grey.shade200,
@@ -350,7 +350,7 @@ class _PaymentsTabState extends ConsumerState<PaymentsTab> {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 12),
                         decoration: BoxDecoration(
-                          color: isDark ? Colors.white.withOpacity(0.05) : Colors.grey.shade50,
+                          color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey.shade50,
                           borderRadius: BorderRadius.circular(8),
                           border: Border.all(
                             color: isDark ? Colors.white10 : Colors.grey.shade200,
@@ -548,10 +548,10 @@ class _PaymentsTabState extends ConsumerState<PaymentsTab> {
                                     Container(
                                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                                       decoration: BoxDecoration(
-                                        color: const Color(0xFF10B981).withOpacity(0.15),
+                                        color: const Color(0xFF10B981).withValues(alpha: 0.15),
                                         borderRadius: BorderRadius.circular(20),
                                         border: Border.all(
-                                          color: const Color(0xFF10B981).withOpacity(0.3),
+                                          color: const Color(0xFF10B981).withValues(alpha: 0.3),
                                         ),
                                       ),
                                       child: const Text(
@@ -588,8 +588,8 @@ class _PaymentsTabState extends ConsumerState<PaymentsTab> {
                                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                                           decoration: BoxDecoration(
                                             color: isSemester
-                                                ? Colors.purple.withOpacity(0.15)
-                                                : Colors.blue.withOpacity(0.15),
+                                                ? Colors.purple.withValues(alpha: 0.15)
+                                                : Colors.blue.withValues(alpha: 0.15),
                                             borderRadius: BorderRadius.circular(6),
                                           ),
                                           child: Text(
@@ -620,7 +620,7 @@ class _PaymentsTabState extends ConsumerState<PaymentsTab> {
                                           style: const TextStyle(
                                             fontSize: 16,
                                             fontWeight: FontWeight.bold,
-                                            color: const Color(0xFF10B981),
+                                            color: Color(0xFF10B981),
                                           ),
                                         ),
                                       ],

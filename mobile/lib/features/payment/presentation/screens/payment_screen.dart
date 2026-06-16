@@ -614,7 +614,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
                   BoxShadow(
                     color:
                         (isPremium ? Colors.amber : theme.colorScheme.primary)
-                            .withOpacity(0.15),
+                            .withValues(alpha: 0.15),
                     blurRadius: 25,
                     offset: const Offset(0, 12),
                   ),
@@ -631,7 +631,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
                   decoration: BoxDecoration(
                     color:
                         (isPremium ? Colors.amber : theme.colorScheme.primary)
-                            .withOpacity(0.15),
+                            .withValues(alpha: 0.15),
                     shape: BoxShape.circle,
                   ),
                   child: Icon(

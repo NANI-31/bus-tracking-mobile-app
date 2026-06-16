@@ -194,7 +194,7 @@ const Fleet = () => {
       {/* Main Grid Section */}
       <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
         <AnimatePresence mode="popLayout">
-          {loading ? (
+          {loading && (!buses || buses.length === 0) ? (
             Array.from({ length: 6 }).map((_, idx) => (
               <div
                 key={`skeleton-${idx}`}

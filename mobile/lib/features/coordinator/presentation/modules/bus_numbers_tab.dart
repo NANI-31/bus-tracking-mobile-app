@@ -16,6 +16,8 @@ import 'bus_tab_components/bus_list_card.dart';
 import 'bus_tab_components/bus_empty_state.dart';
 import 'package:collegebus/shared/widgets/shimmer_skeletons.dart';
 
+import 'package:collegebus/shared/widgets/navigation/curved_bottom_nav_bar.dart';
+
 class BusNumbersTab extends ConsumerStatefulWidget {
   const BusNumbersTab({super.key});
 
@@ -228,7 +230,7 @@ class _BusNumbersTabState extends ConsumerState<BusNumbersTab>
               ],
             ),
             Positioned(
-              bottom: AppSizes.paddingMedium,
+              bottom: CurvedBottomNavBar.clearance(context) + AppSizes.paddingMedium,
               right: AppSizes.paddingMedium,
               child: FloatingActionButton(
                 onPressed: () => _showCreateBusNumberDialog(context),
@@ -317,11 +319,14 @@ class _BusNumbersTabState extends ConsumerState<BusNumbersTab>
       padding: const EdgeInsets.only(
         left: AppSizes.paddingMedium,
         right: AppSizes.paddingMedium,
-        bottom: 80,
+        bottom: 16,
         top: 8,
       ),
-      itemCount: displayNumbers.length,
+      itemCount: displayNumbers.length + 1,
       itemBuilder: (context, index) {
+        if (index == displayNumbers.length) {
+          return const BottomNavSpacer();
+        }
         final busNumber = displayNumbers[index];
         final isOfficial = busNumbers.contains(busNumber);
         final assignedBus = buses.firstWhere(

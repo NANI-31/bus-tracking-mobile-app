@@ -1,9 +1,9 @@
 import axios from "@/api/axios";
 
 // User Management
-export const fetchUsers = async () => {
+export const fetchUsers = async (params = {}) => {
   try {
-    const response = await axios.get("/users");
+    const response = await axios.get("/users", { params });
     return response.data;
   } catch (error) {
     throw error.response ? error.response.data : error.message;

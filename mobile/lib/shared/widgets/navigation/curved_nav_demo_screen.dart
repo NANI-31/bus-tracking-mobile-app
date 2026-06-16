@@ -33,31 +33,38 @@ class _CurvedNavDemoScreenState extends State<CurvedNavDemoScreen> {
         backgroundColor: Colors.transparent,
         elevation: 0,
       ),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(
-              'Selected Tab: ${_navItems[_currentIndex].label}',
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-              ),
+      body: Stack(
+        children: [
+          Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  'Selected Tab: ${_navItems[_currentIndex].label}',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                const Icon(Icons.touch_app, color: Colors.white70, size: 50),
+              ],
             ),
-            const SizedBox(height: 20),
-            const Icon(Icons.touch_app, color: Colors.white70, size: 50),
-          ],
-        ),
-      ),
-      bottomNavigationBar: CurvedBottomNavBar(
-        items: _navItems,
-        currentIndex: _currentIndex,
-        onTap: (index) {
-          setState(() {
-            _currentIndex = index;
-          });
-        },
+          ),
+          Align(
+            alignment: Alignment.bottomCenter,
+            child: CurvedBottomNavBar(
+              items: _navItems,
+              currentIndex: _currentIndex,
+              onTap: (index) {
+                setState(() {
+                  _currentIndex = index;
+                });
+              },
+            ),
+          ),
+        ],
       ),
     );
   }

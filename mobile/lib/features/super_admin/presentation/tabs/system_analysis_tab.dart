@@ -181,7 +181,7 @@ class _SystemAnalysisTabState extends ConsumerState<SystemAnalysisTab>
               borderRadius: BorderRadius.circular(12),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(isDark ? 0.3 : 0.05),
+                  color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.05),
                   blurRadius: 4,
                   offset: const Offset(0, 2),
                 ),
@@ -322,7 +322,7 @@ class _SystemAnalysisTabState extends ConsumerState<SystemAnalysisTab>
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(isDark ? 0.2 : 0.02),
+            color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.02),
             blurRadius: 12,
             offset: const Offset(0, 4),
           ),
@@ -444,7 +444,7 @@ class _SystemAnalysisTabState extends ConsumerState<SystemAnalysisTab>
             style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.bold,
-              color: isDark ? Colors.white.withOpacity(0.87) : Colors.black87,
+              color: isDark ? Colors.white.withValues(alpha: 0.87) : Colors.black87,
             ),
           ),
         ],
@@ -467,7 +467,7 @@ class _SystemAnalysisTabState extends ConsumerState<SystemAnalysisTab>
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(isDark ? 0.2 : 0.02),
+            color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.02),
             blurRadius: 12,
             offset: const Offset(0, 4),
           ),
@@ -558,7 +558,7 @@ class _SystemAnalysisTabState extends ConsumerState<SystemAnalysisTab>
                                 backDrawRodData: BackgroundBarChartRodData(
                                   show: true,
                                   toY: maxVal,
-                                  color: isDark ? Colors.white.withOpacity(0.05) : Colors.grey.shade100,
+                                  color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey.shade100,
                                 ),
                               ),
                               BarChartRodData(
@@ -569,7 +569,7 @@ class _SystemAnalysisTabState extends ConsumerState<SystemAnalysisTab>
                                 backDrawRodData: BackgroundBarChartRodData(
                                   show: true,
                                   toY: maxVal,
-                                  color: isDark ? Colors.white.withOpacity(0.05) : Colors.grey.shade100,
+                                  color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey.shade100,
                                 ),
                               ),
                             ],
@@ -621,7 +621,7 @@ class _SystemAnalysisTabState extends ConsumerState<SystemAnalysisTab>
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(isDark ? 0.2 : 0.02),
+            color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.02),
             blurRadius: 12,
             offset: const Offset(0, 4),
           ),
@@ -745,7 +745,7 @@ class _SystemAnalysisTabState extends ConsumerState<SystemAnalysisTab>
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(isDark ? 0.2 : 0.02),
+            color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.02),
             blurRadius: 12,
             offset: const Offset(0, 4),
           ),
@@ -870,7 +870,7 @@ class _SystemAnalysisTabState extends ConsumerState<SystemAnalysisTab>
                     dotData: const FlDotData(show: false),
                     belowBarData: BarAreaData(
                       show: true,
-                      color: const Color(0xFF1E90FF).withOpacity(0.05),
+                      color: const Color(0xFF1E90FF).withValues(alpha: 0.05),
                     ),
                   ),
                   LineChartBarData(
@@ -881,7 +881,7 @@ class _SystemAnalysisTabState extends ConsumerState<SystemAnalysisTab>
                     dotData: const FlDotData(show: false),
                     belowBarData: BarAreaData(
                       show: true,
-                      color: const Color(0xFFF43F5E).withOpacity(0.05),
+                      color: const Color(0xFFF43F5E).withValues(alpha: 0.05),
                     ),
                   ),
                   LineChartBarData(
@@ -892,7 +892,7 @@ class _SystemAnalysisTabState extends ConsumerState<SystemAnalysisTab>
                     dotData: const FlDotData(show: false),
                     belowBarData: BarAreaData(
                       show: true,
-                      color: const Color(0xFFFF9900).withOpacity(0.05),
+                      color: const Color(0xFFFF9900).withValues(alpha: 0.05),
                     ),
                   ),
                 ],
@@ -916,10 +916,10 @@ class _SystemAnalysisTabState extends ConsumerState<SystemAnalysisTab>
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF1E90FF).withOpacity(isDark ? 0.08 : 0.05),
+        color: const Color(0xFF1E90FF).withValues(alpha: isDark ? 0.08 : 0.05),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: const Color(0xFF1E90FF).withOpacity(0.2),
+          color: const Color(0xFF1E90FF).withValues(alpha: 0.2),
         ),
       ),
       child: Row(
@@ -940,7 +940,7 @@ class _SystemAnalysisTabState extends ConsumerState<SystemAnalysisTab>
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 13,
-                    color: isDark ? Colors.white.withOpacity(0.87) : const Color(0xFF1E293B),
+                    color: isDark ? Colors.white.withValues(alpha: 0.87) : const Color(0xFF1E293B),
                   ),
                 ),
                 const SizedBox(height: 4),
@@ -978,7 +978,7 @@ class _SystemAnalysisTabState extends ConsumerState<SystemAnalysisTab>
               ),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(isDark ? 0.2 : 0.02),
+                  color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.02),
                   blurRadius: 12,
                   offset: const Offset(0, 4),
                 ),
@@ -992,7 +992,7 @@ class _SystemAnalysisTabState extends ConsumerState<SystemAnalysisTab>
                     Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF1E90FF).withOpacity(0.1),
+                        color: const Color(0xFF1E90FF).withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(10),
                       ),
                       child: const Icon(
@@ -1032,7 +1032,7 @@ class _SystemAnalysisTabState extends ConsumerState<SystemAnalysisTab>
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12),
                   decoration: BoxDecoration(
-                    color: isDark ? Colors.white.withOpacity(0.05) : Colors.grey.shade50,
+                    color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey.shade50,
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
                       color: isDark ? Colors.white10 : Colors.grey.shade200,
@@ -1075,7 +1075,7 @@ class _SystemAnalysisTabState extends ConsumerState<SystemAnalysisTab>
                         child: Container(
                           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                           decoration: BoxDecoration(
-                            color: isDark ? Colors.white.withOpacity(0.05) : Colors.grey.shade50,
+                            color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey.shade50,
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(
                               color: isDark ? Colors.white10 : Colors.grey.shade200,
@@ -1105,7 +1105,7 @@ class _SystemAnalysisTabState extends ConsumerState<SystemAnalysisTab>
                         child: Container(
                           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                           decoration: BoxDecoration(
-                            color: isDark ? Colors.white.withOpacity(0.05) : Colors.grey.shade50,
+                            color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey.shade50,
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(
                               color: isDark ? Colors.white10 : Colors.grey.shade200,
@@ -1223,7 +1223,7 @@ class _SystemAnalysisTabState extends ConsumerState<SystemAnalysisTab>
             ),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(isDark ? 0.2 : 0.02),
+                color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.02),
                 blurRadius: 12,
                 offset: const Offset(0, 4),
               ),
@@ -1338,7 +1338,7 @@ class _SystemAnalysisTabState extends ConsumerState<SystemAnalysisTab>
                         dotData: const FlDotData(show: false),
                         belowBarData: BarAreaData(
                           show: true,
-                          color: const Color(0xFF1E90FF).withOpacity(0.05),
+                          color: const Color(0xFF1E90FF).withValues(alpha: 0.05),
                         ),
                       ),
                       LineChartBarData(
@@ -1349,7 +1349,7 @@ class _SystemAnalysisTabState extends ConsumerState<SystemAnalysisTab>
                         dotData: const FlDotData(show: false),
                         belowBarData: BarAreaData(
                           show: true,
-                          color: const Color(0xFFFF9900).withOpacity(0.05),
+                          color: const Color(0xFFFF9900).withValues(alpha: 0.05),
                         ),
                       ),
                     ],
@@ -1421,10 +1421,10 @@ class _SystemAnalysisTabState extends ConsumerState<SystemAnalysisTab>
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: isDark ? bg.withOpacity(0.08) : bg,
+        color: isDark ? bg.withValues(alpha: 0.08) : bg,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: isDark ? textCol.withOpacity(0.15) : Colors.transparent,
+          color: isDark ? textCol.withValues(alpha: 0.15) : Colors.transparent,
         ),
       ),
       child: Column(
@@ -1445,7 +1445,7 @@ class _SystemAnalysisTabState extends ConsumerState<SystemAnalysisTab>
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w900,
-              color: isDark ? textCol.withOpacity(0.85) : textCol,
+              color: isDark ? textCol.withValues(alpha: 0.85) : textCol,
             ),
           ),
         ],
@@ -1457,7 +1457,7 @@ class _SystemAnalysisTabState extends ConsumerState<SystemAnalysisTab>
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: isDark ? Colors.white.withOpacity(0.02) : Colors.grey.shade50,
+        color: isDark ? Colors.white.withValues(alpha: 0.02) : Colors.grey.shade50,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: isDark ? Colors.white10 : Colors.grey.shade200),
       ),
@@ -1577,7 +1577,7 @@ class _RadialProgressPainter extends CustomPainter {
       ..strokeCap = StrokeCap.round;
 
     final glowPaint = Paint()
-      ..color = const Color(0xFFFF9900).withOpacity(0.3)
+      ..color = const Color(0xFFFF9900).withValues(alpha: 0.3)
       ..style = PaintingStyle.stroke
       ..strokeWidth = strokeWidth + 2
       ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 3)

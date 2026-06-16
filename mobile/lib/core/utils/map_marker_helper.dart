@@ -1,4 +1,3 @@
-import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
@@ -130,7 +129,9 @@ class MapMarkerHelper {
       format: ui.ImageByteFormat.png,
     );
     if (byteData == null) {
-      throw Exception('[MapMarkerHelper] Failed to encode custom stop marker to PNG');
+      throw Exception(
+        '[MapMarkerHelper] Failed to encode custom stop marker to PNG',
+      );
     }
     return BitmapDescriptor.bytes(byteData.buffer.asUint8List());
   }

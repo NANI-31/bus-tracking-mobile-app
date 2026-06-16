@@ -33,14 +33,31 @@ export const createApp = () => {
 // ];
   const allowedOrigins = [
     "http://localhost:5173",
+    "http://127.0.0.1:5173",
     "http://localhost:3000",
+    "http://127.0.0.1:3000",
     `http://${process.env.VITE_CLIENT_IP_URL}`,
     (process.env.VITE_CLIENT_URL || "").trim(),
   ].filter(Boolean);
 
   app.use(
     cors({
-      origin: allowedOrigins,
+      origin: (origin, callback) => {
+        if (
+          !origin ||
+          allowedOrigins.includes(origin) ||
+          origin.startsWith("http://localhost:") ||
+          origin.startsWith("http://127.0.0.1:") ||
+          origin.startsWith("http://192.168.") ||
+          origin.startsWith("http://10.") ||
+          origin.startsWith("http://172.")
+        ) {
+          callback(null, true);
+        } else {
+          logger.warn(`[CORS] Blocked origin: ${origin}`);
+          callback(new Error("CORS not allowed"));
+        }
+      },
       credentials: true,
     }),
   );
@@ -68,7 +85,16 @@ export const createApp = () => {
   const io = new Server(httpServer, {
     cors: {
       origin: (origin, callback) => {
-        if (!origin || allowedOrigins.includes(origin) || process.env.NODE_ENV === "development") {
+        if (
+          !origin ||
+          allowedOrigins.includes(origin) ||
+          origin.startsWith("http://localhost:") ||
+          origin.startsWith("http://127.0.0.1:") ||
+          origin.startsWith("http://192.168.") ||
+          origin.startsWith("http://10.") ||
+          origin.startsWith("http://172.") ||
+          process.env.NODE_ENV === "development"
+        ) {
           callback(null, true);
         } else {
           logger.warn(`[Socket] CORS blocked origin: ${origin}`);

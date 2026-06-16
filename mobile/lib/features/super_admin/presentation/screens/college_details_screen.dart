@@ -304,11 +304,11 @@ class _CollegeDetailsScreenState extends ConsumerState<CollegeDetailsScreen> {
                 color: isDark ? const Color(0xFF1E293B) : Colors.white,
                 borderRadius: BorderRadius.circular(24),
                 border: Border.all(
-                  color: isDark ? Colors.white10 : Colors.black.withOpacity(0.04),
+                  color: isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.04),
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(isDark ? 0.25 : 0.03),
+                    color: Colors.black.withValues(alpha: isDark ? 0.25 : 0.03),
                     blurRadius: 16,
                     offset: const Offset(0, 8),
                   ),
@@ -321,7 +321,7 @@ class _CollegeDetailsScreenState extends ConsumerState<CollegeDetailsScreen> {
                     child: Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: Colors.blue.withOpacity(0.08),
+                        color: Colors.blue.withValues(alpha: 0.08),
                         borderRadius: BorderRadius.circular(18),
                       ),
                       child: const Icon(Icons.school, color: Colors.blue, size: 36),
@@ -355,9 +355,9 @@ class _CollegeDetailsScreenState extends ConsumerState<CollegeDetailsScreen> {
                             child: Container(
                               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                               decoration: BoxDecoration(
-                                color: statusColor.withOpacity(0.08),
+                                color: statusColor.withValues(alpha: 0.08),
                                 borderRadius: BorderRadius.circular(8),
-                                border: Border.all(color: statusColor.withOpacity(0.2)),
+                                border: Border.all(color: statusColor.withValues(alpha: 0.2)),
                               ),
                               child: Text(
                                 statusText.toUpperCase(),
@@ -387,7 +387,7 @@ class _CollegeDetailsScreenState extends ConsumerState<CollegeDetailsScreen> {
                 color: isDark ? const Color(0xFF1E293B) : Colors.white,
                 borderRadius: BorderRadius.circular(24),
                 border: Border.all(
-                  color: isDark ? Colors.white10 : Colors.black.withOpacity(0.04),
+                  color: isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.04),
                 ),
               ),
               child: Column(
@@ -414,7 +414,7 @@ class _CollegeDetailsScreenState extends ConsumerState<CollegeDetailsScreen> {
                   color: isDark ? const Color(0xFF1E293B) : Colors.white,
                   borderRadius: BorderRadius.circular(24),
                   border: Border.all(
-                    color: isDark ? Colors.white10 : Colors.black.withOpacity(0.04),
+                    color: isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.04),
                   ),
                 ),
                 child: const Center(
@@ -432,7 +432,7 @@ class _CollegeDetailsScreenState extends ConsumerState<CollegeDetailsScreen> {
                       color: isDark ? const Color(0xFF1E293B) : Colors.white,
                       borderRadius: BorderRadius.circular(20),
                       border: Border.all(
-                        color: isDark ? Colors.white10 : Colors.black.withOpacity(0.04),
+                        color: isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.04),
                       ),
                     ),
                     child: Row(
@@ -451,7 +451,7 @@ class _CollegeDetailsScreenState extends ConsumerState<CollegeDetailsScreen> {
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                               decoration: BoxDecoration(
-                                color: Colors.blue.withOpacity(0.08),
+                                color: Colors.blue.withValues(alpha: 0.08),
                                 borderRadius: BorderRadius.circular(6),
                               ),
                               child: Text('Pickup: ${shift.pickupTime ?? 'N/A'}', style: const TextStyle(color: Colors.blue, fontSize: 10, fontWeight: FontWeight.bold)),
@@ -460,7 +460,7 @@ class _CollegeDetailsScreenState extends ConsumerState<CollegeDetailsScreen> {
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                               decoration: BoxDecoration(
-                                color: Colors.orange.withOpacity(0.08),
+                                color: Colors.orange.withValues(alpha: 0.08),
                                 borderRadius: BorderRadius.circular(6),
                               ),
                               child: Text('Drop: ${shift.dropTime ?? 'N/A'}', style: const TextStyle(color: Colors.orange, fontSize: 10, fontWeight: FontWeight.bold)),
@@ -480,7 +480,7 @@ class _CollegeDetailsScreenState extends ConsumerState<CollegeDetailsScreen> {
                 color: isDark ? const Color(0xFF1E293B) : Colors.white,
                 borderRadius: BorderRadius.circular(24),
                 border: Border.all(
-                  color: isDark ? Colors.white10 : Colors.black.withOpacity(0.04),
+                  color: isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.04),
                 ),
               ),
               child: Column(
@@ -518,9 +518,9 @@ class _CollegeDetailsScreenState extends ConsumerState<CollegeDetailsScreen> {
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: Colors.red.withOpacity(0.04),
+                color: Colors.red.withValues(alpha: 0.04),
                 borderRadius: BorderRadius.circular(24),
-                border: Border.all(color: Colors.red.withOpacity(0.15)),
+                border: Border.all(color: Colors.red.withValues(alpha: 0.15)),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -564,7 +564,7 @@ class _CollegeDetailsScreenState extends ConsumerState<CollegeDetailsScreen> {
                             onPressed: _suspendCollege,
                             style: OutlinedButton.styleFrom(
                               foregroundColor: Colors.red,
-                              side: BorderSide(color: Colors.red.withOpacity(0.3)),
+                              side: BorderSide(color: Colors.red.withValues(alpha: 0.3)),
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                             ),
                             child: const Text('Suspend'),
@@ -589,7 +589,7 @@ class _CollegeDetailsScreenState extends ConsumerState<CollegeDetailsScreen> {
                         onPressed: _wipeCollegeData,
                         icon: const Icon(Icons.delete_sweep, color: Colors.red),
                         style: IconButton.styleFrom(
-                          backgroundColor: Colors.red.withOpacity(0.08),
+                          backgroundColor: Colors.red.withValues(alpha: 0.08),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         ),
                       ),

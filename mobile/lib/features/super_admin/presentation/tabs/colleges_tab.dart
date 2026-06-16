@@ -250,6 +250,7 @@ class _CollegesTabState extends ConsumerState<CollegesTab> {
     );
 
     if (typedName == college.name) {
+      if (!context.mounted) return;
       final deleteRecord = await showDialog<bool>(
         context: context,
         builder: (ctx) => AlertDialog(
@@ -528,11 +529,11 @@ class _CollegesTabState extends ConsumerState<CollegesTab> {
               ),
               borderRadius: BorderRadius.circular(24),
               border: Border.all(
-                color: isDark ? Colors.white.withOpacity(0.08) : Colors.black.withOpacity(0.05),
+                color: isDark ? Colors.white.withValues(alpha: 0.08) : Colors.black.withValues(alpha: 0.05),
               ),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(isDark ? 0.3 : 0.04),
+                  color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.04),
                   blurRadius: 18,
                   offset: const Offset(0, 8),
                 ),
@@ -549,7 +550,7 @@ class _CollegesTabState extends ConsumerState<CollegesTab> {
                     prefixIcon: Icon(Icons.search, size: 20, color: isDark ? Colors.deepPurple.shade300 : Colors.deepPurple),
                     isDense: true,
                     filled: true,
-                    fillColor: isDark ? const Color(0xFF0F172A).withOpacity(0.6) : Colors.grey.shade100,
+                    fillColor: isDark ? const Color(0xFF0F172A).withValues(alpha: 0.6) : Colors.grey.shade100,
                     contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(16),
@@ -557,7 +558,7 @@ class _CollegesTabState extends ConsumerState<CollegesTab> {
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(16),
-                      borderSide: BorderSide(color: Colors.deepPurple.withOpacity(0.5)),
+                      borderSide: BorderSide(color: Colors.deepPurple.withValues(alpha: 0.5)),
                     ),
                   ),
                   onChanged: (val) => setState(() => _searchQuery = val),
@@ -592,9 +593,9 @@ class _CollegesTabState extends ConsumerState<CollegesTab> {
                       child: Container(
                         padding: const EdgeInsets.all(10),
                         decoration: BoxDecoration(
-                          color: Colors.red.withOpacity(0.08),
+                          color: Colors.red.withValues(alpha: 0.08),
                           borderRadius: BorderRadius.circular(14),
-                          border: Border.all(color: Colors.red.withOpacity(0.15)),
+                          border: Border.all(color: Colors.red.withValues(alpha: 0.15)),
                         ),
                         child: const Icon(Icons.delete_sweep_outlined, color: Colors.red, size: 20),
                       ),
@@ -659,7 +660,7 @@ class _CollegesTabState extends ConsumerState<CollegesTab> {
     Color activeTextColor = Colors.white;
     Color inactiveBgColor = isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9);
     Color inactiveTextColor = isDark ? Colors.white70 : Colors.black87;
-    Color borderColor = isDark ? Colors.white10 : Colors.black.withOpacity(0.05);
+    Color borderColor = isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.05);
 
     if (isSelected) {
       switch (filter) {
@@ -696,7 +697,7 @@ class _CollegesTabState extends ConsumerState<CollegesTab> {
           boxShadow: isSelected
               ? [
                   BoxShadow(
-                    color: activeBgColor.withOpacity(0.3),
+                    color: activeBgColor.withValues(alpha: 0.3),
                     blurRadius: 8,
                     offset: const Offset(0, 3),
                   )
@@ -797,11 +798,11 @@ class _CollegeCardState extends State<_CollegeCard> with SingleTickerProviderSta
             color: isDark ? const Color(0xFF1E293B) : Colors.white,
             borderRadius: BorderRadius.circular(24),
             border: Border.all(
-              color: isDark ? Colors.white.withOpacity(0.08) : Colors.black.withOpacity(0.04),
+              color: isDark ? Colors.white.withValues(alpha: 0.08) : Colors.black.withValues(alpha: 0.04),
             ),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(isDark ? 0.3 : 0.03),
+                color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.03),
                 blurRadius: 20,
                 offset: const Offset(0, 8),
               ),
@@ -840,7 +841,7 @@ class _CollegeCardState extends State<_CollegeCard> with SingleTickerProviderSta
                           child: Container(
                             padding: const EdgeInsets.all(8),
                             decoration: BoxDecoration(
-                              color: Colors.blue.withOpacity(0.08),
+                              color: Colors.blue.withValues(alpha: 0.08),
                               borderRadius: BorderRadius.circular(14),
                             ),
                             child: const Icon(Icons.school_rounded, color: Colors.blue, size: 26),
@@ -887,9 +888,9 @@ class _CollegeCardState extends State<_CollegeCard> with SingleTickerProviderSta
                             child: Container(
                               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                               decoration: BoxDecoration(
-                                color: statusColor.withOpacity(0.08),
+                                color: statusColor.withValues(alpha: 0.08),
                                 borderRadius: BorderRadius.circular(8),
-                                border: Border.all(color: statusColor.withOpacity(0.2)),
+                                border: Border.all(color: statusColor.withValues(alpha: 0.2)),
                               ),
                               child: Row(
                                 mainAxisSize: MainAxisSize.min,
@@ -923,7 +924,7 @@ class _CollegeCardState extends State<_CollegeCard> with SingleTickerProviderSta
                     const SizedBox(height: 16),
 
                     // Divider
-                    Divider(height: 1, color: isDark ? Colors.white.withOpacity(0.08) : Colors.grey.shade100),
+                    Divider(height: 1, color: isDark ? Colors.white.withValues(alpha: 0.08) : Colors.grey.shade100),
                     const SizedBox(height: 14),
 
                     // Detail Rows: Address & Admin
@@ -981,13 +982,13 @@ class _CollegeCardState extends State<_CollegeCard> with SingleTickerProviderSta
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                       decoration: BoxDecoration(
                         color: college.allowManualPremium
-                            ? (isDark ? Colors.amber.withOpacity(0.06) : Colors.amber.withOpacity(0.04))
-                            : (isDark ? Colors.grey.shade900.withOpacity(0.4) : Colors.grey.shade50),
+                            ? (isDark ? Colors.amber.withValues(alpha: 0.06) : Colors.amber.withValues(alpha: 0.04))
+                            : (isDark ? Colors.grey.shade900.withValues(alpha: 0.4) : Colors.grey.shade50),
                         borderRadius: BorderRadius.circular(16),
                         border: Border.all(
                           color: college.allowManualPremium
-                              ? Colors.amber.withOpacity(0.3)
-                              : (isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.03)),
+                              ? Colors.amber.withValues(alpha: 0.3)
+                              : (isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.03)),
                         ),
                       ),
                       child: Row(
@@ -1017,8 +1018,8 @@ class _CollegeCardState extends State<_CollegeCard> with SingleTickerProviderSta
                             height: 30,
                             child: Switch.adaptive(
                               value: college.allowManualPremium,
-                              activeColor: Colors.amber.shade600,
-                              activeTrackColor: Colors.amber.withOpacity(0.4),
+                              activeThumbColor: Colors.amber.shade600,
+                              activeTrackColor: Colors.amber.withValues(alpha: 0.4),
                               onChanged: (val) {
                                 HapticFeedback.selectionClick();
                                 widget.onTogglePremium(val);
@@ -1029,7 +1030,7 @@ class _CollegeCardState extends State<_CollegeCard> with SingleTickerProviderSta
                       ),
                     ),
                     const SizedBox(height: 10),
-                    Divider(height: 1, color: isDark ? Colors.white.withOpacity(0.05) : Colors.grey.shade100),
+                    Divider(height: 1, color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey.shade100),
                     const SizedBox(height: 10),
                     GestureDetector(
                       onTap: () {
@@ -1113,7 +1114,7 @@ class _CollegeCardState extends State<_CollegeCard> with SingleTickerProviderSta
                                 borderRadius: BorderRadius.circular(14),
                                 boxShadow: [
                                   BoxShadow(
-                                    color: Colors.green.withOpacity(0.25),
+                                    color: Colors.green.withValues(alpha: 0.25),
                                     blurRadius: 8,
                                     offset: const Offset(0, 3),
                                   ),
@@ -1148,7 +1149,7 @@ class _CollegeCardState extends State<_CollegeCard> with SingleTickerProviderSta
                               },
                               style: OutlinedButton.styleFrom(
                                 foregroundColor: Colors.red.shade600,
-                                side: BorderSide(color: Colors.red.shade500.withOpacity(0.35), width: 1.2),
+                                side: BorderSide(color: Colors.red.shade500.withValues(alpha: 0.35), width: 1.2),
                                 padding: const EdgeInsets.symmetric(vertical: 11),
                                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                               ),
@@ -1168,7 +1169,7 @@ class _CollegeCardState extends State<_CollegeCard> with SingleTickerProviderSta
                                 borderRadius: BorderRadius.circular(14),
                                 boxShadow: [
                                   BoxShadow(
-                                    color: Colors.green.withOpacity(0.25),
+                                    color: Colors.green.withValues(alpha: 0.25),
                                     blurRadius: 8,
                                     offset: const Offset(0, 3),
                                   ),
@@ -1203,12 +1204,12 @@ class _CollegeCardState extends State<_CollegeCard> with SingleTickerProviderSta
                           child: Container(
                             padding: const EdgeInsets.all(11),
                             decoration: BoxDecoration(
-                              color: Colors.red.withOpacity(0.08),
+                              color: Colors.red.withValues(alpha: 0.08),
                               borderRadius: BorderRadius.circular(14),
-                              border: Border.all(color: Colors.red.withOpacity(0.2)),
+                              border: Border.all(color: Colors.red.withValues(alpha: 0.2)),
                               boxShadow: [
                                 BoxShadow(
-                                  color: Colors.black.withOpacity(0.02),
+                                  color: Colors.black.withValues(alpha: 0.02),
                                   blurRadius: 4,
                                 ),
                               ],
@@ -1247,9 +1248,9 @@ class _CollegeCardState extends State<_CollegeCard> with SingleTickerProviderSta
             Container(
               padding: const EdgeInsets.all(4),
               decoration: BoxDecoration(
-                color: color.withOpacity(0.12),
+                color: color.withValues(alpha: 0.12),
                 shape: BoxShape.circle,
-                border: Border.all(color: color.withOpacity(0.3), width: 1.5),
+                border: Border.all(color: color.withValues(alpha: 0.3), width: 1.5),
               ),
               child: Icon(
                 icon,
@@ -1280,7 +1281,7 @@ class _CollegeCardState extends State<_CollegeCard> with SingleTickerProviderSta
                     color: isDark ? Colors.black26 : Colors.grey.shade100,
                     borderRadius: BorderRadius.circular(8),
                     border: Border.all(
-                      color: isDark ? Colors.white.withOpacity(0.04) : Colors.grey.shade200,
+                      color: isDark ? Colors.white.withValues(alpha: 0.04) : Colors.grey.shade200,
                     ),
                   ),
                   child: Text(

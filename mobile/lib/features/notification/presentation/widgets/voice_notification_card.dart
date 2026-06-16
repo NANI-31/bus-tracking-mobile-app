@@ -1,3 +1,4 @@
+import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:velocity_x/velocity_x.dart';
 import 'package:collegebus/features/notification/domain/notification_model.dart';
@@ -29,24 +30,43 @@ class VoiceNotificationCard extends ConsumerWidget {
     final isCoordinator = currentUser?.role == UserRole.busCoordinator;
     final canDelete = isSender || isCoordinator;
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
+            color: Colors.black.withValues(alpha: isDark ? 0.25 : 0.05),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
+          BoxShadow(
+            color: (isUnread ? Colors.blue : colorScheme.primary).withValues(alpha: isDark ? 0.12 : 0.08),
+            blurRadius: 16,
+            spreadRadius: -2,
+            offset: const Offset(0, 8),
+          ),
         ],
-        border: isUnread
-            ? Border.all(color: Colors.blue.withValues(alpha: 0.3), width: 1.5)
-            : null,
       ),
-      child: Column(
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(16),
+        child: BackdropFilter(
+          filter: ui.ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: isDark
+                  ? colorScheme.surface.withValues(alpha: 0.45)
+                  : colorScheme.surface,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: (isUnread ? Colors.blue : colorScheme.primary).withValues(alpha: isDark ? 0.25 : 0.15),
+                width: 1.0,
+              ),
+            ),
+            child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
@@ -69,10 +89,13 @@ class VoiceNotificationCard extends ConsumerWidget {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      "Voice Message".text.bold
-                          .size(16)
-                          .color(colorScheme.onSurface)
-                          .make(),
+                      Expanded(
+                        child: "Voice Message".text.bold
+                            .size(16)
+                            .color(colorScheme.onSurface)
+                            .make(),
+                      ),
+                      8.widthBox,
                       timeStr.text
                           .size(12)
                           .color(colorScheme.onSurface.withValues(alpha: 0.5))
@@ -115,6 +138,9 @@ class VoiceNotificationCard extends ConsumerWidget {
           else
             "Audio unavailable".text.italic.color(Colors.red).make(),
         ],
+            ),
+          ),
+        ),
       ),
     );
   }

@@ -7,6 +7,8 @@ import 'package:collegebus/shared/widgets/custom_button.dart';
 import 'package:collegebus/core/constants/constants.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 
+import 'package:collegebus/shared/widgets/navigation/curved_bottom_nav_bar.dart';
+
 class LiveTrackingControlPanel extends StatelessWidget {
   final BusModel? bus;
   final RouteModel? route;
@@ -98,6 +100,7 @@ class LiveTrackingControlPanel extends StatelessWidget {
                 color: Theme.of(context).colorScheme.onSecondary,
               ),
             ),
+          const BottomNavSpacer(),
         ])
         .p(AppSizes.paddingMedium)
         .box

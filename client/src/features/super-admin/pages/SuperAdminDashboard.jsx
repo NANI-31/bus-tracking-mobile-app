@@ -11,7 +11,7 @@ import {
 } from "@heroicons/react/24/outline";
 import { getSystemStats } from "@/features/super-admin/slices/superAdminSlice";
 
-const StatCard = ({ title, value, icon: Icon, color, delay }) => (
+const StatCard = ({ title, value, icon: Icon, bgClass, textClass, delay }) => (
   <motion.div
     initial={{ opacity: 0, y: 20 }}
     animate={{ opacity: 1, y: 0 }}
@@ -23,8 +23,8 @@ const StatCard = ({ title, value, icon: Icon, color, delay }) => (
     }}
     className="bg-background-paper rounded-[24px] border border-border-theme p-4 sm:p-6 flex items-center space-x-3.5 sm:space-x-4 shadow-sm hover:shadow-xl hover:shadow-primary-main/10 transition-all duration-300 cursor-pointer group text-text-theme-primary"
   >
-    <div className={`p-3 sm:p-4 rounded-xl sm:rounded-2xl ${color} bg-opacity-10 transition-transform duration-300 group-hover:scale-110 shrink-0`}>
-      <Icon className={`w-7 h-7 ${color.replace("bg-", "text-")}`} />
+    <div className={`p-3 sm:p-4 rounded-xl sm:rounded-2xl ${bgClass} transition-transform duration-300 group-hover:scale-110 shrink-0`}>
+      <Icon className={`w-7 h-7 ${textClass}`} />
     </div>
     <div className="min-w-0 flex-1">
       <p className="text-text-theme-secondary text-[9px] sm:text-xs font-black uppercase tracking-widest mb-1 truncate">
@@ -58,42 +58,52 @@ const SuperAdminDashboard = () => {
       title: "Registered Colleges",
       value: displayStats.totalColleges,
       icon: AcademicCapIcon,
-      color: "bg-[#1E90FF]",
+      bgClass: "bg-[#1E90FF]/10 dark:bg-[#1E90FF]/15",
+      textClass: "text-[#1E90FF]",
       delay: 0,
     },
     {
       title: "Total Users",
       value: displayStats.totalUsers,
       icon: UserGroupIcon,
-      color: "bg-cyan-600",
+      bgClass: "bg-cyan-600/10 dark:bg-cyan-500/15",
+      textClass: "text-cyan-600 dark:text-cyan-400",
       delay: 0.1,
     },
     {
       title: "Active SOS Alerts",
       value: displayStats.activeAlerts,
       icon: ExclamationTriangleIcon,
-      color: "bg-red-600",
+      bgClass: "bg-red-600/10 dark:bg-red-500/15",
+      textClass: "text-red-600 dark:text-red-400",
       delay: 0.2,
     },
     {
       title: "Audit Events (24h)",
       value: "124",
       icon: ShieldCheckIcon,
-      color: "bg-emerald-600",
+      bgClass: "bg-emerald-600/10 dark:bg-emerald-500/15",
+      textClass: "text-emerald-600 dark:text-emerald-400",
       delay: 0.3,
     },
     {
       title: "Google API Calls",
       value: displayStats.googleApiUsageCount || 0,
       icon: MapIcon,
-      color: "bg-teal-600",
+      bgClass: "bg-teal-600/10 dark:bg-teal-500/15",
+      textClass: "text-teal-600 dark:text-teal-400",
       delay: 0.4,
     },
     {
       title: "Maintenance Mode",
       value: displayStats.maintenanceMode ? "Active" : "Inactive",
       icon: WrenchScrewdriverIcon,
-      color: displayStats.maintenanceMode ? "bg-amber-600" : "bg-slate-600",
+      bgClass: displayStats.maintenanceMode
+        ? "bg-amber-600/10 dark:bg-amber-500/15"
+        : "bg-slate-600/10 dark:bg-slate-500/15",
+      textClass: displayStats.maintenanceMode
+        ? "text-amber-600 dark:text-amber-400"
+        : "text-slate-600 dark:text-slate-400",
       delay: 0.5,
     },
   ];
@@ -115,7 +125,7 @@ const SuperAdminDashboard = () => {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 sm:gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
         {statItems.map((stat) => (
           <StatCard key={stat.title} {...stat} />
         ))}

@@ -344,7 +344,12 @@ class _TransactionHistoryScreenState
     final file = File(path);
     await file.writeAsString(csv);
 
-    await Share.shareXFiles([XFile(path)], text: 'Transaction History');
+    await SharePlus.instance.share(
+      ShareParams(
+        files: [XFile(path)],
+        text: 'Transaction History',
+      ),
+    );
   }
 
   Future<void> _showRefundDialog(

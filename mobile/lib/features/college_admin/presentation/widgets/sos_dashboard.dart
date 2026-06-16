@@ -422,7 +422,7 @@ class _SosDashboardState extends ConsumerState<SosDashboard> {
                   sos.sosId,
                   notes: notes.isEmpty ? null : notes,
                 );
-                if (mounted) {
+                if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
                       content: Text('Incident Logged and Resolved'),
@@ -431,7 +431,7 @@ class _SosDashboardState extends ConsumerState<SosDashboard> {
                   );
                 }
               } catch (e) {
-                if (mounted) {
+                if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text('Error: $e'),

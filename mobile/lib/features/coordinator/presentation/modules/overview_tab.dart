@@ -12,6 +12,8 @@ import 'package:collegebus/features/user/application/user_provider.dart';
 import 'package:collegebus/features/coordinator/presentation/modules/overview_components/broadcast_modal.dart';
 import 'package:collegebus/shared/widgets/shimmer_skeletons.dart';
 
+import 'package:collegebus/shared/widgets/navigation/curved_bottom_nav_bar.dart';
+
 class OverviewTab extends ConsumerWidget {
   final VoidCallback? onSosTap;
 
@@ -57,48 +59,84 @@ class OverviewTab extends ConsumerWidget {
             .make(),
         AppSizes.paddingLarge.heightBox,
 
-        // Statistics Cards
-        HStack([
-          StatCard(
-            title: 'Active Buses',
-            value: buses.where((b) => b.isActive).length.toString(),
-            icon: Icons.directions_bus,
-            accentColor: AppColors.primary,
-          ).expand(),
-          AppSizes.paddingMedium.widthBox,
-          StatCard(
-            title: 'Total Routes',
-            value: routes.length.toString(),
-            icon: Icons.route,
-            accentColor: AppColors.primary,
-          ).expand(),
-        ]),
-
-        AppSizes.paddingMedium.heightBox,
-
-        HStack([
-          StatCard(
-            title: 'Pending Drivers',
-            value: pendingDrivers.length.toString(),
-            icon: Icons.pending,
-            accentColor: AppColors.error,
-          ).expand(),
-          AppSizes.paddingMedium.widthBox,
-          StatCard(
-            title: 'Bus Numbers',
-            value: busNumbers.length.toString(),
-            icon: Icons.confirmation_number,
-            accentColor: AppColors.warning,
-          ).expand(),
-        ]),
+        // Statistics Cards (Responsive grid)
+        Builder(
+          builder: (context) {
+            final double screenWidth = MediaQuery.of(context).size.width;
+            
+            final activeBusesCard = StatCard(
+              title: 'Active Buses',
+              value: buses.where((b) => b.isActive).length.toString(),
+              icon: Icons.directions_bus,
+              accentColor: AppColors.primary,
+            );
+            
+            final totalRoutesCard = StatCard(
+              title: 'Total Routes',
+              value: routes.length.toString(),
+              icon: Icons.route,
+              accentColor: AppColors.primary,
+            );
+            
+            final pendingDriversCard = StatCard(
+              title: 'Pending Drivers',
+              value: pendingDrivers.length.toString(),
+              icon: Icons.pending,
+              accentColor: AppColors.error,
+            );
+            
+            final busNumbersCard = StatCard(
+              title: 'Bus Numbers',
+              value: busNumbers.length.toString(),
+              icon: Icons.confirmation_number,
+              accentColor: AppColors.warning,
+            );
+            
+            if (screenWidth >= 650) {
+              return Row(
+                children: [
+                  Expanded(child: activeBusesCard),
+                  const SizedBox(width: 12),
+                  Expanded(child: totalRoutesCard),
+                  const SizedBox(width: 12),
+                  Expanded(child: pendingDriversCard),
+                  const SizedBox(width: 12),
+                  Expanded(child: busNumbersCard),
+                ],
+              );
+            } else {
+              return Column(
+                children: [
+                  Row(
+                    children: [
+                      Expanded(child: activeBusesCard),
+                      const SizedBox(width: 12),
+                      Expanded(child: totalRoutesCard),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(child: pendingDriversCard),
+                      const SizedBox(width: 12),
+                      Expanded(child: busNumbersCard),
+                    ],
+                  ),
+                ],
+              );
+            }
+          },
+        ),
 
         AppSizes.paddingMedium.heightBox,
 
         // Broadcast Card (Glassmorphic)
         GlassmorphicCard(
           onTap: () {
-            showDialog(
+            showModalBottomSheet(
               context: context,
+              isScrollControlled: true,
+              backgroundColor: Colors.transparent,
               builder: (context) => const BroadcastModal(),
             );
           },
@@ -165,9 +203,11 @@ class OverviewTab extends ConsumerWidget {
             onSosTap?.call();
           }),
         ],
+        const BottomNavSpacer(),
       ]).p(AppSizes.paddingMedium),
     );
   }
+
 
 }
 

@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:collegebus/features/super_admin/presentation/tabs/transactions_tab.dart';
-import 'package:collegebus/features/payment/domain/transaction_model.dart';
 import 'package:collegebus/features/super_admin/services/super_admin_service.dart';
+import 'package:collegebus/features/super_admin/application/super_admin_provider.dart';
 import 'package:mocktail/mocktail.dart';
 
 class MockSuperAdminService extends Mock implements SuperAdminService {}
@@ -25,7 +25,7 @@ void main() {
 
   Widget createWidgetUnderTest() {
     return ProviderScope(
-      overrides: [superAdminServiceProvider.overrideWith((ref) => mockService)],
+      overrides: [superAdminServiceProvider.overrideWith(() => mockService)],
       child: MaterialApp(
         home: Scaffold(body: TransactionsTab()),
       ),

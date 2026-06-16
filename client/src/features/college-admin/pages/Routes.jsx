@@ -620,7 +620,7 @@ const Routes = () => {
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <AnimatePresence mode="popLayout">
-              {loading ? (
+              {loading && (!routes || routes.length === 0) ? (
                 Array.from({ length: 4 }).map((_, idx) => (
                   <div
                     key={`skeleton-${idx}`}

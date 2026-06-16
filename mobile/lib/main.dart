@@ -45,6 +45,7 @@ class _AppInitializerState extends State<AppInitializer> {
   Future<void> _initializeApp() async {
     debugPrint('APP INIT: Starting initialization...');
     WidgetsFlutterBinding.ensureInitialized();
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
 
     // Override the default error widget to prevent red screen during network transitions
     // ErrorWidget.builder = (FlutterErrorDetails details) {
@@ -143,6 +144,11 @@ class MyApp extends riverpod.ConsumerWidget {
         statusBarBrightness: themeService.isDarkMode
             ? Brightness.dark
             : Brightness.light,
+        systemNavigationBarColor: Colors.transparent,
+        systemNavigationBarDividerColor: Colors.transparent,
+        systemNavigationBarIconBrightness: themeService.isDarkMode
+            ? Brightness.light
+            : Brightness.dark,
       ),
       child: MaterialApp.router(
         title: 'Upasthit',

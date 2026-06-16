@@ -19,7 +19,11 @@ class VoiceRecordingService {
   bool get isRecording => _isRecording;
 
   /// Start recording
-  Future<void> startRecording() async {
+  Future<void> startRecording({
+    bool noiseSuppress = true,
+    bool echoCancel = true,
+    bool autoGain = true,
+  }) async {
     try {
       // Check permissions
       final status = await Permission.microphone.request();
@@ -33,7 +37,11 @@ class VoiceRecordingService {
         'voice_${DateTime.now().millisecondsSinceEpoch}.mp3',
       );
 
-      const config = RecordConfig(); // Default config (AAC)
+      final config = RecordConfig(
+        noiseSuppress: noiseSuppress,
+        echoCancel: echoCancel,
+        autoGain: autoGain,
+      );
 
       await _recorder.start(config, path: _recordingPath!);
       _isRecording = true;
@@ -81,6 +89,9 @@ class VoiceRecordingService {
       }
     }
   }
+
+  /// Get current recording decibel amplitude
+  Future<Amplitude> getAmplitude() => _recorder.getAmplitude();
 
   void dispose() {
     _recorder.dispose();

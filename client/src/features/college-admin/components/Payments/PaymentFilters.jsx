@@ -1,5 +1,6 @@
 import React from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import DatePicker from "@/components/common/DatePicker";
 
 const PaymentFilters = ({
   showFilters,
@@ -41,17 +42,17 @@ const PaymentFilters = ({
                 Date Range
               </label>
               <div className="flex space-x-2">
-                <input
-                  type="date"
-                  className="w-full border border-slate-200 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 bg-slate-50"
+                <DatePicker
                   value={startDate}
-                  onChange={(e) => setStartDate(e.target.value)}
+                  onChange={setStartDate}
+                  placeholder="Start Date"
+                  className="w-1/2"
                 />
-                <input
-                  type="date"
-                  className="w-full border border-slate-200 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 bg-slate-50"
+                <DatePicker
                   value={endDate}
-                  onChange={(e) => setEndDate(e.target.value)}
+                  onChange={setEndDate}
+                  placeholder="End Date"
+                  className="w-1/2"
                 />
               </div>
             </div>

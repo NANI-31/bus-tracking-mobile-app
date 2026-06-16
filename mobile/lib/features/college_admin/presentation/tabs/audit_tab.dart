@@ -290,7 +290,7 @@ class _AuditTabState extends ConsumerState<AuditTab> {
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(isDark ? 0.15 : 0.02),
+            color: Colors.black.withValues(alpha: isDark ? 0.15 : 0.02),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -387,7 +387,7 @@ class _AuditTabState extends ConsumerState<AuditTab> {
                       decoration: BoxDecoration(
                         color: _selectedDate != null
                             ? activeThemeColor
-                            : (isDark ? Colors.white.withOpacity(0.04) : Colors.grey.shade100),
+                            : (isDark ? Colors.white.withValues(alpha: 0.04) : Colors.grey.shade100),
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
                           color: _selectedDate != null
@@ -432,12 +432,12 @@ class _AuditTabState extends ConsumerState<AuditTab> {
                           padding: const EdgeInsets.all(9),
                           decoration: BoxDecoration(
                             color: activeFiltersCount > 0
-                                ? activeThemeColor.withOpacity(0.15)
-                                : (isDark ? Colors.white.withOpacity(0.04) : Colors.grey.shade100),
+                                ? activeThemeColor.withValues(alpha: 0.15)
+                                : (isDark ? Colors.white.withValues(alpha: 0.04) : Colors.grey.shade100),
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(
                               color: activeFiltersCount > 0
-                                  ? activeThemeColor.withOpacity(0.4)
+                                  ? activeThemeColor.withValues(alpha: 0.4)
                                   : (isDark ? Colors.white10 : Colors.grey.shade200),
                             ),
                           ),
@@ -572,16 +572,16 @@ class _AuditTabState extends ConsumerState<AuditTab> {
           style: TextStyle(
             fontSize: 11,
             fontWeight: FontWeight.bold,
-            color: isDark ? Colors.white.withOpacity(0.87) : const Color(0xFF1E293B),
+            color: isDark ? Colors.white.withValues(alpha: 0.87) : const Color(0xFF1E293B),
           ),
         ),
         deleteIcon: Icon(
           Icons.close_rounded,
           size: 13,
-          color: isDark ? Colors.white.withOpacity(0.54) : const Color(0xFF475569),
+          color: isDark ? Colors.white.withValues(alpha: 0.54) : const Color(0xFF475569),
         ),
         onDeleted: onDelete,
-        backgroundColor: isDark ? Colors.white.withOpacity(0.06) : Colors.grey.shade100,
+        backgroundColor: isDark ? Colors.white.withValues(alpha: 0.06) : Colors.grey.shade100,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(10),
           side: BorderSide(color: isDark ? Colors.white10 : Colors.grey.shade200),
@@ -597,14 +597,14 @@ class _AuditTabState extends ConsumerState<AuditTab> {
     final bool isCreate = log.action.contains('CREATE') || log.action.contains('verify') || log.action.contains('approve');
     final String resLower = log.resource.toLowerCase();
     final bool isNavigable = resLower == 'bus' || resLower == 'driver' || resLower == 'schedule';
-    final String iconHeroTag = '${resLower}-icon-${log.resourceId}';
-    final String nameHeroTag = '${resLower}-name-${log.resourceId}';
+    final String iconHeroTag = '$resLower-icon-${log.resourceId}';
+    final String nameHeroTag = '$resLower-name-${log.resourceId}';
 
     final Color actionBgColor = isDelete
-        ? Colors.red.shade50.withOpacity(isDark ? 0.08 : 0.8)
+        ? Colors.red.shade50.withValues(alpha: isDark ? 0.08 : 0.8)
         : isCreate
-            ? const Color(0xFFECFDF5).withOpacity(isDark ? 0.08 : 0.8)
-            : Colors.indigo.shade50.withOpacity(isDark ? 0.08 : 0.8);
+            ? const Color(0xFFECFDF5).withValues(alpha: isDark ? 0.08 : 0.8)
+            : Colors.indigo.shade50.withValues(alpha: isDark ? 0.08 : 0.8);
 
     final Color actionTextColor = isDelete
         ? (isDark ? Colors.red.shade300 : Colors.red.shade700)
@@ -613,10 +613,10 @@ class _AuditTabState extends ConsumerState<AuditTab> {
             : (isDark ? Colors.indigo.shade300 : Colors.indigo.shade700);
 
     final Color actionBorderColor = isDelete
-        ? Colors.red.withOpacity(0.2)
+        ? Colors.red.withValues(alpha: 0.2)
         : isCreate
-            ? const Color(0xFF10B981).withOpacity(0.2)
-            : Colors.indigo.withOpacity(0.2);
+            ? const Color(0xFF10B981).withValues(alpha: 0.2)
+            : Colors.indigo.withValues(alpha: 0.2);
 
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 8),
@@ -628,7 +628,7 @@ class _AuditTabState extends ConsumerState<AuditTab> {
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(isDark ? 0.15 : 0.02),
+            color: Colors.black.withValues(alpha: isDark ? 0.15 : 0.02),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -761,7 +761,7 @@ class _AuditTabState extends ConsumerState<AuditTab> {
                                   child: Container(
                                     padding: const EdgeInsets.all(7),
                                     decoration: BoxDecoration(
-                                      color: isDark ? Colors.white.withOpacity(0.04) : Colors.grey.shade50,
+                                      color: isDark ? Colors.white.withValues(alpha: 0.04) : Colors.grey.shade50,
                                       borderRadius: BorderRadius.circular(10),
                                       border: Border.all(
                                         color: isDark ? Colors.white10 : Colors.grey.shade200,
@@ -777,7 +777,7 @@ class _AuditTabState extends ConsumerState<AuditTab> {
                               : Container(
                                   padding: const EdgeInsets.all(7),
                                   decoration: BoxDecoration(
-                                    color: isDark ? Colors.white.withOpacity(0.04) : Colors.grey.shade50,
+                                    color: isDark ? Colors.white.withValues(alpha: 0.04) : Colors.grey.shade50,
                                     borderRadius: BorderRadius.circular(10),
                                     border: Border.all(
                                       color: isDark ? Colors.white10 : Colors.grey.shade200,
@@ -1043,7 +1043,7 @@ class _AuditFilterBottomSheetState extends State<_AuditFilterBottomSheet> {
                 // Divider
                 VerticalDivider(
                   width: 1,
-                  color: isDark ? Colors.white.withOpacity(0.06) : Colors.grey.shade200,
+                  color: isDark ? Colors.white.withValues(alpha: 0.06) : Colors.grey.shade200,
                 ),
                 // Right Option lists
                 Expanded(
@@ -1087,12 +1087,12 @@ class _AuditFilterBottomSheetState extends State<_AuditFilterBottomSheet> {
                   child: Container(
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
-                        colors: [activeThemeColor, activeThemeColor.withOpacity(0.8)],
+                        colors: [activeThemeColor, activeThemeColor.withValues(alpha: 0.8)],
                       ),
                       borderRadius: BorderRadius.circular(14),
                       boxShadow: [
                         BoxShadow(
-                          color: activeThemeColor.withOpacity(0.3),
+                          color: activeThemeColor.withValues(alpha: 0.3),
                           blurRadius: 8,
                           offset: const Offset(0, 4),
                         ),
@@ -1301,7 +1301,7 @@ class _LogMetadataDetailsSheet extends StatelessWidget {
               style: TextStyle(
                 fontSize: 11.5,
                 fontWeight: FontWeight.bold,
-                color: isDark ? Colors.white.withOpacity(0.38) : const Color(0xFF94A3B8),
+                color: isDark ? Colors.white.withValues(alpha: 0.38) : const Color(0xFF94A3B8),
               ),
             ),
           ),
@@ -1311,7 +1311,7 @@ class _LogMetadataDetailsSheet extends StatelessWidget {
               style: TextStyle(
                 fontSize: 12.5,
                 fontWeight: FontWeight.w500,
-                color: isDark ? Colors.white.withOpacity(0.7) : const Color(0xFF475569),
+                color: isDark ? Colors.white.withValues(alpha: 0.7) : const Color(0xFF475569),
               ),
             ),
           ),
@@ -1326,7 +1326,7 @@ class _LogMetadataDetailsSheet extends StatelessWidget {
     final List<TextSpan> spans = [];
     final Color addedColor = isDark ? const Color(0xFF6EE7B7) : const Color(0xFF047857);
     final Color deletedColor = isDark ? Colors.red.shade300 : Colors.red.shade700;
-    final Color normalColor = isDark ? Colors.white.withOpacity(0.6) : const Color(0xFF475569);
+    final Color normalColor = isDark ? Colors.white.withValues(alpha: 0.6) : const Color(0xFF475569);
 
     // Gather all unique keys from both maps
     final allKeys = <String>{};
@@ -1406,7 +1406,7 @@ class _LogMetadataDetailsSheet extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.only(top: 12),
       decoration: BoxDecoration(
-        color: isDark ? Colors.white.withOpacity(0.02) : const Color(0xFFF8FAFC),
+        color: isDark ? Colors.white.withValues(alpha: 0.02) : const Color(0xFFF8FAFC),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
           color: isDark ? Colors.white10 : const Color(0xFFE2E8F0),
@@ -1505,7 +1505,7 @@ class _LogMetadataDetailsSheet extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: isDark ? Colors.white.withOpacity(0.02) : Colors.grey.shade50,
+                    color: isDark ? Colors.white.withValues(alpha: 0.02) : Colors.grey.shade50,
                     borderRadius: BorderRadius.circular(14),
                     border: Border.all(color: isDark ? Colors.white10 : Colors.grey.shade100),
                   ),

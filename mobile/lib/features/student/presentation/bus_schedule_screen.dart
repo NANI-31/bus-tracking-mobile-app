@@ -10,6 +10,7 @@ import 'package:collegebus/core/constants/constants.dart';
 import 'package:collegebus/features/college/application/college_provider.dart';
 import 'package:collegebus/features/college/domain/college_model.dart';
 import 'widgets/home/student_skeletons.dart';
+import 'package:collegebus/shared/widgets/navigation/curved_bottom_nav_bar.dart';
 
 class BusScheduleScreen extends ConsumerStatefulWidget {
   final bool isTab;
@@ -496,8 +497,11 @@ class _BusScheduleScreenState extends ConsumerState<BusScheduleScreen> {
     return ListView.builder(
       key: PageStorageKey('schedule_list_$shift'),
       padding: const EdgeInsets.all(AppSizes.paddingMedium),
-      itemCount: schedules.length,
+      itemCount: schedules.length + 1,
       itemBuilder: (context, index) {
+        if (index == schedules.length) {
+          return const BottomNavSpacer();
+        }
         final schedule = schedules[index];
         final route = routes.firstWhere(
           (r) => r.id == schedule.routeId,

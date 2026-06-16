@@ -24,6 +24,7 @@ import 'package:collegebus/features/user/presentation/screens/profile_screen.dar
 import 'student_home_screen.dart';
 import 'bus_schedule_screen.dart';
 import 'package:collegebus/shared/widgets/navigation/curved_bottom_nav_bar.dart';
+import 'package:collegebus/core/constants/constants.dart';
 
 class StudentDashboard extends ConsumerStatefulWidget {
   const StudentDashboard({super.key});
@@ -40,6 +41,11 @@ class _StudentDashboardState extends ConsumerState<StudentDashboard>
   int _bottomNavIndex = 0;
   Timer? _bannerDelayTimer;
   bool _showDisconnectedBanner = false;
+
+  /// Key for the [RepaintBoundary] wrapping the main content.
+  /// Passed to [CurvedBottomNavBar] so the liquid-glass lens shader can
+  /// sample the real pixels rendered behind the navigation bar.
+  final GlobalKey _backgroundKey = GlobalKey();
 
   @override
   void initState() {
@@ -143,9 +149,9 @@ class _StudentDashboardState extends ConsumerState<StudentDashboard>
       final routes = ref.read(collegeRoutesProvider(collegeId)).value ?? [];
       final targetRouteId = bus.routeId ?? bus.defaultRouteId;
       activeRoute = routes.cast<RouteModel?>().firstWhere(
-            (r) => r!.id == targetRouteId,
-            orElse: () => null,
-          );
+        (r) => r!.id == targetRouteId,
+        orElse: () => null,
+      );
     }
     ref.read(mapNavigationProvider.notifier).selectBus(bus, activeRoute);
 
@@ -162,15 +168,15 @@ class _StudentDashboardState extends ConsumerState<StudentDashboard>
   }
 
   void _onBusNumberSelected(String? busNumber) {
-    ref.read(mapNavigationProvider.notifier).updateFilters(
-      selectedBusNumber: () => busNumber,
-    );
+    ref
+        .read(mapNavigationProvider.notifier)
+        .updateFilters(selectedBusNumber: () => busNumber);
   }
 
   void _onRouteTypeSelected(String? routeType) {
-    ref.read(mapNavigationProvider.notifier).updateFilters(
-      selectedRouteType: () => routeType,
-    );
+    ref
+        .read(mapNavigationProvider.notifier)
+        .updateFilters(selectedRouteType: () => routeType);
   }
 
   void _clearFilters() {
@@ -181,14 +187,24 @@ class _StudentDashboardState extends ConsumerState<StudentDashboard>
   Widget build(BuildContext context) {
     final user = ref.watch(currentUserProvider);
     final collegeId = user?.collegeId;
-    
+
     // Selectively watch only the filter/selection parameters from mapNavigationProvider
     // to avoid rebuilding the entire dashboard on every continuous camera/zoom update.
-    final selectedBus = ref.watch(mapNavigationProvider.select((s) => s.selectedBus));
-    final selectedRouteType = ref.watch(mapNavigationProvider.select((s) => s.selectedRouteType));
-    final selectedStop = ref.watch(mapNavigationProvider.select((s) => s.selectedStop));
-    final selectedBusNumber = ref.watch(mapNavigationProvider.select((s) => s.selectedBusNumber));
-    final activeRoute = ref.watch(mapNavigationProvider.select((s) => s.activeRoute));
+    final selectedBus = ref.watch(
+      mapNavigationProvider.select((s) => s.selectedBus),
+    );
+    final selectedRouteType = ref.watch(
+      mapNavigationProvider.select((s) => s.selectedRouteType),
+    );
+    final selectedStop = ref.watch(
+      mapNavigationProvider.select((s) => s.selectedStop),
+    );
+    final selectedBusNumber = ref.watch(
+      mapNavigationProvider.select((s) => s.selectedBusNumber),
+    );
+    final activeRoute = ref.watch(
+      mapNavigationProvider.select((s) => s.activeRoute),
+    );
 
     // Initialize proximity alerts listener
     ref.listen(proximityAlertProvider, (previous, next) {});
@@ -211,7 +227,9 @@ class _StudentDashboardState extends ConsumerState<StudentDashboard>
     final routes = routesAsync.value ?? [];
 
     // Restore saved bus selection when buses list becomes available
-    final savedBusId = user != null ? PersistenceService.getSelectedBusId(user.id) : null;
+    final savedBusId = user != null
+        ? PersistenceService.getSelectedBusId(user.id)
+        : null;
     if (savedBusId != null && selectedBus == null && busesAsync.hasValue) {
       BusModel? match;
       for (final b in allBusesRaw) {
@@ -224,12 +242,14 @@ class _StudentDashboardState extends ConsumerState<StudentDashboard>
         final targetRouteId = match.routeId ?? match.defaultRouteId;
         final activeRoute = targetRouteId != null
             ? routes.cast<RouteModel?>().firstWhere(
-                  (r) => r!.id == targetRouteId,
-                  orElse: () => null,
-                )
+                (r) => r!.id == targetRouteId,
+                orElse: () => null,
+              )
             : null;
         WidgetsBinding.instance.addPostFrameCallback((_) {
-          ref.read(mapNavigationProvider.notifier).selectBus(match, activeRoute);
+          ref
+              .read(mapNavigationProvider.notifier)
+              .selectBus(match, activeRoute);
         });
       }
     }
@@ -238,9 +258,9 @@ class _StudentDashboardState extends ConsumerState<StudentDashboard>
     final preferredStop = user?.preferredStop;
     if (selectedStop == null && preferredStop != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        ref.read(mapNavigationProvider.notifier).updateFilters(
-          selectedStop: () => preferredStop,
-        );
+        ref
+            .read(mapNavigationProvider.notifier)
+            .updateFilters(selectedStop: () => preferredStop);
       });
     }
 
@@ -268,8 +288,10 @@ class _StudentDashboardState extends ConsumerState<StudentDashboard>
     }
     // Apply filters
     var filteredBuses = allBusesRaw.where((bus) {
-      final isLive = bus.status != 'not-running' || liveBusIds.contains(bus.id);
-      return isLive && bus.assignmentStatus != 'unassigned';
+      // Only show buses whose driver is ACTIVELY broadcasting GPS.
+      // bus.status updates on DB assignment (not on broadcast start),
+      // so we rely solely on liveBusIds from the socket as the gate.
+      return liveBusIds.contains(bus.id) && bus.assignmentStatus == 'accepted';
     }).toList();
 
     if (selectedRouteType != null) {
@@ -320,91 +342,191 @@ class _StudentDashboardState extends ConsumerState<StudentDashboard>
           .toList();
     }
 
+    final isWide = context.isTabletLayout || context.isDesktopLayout;
+
+    final mainBody = Stack(
+      children: [
+        // Main content – wrapped in RepaintBoundary so the nav bar's
+        // liquid-glass shader can capture the pixels behind it.
+        // ColoredBox ensures the captured image is always opaque; without it
+        // transparent tab areas (list gaps, short pages) appear black.
+        RepaintBoundary(
+          key: _backgroundKey,
+          child: ColoredBox(
+            color: Theme.of(context).scaffoldBackgroundColor,
+            child: AnimatedIndexedStack(
+              index: _bottomNavIndex,
+              children: [
+                StudentHomeScreen(
+                  isTab: true,
+                  onTrackLive: () => _onBottomNavChanged(1),
+                ),
+                StudentMapTab(
+                  currentLocation: _currentLocation,
+                  buses:
+                      selectedBus != null &&
+                          !filteredBuses.any((b) => b.id == selectedBus.id)
+                      ? [...filteredBuses, selectedBus]
+                      : filteredBuses,
+                  selectedBus: selectedBus,
+                  selectedRouteType: selectedRouteType,
+                  allBuses: allBusesRaw,
+                  filteredBusesCount: filteredBuses.length,
+                  onMapCreated: (controller) => _mapController = controller,
+                  onRouteTypeSelected: _onRouteTypeSelected,
+                  onBusNumberSelected: _onBusNumberSelected,
+                  onClearFilters: _clearFilters,
+                  onBusSelected: (bus) {
+                    RouteModel? activeRoute;
+                    if (bus != null && collegeId != null) {
+                      final routes =
+                          ref.read(collegeRoutesProvider(collegeId)).value ?? [];
+                      final targetRouteId = bus.routeId ?? bus.defaultRouteId;
+                      activeRoute = routes.cast<RouteModel?>().firstWhere(
+                        (r) => r!.id == targetRouteId,
+                        orElse: () => null,
+                      );
+                    }
+                    ref
+                        .read(mapNavigationProvider.notifier)
+                        .selectBus(bus, activeRoute);
+                  },
+                  activeRoute: activeRoute,
+                ),
+                BusScheduleScreen(
+                  isTab: true,
+                  onBusSelected: (bus) => _selectBus(bus),
+                ),
+                StudentNotificationsScreen(),
+                const ProfileScreen(),
+              ],
+            ),
+          ),
+        ),
+
+        // Global Connectivity Banner
+        _buildConnectivityBanner(),
+        if (!isWide)
+          Align(
+            alignment: Alignment.bottomCenter,
+            child: CurvedBottomNavBar(
+              activeColor: _getActiveColor(context),
+              inactiveColor: Theme.of(context).colorScheme.secondary,
+              backgroundColor: Theme.of(context).brightness == Brightness.light
+                  ? Theme.of(context).cardColor
+                  : Theme.of(context).colorScheme.primaryContainer,
+              currentIndex: _bottomNavIndex,
+              onTap: _onBottomNavChanged,
+              backgroundKey: _backgroundKey,
+              items: [
+                CurvedBottomNavItem(
+                  icon: _bottomNavIndex == 0 ? Icons.home : Icons.home_outlined,
+                  label: 'Home',
+                ),
+                CurvedBottomNavItem(
+                  icon: _bottomNavIndex == 1 ? Icons.map : Icons.map_outlined,
+                  label: 'Live Map',
+                ),
+                CurvedBottomNavItem(
+                  icon: _bottomNavIndex == 2
+                      ? Icons.calendar_month
+                      : Icons.calendar_month_outlined,
+                  label: 'Schedule',
+                ),
+                CurvedBottomNavItem(
+                  icon: _bottomNavIndex == 3
+                      ? Icons.notifications
+                      : Icons.notifications_none_outlined,
+                  label: 'Activity',
+                  badgeCount: unreadCount,
+                ),
+                CurvedBottomNavItem(
+                  icon: _bottomNavIndex == 4
+                      ? Icons.person
+                      : Icons.person_outline,
+                  label: 'Profile',
+                ),
+              ],
+            ),
+          ),
+      ],
+    );
+
+    if (isWide) {
+      return Scaffold(
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+        body: Row(
+          children: [
+            NavigationRail(
+              selectedIndex: _bottomNavIndex,
+              onDestinationSelected: _onBottomNavChanged,
+              labelType: NavigationRailLabelType.all,
+              backgroundColor: Theme.of(context).brightness == Brightness.light
+                  ? Theme.of(context).cardColor
+                  : Theme.of(context).colorScheme.primaryContainer,
+              selectedIconTheme: IconThemeData(color: _getActiveColor(context)),
+              selectedLabelTextStyle: TextStyle(
+                color: _getActiveColor(context),
+                fontWeight: FontWeight.bold,
+              ),
+              unselectedIconTheme: const IconThemeData(color: Colors.grey),
+              unselectedLabelTextStyle: const TextStyle(color: Colors.grey),
+              destinations: [
+                NavigationRailDestination(
+                  icon: Icon(
+                    _bottomNavIndex == 0 ? Icons.home : Icons.home_outlined,
+                  ),
+                  label: const Text('Home'),
+                ),
+                NavigationRailDestination(
+                  icon: Icon(
+                    _bottomNavIndex == 1 ? Icons.map : Icons.map_outlined,
+                  ),
+                  label: const Text('Live Map'),
+                ),
+                NavigationRailDestination(
+                  icon: Icon(
+                    _bottomNavIndex == 2
+                        ? Icons.calendar_month
+                        : Icons.calendar_month_outlined,
+                  ),
+                  label: const Text('Schedule'),
+                ),
+                NavigationRailDestination(
+                  icon: Badge(
+                    label: Text(unreadCount.toString()),
+                    isLabelVisible: unreadCount > 0,
+                    child: Icon(
+                      _bottomNavIndex == 3
+                          ? Icons.notifications
+                          : Icons.notifications_none_outlined,
+                    ),
+                  ),
+                  label: const Text('Activity'),
+                ),
+                NavigationRailDestination(
+                  icon: Icon(
+                    _bottomNavIndex == 4 ? Icons.person : Icons.person_outline,
+                  ),
+                  label: const Text('Profile'),
+                ),
+              ],
+            ),
+            const VerticalDivider(thickness: 1, width: 1),
+            Expanded(
+              child: Scaffold(
+                backgroundColor: Colors.transparent,
+                body: mainBody,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      drawer: null,
-      body: Stack(
-        children: [
-          AnimatedIndexedStack(
-            index: _bottomNavIndex,
-            children: [
-              StudentHomeScreen(
-                isTab: true,
-                onTrackLive: () => _onBottomNavChanged(1),
-              ),
-              StudentMapTab(
-                currentLocation: _currentLocation,
-                buses: selectedBus != null ? [selectedBus] : filteredBuses,
-                selectedBus: selectedBus,
-                selectedRouteType: selectedRouteType,
-                allBuses: allBusesRaw,
-                filteredBusesCount: filteredBuses.length,
-                onMapCreated: (controller) => _mapController = controller,
-                onRouteTypeSelected: _onRouteTypeSelected,
-                onBusNumberSelected: _onBusNumberSelected,
-                onClearFilters: _clearFilters,
-                onBusSelected: (bus) {
-                  RouteModel? activeRoute;
-                  if (bus != null && collegeId != null) {
-                    final routes = ref.read(collegeRoutesProvider(collegeId)).value ?? [];
-                    final targetRouteId = bus.routeId ?? bus.defaultRouteId;
-                    activeRoute = routes.cast<RouteModel?>().firstWhere(
-                          (r) => r!.id == targetRouteId,
-                          orElse: () => null,
-                        );
-                  }
-                  ref.read(mapNavigationProvider.notifier).selectBus(bus, activeRoute);
-                },
-                activeRoute: activeRoute,
-              ),
-              BusScheduleScreen(
-                isTab: true,
-                onBusSelected: (bus) => _selectBus(bus),
-              ),
-              StudentNotificationsScreen(),
-              const ProfileScreen(),
-            ],
-          ),
-          // Global Connectivity Banner
-          _buildConnectivityBanner(),
-        ],
-      ),
-      bottomNavigationBar: CurvedBottomNavBar(
-        activeColor: _getActiveColor(context),
-        inactiveColor: Theme.of(context).colorScheme.secondary,
-        backgroundColor: Theme.of(context).brightness == Brightness.light
-            ? Theme.of(context).cardColor
-            : Theme.of(context).colorScheme.primaryContainer,
-        currentIndex: _bottomNavIndex,
-        onTap: _onBottomNavChanged,
-        items: [
-          CurvedBottomNavItem(
-            icon: _bottomNavIndex == 0 ? Icons.home : Icons.home_outlined,
-            label: 'Home',
-          ),
-          CurvedBottomNavItem(
-            icon: _bottomNavIndex == 1 ? Icons.map : Icons.map_outlined,
-            label: 'Live Map',
-          ),
-          CurvedBottomNavItem(
-            icon: _bottomNavIndex == 2
-                ? Icons.calendar_month
-                : Icons.calendar_month_outlined,
-            label: 'Schedule',
-          ),
-          CurvedBottomNavItem(
-            icon: _bottomNavIndex == 3
-                ? Icons.notifications
-                : Icons.notifications_none_outlined,
-            label: 'Activity',
-            badgeCount: unreadCount,
-          ),
-          CurvedBottomNavItem(
-            icon: _bottomNavIndex == 4 ? Icons.person : Icons.person_outline,
-            label: 'Profile',
-          ),
-        ],
-      ),
+      body: mainBody,
     );
   }
 
@@ -532,10 +654,7 @@ class _AnimatedIndexedStackState extends State<AnimatedIndexedStack>
     _visitedIndexes = {widget.index}; // current tab is already "visited"
     _controllers = List.generate(
       widget.children.length,
-      (i) => AnimationController(
-        vsync: this,
-        duration: widget.duration,
-      ),
+      (i) => AnimationController(vsync: this, duration: widget.duration),
     );
 
     _animations = _controllers.map((controller) {
@@ -576,22 +695,28 @@ class _AnimatedIndexedStackState extends State<AnimatedIndexedStack>
   Widget build(BuildContext context) {
     return Stack(
       children: List.generate(widget.children.length, (i) {
+        final isActive = widget.index == i;
         return AnimatedBuilder(
           animation: _animations[i],
           builder: (context, child) {
             final val = _animations[i].value;
-            if (val == 0.0 && widget.index != i) {
-              return const SizedBox.shrink();
-            }
-            return IgnorePointer(
-              ignoring: widget.index != i,
-              child: Opacity(
-                opacity: val.clamp(0.0, 1.0),
-                child: Transform.scale(
-                  scale: 0.95 + (0.05 * val),
-                  child: Transform.translate(
-                    offset: Offset(0.0, 30.0 * (1.0 - val)),
-                    child: child,
+            // CRITICAL: Use Offstage instead of SizedBox.shrink() so the
+            // child widget is NEVER unmounted. Unmounting destroys state
+            // (e.g. LiveBusMapState._centerLocation, AnimationControllers)
+            // which causes the map skeleton and route animations to replay
+            // every time the user returns to this tab.
+            return Offstage(
+              offstage: !isActive && val == 0.0,
+              child: IgnorePointer(
+                ignoring: !isActive,
+                child: Opacity(
+                  opacity: val.clamp(0.0, 1.0),
+                  child: Transform.scale(
+                    scale: 0.95 + (0.05 * val),
+                    child: Transform.translate(
+                      offset: Offset(0.0, 30.0 * (1.0 - val)),
+                      child: child,
+                    ),
                   ),
                 ),
               ),

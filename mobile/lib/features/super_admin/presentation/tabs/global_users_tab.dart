@@ -127,12 +127,12 @@ class _GlobalUsersTabState extends ConsumerState<GlobalUsersTab> {
             borderRadius: BorderRadius.circular(24),
             border: Border.all(
               color: isDark
-                  ? Colors.white.withOpacity(0.08)
-                  : Colors.black.withOpacity(0.05),
+                  ? Colors.white.withValues(alpha: 0.08)
+                  : Colors.black.withValues(alpha: 0.05),
             ),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(isDark ? 0.3 : 0.04),
+                color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.04),
                 blurRadius: 18,
                 offset: const Offset(0, 8),
               ),
@@ -165,7 +165,7 @@ class _GlobalUsersTabState extends ConsumerState<GlobalUsersTab> {
                         isDense: true,
                         filled: true,
                         fillColor: isDark
-                            ? const Color(0xFF0F172A).withOpacity(0.6)
+                            ? const Color(0xFF0F172A).withValues(alpha: 0.6)
                             : Colors.grey.shade100,
                         contentPadding: const EdgeInsets.symmetric(
                           horizontal: 16,
@@ -182,7 +182,7 @@ class _GlobalUsersTabState extends ConsumerState<GlobalUsersTab> {
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(16),
                           borderSide: BorderSide(
-                            color: Colors.deepPurple.withOpacity(0.5),
+                            color: Colors.deepPurple.withValues(alpha: 0.5),
                           ),
                         ),
                       ),
@@ -235,19 +235,19 @@ class _GlobalUsersTabState extends ConsumerState<GlobalUsersTab> {
                       decoration: BoxDecoration(
                         color: hasActiveFilters
                             ? (isDark
-                                  ? Colors.deepPurple.withOpacity(0.15)
-                                  : Colors.deepPurple.withOpacity(0.08))
+                                  ? Colors.deepPurple.withValues(alpha: 0.15)
+                                  : Colors.deepPurple.withValues(alpha: 0.08))
                             : (isDark
-                                  ? const Color(0xFF0F172A).withOpacity(0.6)
+                                  ? const Color(0xFF0F172A).withValues(alpha: 0.6)
                                   : Colors.grey.shade100),
                         borderRadius: BorderRadius.circular(16),
                         border: Border.all(
                           color: hasActiveFilters
                               ? (isDark
-                                    ? Colors.deepPurple.shade300.withOpacity(
-                                        0.4,
+                                    ? Colors.deepPurple.shade300.withValues(
+                                        alpha: 0.4,
                                       )
-                                    : Colors.deepPurple.withOpacity(0.2))
+                                    : Colors.deepPurple.withValues(alpha: 0.2))
                               : (isDark
                                     ? Colors.white10
                                     : Colors.grey.shade200),
@@ -465,7 +465,7 @@ class _GlobalUsersTabState extends ConsumerState<GlobalUsersTab> {
                 color: isDark ? const Color(0xFF161F28) : Colors.white,
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(isDark ? 0.2 : 0.02),
+                    color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.02),
                     blurRadius: 10,
                     offset: const Offset(-2, 0),
                   ),
@@ -498,7 +498,7 @@ class _GlobalUsersTabState extends ConsumerState<GlobalUsersTab> {
         key: ValueKey(label),
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
         decoration: BoxDecoration(
-          color: isDark ? Colors.white.withOpacity(0.08) : Colors.grey.shade100,
+          color: isDark ? Colors.white.withValues(alpha: 0.08) : Colors.grey.shade100,
           borderRadius: BorderRadius.circular(10),
           border: Border.all(
             color: isDark ? Colors.white10 : Colors.grey.shade200,
@@ -512,7 +512,7 @@ class _GlobalUsersTabState extends ConsumerState<GlobalUsersTab> {
               style: TextStyle(
                 fontSize: 10.5,
                 fontWeight: FontWeight.bold,
-                color: isDark ? Colors.white.withOpacity(0.87) : Colors.black87,
+                color: isDark ? Colors.white.withValues(alpha: 0.87) : Colors.black87,
               ),
             ),
             const SizedBox(width: 4),
@@ -610,7 +610,7 @@ class _GlobalUsersTabState extends ConsumerState<GlobalUsersTab> {
               ),
               Divider(
                 height: 1,
-                color: isDark ? Colors.white.withOpacity(0.06) : Colors.grey.shade200,
+                color: isDark ? Colors.white.withValues(alpha: 0.06) : Colors.grey.shade200,
               ),
               Theme(
                 data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
@@ -652,7 +652,7 @@ class _GlobalUsersTabState extends ConsumerState<GlobalUsersTab> {
                           prefixIcon: Icon(Icons.search, size: 16, color: isDark ? Colors.white38 : Colors.grey),
                           isDense: true,
                           filled: true,
-                          fillColor: isDark ? Colors.white.withOpacity(0.04) : Colors.grey.shade50,
+                          fillColor: isDark ? Colors.white.withValues(alpha: 0.04) : Colors.grey.shade50,
                           contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                           enabledBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(8),
@@ -660,7 +660,7 @@ class _GlobalUsersTabState extends ConsumerState<GlobalUsersTab> {
                           ),
                           focusedBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(8),
-                            borderSide: BorderSide(color: Colors.deepPurple.withOpacity(0.4)),
+                            borderSide: BorderSide(color: Colors.deepPurple.withValues(alpha: 0.4)),
                           ),
                         ),
                         onChanged: (val) {
@@ -813,7 +813,7 @@ class _GlobalUsersTabState extends ConsumerState<GlobalUsersTab> {
               _onFilterChanged();
             },
           );
-        }).toList(),
+        }),
       ],
     );
   }
@@ -938,7 +938,7 @@ class _UserFilterBottomSheetState extends State<_UserFilterBottomSheet> {
                 VerticalDivider(
                   width: 1,
                   color: isDark
-                      ? Colors.white.withOpacity(0.06)
+                      ? Colors.white.withValues(alpha: 0.06)
                       : Colors.grey.shade200,
                 ),
                 // Right Option lists
@@ -991,7 +991,7 @@ class _UserFilterBottomSheetState extends State<_UserFilterBottomSheet> {
                       borderRadius: BorderRadius.circular(16),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.deepPurple.withOpacity(0.3),
+                          color: Colors.deepPurple.withValues(alpha: 0.3),
                           blurRadius: 8,
                           offset: const Offset(0, 3),
                         ),
@@ -1189,7 +1189,7 @@ class _UserFilterBottomSheetState extends State<_UserFilterBottomSheet> {
               prefixIcon: Icon(Icons.search, size: 16, color: isDark ? Colors.white38 : Colors.grey),
               isDense: true,
               filled: true,
-              fillColor: isDark ? Colors.white.withOpacity(0.04) : Colors.grey.shade50,
+              fillColor: isDark ? Colors.white.withValues(alpha: 0.04) : Colors.grey.shade50,
               contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(10),
@@ -1197,7 +1197,7 @@ class _UserFilterBottomSheetState extends State<_UserFilterBottomSheet> {
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(10),
-                borderSide: BorderSide(color: Colors.deepPurple.withOpacity(0.4)),
+                borderSide: BorderSide(color: Colors.deepPurple.withValues(alpha: 0.4)),
               ),
             ),
             onChanged: (val) {
@@ -1328,12 +1328,12 @@ class _UserCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(24),
         border: Border.all(
           color: isDark
-              ? Colors.white.withOpacity(0.08)
-              : Colors.black.withOpacity(0.04),
+              ? Colors.white.withValues(alpha: 0.08)
+              : Colors.black.withValues(alpha: 0.04),
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(isDark ? 0.3 : 0.03),
+            color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.03),
             blurRadius: 20,
             offset: const Offset(0, 8),
           ),
@@ -1371,10 +1371,10 @@ class _UserCard extends StatelessWidget {
                       width: 46,
                       height: 46,
                       decoration: BoxDecoration(
-                        color: roleColor.withOpacity(0.08),
+                        color: roleColor.withValues(alpha: 0.08),
                         shape: BoxShape.circle,
                         border: Border.all(
-                          color: roleColor.withOpacity(0.25),
+                          color: roleColor.withValues(alpha: 0.25),
                           width: 1.5,
                         ),
                       ),
@@ -1389,7 +1389,7 @@ class _UserCard extends StatelessWidget {
                             fontSize: 18,
                             shadows: [
                               Shadow(
-                                color: roleColor.withOpacity(0.15),
+                                color: roleColor.withValues(alpha: 0.15),
                                 blurRadius: 4,
                                 offset: const Offset(0, 1),
                               ),
@@ -1423,10 +1423,10 @@ class _UserCard extends StatelessWidget {
                               vertical: 3,
                             ),
                             decoration: BoxDecoration(
-                              color: roleColor.withOpacity(0.08),
+                              color: roleColor.withValues(alpha: 0.08),
                               borderRadius: BorderRadius.circular(8),
                               border: Border.all(
-                                color: roleColor.withOpacity(0.2),
+                                color: roleColor.withValues(alpha: 0.2),
                                 width: 1,
                               ),
                             ),
@@ -1518,7 +1518,7 @@ class _UserCard extends StatelessWidget {
                 Divider(
                   height: 1,
                   color: isDark
-                      ? Colors.white.withOpacity(0.06)
+                      ? Colors.white.withValues(alpha: 0.06)
                       : Colors.grey.shade100,
                 ),
                 const SizedBox(height: 12),

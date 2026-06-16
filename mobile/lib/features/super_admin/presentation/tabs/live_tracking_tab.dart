@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:math' as math;
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:collection/collection.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
@@ -110,7 +109,7 @@ class _LiveTrackingTabState extends ConsumerState<LiveTrackingTab> {
     
     final img = await recorder.endRecording().toImage(size.toInt(), size.toInt());
     final data = await img.toByteData(format: ui.ImageByteFormat.png);
-    return BitmapDescriptor.fromBytes(data!.buffer.asUint8List());
+    return BitmapDescriptor.bytes(data!.buffer.asUint8List());
   }
 
   Future<BitmapDescriptor> _getClusterIcon(int count) async {
@@ -349,7 +348,7 @@ class _LiveTrackingTabState extends ConsumerState<LiveTrackingTab> {
                       prefixIcon: const Icon(Icons.search, size: 18),
                       isDense: true,
                       contentPadding: const EdgeInsets.symmetric(vertical: 12),
-                      fillColor: isDark ? Colors.white.withOpacity(0.05) : Colors.grey.shade50,
+                      fillColor: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey.shade50,
                       filled: true,
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
@@ -710,7 +709,7 @@ class _LiveTrackingTabState extends ConsumerState<LiveTrackingTab> {
               prefixIcon: const Icon(Icons.search, size: 16),
               isDense: true,
               contentPadding: const EdgeInsets.symmetric(vertical: 10),
-              fillColor: isDark ? Colors.white.withOpacity(0.05) : Colors.grey.shade50,
+              fillColor: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey.shade50,
               filled: true,
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(10),
@@ -760,13 +759,13 @@ class _LiveTrackingTabState extends ConsumerState<LiveTrackingTab> {
                       elevation: 0,
                       margin: EdgeInsets.zero,
                       color: isSelected
-                          ? const Color(0xFF1E90FF).withOpacity(isDark ? 0.08 : 0.04)
+                          ? const Color(0xFF1E90FF).withValues(alpha: isDark ? 0.08 : 0.04)
                           : Colors.transparent,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                         side: BorderSide(
                           color: isSelected
-                              ? const Color(0xFF1E90FF).withOpacity(0.4)
+                              ? const Color(0xFF1E90FF).withValues(alpha: 0.4)
                               : (isDark ? Colors.white10 : Colors.grey.shade200),
                         ),
                       ),
@@ -813,7 +812,7 @@ class _LiveTrackingTabState extends ConsumerState<LiveTrackingTab> {
                                   Container(
                                     padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
                                     decoration: BoxDecoration(
-                                      color: _getStatusColor(status['color']).withOpacity(0.15),
+                                      color: _getStatusColor(status['color']).withValues(alpha: 0.15),
                                       borderRadius: BorderRadius.circular(6),
                                     ),
                                     child: Text(
@@ -921,10 +920,10 @@ class _LiveTrackingTabState extends ConsumerState<LiveTrackingTab> {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                   decoration: BoxDecoration(
-                    color: _getStatusColor(status['color']).withOpacity(0.2),
+                    color: _getStatusColor(status['color']).withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(8),
                     border: Border.all(
-                      color: _getStatusColor(status['color']).withOpacity(0.4),
+                      color: _getStatusColor(status['color']).withValues(alpha: 0.4),
                       width: 1,
                     ),
                   ),

@@ -18,6 +18,10 @@
   --warning-main: #FACC15;
   --error-main: #F87171;
   
+  --emerald-main: #10b981;
+  --rose-main: #ef4444;
+  --indigo-main: #6366f1;
+  
   --background-default: #F5F5F5;
   --background-paper: #ffffff;
   --border-color: #e2e8f0;
@@ -32,6 +36,10 @@
     --background-paper: #1e293b;   /* Slate 800 */
     --border-color: #334155;       /* Slate 700 */
     
+    --emerald-main: #34d399;
+    --rose-main: #f87171;
+    --indigo-main: #818cf8;
+    
     --text-primary: #f8fafc;       /* Slate 50 */
     --text-secondary: #94a3b8;     /* Slate 400 */
   }
@@ -41,6 +49,10 @@
   --background-default: #0f172a; /* Slate 900 */
   --background-paper: #1e293b;   /* Slate 800 */
   --border-color: #334155;       /* Slate 700 */
+  
+  --emerald-main: #34d399;
+  --rose-main: #f87171;
+  --indigo-main: #818cf8;
   
   --text-primary: #f8fafc;       /* Slate 50 */
   --text-secondary: #94a3b8;     /* Slate 400 */
@@ -60,6 +72,10 @@
   --color-success-main: var(--success-main);
   --color-warning-main: var(--warning-main);
   --color-error-main: var(--error-main);
+  
+  --color-emerald-main: var(--emerald-main);
+  --color-rose-main: var(--rose-main);
+  --color-indigo-main: var(--indigo-main);
 
   --color-background-default: var(--background-default);
   --color-background-paper: var(--background-paper);

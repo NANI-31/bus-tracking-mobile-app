@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:collegebus/features/college_admin/application/college_admin_provider.dart';
 import 'package:collegebus/features/auth/application/auth_provider.dart';
@@ -188,12 +187,12 @@ class _FleetTabState extends ConsumerState<FleetTab> {
                     borderRadius: BorderRadius.circular(24),
                     border: Border.all(
                       color: isDark
-                          ? Colors.white.withOpacity(0.08)
-                          : Colors.black.withOpacity(0.05),
+                          ? Colors.white.withValues(alpha: 0.08)
+                          : Colors.black.withValues(alpha: 0.05),
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(isDark ? 0.3 : 0.04),
+                        color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.04),
                         blurRadius: 18,
                         offset: const Offset(0, 8),
                       ),
@@ -235,7 +234,7 @@ class _FleetTabState extends ConsumerState<FleetTab> {
                                 isDense: true,
                                 filled: true,
                                 fillColor: isDark
-                                    ? const Color(0xFF0F172A).withOpacity(0.6)
+                                    ? const Color(0xFF0F172A).withValues(alpha: 0.6)
                                     : Colors.grey.shade100,
                                 contentPadding: const EdgeInsets.symmetric(
                                   horizontal: 16,
@@ -285,17 +284,17 @@ class _FleetTabState extends ConsumerState<FleetTab> {
                               decoration: BoxDecoration(
                                 color: _selectedStatuses.isNotEmpty
                                     ? (isDark
-                                        ? const Color(0xFF00C6E6).withOpacity(0.15)
-                                        : const Color(0xFF0097B2).withOpacity(0.08))
+                                        ? const Color(0xFF00C6E6).withValues(alpha: 0.15)
+                                        : const Color(0xFF0097B2).withValues(alpha: 0.08))
                                     : (isDark
-                                        ? const Color(0xFF0F172A).withOpacity(0.6)
+                                        ? const Color(0xFF0F172A).withValues(alpha: 0.6)
                                         : Colors.grey.shade100),
                                 borderRadius: BorderRadius.circular(16),
                                 border: Border.all(
                                   color: _selectedStatuses.isNotEmpty
                                       ? (isDark
-                                          ? const Color(0xFF00C6E6).withOpacity(0.4)
-                                          : const Color(0xFF0097B2).withOpacity(0.2))
+                                          ? const Color(0xFF00C6E6).withValues(alpha: 0.4)
+                                          : const Color(0xFF0097B2).withValues(alpha: 0.2))
                                       : (isDark ? Colors.white10 : Colors.grey.shade200),
                                 ),
                               ),
@@ -381,7 +380,7 @@ class _FleetTabState extends ConsumerState<FleetTab> {
                       'TOTAL FLEET',
                       totalBuses.toString(),
                       Icons.directions_bus_outlined,
-                      primaryColor.withOpacity(0.12),
+                      primaryColor.withValues(alpha: 0.12),
                       primaryColor,
                       isDark,
                     ),
@@ -389,7 +388,7 @@ class _FleetTabState extends ConsumerState<FleetTab> {
                       'IN-SERVICE',
                       activeBuses.toString(),
                       Icons.check_circle_outline_rounded,
-                      const Color(0xFF10B981).withOpacity(0.12),
+                      const Color(0xFF10B981).withValues(alpha: 0.12),
                       const Color(0xFF10B981),
                       isDark,
                     ),
@@ -397,7 +396,7 @@ class _FleetTabState extends ConsumerState<FleetTab> {
                       'CAPACITY',
                       '$totalCapacity Seats',
                       Icons.bar_chart_rounded,
-                      const Color(0xFF8B5CF6).withOpacity(0.12),
+                      const Color(0xFF8B5CF6).withValues(alpha: 0.12),
                       const Color(0xFF8B5CF6),
                       isDark,
                     ),
@@ -506,7 +505,7 @@ class _FleetTabState extends ConsumerState<FleetTab> {
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(isDark ? 0.2 : 0.03),
+            color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.03),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -537,7 +536,7 @@ class _FleetTabState extends ConsumerState<FleetTab> {
                           Container(
                             padding: const EdgeInsets.all(10),
                             decoration: BoxDecoration(
-                              color: isDark ? Colors.white.withOpacity(0.04) : Colors.grey.shade100,
+                              color: isDark ? Colors.white.withValues(alpha: 0.04) : Colors.grey.shade100,
                               borderRadius: BorderRadius.circular(14),
                               border: Border.all(color: isDark ? Colors.white10 : Colors.grey.shade200),
                             ),
@@ -554,7 +553,7 @@ class _FleetTabState extends ConsumerState<FleetTab> {
                         onPressed: () => _confirmDeleteBus(bus.id, bus.busNumber),
                         icon: const Icon(Icons.delete_outline_rounded, color: Colors.grey, size: 20),
                         style: IconButton.styleFrom(
-                          backgroundColor: isDark ? Colors.white.withOpacity(0.02) : Colors.grey.shade50,
+                          backgroundColor: isDark ? Colors.white.withValues(alpha: 0.02) : Colors.grey.shade50,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
                             side: BorderSide(color: isDark ? Colors.white10 : Colors.grey.shade200),
@@ -595,9 +594,9 @@ class _FleetTabState extends ConsumerState<FleetTab> {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                         decoration: BoxDecoration(
-                          color: statusColor.withOpacity(0.12),
+                          color: statusColor.withValues(alpha: 0.12),
                           borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: statusColor.withOpacity(0.25)),
+                          border: Border.all(color: statusColor.withValues(alpha: 0.25)),
                         ),
                         child: Text(
                           statusText,
@@ -628,7 +627,7 @@ class _FleetTabState extends ConsumerState<FleetTab> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: isDark ? Colors.white.withOpacity(0.08) : Colors.grey.shade100,
+        color: isDark ? Colors.white.withValues(alpha: 0.08) : Colors.grey.shade100,
         borderRadius: BorderRadius.circular(10),
         border: Border.all(
           color: isDark ? Colors.white10 : Colors.grey.shade200,
@@ -642,7 +641,7 @@ class _FleetTabState extends ConsumerState<FleetTab> {
             style: TextStyle(
               fontSize: 10.5,
               fontWeight: FontWeight.bold,
-              color: isDark ? Colors.white.withOpacity(0.87) : Colors.black87,
+              color: isDark ? Colors.white.withValues(alpha: 0.87) : Colors.black87,
             ),
           ),
           const SizedBox(width: 4),
@@ -753,7 +752,7 @@ class _LiveStatusDotState extends State<LiveStatusDot>
               height: 14 + (10 * _controller.value),
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: widget.color.withOpacity(0.25 * (1.0 - _controller.value)),
+                color: widget.color.withValues(alpha: 0.25 * (1.0 - _controller.value)),
               ),
             ),
             Container(
@@ -761,7 +760,7 @@ class _LiveStatusDotState extends State<LiveStatusDot>
               height: 10 + (4 * _controller.value),
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: widget.color.withOpacity(0.4 * (1.0 - _controller.value)),
+                color: widget.color.withValues(alpha: 0.4 * (1.0 - _controller.value)),
               ),
             ),
             Container(
@@ -1010,7 +1009,7 @@ class _FleetFilterBottomSheetState extends State<_FleetFilterBottomSheet> {
                 VerticalDivider(
                   width: 1,
                   color: isDark
-                      ? Colors.white.withOpacity(0.06)
+                      ? Colors.white.withValues(alpha: 0.06)
                       : Colors.grey.shade200,
                 ),
                 Expanded(
@@ -1059,7 +1058,7 @@ class _FleetFilterBottomSheetState extends State<_FleetFilterBottomSheet> {
                       borderRadius: BorderRadius.circular(16),
                       boxShadow: [
                         BoxShadow(
-                          color: const Color(0xFF0097B2).withOpacity(0.3),
+                          color: const Color(0xFF0097B2).withValues(alpha: 0.3),
                           blurRadius: 8,
                           offset: const Offset(0, 3),
                         ),

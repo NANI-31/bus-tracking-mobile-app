@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:intl/intl.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:animations/animations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:collegebus/core/utils/app_logger.dart';
@@ -49,7 +50,14 @@ class _CoordinatorDashboardState extends ConsumerState<CoordinatorDashboard>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
   int _bottomNavIndex = 0;
+  int _previousBottomNavIndex = 0;
+  int _previousSubTabIndex = 0;
   BusModel? _selectedBus;
+
+  /// Key for the [RepaintBoundary] that wraps the mobile content body.
+  /// Passed to [CurvedBottomNavBar] so the liquid-glass lens shader can
+  /// sample the real pixels rendered behind the navigation bar.
+  final GlobalKey _backgroundKey = GlobalKey();
   StreamSubscription? _fcmTapSubscription;
 
   @override
@@ -125,7 +133,9 @@ class _CoordinatorDashboardState extends ConsumerState<CoordinatorDashboard>
       if (_bottomNavIndex != 0) {
         _stopSosSound(); // Stop preview if switching from profile
       }
+      _previousBottomNavIndex = _bottomNavIndex;
       _bottomNavIndex = 0; // Go to Dashboard
+      _previousSubTabIndex = _tabController.index;
       _tabController.animateTo(1); // Switch to Live Map tab
     });
   }
@@ -486,8 +496,12 @@ class _CoordinatorDashboardState extends ConsumerState<CoordinatorDashboard>
 
           return GestureDetector(
             onTap: () {
-              _tabController.animateTo(index);
-              setState(() {});
+              if (_tabController.index != index) {
+                setState(() {
+                  _previousSubTabIndex = _tabController.index;
+                  _tabController.animateTo(index);
+                });
+              }
             },
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 250),
@@ -555,9 +569,138 @@ class _CoordinatorDashboardState extends ConsumerState<CoordinatorDashboard>
     );
   }
 
+  Gradient _getAmbientGradient(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final now = DateTime.now();
+    final hour = now.hour;
+    
+    Color color1;
+    Color color2;
+    
+    if (isDark) {
+      if (hour >= 6 && hour < 12) {
+        color1 = const Color(0xFF0F172A);
+        color2 = const Color(0xFF1E1B4B);
+      } else if (hour >= 12 && hour < 18) {
+        color1 = const Color(0xFF0F172A);
+        color2 = const Color(0xFF0F374A);
+      } else {
+        color1 = const Color(0xFF0B0F19);
+        color2 = const Color(0xFF180E29);
+      }
+      
+      if (_bottomNavIndex == 0) {
+        if (_tabController.index == 1) {
+          color2 = Color.lerp(color2, const Color(0xFF003B46), 0.5) ?? color2;
+        } else if (_tabController.index == 2) {
+          color2 = Color.lerp(color2, const Color(0xFF2E1A47), 0.5) ?? color2;
+        }
+      } else if (_bottomNavIndex == 1) {
+        color2 = Color.lerp(color2, const Color(0xFF45220A), 0.5) ?? color2;
+      } else if (_bottomNavIndex == 2) {
+        color2 = Color.lerp(color2, const Color(0xFF064E3B), 0.5) ?? color2;
+      }
+    } else {
+      if (hour >= 6 && hour < 12) {
+        color1 = const Color(0xFFF8FAFC);
+        color2 = const Color(0xFFECFDF5);
+      } else if (hour >= 12 && hour < 18) {
+        color1 = const Color(0xFFF8FAFC);
+        color2 = const Color(0xFFE0F2FE);
+      } else {
+        color1 = const Color(0xFFF8FAFC);
+        color2 = const Color(0xFFF5F3FF);
+      }
+      
+      if (_bottomNavIndex == 0) {
+        if (_tabController.index == 1) {
+          color2 = Color.lerp(color2, const Color(0xFFE0F7FA), 0.5) ?? color2;
+        } else if (_tabController.index == 2) {
+          color2 = Color.lerp(color2, const Color(0xFFF3E5F5), 0.5) ?? color2;
+        }
+      } else if (_bottomNavIndex == 1) {
+        color2 = Color.lerp(color2, const Color(0xFFFFF8E1), 0.5) ?? color2;
+      } else if (_bottomNavIndex == 2) {
+        color2 = Color.lerp(color2, const Color(0xFFE0F2F1), 0.5) ?? color2;
+      }
+    }
+    
+    return LinearGradient(
+      colors: [color1, color2],
+      begin: Alignment.topCenter,
+      end: Alignment.bottomCenter,
+    );
+  }
+
+  Widget _getMainPage(int index) {
+    switch (index) {
+      case 0:
+        return Column(
+          children: [
+            _buildCapsuleTabBar(context),
+            Expanded(
+              child: PageTransitionSwitcher(
+                duration: const Duration(milliseconds: 300),
+                reverse: _tabController.index < _previousSubTabIndex,
+                transitionBuilder: (child, animation, secondaryAnimation) {
+                  return SharedAxisTransition(
+                    animation: animation,
+                    secondaryAnimation: secondaryAnimation,
+                    transitionType: SharedAxisTransitionType.horizontal,
+                    fillColor: Colors.transparent,
+                    child: child,
+                  );
+                },
+                child: KeyedSubtree(
+                  key: ValueKey<int>(_tabController.index),
+                  child: _getSubTabPage(_tabController.index),
+                ),
+              ),
+            ),
+          ],
+        );
+      case 1:
+        return const NotificationsScreen();
+      case 2:
+        return const ScheduleManagementScreen();
+      case 3:
+        return const ProfileScreen();
+      default:
+        return const SizedBox.shrink();
+    }
+  }
+
+  Widget _getSubTabPage(int index) {
+    switch (index) {
+      case 0:
+        return OverviewTab(
+          onSosTap: () {
+            setState(() {
+              _previousSubTabIndex = _tabController.index;
+              _tabController.animateTo(1);
+            });
+          },
+        );
+      case 1:
+        return LiveMapTab(selectedBus: _selectedBus);
+      case 2:
+        return DriverManagementTab(
+          onTrack: _handleTrackBus,
+          onEditDriver: _handleEditDriver,
+        );
+      case 3:
+        return const BusNumbersTab();
+      case 4:
+        return const RoutesTab();
+      default:
+        return const SizedBox.shrink();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final user = ref.watch(currentUserProvider);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final collegeId = user?.collegeId;
     final l10n = coord_l10n.CoordinatorLocalizations.of(context)!;
     final isWide = context.isTabletLayout || context.isDesktopLayout;
@@ -591,45 +734,29 @@ class _CoordinatorDashboardState extends ConsumerState<CoordinatorDashboard>
       });
     }
 
-    final mainBody = IndexedStack(
-      index: _bottomNavIndex,
-      children: [
-        // 0: Dashboard (TabBarView with Custom Capsule Bar)
-        Column(
-          children: [
-            _buildCapsuleTabBar(context),
-            Expanded(
-              child: TabBarView(
-                controller: _tabController,
-                physics: const NeverScrollableScrollPhysics(),
-                children: [
-                  OverviewTab(
-                    onSosTap: () => _tabController.animateTo(1), // Go to Live Map
-                  ),
-                  LiveMapTab(selectedBus: _selectedBus),
-                  DriverManagementTab(
-                    onTrack: _handleTrackBus,
-                    onEditDriver: _handleEditDriver,
-                  ),
-                  const BusNumbersTab(),
-                  const RoutesTab(),
-                ],
-              ),
-            ),
-          ],
-        ),
-        // 1: Notifications
-        const NotificationsScreen(),
-        // 2: Manage Schedule
-        const ScheduleManagementScreen(),
-        // 3: Profile
-        const ProfileScreen(),
-      ],
+    final mainBody = PageTransitionSwitcher(
+      duration: const Duration(milliseconds: 300),
+      reverse: _bottomNavIndex < _previousBottomNavIndex,
+      transitionBuilder: (child, animation, secondaryAnimation) {
+        return SharedAxisTransition(
+          animation: animation,
+          secondaryAnimation: secondaryAnimation,
+          transitionType: SharedAxisTransitionType.horizontal,
+          fillColor: Colors.transparent,
+          child: child,
+        );
+      },
+      child: KeyedSubtree(
+        key: ValueKey<int>(_bottomNavIndex),
+        child: _getMainPage(_bottomNavIndex),
+      ),
     );
 
+    final Widget dashboardContent;
+
     if (isWide) {
-      return Scaffold(
-        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      dashboardContent = Scaffold(
+        backgroundColor: Colors.transparent,
         body: Row(
           children: [
             NavigationRail(
@@ -639,6 +766,7 @@ class _CoordinatorDashboardState extends ConsumerState<CoordinatorDashboard>
                   _stopSosSound(); // Stop sound when switching tabs
                 }
                 setState(() {
+                  _previousBottomNavIndex = _bottomNavIndex;
                   _bottomNavIndex = index;
                 });
               },
@@ -690,8 +818,8 @@ class _CoordinatorDashboardState extends ConsumerState<CoordinatorDashboard>
                 appBar: _bottomNavIndex == 0
                     ? AppBar(
                         title: Text(l10n.dashboardTitle),
-                        backgroundColor: Theme.of(context).primaryColor,
-                        foregroundColor: Colors.white,
+                        backgroundColor: Colors.transparent,
+                        foregroundColor: isDark ? Colors.white : Colors.black,
                         elevation: 0,
                       )
                     : null,
@@ -723,73 +851,98 @@ class _CoordinatorDashboardState extends ConsumerState<CoordinatorDashboard>
           ],
         ),
       );
+    } else {
+      dashboardContent = Scaffold(
+        backgroundColor: Colors.transparent,
+        appBar: _bottomNavIndex == 0
+            ? AppBar(
+                title: Text(l10n.dashboardTitle),
+                backgroundColor: Colors.transparent,
+                foregroundColor: isDark ? Colors.white : Colors.black,
+                elevation: 0,
+              )
+            : null,
+        body: Stack(
+          children: [
+            RepaintBoundary(
+              key: _backgroundKey,
+              child: ColoredBox(
+                // The inner Scaffold is transparent; without this the captured
+                // image has alpha=0 pixels which the GPU composites as black.
+                color: Theme.of(context).scaffoldBackgroundColor,
+                child: mainBody,
+              ),
+            ),
+            Align(
+              alignment: Alignment.bottomCenter,
+              child: CurvedBottomNavBar(
+                currentIndex: _bottomNavIndex,
+                onTap: (index) {
+                  if (_bottomNavIndex != index) {
+                    _stopSosSound(); // Stop sound when switching tabs
+                  }
+                  setState(() {
+                    _previousBottomNavIndex = _bottomNavIndex;
+                    _bottomNavIndex = index;
+                  });
+                },
+                activeColor: _getCoordinatorActiveColor(context),
+                backgroundColor: Theme.of(context).cardColor,
+                backgroundKey: _backgroundKey,
+                items: [
+                  const CurvedBottomNavItem(
+                    icon: Icons.dashboard_outlined,
+                    label: 'Dashboard',
+                  ),
+                  CurvedBottomNavItem(
+                    icon: Icons.notifications_none_outlined,
+                    label: 'Notifications',
+                    badgeCount: ref.watch(unreadNotificationsCountProvider),
+                  ),
+                  const CurvedBottomNavItem(
+                    icon: Icons.edit_calendar_outlined,
+                    label: 'Schedule',
+                  ),
+                  const CurvedBottomNavItem(
+                    icon: Icons.person_outline,
+                    label: 'Profile',
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        floatingActionButton: activeSosAlerts.isNotEmpty
+            ? FloatingActionButton.extended(
+                onPressed: () {
+                  if (activeSosAlerts.length > 1) {
+                    _showActiveSosList();
+                  } else {
+                    _showSOSAlert(activeSosAlerts.first);
+                  }
+                },
+                backgroundColor: AppColors.error,
+                icon: const Icon(Icons.warning, color: Colors.white),
+                label: Text(
+                  activeSosAlerts.length > 1
+                      ? '(${activeSosAlerts.length}) ACTIVE ALERTS'
+                      : 'ACTIVE SOS',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              )
+            : null,
+      );
     }
 
-    return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      appBar: _bottomNavIndex == 0
-          ? AppBar(
-              title: Text(l10n.dashboardTitle),
-              backgroundColor: Theme.of(context).primaryColor,
-              foregroundColor: Colors.white,
-              elevation: 0,
-            )
-          : null,
-      body: mainBody,
-      bottomNavigationBar: CurvedBottomNavBar(
-        currentIndex: _bottomNavIndex,
-        onTap: (index) {
-          if (_bottomNavIndex != index) {
-            _stopSosSound(); // Stop sound when switching tabs
-          }
-          setState(() {
-            _bottomNavIndex = index;
-          });
-        },
-        activeColor: _getCoordinatorActiveColor(context),
-        backgroundColor: Theme.of(context).cardColor,
-        items: [
-          const CurvedBottomNavItem(
-            icon: Icons.dashboard_outlined,
-            label: 'Dashboard',
-          ),
-          CurvedBottomNavItem(
-            icon: Icons.notifications_none_outlined,
-            label: 'Notifications',
-            badgeCount: ref.watch(unreadNotificationsCountProvider),
-          ),
-          const CurvedBottomNavItem(
-            icon: Icons.edit_calendar_outlined,
-            label: 'Schedule',
-          ),
-          const CurvedBottomNavItem(
-            icon: Icons.person_outline,
-            label: 'Profile',
-          ),
-        ],
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 500),
+      decoration: BoxDecoration(
+        gradient: _getAmbientGradient(context),
       ),
-      floatingActionButton: activeSosAlerts.isNotEmpty
-          ? FloatingActionButton.extended(
-              onPressed: () {
-                if (activeSosAlerts.length > 1) {
-                  _showActiveSosList();
-                } else {
-                  _showSOSAlert(activeSosAlerts.first);
-                }
-              },
-              backgroundColor: AppColors.error,
-              icon: const Icon(Icons.warning, color: Colors.white),
-              label: Text(
-                activeSosAlerts.length > 1
-                    ? '(${activeSosAlerts.length}) ACTIVE ALERTS'
-                    : 'ACTIVE SOS',
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            )
-          : null,
+      child: dashboardContent,
     );
   }
 

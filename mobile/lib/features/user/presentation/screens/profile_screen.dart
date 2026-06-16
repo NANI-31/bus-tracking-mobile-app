@@ -18,6 +18,7 @@ import '../widgets/profile_section_card.dart';
 import '../widgets/profile_list_item.dart';
 import 'package:collegebus/shared/widgets/logout_confirmation_dialog.dart';
 import 'package:collegebus/features/settings/presentation/sos_sound_settings.dart';
+import 'package:collegebus/shared/widgets/navigation/curved_bottom_nav_bar.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
@@ -73,6 +74,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         statusBarColor: Colors.transparent,
         statusBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
         statusBarBrightness: isDark ? Brightness.dark : Brightness.light,
+        systemNavigationBarColor: Colors.transparent,
+        systemNavigationBarDividerColor: Colors.transparent,
+        systemNavigationBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
       ),
       child: Scaffold(
         extendBodyBehindAppBar: true,
@@ -239,7 +243,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                     subtitle: l10n.receiveAlerts,
                                     trailing: Switch(
                                       value: true,
-                                      activeColor: accentColor,
+                                      activeThumbColor: accentColor,
                                       activeTrackColor: accentColor.withValues(alpha: 0.3),
                                       onChanged: (val) {},
                                     ),
@@ -273,7 +277,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                     subtitle: l10n.toggleDarkLight,
                                     trailing: Switch(
                                       value: themeService.isDarkMode,
-                                      activeColor: accentColor,
+                                      activeThumbColor: accentColor,
                                       activeTrackColor: accentColor.withValues(alpha: 0.3),
                                       onChanged: (val) => ref
                                           .read(themeServiceProvider.notifier)
@@ -334,6 +338,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                               32.heightBox,
                               _buildLogoutButton(context),
                               24.heightBox,
+                              const BottomNavSpacer(),
                             ]),
                           ),
                         ),
@@ -345,7 +350,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     physics: const BouncingScrollPhysics(),
                     child: VStack([
                       // Spacer for status bar and appbar height
-                      (MediaQuery.of(context).padding.top + kToolbarHeight + 16).heightBox,
+                      (MediaQuery.of(context).padding.top + kToolbarHeight + 64).heightBox,
 
                       // User details card (overlapping layout)
                       _buildUserProfileCard(context, user),
@@ -366,21 +371,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                           12.widthBox,
                           _buildStatCard(
                             context,
-                            'College',
-                            collegesAsync.maybeWhen(
-                              data: (colleges) {
-                                try {
-                                  return colleges
-                                      .firstWhere((c) => c.id == user.collegeId)
-                                      .name;
-                                } catch (_) {
-                                  return user.collegeId.isNotEmpty ? user.collegeId : 'N/A';
-                                }
-                              },
-                              orElse: () => 'Loading...',
-                            ),
-                            Icons.school_rounded,
-                            Colors.purple,
+                            l10n.phone,
+                            user.phoneNumber ?? 'Not provided',
+                            Icons.phone_rounded,
+                            Colors.teal,
                           ),
                         ]),
 
@@ -388,10 +382,21 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
                         _buildStatCard(
                           context,
-                          l10n.phone,
-                          user.phoneNumber ?? 'Not provided',
-                          Icons.phone_rounded,
-                          Colors.teal,
+                          'College',
+                          collegesAsync.maybeWhen(
+                            data: (colleges) {
+                              try {
+                                return colleges
+                                    .firstWhere((c) => c.id == user.collegeId)
+                                    .name;
+                              } catch (_) {
+                                return user.collegeId.isNotEmpty ? user.collegeId : 'N/A';
+                              }
+                            },
+                            orElse: () => 'Loading...',
+                          ),
+                          Icons.school_rounded,
+                          Colors.purple,
                           fullWidth: true,
                         ),
 
@@ -408,7 +413,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                               subtitle: l10n.receiveAlerts,
                               trailing: Switch(
                                 value: true,
-                                activeColor: accentColor,
+                                activeThumbColor: accentColor,
                                 activeTrackColor: accentColor.withValues(alpha: 0.3),
                                 onChanged: (val) {},
                               ),
@@ -442,7 +447,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                               subtitle: l10n.toggleDarkLight,
                               trailing: Switch(
                                 value: themeService.isDarkMode,
-                                activeColor: accentColor,
+                                activeThumbColor: accentColor,
                                 activeTrackColor: accentColor.withValues(alpha: 0.3),
                                 onChanged: (val) => ref
                                     .read(themeServiceProvider.notifier)
@@ -463,24 +468,14 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                         ].contains(user.role)) ...[
                           Padding(
                             padding: const EdgeInsets.symmetric(horizontal: 4.0),
-                            child: Card(
-                              elevation: 0,
-                              color: isDark
-                                  ? const Color(0xFF1A222D).withValues(alpha: 0.8)
-                                  : Colors.white.withValues(alpha: 0.9),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(24),
-                                side: BorderSide(
-                                  color: isDark
-                                      ? Colors.white.withValues(alpha: 0.08)
-                                      : Colors.black.withValues(alpha: 0.05),
-                                  width: 1.5,
+                            child: ProfileSectionCard(
+                              title: 'Emergency Settings',
+                              children: [
+                                Padding(
+                                  padding: const EdgeInsets.all(16.0),
+                                  child: const SosSoundSettings(),
                                 ),
-                              ),
-                              child: Padding(
-                                padding: const EdgeInsets.all(16.0),
-                                child: const SosSoundSettings(),
-                              ),
+                              ],
                             ),
                           ),
                           24.heightBox,
@@ -540,6 +535,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                         _buildLogoutButton(context),
 
                         32.heightBox,
+                        const BottomNavSpacer(),
                       ]).pSymmetric(h: 16),
                     ]),
                   ),
@@ -1704,7 +1700,7 @@ class ProfileScreenSkeleton extends StatelessWidget {
 
     Widget buildMainSkeleton(BuildContext context) {
       return VStack([
-        (MediaQuery.of(context).padding.top + kToolbarHeight + 16).heightBox,
+        (MediaQuery.of(context).padding.top + kToolbarHeight + 64).heightBox,
 
         // Overlapping card skeleton
         Container(
