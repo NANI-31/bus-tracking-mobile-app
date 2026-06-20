@@ -15,8 +15,17 @@ void main() {
     // Fragment position in logical pixels (0 → resolution)
     vec2 fragCoord = FlutterFragCoord();
 
-    // UV coordinates 0→1 across the widget
+    // UV coordinates 0→1 across the widget (screen space: y=0 at top)
     vec2 uv = fragCoord / uResolution.xy;
+
+    // ── Y-axis flip for texture sampling ─────────────────────────────────────
+    // dart:ui.Image has (0,0) at TOP-LEFT (screen convention).
+    // OpenGL sampler2D has (0,0) at BOTTOM-LEFT (GL convention).
+    // On Impeller backends (most modern devices), Flutter corrects this
+    // automatically. On Skia backends (older Android), it does NOT, causing
+    // the captured background to appear Y-flipped → inverted scroll behavior.
+    // We always flip uv.y before sampling so both backends render correctly.
+    vec2 uvTex = vec2(uv.x, 1.0 - uv.y);
 
     // Signed UV offset from center  (-0.5 → +0.5)
     vec2 center = uMouse.xy / uResolution.xy;
@@ -43,8 +52,12 @@ void main() {
     if (rb1 + rb2 > 0.0) {
 
         // ── Refractive distortion ─────────────────────────────────────────────
+        // Compute lens distortion in screen UV space (y=0 top), then flip for
+        // texture sampling. This keeps the lens bulge direction physically correct
+        // regardless of which backend is in use.
         float distortionStrength = 50.0 * sizeMultiplier;
-        vec2 lens = (uv - 0.5) * (1.0 - roundedBox * distortionStrength) + 0.5;
+        vec2 lensUV = (uv - 0.5) * (1.0 - roundedBox * distortionStrength) + 0.5;
+        vec2 lens   = vec2(lensUV.x, 1.0 - lensUV.y);   // flip for sampler
 
         // ── Chromatic aberration ──────────────────────────────────────────────
         // Guard against NaN when m2=(0,0) at the exact center pixel.
@@ -55,9 +68,14 @@ void main() {
         // Dispersion is strongest at the glass edge, zero at center.
         float dispersionMask = smoothstep(0.0, 0.5, roundedBox * baseIntensity);
 
-        vec2 redOffset   = dir * dispersionScale * 2.0  * dispersionMask;
-        vec2 greenOffset = dir * dispersionScale * 1.0  * dispersionMask;
-        vec2 blueOffset  = dir * dispersionScale * -1.5 * dispersionMask;
+        // Chromatic offsets operate in screen UV space → negate y for sampler flip.
+        vec2 redOff   = dir * dispersionScale * 2.0  * dispersionMask;
+        vec2 greenOff = dir * dispersionScale * 1.0  * dispersionMask;
+        vec2 blueOff  = dir * dispersionScale * -1.5 * dispersionMask;
+        // Flip y component of offsets so they apply in sampler space correctly.
+        vec2 redOffset   = vec2( redOff.x,   -redOff.y);
+        vec2 greenOffset = vec2( greenOff.x, -greenOff.y);
+        vec2 blueOffset  = vec2( blueOff.x,  -blueOff.y);
 
         vec4 colorResult = vec4(0.0);
 
@@ -90,11 +108,11 @@ void main() {
             clamp((clamp(-m2.y, -1000.0, 0.2) * rb3 + 0.1) / 2.0, 0.0, 1.0);
 
         // Blend: raw background → refracted sample, driven by lens zone
-        fragColor = mix(texture(uTexture, uv), colorResult, rb1);
+        fragColor = mix(texture(uTexture, uvTex), colorResult, rb1);
         fragColor = clamp(fragColor + vec4(rb2 * 0.3) + vec4(gradient * 0.2), 0.0, 1.0);
 
     } else {
         // Outside lens envelope – pass through the unmodified background
-        fragColor = texture(uTexture, uv);
+        fragColor = texture(uTexture, uvTex);
     }
 }

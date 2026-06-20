@@ -83,26 +83,63 @@ class _BackgroundCaptureWidgetState extends State<BackgroundCaptureWidget> {
     });
   }
 
+  /// Returns true only when both [Offset] components are finite (not NaN / Infinity).
+  /// During map camera animations the render tree transforms can momentarily
+  /// produce invalid values — this guard lets us skip those frames safely.
+  static bool _isFiniteOffset(Offset o) =>
+      o.dx.isFinite && o.dy.isFinite;
+
   Future<void> _captureBackground() async {
     if (_isCapturing || !mounted) return;
     _isCapturing = true;
 
     try {
       // ── 1. Locate the RepaintBoundary render object ─────────────────────
-      final boundary = widget.backgroundKey.currentContext
-          ?.findRenderObject() as RenderRepaintBoundary?;
+      final backgroundContext = widget.backgroundKey.currentContext;
+      if (backgroundContext == null) return;
+
+      RenderRepaintBoundary? boundary;
+      final renderObject = backgroundContext.findRenderObject();
+      if (renderObject is RenderRepaintBoundary) {
+        boundary = renderObject;
+      } else if (renderObject != null) {
+        // Walk up the ancestor tree to find the nearest RenderRepaintBoundary
+        backgroundContext.visitAncestorElements((element) {
+          final ro = element.renderObject;
+          if (ro is RenderRepaintBoundary) {
+            boundary = ro;
+            return false; // Stop traversal
+          }
+          return true;
+        });
+      }
 
       final ourBox = context.findRenderObject() as RenderBox?;
 
-      if (boundary == null ||
-          !boundary.attached ||
+      final resolvedBoundary = boundary;
+      if (resolvedBoundary == null) return;
+
+      if (!resolvedBoundary.attached ||
           ourBox == null ||
           !ourBox.hasSize ||
           !ourBox.attached) {
         return;
       }
 
-      if (!boundary.hasSize || widget.width <= 0 || widget.height <= 0) {
+      if (!resolvedBoundary.hasSize || widget.width <= 0 || widget.height <= 0) {
+        return;
+      }
+
+      // Safeguard: do not capture if the repaint boundary is currently dirty (needs layout or paint),
+      // as calling toImage() on a dirty RenderObject throws an assertion error in debug mode.
+      bool needsLayoutOrPaint = false;
+      assert(() {
+        if (resolvedBoundary.debugNeedsLayout || resolvedBoundary.debugNeedsPaint) {
+          needsLayoutOrPaint = true;
+        }
+        return true;
+      }());
+      if (needsLayoutOrPaint) {
         return;
       }
 
@@ -110,22 +147,59 @@ class _BackgroundCaptureWidgetState extends State<BackgroundCaptureWidget> {
       // boundary.toImage() is the public, mode-safe API (works in
       // debug / profile / release, unlike debugLayer which throws in release).
       final double dpr = MediaQuery.of(context).devicePixelRatio;
-      final ui.Image fullImage = await boundary.toImage(pixelRatio: dpr);
+      final ui.Image fullImage = await resolvedBoundary.toImage(pixelRatio: dpr);
 
       // ── 3. Compute the nav-bar rect inside the captured image ────────────
-      // Convert our widget's top-left and bottom-right from global space into
-      // the boundary's local space, then scale to physical pixels.
-      final Offset globalTopLeft = ourBox.localToGlobal(Offset.zero);
-      final Offset localTopLeft = boundary.globalToLocal(globalTopLeft);
+      // IMPORTANT: We must use boundary.globalToLocal() for BOTH corners of
+      // our widget's rect. Using ourBox.localToGlobal() + boundary.globalToLocal()
+      // introduces a device-specific asymmetry: on some devices (especially those
+      // with display cutouts, non-standard DPRs, or different system UI padding),
+      // localToGlobal and globalToLocal traverse different ancestor transform
+      // chains, causing the computed crop to point at the wrong vertical region.
+      // This makes the texture appear to scroll in the OPPOSITE direction when the
+      // page scrolls.
+      //
+      // Solution: call boundary.globalToLocal() on the global positions of our
+      // widget's four corners directly — this is a single, symmetric transform.
+      final Offset ourGlobalTopLeft = ourBox.localToGlobal(Offset.zero);
+      final Offset ourGlobalBottomRight = ourBox.localToGlobal(
+        Offset(widget.width, widget.height),
+      );
+      // Transform both points into the boundary's local (logical) coordinate space.
+      final Offset localTopLeft = resolvedBoundary.globalToLocal(ourGlobalTopLeft);
+      final Offset localBottomRight = resolvedBoundary.globalToLocal(
+        ourGlobalBottomRight,
+      );
 
-      final int cropLeft =
-          (localTopLeft.dx * dpr).round().clamp(0, fullImage.width);
-      final int cropTop =
-          (localTopLeft.dy * dpr).round().clamp(0, fullImage.height);
-      final int cropRight =
-          ((localTopLeft.dx + widget.width) * dpr).round().clamp(0, fullImage.width);
-      final int cropBottom =
-          ((localTopLeft.dy + widget.height) * dpr).round().clamp(0, fullImage.height);
+      // Guard: during map camera animations (move / idle transition) the render
+      // tree transforms can be momentarily invalid, producing Infinity or NaN.
+      // Bail out silently — the next timer tick will retry with a valid transform.
+      if (!_isFiniteOffset(ourGlobalTopLeft) ||
+          !_isFiniteOffset(ourGlobalBottomRight) ||
+          !_isFiniteOffset(localTopLeft) ||
+          !_isFiniteOffset(localBottomRight)) {
+        fullImage.dispose();
+        return;
+      }
+
+      // Clamp to integer physical pixels. Do NOT negate or offset — the boundary
+      // local coords already point to the exact pixels we need to crop.
+      final int cropLeft = (localTopLeft.dx * dpr).round().clamp(
+        0,
+        fullImage.width,
+      );
+      final int cropTop = (localTopLeft.dy * dpr).round().clamp(
+        0,
+        fullImage.height,
+      );
+      final int cropRight = (localBottomRight.dx * dpr).round().clamp(
+        0,
+        fullImage.width,
+      );
+      final int cropBottom = (localBottomRight.dy * dpr).round().clamp(
+        0,
+        fullImage.height,
+      );
 
       final int cropW = cropRight - cropLeft;
       final int cropH = cropBottom - cropTop;

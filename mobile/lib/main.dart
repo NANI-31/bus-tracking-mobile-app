@@ -19,6 +19,9 @@ import 'package:collegebus/l10n/coordinator/app_localizations.dart';
 import 'package:collegebus/l10n/admin/app_localizations.dart';
 import 'package:collegebus/l10n/notification/app_localizations.dart';
 import 'package:collegebus/l10n/common/app_localizations.dart';
+import 'package:collegebus/core/utils/shader_precompiler.dart';
+
+import 'package:collegebus/shared/widgets/global_connectivity_banner.dart';
 
 import 'package:flutter/services.dart';
 
@@ -60,6 +63,9 @@ class _AppInitializerState extends State<AppInitializer> {
     // Initialize Logger with File Support
     await AppLogger.init();
     debugPrint('APP INIT: Logger initialized');
+
+    // Pre-compile fragment shaders asynchronously at app startup to eliminate hiccups
+    await ShaderPrecompiler.precompileAll();
 
     // Initialize Firebase (Critical)
     try {
@@ -174,6 +180,9 @@ class MyApp extends riverpod.ConsumerWidget {
         routerConfig: router,
         themeAnimationDuration: Duration.zero,
         debugShowCheckedModeBanner: false,
+        builder: (context, child) {
+          return GlobalConnectivityBanner(child: child);
+        },
       ),
     );
   }

@@ -39,8 +39,6 @@ class _StudentDashboardState extends ConsumerState<StudentDashboard>
 
   LatLng? _currentLocation;
   int _bottomNavIndex = 0;
-  Timer? _bannerDelayTimer;
-  bool _showDisconnectedBanner = false;
 
   /// Key for the [RepaintBoundary] wrapping the main content.
   /// Passed to [CurvedBottomNavBar] so the liquid-glass lens shader can
@@ -84,22 +82,12 @@ class _StudentDashboardState extends ConsumerState<StudentDashboard>
     if (state == AppLifecycleState.resumed) {
       // Reconnect socket when app comes back to foreground
       ref.read(socketServiceProvider).ensureConnected();
-    } else if (state == AppLifecycleState.paused ||
-        state == AppLifecycleState.inactive) {
-      // Cancel any pending banner timer when going to background
-      _bannerDelayTimer?.cancel();
-      if (mounted) {
-        setState(() {
-          _showDisconnectedBanner = false;
-        });
-      }
     }
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
-    _bannerDelayTimer?.cancel();
     super.dispose();
   }
 
@@ -142,11 +130,23 @@ class _StudentDashboardState extends ConsumerState<StudentDashboard>
   }
 
   void _selectBus(BusModel bus) {
+    if (bus.assignmentStatus != 'accepted') {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Bus ${bus.busNumber} is not active yet (pending driver acceptance).',
+          ),
+          backgroundColor: Colors.redAccent,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
     final user = ref.read(currentUserProvider);
     final collegeId = user?.collegeId;
     RouteModel? activeRoute;
     if (collegeId != null) {
-      final routes = ref.read(collegeRoutesProvider(collegeId)).value ?? [];
+      final routes = ref.read(collegeRoutesProvider(collegeId)).valueOrNull ?? [];
       final targetRouteId = bus.routeId ?? bus.defaultRouteId;
       activeRoute = routes.cast<RouteModel?>().firstWhere(
         (r) => r!.id == targetRouteId,
@@ -220,11 +220,11 @@ class _StudentDashboardState extends ConsumerState<StudentDashboard>
     final liveLocationsAsync = collegeId != null
         ? ref.watch(collegeBusLocationsProvider(collegeId))
         : const AsyncValue<List<BusLocationModel>>.data([]);
-    final liveLocations = liveLocationsAsync.value ?? [];
+    final liveLocations = liveLocationsAsync.valueOrNull ?? [];
     final liveBusIds = liveLocations.map((loc) => loc.busId).toSet();
 
-    final allBusesRaw = busesAsync.value ?? [];
-    final routes = routesAsync.value ?? [];
+    final allBusesRaw = busesAsync.valueOrNull ?? [];
+    final routes = routesAsync.valueOrNull ?? [];
 
     // Restore saved bus selection when buses list becomes available
     final savedBusId = user != null
@@ -239,18 +239,24 @@ class _StudentDashboardState extends ConsumerState<StudentDashboard>
         }
       }
       if (match != null) {
-        final targetRouteId = match.routeId ?? match.defaultRouteId;
-        final activeRoute = targetRouteId != null
-            ? routes.cast<RouteModel?>().firstWhere(
-                (r) => r!.id == targetRouteId,
-                orElse: () => null,
-              )
-            : null;
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          ref
-              .read(mapNavigationProvider.notifier)
-              .selectBus(match, activeRoute);
-        });
+        if (match.assignmentStatus == 'accepted') {
+          final targetRouteId = match.routeId ?? match.defaultRouteId;
+          final activeRoute = targetRouteId != null
+              ? routes.cast<RouteModel?>().firstWhere(
+                  (r) => r!.id == targetRouteId,
+                  orElse: () => null,
+                )
+              : null;
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            ref
+                .read(mapNavigationProvider.notifier)
+                .selectBus(match, activeRoute);
+          });
+        } else {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            PersistenceService.removeSelectedBusId(user?.id);
+          });
+        }
       }
     }
 
@@ -365,22 +371,43 @@ class _StudentDashboardState extends ConsumerState<StudentDashboard>
                   currentLocation: _currentLocation,
                   buses:
                       selectedBus != null &&
-                          !filteredBuses.any((b) => b.id == selectedBus.id)
-                      ? [...filteredBuses, selectedBus]
-                      : filteredBuses,
-                  selectedBus: selectedBus,
+                              selectedBus.assignmentStatus == 'accepted' &&
+                              liveBusIds.contains(selectedBus.id)
+                          ? [selectedBus]
+                          : const [],
+                  selectedBus:
+                      selectedBus != null &&
+                              selectedBus.assignmentStatus == 'accepted'
+                          ? selectedBus
+                          : null,
                   selectedRouteType: selectedRouteType,
                   allBuses: allBusesRaw,
-                  filteredBusesCount: filteredBuses.length,
+                  filteredBusesCount: selectedBus != null &&
+                          selectedBus.assignmentStatus == 'accepted' &&
+                          liveBusIds.contains(selectedBus.id)
+                      ? 1
+                      : 0,
                   onMapCreated: (controller) => _mapController = controller,
                   onRouteTypeSelected: _onRouteTypeSelected,
                   onBusNumberSelected: _onBusNumberSelected,
                   onClearFilters: _clearFilters,
                   onBusSelected: (bus) {
+                    if (bus != null && bus.assignmentStatus != 'accepted') {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            'Bus ${bus.busNumber} is not active yet (pending driver acceptance).',
+                          ),
+                          backgroundColor: Colors.redAccent,
+                          behavior: SnackBarBehavior.floating,
+                        ),
+                      );
+                      return;
+                    }
                     RouteModel? activeRoute;
                     if (bus != null && collegeId != null) {
                       final routes =
-                          ref.read(collegeRoutesProvider(collegeId)).value ?? [];
+                          ref.read(collegeRoutesProvider(collegeId)).valueOrNull ?? [];
                       final targetRouteId = bus.routeId ?? bus.defaultRouteId;
                       activeRoute = routes.cast<RouteModel?>().firstWhere(
                         (r) => r!.id == targetRouteId,
@@ -391,7 +418,11 @@ class _StudentDashboardState extends ConsumerState<StudentDashboard>
                         .read(mapNavigationProvider.notifier)
                         .selectBus(bus, activeRoute);
                   },
-                  activeRoute: activeRoute,
+                  activeRoute:
+                      selectedBus != null &&
+                              selectedBus.assignmentStatus == 'accepted'
+                          ? activeRoute
+                          : null,
                 ),
                 BusScheduleScreen(
                   isTab: true,
@@ -404,13 +435,20 @@ class _StudentDashboardState extends ConsumerState<StudentDashboard>
           ),
         ),
 
-        // Global Connectivity Banner
-        _buildConnectivityBanner(),
+        // Global Connectivity Banner is now handled by MaterialApp builder
+        const SizedBox.shrink(),
         if (!isWide)
           Align(
             alignment: Alignment.bottomCenter,
             child: CurvedBottomNavBar(
               activeColor: _getActiveColor(context),
+              activeColors: [
+                const Color(0xFF00C6E6), // Turkish Blue / Turquoise
+                Colors.teal.shade400,
+                Colors.indigo.shade400,
+                Colors.orange.shade400,
+                Colors.purple.shade400,
+              ],
               inactiveColor: Theme.of(context).colorScheme.secondary,
               backgroundColor: Theme.of(context).brightness == Brightness.light
                   ? Theme.of(context).cardColor
@@ -526,100 +564,20 @@ class _StudentDashboardState extends ConsumerState<StudentDashboard>
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      resizeToAvoidBottomInset: false,
       body: mainBody,
     );
   }
 
-  Widget _buildConnectivityBanner() {
-    return Consumer(
-      builder: (context, ref, child) {
-        final socketService = ref.watch(socketServiceProvider);
-        final isConnected = socketService.isConnected;
-        final isConnecting = socketService.isConnecting;
 
-        // If connected, hide banner and cancel any pending timer
-        if (isConnected && !isConnecting) {
-          _bannerDelayTimer?.cancel();
-          if (_showDisconnectedBanner) {
-            _showDisconnectedBanner = false;
-          }
-          return const SizedBox.shrink();
-        }
-
-        // If just came back from background or briefly disconnected,
-        // add a 3-second grace period before showing the banner
-        if (!_showDisconnectedBanner && !isConnecting) {
-          _bannerDelayTimer?.cancel();
-          _bannerDelayTimer = Timer(const Duration(seconds: 3), () {
-            if (mounted && !socketService.isConnected) {
-              setState(() {
-                _showDisconnectedBanner = true;
-              });
-            }
-          });
-          return const SizedBox.shrink();
-        }
-
-        // Show "Connecting..." immediately but "Disconnected" after grace period
-        if (!isConnecting && !_showDisconnectedBanner) {
-          return const SizedBox.shrink();
-        }
-
-        return Positioned(
-          top: MediaQuery.of(context).padding.top + 12,
-          left: 20,
-          right: 20,
-          child: TweenAnimationBuilder<double>(
-            tween: Tween(begin: 0.0, end: 1.0),
-            duration: const Duration(milliseconds: 500),
-            curve: Curves.easeOutBack,
-            builder: (context, value, child) {
-              return Opacity(
-                opacity: value.clamp(0.0, 1.0),
-                child: Transform.translate(
-                  offset: Offset(0, (1 - value) * -20),
-                  child: child,
-                ),
-              );
-            },
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-              decoration: BoxDecoration(
-                color: isConnecting ? Colors.amber : Colors.red,
-                borderRadius: BorderRadius.circular(30),
-                boxShadow: [
-                  BoxShadow(
-                    color: (isConnecting ? Colors.amber : Colors.red)
-                        .withValues(alpha: 0.3),
-                    blurRadius: 10,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-              ),
-              child: Text(
-                isConnecting ? "Connecting..." : "Server Disconnected",
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: isConnecting ? Colors.black87 : Colors.white,
-                  fontWeight: FontWeight.w900,
-                  fontSize: 14,
-                  letterSpacing: 0.8,
-                ),
-              ),
-            ),
-          ),
-        );
-      },
-    );
-  }
 
   Color _getActiveColor(BuildContext context) {
-    if (_bottomNavIndex == 0) return Theme.of(context).colorScheme.primary;
+    if (_bottomNavIndex == 0) return const Color(0xFF00C6E6); // Turkish Blue / Turquoise
     if (_bottomNavIndex == 1) return Colors.teal.shade400;
     if (_bottomNavIndex == 2) return Colors.indigo.shade400;
     if (_bottomNavIndex == 3) return Colors.orange.shade400;
     if (_bottomNavIndex == 4) return Colors.purple.shade400;
-    return Theme.of(context).colorScheme.primary;
+    return const Color(0xFF00C6E6);
   }
 }
 
@@ -632,7 +590,7 @@ class AnimatedIndexedStack extends StatefulWidget {
     super.key,
     required this.index,
     required this.children,
-    this.duration = const Duration(milliseconds: 500),
+    this.duration = const Duration(milliseconds: 320), // Snappier, premium transition speed
   });
 
   @override
@@ -643,15 +601,10 @@ class _AnimatedIndexedStackState extends State<AnimatedIndexedStack>
     with TickerProviderStateMixin {
   late List<AnimationController> _controllers;
   late List<Animation<double>> _animations;
-  // Track which tab indexes have been visited at least once.
-  // On revisit, we skip the slide-in animation so the tab appears
-  // immediately without looking like a fake loading state.
-  late Set<int> _visitedIndexes;
 
   @override
   void initState() {
     super.initState();
-    _visitedIndexes = {widget.index}; // current tab is already "visited"
     _controllers = List.generate(
       widget.children.length,
       (i) => AnimationController(vsync: this, duration: widget.duration),
@@ -672,14 +625,7 @@ class _AnimatedIndexedStackState extends State<AnimatedIndexedStack>
     super.didUpdateWidget(oldWidget);
     if (oldWidget.index != widget.index) {
       _controllers[oldWidget.index].reverse();
-      final isRevisit = _visitedIndexes.contains(widget.index);
-      if (isRevisit) {
-        // Jump straight to the final value — no entrance animation on revisit
-        _controllers[widget.index].value = 1.0;
-      } else {
-        _visitedIndexes.add(widget.index);
-        _controllers[widget.index].forward();
-      }
+      _controllers[widget.index].forward(from: 0.0); // Animate always for seamless visual flow
     }
   }
 
@@ -712,9 +658,9 @@ class _AnimatedIndexedStackState extends State<AnimatedIndexedStack>
                 child: Opacity(
                   opacity: val.clamp(0.0, 1.0),
                   child: Transform.scale(
-                    scale: 0.95 + (0.05 * val),
+                    scale: 0.96 + (0.04 * val), // Snug, premium minor scale transition
                     child: Transform.translate(
-                      offset: Offset(0.0, 30.0 * (1.0 - val)),
+                      offset: Offset(0.0, 12.0 * (1.0 - val)), // Light 12px float lift
                       child: child,
                     ),
                   ),

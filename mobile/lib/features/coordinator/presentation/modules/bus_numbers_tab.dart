@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:collegebus/core/providers/repository_providers.dart';
@@ -8,12 +9,13 @@ import 'package:collegebus/features/bus/application/bus_provider.dart';
 import 'package:collegebus/features/bus/domain/bus_model.dart';
 import 'package:collegebus/features/user/domain/user_model.dart';
 import 'package:collegebus/core/constants/constants.dart';
-import 'package:velocity_x/velocity_x.dart';
 import 'package:collegebus/l10n/coordinator/app_localizations.dart'
     as coord_l10n;
-import 'bus_tab_components/bus_search_bar.dart';
+import 'package:collegebus/features/coordinator/presentation/widgets/coordinator_search_bar.dart';
+import 'package:collegebus/features/coordinator/presentation/widgets/coordinator_list_layout.dart';
 import 'bus_tab_components/bus_list_card.dart';
 import 'bus_tab_components/bus_empty_state.dart';
+import 'bubble_tab_selector.dart';
 import 'package:collegebus/shared/widgets/shimmer_skeletons.dart';
 
 import 'package:collegebus/shared/widgets/navigation/curved_bottom_nav_bar.dart';
@@ -31,6 +33,7 @@ class _BusNumbersTabState extends ConsumerState<BusNumbersTab>
   final FocusNode _focusNode = FocusNode();
   String _searchQuery = '';
   bool _isKeyboardVisible = false;
+  bool _isFabVisible = true;
 
   @override
   void initState() {
@@ -40,7 +43,8 @@ class _BusNumbersTabState extends ConsumerState<BusNumbersTab>
 
   @override
   void didChangeMetrics() {
-    final bottomInset = View.of(context).viewInsets.bottom;
+    if (!mounted) return;
+    final bottomInset = WidgetsBinding.instance.platformDispatcher.views.first.viewInsets.bottom;
     final isKeyboardOpen = bottomInset > 0.0;
 
     if (_isKeyboardVisible && !isKeyboardOpen) {
@@ -145,100 +149,89 @@ class _BusNumbersTabState extends ConsumerState<BusNumbersTab>
 
     return DefaultTabController(
       length: 3,
-      child: GestureDetector(
-        onTap: () => FocusScope.of(context).unfocus(),
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            Column(
-              children: [
-                // Search Bar Component
-                BusSearchBar(
-                  controller: _searchController,
-                  focusNode: _focusNode,
-                  hintText: l10n.search,
-                  onChanged: (val) {
-                    setState(() {
-                      _searchQuery = val;
-                    });
-                  },
-                  onClear: () {
-                    _searchController.clear();
-                    setState(() {
-                      _searchQuery = '';
-                    });
-                  },
-                  searchQuery: _searchQuery,
-                ),
-
-                // Tab Bar
-                 Container(
-                  margin: const EdgeInsets.symmetric(
-                    horizontal: AppSizes.paddingMedium,
-                    vertical: 8,
+      child: NotificationListener<UserScrollNotification>(
+        onNotification: (notification) {
+          if (notification.direction == ScrollDirection.reverse) {
+            if (_isFabVisible) {
+              setState(() {
+                _isFabVisible = false;
+              });
+            }
+          } else if (notification.direction == ScrollDirection.forward) {
+            if (!_isFabVisible) {
+              setState(() {
+                _isFabVisible = true;
+              });
+            }
+          }
+          return true;
+        },
+        child: GestureDetector(
+          onTap: () => FocusScope.of(context).unfocus(),
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              Column(
+                children: [
+                  // Search Bar Component
+                  CoordinatorSearchBar(
+                    controller: _searchController,
+                    focusNode: _focusNode,
+                    hintText: l10n.search,
+                    onChanged: (val) {
+                      setState(() {
+                        _searchQuery = val;
+                      });
+                    },
+                    onClear: () {
+                      _searchController.clear();
+                      setState(() {
+                        _searchQuery = '';
+                      });
+                    },
+                    searchQuery: _searchQuery,
                   ),
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.surfaceContainerHighest, // Semantic color token
-                    borderRadius: BorderRadius.circular(50),
-                    border: Border.all(
-                      color: Theme.of(context).dividerColor.withValues(alpha: 0.15),
-                      width: 1,
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.05),
-                        blurRadius: 10,
-                        offset: const Offset(0, 4),
-                      ),
+  
+                  // Tab Bar
+                  BubbleTabSelector(
+                    icons: const [
+                      Icons.directions_bus_outlined,
+                      Icons.check_circle_outline,
+                      Icons.play_arrow_outlined,
+                    ],
+                    labels: [
+                      l10n.all,
+                      l10n.free,
+                      l10n.running,
                     ],
                   ),
-                  child: TabBar(
-                    isScrollable: false,
-                    labelColor: Colors.white,
-                    unselectedLabelColor: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
-                    indicatorSize: TabBarIndicatorSize.tab,
-                    indicator: BoxDecoration(
-                      color: AppColors.primary,
-                      borderRadius: BorderRadius.circular(50),
-                      boxShadow: [
-                        BoxShadow(
-                          color: AppColors.primary.withValues(alpha: 0.4),
-                          blurRadius: 8,
-                          offset: const Offset(0, 2),
-                        ),
+  
+                  Expanded(
+                    child: TabBarView(
+                      children: [
+                        _buildBusList('all', busNumbers, buses, allDrivers),
+                        _buildBusList('free', busNumbers, buses, allDrivers),
+                        _buildBusList('running', busNumbers, buses, allDrivers),
                       ],
                     ),
-                    dividerColor: Colors.transparent,
-                    labelPadding: EdgeInsets.zero,
-                    tabs: [
-                      Tab(text: l10n.all),
-                      Tab(text: l10n.free),
-                      Tab(text: l10n.running),
-                    ],
-                  ).p4(),
-                ),
-
-                Expanded(
-                  child: TabBarView(
-                    children: [
-                      _buildBusList('all', busNumbers, buses, allDrivers),
-                      _buildBusList('free', busNumbers, buses, allDrivers),
-                      _buildBusList('running', busNumbers, buses, allDrivers),
-                    ],
+                  ),
+                ],
+              ),
+              Positioned(
+                bottom: CurvedBottomNavBar.clearance(context) + AppSizes.paddingMedium,
+                right: AppSizes.paddingMedium,
+                child: AnimatedScale(
+                  scale: _isFabVisible ? 1.0 : 0.0,
+                  duration: const Duration(milliseconds: 200),
+                  child: FloatingActionButton(
+                    onPressed: () => _showCreateBusNumberDialog(context),
+                    backgroundColor: AppColors.primary,
+                    child: const Icon(Icons.add, color: Colors.white),
                   ),
                 ),
-              ],
-            ),
-            Positioned(
-              bottom: CurvedBottomNavBar.clearance(context) + AppSizes.paddingMedium,
-              right: AppSizes.paddingMedium,
-              child: FloatingActionButton(
-                onPressed: () => _showCreateBusNumberDialog(context),
-                backgroundColor: AppColors.primary,
-                child: const Icon(Icons.add, color: Colors.white),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -315,19 +308,14 @@ class _BusNumbersTabState extends ConsumerState<BusNumbersTab>
       );
     }
 
-    return ListView.builder(
-      padding: const EdgeInsets.only(
-        left: AppSizes.paddingMedium,
-        right: AppSizes.paddingMedium,
-        bottom: 16,
-        top: 8,
+    return CoordinatorListLayout<String>(
+      pageStorageKey: PageStorageKey<String>('bus_list_$category'),
+      items: displayNumbers,
+      emptyState: BusEmptyState(
+        isSearching: _searchQuery.isNotEmpty,
+        searchQuery: _searchQuery,
       ),
-      itemCount: displayNumbers.length + 1,
-      itemBuilder: (context, index) {
-        if (index == displayNumbers.length) {
-          return const BottomNavSpacer();
-        }
-        final busNumber = displayNumbers[index];
+      itemBuilder: (context, busNumber, index) {
         final isOfficial = busNumbers.contains(busNumber);
         final assignedBus = buses.firstWhere(
           (bus) => bus.busNumber == busNumber,

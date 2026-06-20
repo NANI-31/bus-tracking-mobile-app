@@ -6,7 +6,7 @@ class ProfileListItem extends StatefulWidget {
   final IconData leadingIcon;
   final Color iconColor;
   final String title;
-  final String subtitle;
+  final String? subtitle;
   final Widget? trailing;
   final VoidCallback? onTap;
   final bool showDivider;
@@ -16,7 +16,7 @@ class ProfileListItem extends StatefulWidget {
     required this.leadingIcon,
     required this.iconColor,
     required this.title,
-    required this.subtitle,
+    this.subtitle,
     this.trailing,
     this.onTap,
     this.showDivider = true,
@@ -83,14 +83,24 @@ class _ProfileListItemState extends State<ProfileListItem>
               .size(15)
               .color(Theme.of(context).colorScheme.onSurface)
               .make(),
-          subtitle: widget.subtitle.text
-              .size(12)
-              .color(
-                Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
-              )
-              .make()
-              .pOnly(top: 2),
-          trailing: widget.trailing,
+          subtitle: widget.subtitle != null && widget.subtitle!.isNotEmpty
+              ? widget.subtitle!.text
+                  .size(12)
+                  .color(
+                    Theme.of(context)
+                        .colorScheme
+                        .onSurface
+                        .withValues(alpha: 0.5),
+                  )
+                  .make()
+                  .pOnly(top: 2)
+              : null,
+          trailing: widget.trailing != null
+              ? AnimatedTrailingChevron(
+                  parentController: _controller,
+                  child: widget.trailing!,
+                )
+              : null,
         ),
         if (widget.showDivider)
           Divider(
@@ -121,6 +131,79 @@ class _ProfileListItemState extends State<ProfileListItem>
     }
 
     return child;
+  }
+}
+
+class AnimatedTrailingChevron extends StatefulWidget {
+  final Widget child;
+  final AnimationController parentController;
+
+  const AnimatedTrailingChevron({
+    super.key,
+    required this.child,
+    required this.parentController,
+  });
+
+  @override
+  State<AnimatedTrailingChevron> createState() => _AnimatedTrailingChevronState();
+}
+
+class _AnimatedTrailingChevronState extends State<AnimatedTrailingChevron>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _localController;
+  late Animation<double> _slideAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _localController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 300),
+    );
+
+    _slideAnimation = TweenSequence<double>([
+      TweenSequenceItem(
+        tween: Tween<double>(begin: 0.0, end: 5.0).chain(CurveTween(curve: Curves.easeOutCubic)),
+        weight: 40,
+      ),
+      TweenSequenceItem(
+        tween: Tween<double>(begin: 5.0, end: -1.5).chain(CurveTween(curve: Curves.easeInOutCubic)),
+        weight: 30,
+      ),
+      TweenSequenceItem(
+        tween: Tween<double>(begin: -1.5, end: 0.0).chain(CurveTween(curve: Curves.easeInCubic)),
+        weight: 30,
+      ),
+    ]).animate(_localController);
+
+    widget.parentController.addStatusListener(_onStatusChanged);
+  }
+
+  void _onStatusChanged(AnimationStatus status) {
+    if (status == AnimationStatus.forward) {
+      _localController.forward(from: 0.0);
+    }
+  }
+
+  @override
+  void dispose() {
+    widget.parentController.removeStatusListener(_onStatusChanged);
+    _localController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _slideAnimation,
+      builder: (context, child) {
+        return Transform.translate(
+          offset: Offset(_slideAnimation.value, 0),
+          child: child,
+        );
+      },
+      child: widget.child,
+    );
   }
 }
 

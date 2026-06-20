@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:collegebus/core/constants/constants.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:collegebus/features/bus/domain/bus_model.dart';
 import 'package:collegebus/features/route/domain/route_model.dart';
@@ -123,8 +125,13 @@ class _EditScheduleScreenState extends ConsumerState<EditScheduleScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Edit Schedule'),
-        backgroundColor: theme.primaryColor,
-        foregroundColor: theme.colorScheme.onPrimary,
+        backgroundColor: AppColors.primary,
+        foregroundColor: Colors.white,
+        systemOverlayStyle: const SystemUiOverlayStyle(
+          statusBarColor: AppColors.primary,
+          statusBarIconBrightness: Brightness.light,
+          statusBarBrightness: Brightness.dark,
+        ),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
@@ -149,36 +156,55 @@ class _EditScheduleScreenState extends ConsumerState<EditScheduleScreen> {
             const SizedBox(height: 12),
             TextField(
               controller: _routeSearchController,
+              style: TextStyle(
+                color: theme.brightness == Brightness.dark ? Colors.white : const Color(0xFF111418),
+              ),
               decoration: InputDecoration(
                 hintText: 'Search routes...',
-                prefixIcon: const Icon(Icons.search, size: 20),
-                contentPadding: const EdgeInsets.symmetric(
-                  vertical: 0,
-                  horizontal: 16,
-                ),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
+                hintStyle: TextStyle(color: Colors.grey.shade500),
+                prefixIcon: const Icon(Icons.search_rounded, color: AppColors.primary, size: 20),
+                contentPadding: const EdgeInsets.symmetric(vertical: 16),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
                   borderSide: BorderSide(
-                    color: theme.dividerColor.withValues(alpha: 0.1),
+                    color: theme.brightness == Brightness.dark
+                        ? Colors.white.withValues(alpha: 0.08)
+                        : Colors.grey.shade200,
                   ),
                 ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(
-                    color: theme.dividerColor.withValues(alpha: 0.1),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  borderSide: const BorderSide(
+                    color: AppColors.primary,
+                    width: 1.5,
                   ),
                 ),
                 filled: true,
-                fillColor: theme.dividerColor.withValues(alpha: 0.05),
+                fillColor: theme.brightness == Brightness.dark
+                    ? const Color(0xFF1E2732)
+                    : Colors.grey.shade50,
               ),
             ),
             const SizedBox(height: 12),
             Container(
               decoration: BoxDecoration(
+                color: theme.brightness == Brightness.dark ? const Color(0xFF1E2732) : Colors.white,
+                borderRadius: BorderRadius.circular(20),
                 border: Border.all(
-                  color: theme.dividerColor.withValues(alpha: 0.2),
+                  color: theme.brightness == Brightness.dark
+                      ? Colors.white.withValues(alpha: 0.08)
+                      : const Color(0x14000000),
+                  width: 1.2,
                 ),
-                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(
+                      alpha: theme.brightness == Brightness.dark ? 0.2 : 0.04,
+                    ),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
               ),
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxHeight: 250),
@@ -201,6 +227,7 @@ class _EditScheduleScreenState extends ConsumerState<EditScheduleScreen> {
                       return Padding(
                         padding: const EdgeInsets.all(24.0),
                         child: Column(
+                          mainAxisSize: MainAxisSize.min,
                           children: [
                             Icon(
                               Icons.search_off,
@@ -222,18 +249,24 @@ class _EditScheduleScreenState extends ConsumerState<EditScheduleScreen> {
                       itemCount: filteredRoutes.length,
                       separatorBuilder: (context, index) => Divider(
                         height: 1,
-                        color: theme.dividerColor.withValues(alpha: 0.1),
+                        color: theme.brightness == Brightness.dark
+                            ? Colors.white.withValues(alpha: 0.08)
+                            : theme.dividerColor.withValues(alpha: 0.1),
                       ),
                       itemBuilder: (context, index) {
                         final route = filteredRoutes[index];
                         final isSelected = _selectedRoute?.id == route.id;
                         return InkWell(
                           onTap: () => setState(() => _selectedRoute = route),
+                          borderRadius: BorderRadius.circular(20),
                           child: Container(
-                            padding: const EdgeInsets.all(12),
-                            color: isSelected
-                                ? theme.primaryColor.withValues(alpha: 0.05)
-                                : null,
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                            decoration: BoxDecoration(
+                              color: isSelected
+                                  ? AppColors.primary.withValues(alpha: 0.08)
+                                  : null,
+                              borderRadius: BorderRadius.circular(20),
+                            ),
                             child: Row(
                               children: [
                                 Icon(
@@ -251,11 +284,13 @@ class _EditScheduleScreenState extends ConsumerState<EditScheduleScreen> {
                                     crossAxisAlignment:
                                         CrossAxisAlignment.start,
                                     children: [
-                                      route.routeName.text.semiBold.make(),
+                                      route.routeName.text.semiBold
+                                          .color(theme.brightness == Brightness.dark ? Colors.white : const Color(0xFF111418))
+                                          .make(),
                                       '${route.startPoint.name} → ${route.endPoint.name}'
                                           .text
                                           .size(12)
-                                          .color(theme.disabledColor)
+                                          .color(theme.brightness == Brightness.dark ? Colors.white60 : Colors.grey.shade600)
                                           .make(),
                                     ],
                                   ),
@@ -276,11 +311,40 @@ class _EditScheduleScreenState extends ConsumerState<EditScheduleScreen> {
             DropdownButtonFormField<BusModel>(
               initialValue: _selectedBus,
               isExpanded: true,
-              decoration: const InputDecoration(
-                labelText: 'Select Bus',
-                border: OutlineInputBorder(),
-                prefixIcon: Icon(Icons.directions_bus_outlined),
+              dropdownColor: theme.brightness == Brightness.dark
+                  ? const Color(0xFF1E2732)
+                  : Colors.white,
+              style: TextStyle(
+                color: theme.brightness == Brightness.dark ? Colors.white : const Color(0xFF111418),
               ),
+              decoration: InputDecoration(
+                labelText: 'Select Bus',
+                labelStyle: TextStyle(
+                  color: theme.brightness == Brightness.dark ? Colors.white60 : Colors.grey.shade600,
+                ),
+                prefixIcon: const Icon(Icons.directions_bus_outlined, color: AppColors.primary),
+                filled: true,
+                fillColor: theme.brightness == Brightness.dark
+                    ? const Color(0xFF1E2732)
+                    : Colors.grey.shade50,
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  borderSide: BorderSide(
+                    color: theme.brightness == Brightness.dark
+                        ? Colors.white.withValues(alpha: 0.08)
+                        : Colors.grey.shade200,
+                  ),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  borderSide: const BorderSide(
+                    color: AppColors.primary,
+                    width: 1.5,
+                  ),
+                ),
+              ),
+              icon: const Icon(Icons.arrow_drop_down_rounded, color: AppColors.primary, size: 28),
               items: widget.buses
                   .map(
                     (bus) => DropdownMenuItem(
@@ -297,13 +361,25 @@ class _EditScheduleScreenState extends ConsumerState<EditScheduleScreen> {
             // Route Preview Info
             if (_selectedRoute != null) ...[
               Container(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  color: theme.primaryColor.withValues(alpha: 0.05),
-                  borderRadius: BorderRadius.circular(12),
+                  color: theme.brightness == Brightness.dark ? const Color(0xFF1E2732) : Colors.white,
+                  borderRadius: BorderRadius.circular(20),
                   border: Border.all(
-                    color: theme.primaryColor.withValues(alpha: 0.1),
+                    color: theme.brightness == Brightness.dark
+                        ? Colors.white.withValues(alpha: 0.08)
+                        : const Color(0x14000000),
+                    width: 1.2,
                   ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(
+                        alpha: theme.brightness == Brightness.dark ? 0.2 : 0.04,
+                      ),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -407,52 +483,95 @@ class _EditScheduleScreenState extends ConsumerState<EditScheduleScreen> {
     bool isEnd,
     bool isOnlyStop,
   ) {
-    final theme = Theme.of(context);
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 0),
-      child: IntrinsicHeight(
-        child: Row(
-          children: [
-            Column(
-              children: [
-                Container(
-                  width: 12,
-                  height: 12,
-                  decoration: BoxDecoration(
-                    color: isStart || isEnd
-                        ? theme.primaryColor
-                        : Colors.transparent,
-                    border: Border.all(color: theme.primaryColor, width: 2),
-                    shape: BoxShape.circle,
-                  ),
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final nodeColor = isStart
+        ? const Color(0xFF10B981)
+        : isEnd
+            ? const Color(0xFFEF4444)
+            : const Color(0xFFF97316);
+    return Stack(
+      children: [
+        // Left connector line
+        Positioned(
+          left: 15, // Centered inside the 32px width column
+          top: isStart ? 9 : 0,
+          bottom: isEnd ? null : 0,
+          child: isEnd
+              ? const SizedBox.shrink()
+              : Container(
+                  width: 2,
+                  color: Colors.grey.withValues(alpha: 0.3),
                 ),
-                if (!isEnd)
-                  Expanded(
-                    child: Container(
-                      width: 2,
-                      color: theme.primaryColor.withValues(alpha: 0.3),
+        ),
+        if (isEnd)
+          Positioned(
+            left: 15,
+            top: 0,
+            child: Container(
+              width: 2,
+              height: 9,
+              color: Colors.grey.withValues(alpha: 0.3),
+            ),
+          ),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SizedBox(
+              width: 32,
+              child: Padding(
+                padding: const EdgeInsets.only(top: 2.0),
+                child: Center(
+                  child: Container(
+                    width: 14,
+                    height: 14,
+                    decoration: BoxDecoration(
+                      color: nodeColor,
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: isDark ? const Color(0xFF1E2732) : Colors.white,
+                        width: 2.5,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: nodeColor.withValues(alpha: 0.4),
+                          blurRadius: 6,
+                          spreadRadius: 1,
+                        ),
+                      ],
                     ),
                   ),
-              ],
+                ),
+              ),
             ),
-            const SizedBox(width: 12),
+            12.widthBox,
             Expanded(
               child: Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: Text(
-                  name,
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: isStart || isEnd
-                        ? FontWeight.bold
-                        : FontWeight.normal,
-                  ),
+                padding: const EdgeInsets.only(top: 2.0, bottom: 10.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    name.text
+                        .size(14)
+                        .semiBold
+                        .color(isDark ? Colors.white : const Color(0xFF111418))
+                        .make(),
+                    4.heightBox,
+                    (isStart
+                            ? 'Starting Point'
+                            : isEnd
+                                ? 'Destination'
+                                : 'Intermediate Stop')
+                        .text
+                        .size(11)
+                        .color(isDark ? Colors.white60 : Colors.grey.shade600)
+                        .make(),
+                  ],
                 ),
               ),
             ),
           ],
         ),
-      ),
+      ],
     );
   }
 }

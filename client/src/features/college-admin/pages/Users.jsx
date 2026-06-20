@@ -215,7 +215,7 @@ const Users = () => {
             <option value="all">All Roles</option>
             <option value="student">Student</option>
             <option value="driver">Driver</option>
-            <option value="coordinator">Coordinator</option>
+            <option value="busCoordinator">Coordinator</option>
           </select>
         </div>
       </div>

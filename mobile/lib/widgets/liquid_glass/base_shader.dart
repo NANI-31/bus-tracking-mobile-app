@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
+import 'package:collegebus/core/utils/shader_precompiler.dart';
 
 class BaseShader {
   BaseShader({
@@ -24,7 +25,11 @@ class BaseShader {
 
   Future<void> _loadShader() async {
     try {
-      _program = await ui.FragmentProgram.fromAsset(shaderAssetPath);
+      if (ShaderPrecompiler.hasProgram(shaderAssetPath)) {
+        _program = ShaderPrecompiler.getProgram(shaderAssetPath)!;
+      } else {
+        _program = await ui.FragmentProgram.fromAsset(shaderAssetPath);
+      }
       _shader = _program.fragmentShader();
       _isLoaded = true;
     } catch (e) {

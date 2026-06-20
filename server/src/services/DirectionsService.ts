@@ -57,20 +57,36 @@ export class DirectionsService {
       
       // Increment Google Maps API Usage Count in DB
       try {
-        await SystemConfig.findOneAndUpdate(
-          { key: "googleApiUsageCount" },
-          { 
-            $inc: { value: 1 },
-            $setOnInsert: { 
-              dataType: "number", 
-              isPublic: false, 
-              isEditable: false,
-              description: "Total Google Maps API calls made by the system",
-              category: "usage"
-            } 
-          },
-          { upsert: true }
-        );
+        await Promise.all([
+          SystemConfig.findOneAndUpdate(
+            { key: "googleApiUsageCount" },
+            { 
+              $inc: { value: 1 },
+              $setOnInsert: { 
+                dataType: "number", 
+                isPublic: false, 
+                isEditable: false,
+                description: "Total Google Maps API calls made by the system",
+                category: "usage"
+              } 
+            },
+            { upsert: true }
+          ),
+          SystemConfig.findOneAndUpdate(
+            { key: "googleDirectionsCount" },
+            { 
+              $inc: { value: 1 },
+              $setOnInsert: { 
+                dataType: "number", 
+                isPublic: false, 
+                isEditable: false,
+                description: "Total Google Maps Directions API calls",
+                category: "usage"
+              } 
+            },
+            { upsert: true }
+          )
+        ]);
       } catch (err) {
         logger.error("[DirectionsService] Failed to increment googleApiUsageCount:", err);
       }
@@ -95,7 +111,14 @@ export class DirectionsService {
       }
 
       // Decode the polyline points
-      const polylinePoints = this.decodePolyline(overviewPolyline);
+      let polylinePoints = this.decodePolyline(overviewPolyline);
+      const originalCount = polylinePoints.length;
+
+      // Simplify polyline points if there are many to save memory/bandwidth
+      if (polylinePoints.length > 50) {
+        polylinePoints = this.simplifyPoints(polylinePoints, 0.00002);
+        logger.info(`[DirectionsService] Simplified polyline points from ${originalCount} to ${polylinePoints.length} for route ${route._id}`);
+      }
 
       // Parse legs and totals
       const legsData = apiRoute.legs || [];
@@ -173,5 +196,58 @@ export class DirectionsService {
     }
 
     return points;
+  }
+
+  /**
+   * Simplifies a list of points using the Douglas-Peucker algorithm.
+   */
+  private static simplifyPoints(
+    points: { latitude: number; longitude: number }[],
+    epsilon: number
+  ): { latitude: number; longitude: number }[] {
+    if (points.length < 3) return points;
+
+    let dmax = 0;
+    let index = 0;
+    const end = points.length - 1;
+
+    for (let i = 1; i < end; i++) {
+      const d = this.perpendicularDistance(points[i], points[0], points[end]);
+      if (d > dmax) {
+        index = i;
+        dmax = d;
+      }
+    }
+
+    if (dmax > epsilon) {
+      const results1 = this.simplifyPoints(points.slice(0, index + 1), epsilon);
+      const results2 = this.simplifyPoints(points.slice(index), epsilon);
+      return results1.slice(0, results1.length - 1).concat(results2);
+    } else {
+      return [points[0], points[end]];
+    }
+  }
+
+  /**
+   * Calculates perpendicular distance from point p to line segment start-end.
+   */
+  private static perpendicularDistance(
+    p: { latitude: number; longitude: number },
+    start: { latitude: number; longitude: number },
+    end: { latitude: number; longitude: number }
+  ): number {
+    let dx = end.longitude - start.longitude;
+    let dy = end.latitude - start.latitude;
+
+    const mag = Math.sqrt(dx * dx + dy * dy);
+    if (mag > 0) {
+      dx /= mag;
+      dy /= mag;
+    }
+
+    const pvalx = p.longitude - start.longitude;
+    const pvaly = p.latitude - start.latitude;
+
+    return Math.abs(pvalx * dy - pvaly * dx);
   }
 }

@@ -7,7 +7,10 @@ const MONGO_URI = process.env.MONGO_URI;
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-const connectDB = async (retries = 10, delayMs = 5000) => {
+const connectDB = async () => {
+  const isProd = process.env.NODE_ENV === "production";
+  const retries = isProd ? 10 : 3;
+  const delayMs = isProd ? 5000 : 2000;
   for (let attempt = 1; attempt <= retries; attempt++) {
     try {
       // Security: strictQuery helps prevent unexpected query behaviors

@@ -9,8 +9,8 @@ import 'package:collegebus/core/constants/constants.dart';
 import 'package:collegebus/features/super_admin/presentation/tabs/system_overview_tab.dart';
 import 'package:collegebus/features/super_admin/presentation/tabs/colleges_tab.dart';
 import 'package:collegebus/features/super_admin/presentation/tabs/global_users_tab.dart';
-import 'package:collegebus/features/super_admin/presentation/tabs/configuration_tab.dart';
 import 'package:collegebus/features/super_admin/presentation/tabs/audit_tab.dart';
+
 import 'package:collegebus/features/super_admin/presentation/tabs/system_analysis_tab.dart';
 import 'package:collegebus/features/super_admin/presentation/tabs/sos_logs_tab.dart';
 import 'package:collegebus/features/super_admin/presentation/tabs/safety_monitor_tab.dart';
@@ -190,12 +190,7 @@ class _SuperAdminDashboardState extends ConsumerState<SuperAdminDashboard> {
         'label': 'Global Users',
         'isDanger': false
       },
-      {
-        'icon': Icons.settings_outlined,
-        'selectedIcon': Icons.settings,
-        'label': 'Configuration',
-        'isDanger': false
-      },
+
       {
         'icon': Icons.history_outlined,
         'selectedIcon': Icons.history,
@@ -434,20 +429,18 @@ class _SuperAdminDashboardState extends ConsumerState<SuperAdminDashboard> {
       case 2:
         return 'Global Users';
       case 3:
-        return 'Configuration';
-      case 4:
         return 'Audit Logs';
-      case 5:
+      case 4:
         return 'System Analysis';
-      case 6:
+      case 5:
         return 'SOS Logs';
-      case 7:
+      case 6:
         return 'Payments';
-      case 8:
+      case 7:
         return 'Safety Monitor';
-      case 9:
+      case 8:
         return 'Live Fleet Tracking';
-      case 10:
+      case 9:
         return 'Danger Zone';
       default:
         return 'Super Admin';
@@ -480,23 +473,21 @@ class _SuperAdminDashboardState extends ConsumerState<SuperAdminDashboard> {
       case 2:
         return const GlobalUsersTab();
       case 3:
-        return const ConfigurationTab();
-      case 4:
         return const AuditTab();
-      case 5:
+      case 4:
         return const SystemAnalysisTab();
-      case 6:
+      case 5:
         return SosLogsTab(
           sosLogs: state.sosLogs,
           colleges: state.colleges,
         );
-      case 7:
+      case 6:
         return const PaymentsTab();
-      case 8:
+      case 7:
         return SafetyMonitorTab(colleges: state.colleges);
-      case 9:
+      case 8:
         return const LiveTrackingTab();
-      case 10:
+      case 9:
         return const DangerZoneTab();
       default:
         return const Center(child: Text('Tab under construction'));

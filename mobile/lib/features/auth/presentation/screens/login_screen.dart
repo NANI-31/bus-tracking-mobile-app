@@ -24,7 +24,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
   final _formKey = GlobalKey<FormState>();
   late AnimationController _animationController;
   late Animation<double> _bounceAnimation;
-  final _emailController = TextEditingController(text: 'c@kkr.ac.in');
+  final _emailController = TextEditingController(text: 'ad@kkr.ac.in');
   final _passwordController = TextEditingController(text: 'a');
   bool _isLoading = false;
 
@@ -346,6 +346,87 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                       ),
                     ], alignment: MainAxisAlignment.center).centered(),
 
+                    24.heightBox,
+                    Divider(color: Theme.of(context).dividerColor.withValues(alpha: 0.1)),
+                    16.heightBox,
+                    'Quick Developer Login'.text.semiBold.sm
+                        .color(Theme.of(context).colorScheme.secondary)
+                        .makeCentered(),
+                    16.heightBox,
+                    Wrap(
+                      spacing: 10,
+                      runSpacing: 10,
+                      alignment: WrapAlignment.center,
+                      children: [
+                        _QuickLoginChip(
+                          label: 'Student 1',
+                          email: 's1@kkr.ac.in',
+                          icon: Icons.school_outlined,
+                          color: const Color(0xFF00C6E6),
+                          onTap: () {
+                            _emailController.text = 's1@kkr.ac.in';
+                            _passwordController.text = 'a';
+                            _handleLogin();
+                          },
+                        ),
+                        _QuickLoginChip(
+                          label: 'Student 2',
+                          email: 's2@kkr.ac.in',
+                          icon: Icons.school_outlined,
+                          color: const Color(0xFF00C6E6),
+                          onTap: () {
+                            _emailController.text = 's2@kkr.ac.in';
+                            _passwordController.text = 'a';
+                            _handleLogin();
+                          },
+                        ),
+                        _QuickLoginChip(
+                          label: 'Coordinator',
+                          email: 'c@kkr.ac.in',
+                          icon: Icons.assignment_ind_outlined,
+                          color: Colors.teal.shade500,
+                          onTap: () {
+                            _emailController.text = 'c@kkr.ac.in';
+                            _passwordController.text = 'a';
+                            _handleLogin();
+                          },
+                        ),
+                        _QuickLoginChip(
+                          label: 'Driver 1',
+                          email: 'd1@kkr.ac.in',
+                          icon: Icons.directions_bus_outlined,
+                          color: Colors.orange.shade600,
+                          onTap: () {
+                            _emailController.text = 'd1@kkr.ac.in';
+                            _passwordController.text = 'a';
+                            _handleLogin();
+                          },
+                        ),
+                        _QuickLoginChip(
+                          label: 'Driver 2',
+                          email: 'd2@kkr.ac.in',
+                          icon: Icons.directions_bus_outlined,
+                          color: Colors.orange.shade600,
+                          onTap: () {
+                            _emailController.text = 'd2@kkr.ac.in';
+                            _passwordController.text = 'a';
+                            _handleLogin();
+                          },
+                        ),
+                        _QuickLoginChip(
+                          label: 'Admin',
+                          email: 'ad@kkr.ac.in',
+                          icon: Icons.admin_panel_settings_outlined,
+                          color: Colors.purple.shade500,
+                          onTap: () {
+                            _emailController.text = 'ad@kkr.ac.in';
+                            _passwordController.text = 'a';
+                            _handleLogin();
+                          },
+                        ),
+                      ],
+                    ),
+
                     32.heightBox,
                   ],
                 ),
@@ -357,3 +438,54 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
     );
   }
 }
+
+class _QuickLoginChip extends StatelessWidget {
+  final String label;
+  final String email;
+  final IconData icon;
+  final Color color;
+  final VoidCallback onTap;
+
+  const _QuickLoginChip({
+    required this.label,
+    required this.email,
+    required this.icon,
+    required this.color,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: color.withValues(alpha: isDark ? 0.35 : 0.2),
+            width: 1.2,
+          ),
+          color: color.withValues(alpha: isDark ? 0.08 : 0.04),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 16, color: color),
+            8.widthBox,
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                label.text.bold.size(11).color(color).make(),
+                email.text.size(9).color(Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6)).make(),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+

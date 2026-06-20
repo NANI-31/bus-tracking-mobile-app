@@ -54,7 +54,7 @@ class BusStatusCard extends ConsumerWidget {
         ? ref.watch(busLocationProvider(bus!.id))
         : const AsyncValue<BusLocationModel?>.data(null);
 
-    final liveLocation = busLocationAsync.value;
+    final liveLocation = busLocationAsync.valueOrNull;
     String arrivalText = "Not Started";
     String etaText = "---";
 

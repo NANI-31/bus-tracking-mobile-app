@@ -209,6 +209,11 @@ class SocketService extends ChangeNotifier {
         joinCollege(_lastJoinedCollegeId!);
       }
 
+      // Trigger list update notifications so providers refetch fresh data
+      _busListUpdateController.add(null);
+      _routeListUpdateController.add(null);
+      _userListUpdateController.add(null);
+
       await _flushQueue();
     });
 

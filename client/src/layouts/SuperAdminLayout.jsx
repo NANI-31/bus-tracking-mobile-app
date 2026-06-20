@@ -111,6 +111,7 @@ const SuperAdminLayout = () => {
       icon: ClipboardDocumentListIcon,
     },
     { name: "Payments", path: "/super-admin/payments", icon: CreditCardIcon },
+    { name: "Plans", path: "/super-admin/plans", icon: TicketIcon },
     { name: "Coupons", path: "/super-admin/coupons", icon: TicketIcon },
     {
       name: "Analytics",

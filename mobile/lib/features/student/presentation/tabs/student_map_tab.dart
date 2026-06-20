@@ -14,7 +14,7 @@ import 'package:velocity_x/velocity_x.dart';
 import 'package:collegebus/shared/widgets/maps/map_skeleton_loader.dart';
 import 'package:collegebus/shared/widgets/maps/map_error_boundary.dart';
 import 'package:collegebus/shared/widgets/glass_card.dart';
-
+import 'package:collegebus/shared/widgets/navigation/curved_bottom_nav_bar.dart';
 
 class StudentMapTab extends ConsumerStatefulWidget {
   final LatLng? currentLocation;
@@ -80,6 +80,11 @@ class _StudentMapTabState extends ConsumerState<StudentMapTab>
   Widget build(BuildContext context) {
     super.build(context);
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final glassColor = isDark
+        ? Colors.black.withValues(alpha: 0.25)
+        : Colors.white.withValues(alpha: 0.25);
+
     final user = ref.watch(currentUserProvider);
     final collegeId = user?.collegeId;
     final Set<String> liveBusIds = {};
@@ -92,9 +97,10 @@ class _StudentMapTabState extends ConsumerState<StudentMapTab>
 
     final filteredBuses = widget.allBuses
         .where(
-          (b) => b.busNumber.toLowerCase().contains(_searchQuery.toLowerCase()) &&
-                 liveBusIds.contains(b.id) &&
-                 b.assignmentStatus == 'accepted',
+          (b) =>
+              b.busNumber.toLowerCase().contains(_searchQuery.toLowerCase()) &&
+              liveBusIds.contains(b.id) &&
+              b.assignmentStatus == 'accepted',
         )
         .toList();
 
@@ -124,7 +130,9 @@ class _StudentMapTabState extends ConsumerState<StudentMapTab>
                     },
                     onMapCreated: _onMapCreated,
                     onBusTap: (bus) => widget.onBusSelected(bus),
-                    bottomPadding: widget.selectedBus != null ? 180.0 : 0.0,
+                    bottomPadding: widget.selectedBus != null
+                        ? 180.0
+                        : CurvedBottomNavBar.clearance(context),
                   ),
                 )
               : const MapSkeletonLoader(),
@@ -139,7 +147,8 @@ class _StudentMapTabState extends ConsumerState<StudentMapTab>
             children: [
               // Search Bar
               GlassCard(
-                borderRadius: 12,
+                borderRadius: 28,
+                color: glassColor,
                 child: TextField(
                   controller: _searchController,
                   onChanged: (val) {
@@ -166,9 +175,11 @@ class _StudentMapTabState extends ConsumerState<StudentMapTab>
                           )
                         : null,
                     border: InputBorder.none,
+                    filled: true,
+                    fillColor: Colors.transparent,
                     contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 14,
+                      horizontal: 20,
+                      vertical: 16,
                     ),
                   ),
                 ),
@@ -182,151 +193,156 @@ class _StudentMapTabState extends ConsumerState<StudentMapTab>
                     maxHeight: MediaQuery.of(context).size.height * 0.4,
                   ),
                   child: GlassCard(
-                    borderRadius: 12,
+                    borderRadius: 20,
+                    color: glassColor,
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            "Available Buses".text.semiBold
-                                .color(Colors.grey)
-                                .size(12)
-                                .make(),
-                            "${filteredBuses.length} found".text
-                                .size(11)
-                                .color(Colors.grey)
-                                .make(),
-                          ],
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              "Available Buses".text.semiBold
+                                  .color(Colors.grey)
+                                  .size(12)
+                                  .make(),
+                              "${filteredBuses.length} found".text
+                                  .size(11)
+                                  .color(Colors.grey)
+                                  .make(),
+                            ],
+                          ),
                         ),
-                      ),
-                      const Divider(height: 1),
-                      Flexible(
-                        child: filteredBuses.isEmpty
-                            ? const Padding(
-                                padding: EdgeInsets.all(24.0),
-                                child: Text(
-                                  "No buses found matching your search",
-                                ),
-                              )
-                            : ListView.separated(
-                                shrinkWrap: true,
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 8,
-                                  vertical: 4,
-                                ),
-                                itemCount: filteredBuses.length,
-                                separatorBuilder: (context, index) =>
-                                    const Divider(
-                                      height: 1,
-                                      color: Colors.transparent,
-                                    ),
-                                itemBuilder: (context, index) {
-                                  final bus = filteredBuses[index];
-                                  return Container(
-                                    margin: const EdgeInsets.symmetric(
-                                      vertical: 4,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: Theme.of(
-                                        context,
-                                      ).primaryColor.withValues(alpha: 0.05),
-                                      borderRadius: BorderRadius.circular(16),
-                                      border: Border.all(
+                        const Divider(height: 1),
+                        Flexible(
+                          child: filteredBuses.isEmpty
+                              ? const Padding(
+                                  padding: EdgeInsets.all(24.0),
+                                  child: Text(
+                                    "No buses found matching your search",
+                                  ),
+                                )
+                              : ListView.separated(
+                                  shrinkWrap: true,
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 4,
+                                  ),
+                                  itemCount: filteredBuses.length,
+                                  separatorBuilder: (context, index) =>
+                                      const Divider(
+                                        height: 1,
+                                        color: Colors.transparent,
+                                      ),
+                                  itemBuilder: (context, index) {
+                                    final bus = filteredBuses[index];
+                                    return Container(
+                                      margin: const EdgeInsets.symmetric(
+                                        vertical: 4,
+                                      ),
+                                      decoration: BoxDecoration(
                                         color: Theme.of(
                                           context,
-                                        ).primaryColor.withValues(alpha: 0.1),
-                                      ),
-                                    ),
-                                    child: ListTile(
-                                      contentPadding:
-                                          const EdgeInsets.symmetric(
-                                            horizontal: 16,
-                                            vertical: 4,
-                                          ),
-                                      leading: Container(
-                                        padding: const EdgeInsets.all(10),
-                                        decoration: BoxDecoration(
+                                        ).primaryColor.withValues(alpha: 0.05),
+                                        borderRadius: BorderRadius.circular(16),
+                                        border: Border.all(
                                           color: Theme.of(
                                             context,
                                           ).primaryColor.withValues(alpha: 0.1),
-                                          borderRadius: BorderRadius.circular(
-                                            12,
-                                          ),
-                                        ),
-                                        child: Icon(
-                                          Icons.directions_bus_rounded,
-                                          color: Theme.of(context).primaryColor,
-                                          size: 26,
                                         ),
                                       ),
-                                      title: "Bus ${bus.busNumber}".text.bold
-                                          .size(16)
-                                          .make(),
-                                      subtitle: "Tracking Active • Tap to view"
-                                          .text
-                                          .size(11)
-                                          .color(
-                                            Colors.grey.withValues(alpha: 0.8),
-                                          )
-                                          .make(),
-                                      trailing: Container(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 12,
-                                          vertical: 6,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          color: Colors.green.withValues(
-                                            alpha: 0.12,
-                                          ),
-                                          borderRadius: BorderRadius.circular(
-                                            25,
-                                          ),
-                                        ),
-                                        child: Row(
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            Container(
-                                              width: 6.0,
-                                              height: 6,
-                                              decoration: const BoxDecoration(
-                                                color: Colors.green,
-                                                shape: BoxShape.circle,
-                                              ),
+                                      child: ListTile(
+                                        contentPadding:
+                                            const EdgeInsets.symmetric(
+                                              horizontal: 16,
+                                              vertical: 4,
                                             ),
-                                            8.widthBox,
-                                            "LIVE".text
-                                                .color(Colors.green)
-                                                .size(10)
-                                                .bold
-                                                .letterSpacing(1)
-                                                .make(),
-                                          ],
+                                        leading: Container(
+                                          padding: const EdgeInsets.all(10),
+                                          decoration: BoxDecoration(
+                                            color: Theme.of(context)
+                                                .primaryColor
+                                                .withValues(alpha: 0.1),
+                                            borderRadius: BorderRadius.circular(
+                                              12,
+                                            ),
+                                          ),
+                                          child: Icon(
+                                            Icons.directions_bus_rounded,
+                                            color: Theme.of(
+                                              context,
+                                            ).primaryColor,
+                                            size: 26,
+                                          ),
                                         ),
+                                        title: "Bus ${bus.busNumber}".text.bold
+                                            .size(16)
+                                            .make(),
+                                        subtitle:
+                                            "Tracking Active • Tap to view".text
+                                                .size(11)
+                                                .color(
+                                                  Colors.grey.withValues(
+                                                    alpha: 0.8,
+                                                  ),
+                                                )
+                                                .make(),
+                                        trailing: Container(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 12,
+                                            vertical: 6,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: Colors.green.withValues(
+                                              alpha: 0.12,
+                                            ),
+                                            borderRadius: BorderRadius.circular(
+                                              25,
+                                            ),
+                                          ),
+                                          child: Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              Container(
+                                                width: 6.0,
+                                                height: 6,
+                                                decoration: const BoxDecoration(
+                                                  color: Colors.green,
+                                                  shape: BoxShape.circle,
+                                                ),
+                                              ),
+                                              8.widthBox,
+                                              "LIVE".text
+                                                  .color(Colors.green)
+                                                  .size(10)
+                                                  .bold
+                                                  .letterSpacing(1)
+                                                  .make(),
+                                            ],
+                                          ),
+                                        ),
+                                        onTap: () {
+                                          widget.onBusNumberSelected(
+                                            bus.busNumber,
+                                          );
+                                          widget.onBusSelected(bus);
+                                          setState(() {
+                                            _isSearchExpanded = false;
+                                            _searchController.text =
+                                                "Bus ${bus.busNumber}";
+                                          });
+                                          FocusScope.of(context).unfocus();
+                                        },
                                       ),
-                                      onTap: () {
-                                        widget.onBusNumberSelected(
-                                          bus.busNumber,
-                                        );
-                                        widget.onBusSelected(bus);
-                                        setState(() {
-                                          _isSearchExpanded = false;
-                                          _searchController.text =
-                                              "Bus ${bus.busNumber}";
-                                        });
-                                        FocusScope.of(context).unfocus();
-                                      },
-                                    ),
-                                  );
-                                },
-                              ),
-                      ),
-                    ],
+                                    );
+                                  },
+                                ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-              ),
             ],
           ),
         ),
@@ -340,7 +356,7 @@ class _StudentMapTabState extends ConsumerState<StudentMapTab>
           Positioned(
             left: 0,
             right: 0,
-            bottom: 0,
+            bottom: CurvedBottomNavBar.clearance(context) + 12.0,
             child: GestureDetector(
               onTap: () {
                 ref.read(mapNavigationProvider.notifier).setFollowing(true);
@@ -401,9 +417,7 @@ class _StudentMapTabState extends ConsumerState<StudentMapTab>
     LatLng? liveBusLocation;
 
     if (collegeId != null) {
-      final locationsAsync = ref.watch(
-        collegeBusLocationsProvider(collegeId),
-      );
+      final locationsAsync = ref.watch(collegeBusLocationsProvider(collegeId));
       locationsAsync.whenData((locations) {
         final busLoc = locations
             .where((l) => l.busId == widget.selectedBus!.id)

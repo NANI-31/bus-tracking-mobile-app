@@ -5,6 +5,7 @@ import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
+import 'package:collegebus/core/utils/shader_precompiler.dart';
 import 'utils.dart';
 
 enum LiquidGlassMode { standard, polar, prominent, shader }
@@ -31,9 +32,11 @@ Future<void> _initSharedResources() async {
 
   // Load fragment shader
   try {
-    _program = await ui.FragmentProgram.fromAsset(
-      'shaders/liquid_glass.frag',
-    );
+    _program = ShaderPrecompiler.hasProgram('shaders/liquid_glass.frag')
+        ? ShaderPrecompiler.getProgram('shaders/liquid_glass.frag')!
+        : await ui.FragmentProgram.fromAsset(
+            'shaders/liquid_glass.frag',
+          );
   } catch (e) {
     _shaderLoadingFailed = true;
     debugPrint('Failed to load liquid_glass shader: $e');

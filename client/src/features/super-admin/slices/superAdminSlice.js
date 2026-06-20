@@ -18,6 +18,10 @@ import {
   unsuspendCollege,
   suspendCollege,
   updateGlobalUser,
+  fetchAllPlans,
+  createPlan,
+  updatePlan,
+  deletePlan,
 } from "../api/superAdminApi";
 
 // Thunks
@@ -197,6 +201,55 @@ export const wipeCollegeDataAction = createAsyncThunk(
   },
 );
 
+export const getPlansAction = createAsyncThunk(
+  "superAdmin/getPlans",
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await fetchAllPlans();
+      return response;
+    } catch (error) {
+      return rejectWithValue(error);
+    }
+  },
+);
+
+export const createPlanAction = createAsyncThunk(
+  "superAdmin/createPlan",
+  async (planData, { rejectWithValue }) => {
+    try {
+      const response = await createPlan(planData);
+      return response;
+    } catch (error) {
+      return rejectWithValue(error);
+    }
+  },
+);
+
+export const updatePlanAction = createAsyncThunk(
+  "superAdmin/updatePlan",
+  async ({ planId, planData }, { rejectWithValue }) => {
+    try {
+      const response = await updatePlan(planId, planData);
+      return response;
+    } catch (error) {
+      return rejectWithValue(error);
+    }
+  },
+);
+
+export const deletePlanAction = createAsyncThunk(
+  "superAdmin/deletePlan",
+  async (planId, { rejectWithValue }) => {
+    try {
+      await deletePlan(planId);
+      return planId;
+    } catch (error) {
+      return rejectWithValue(error);
+    }
+  },
+);
+
+
 const initialState = {
   stats: null,
   colleges: [],
@@ -208,6 +261,7 @@ const initialState = {
   logsSkip: 0,
   transactions: [],
   buses: [],
+  plans: [],
   storageStats: null,
   collegeStorageHistory: [],
   advancedAnalytics: null,
@@ -432,6 +486,30 @@ const superAdminSlice = createSlice({
       .addCase(getAdvancedAnalytics.rejected, (state, action) => {
         state.analyticsLoading = false;
         state.error = action.error.message;
+      })
+      // Plans
+      .addCase(getPlansAction.pending, (state) => {
+        state.loading = true;
+      })
+      .addCase(getPlansAction.fulfilled, (state, action) => {
+        state.loading = false;
+        state.plans = action.payload || [];
+      })
+      .addCase(getPlansAction.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload || action.error.message;
+      })
+      .addCase(createPlanAction.fulfilled, (state, action) => {
+        state.plans = [...state.plans, action.payload];
+      })
+      .addCase(updatePlanAction.fulfilled, (state, action) => {
+        const index = state.plans.findIndex((p) => p._id === action.payload._id);
+        if (index !== -1) {
+          state.plans[index] = action.payload;
+        }
+      })
+      .addCase(deletePlanAction.fulfilled, (state, action) => {
+        state.plans = state.plans.filter((p) => p._id !== action.payload);
       });
   },
 });

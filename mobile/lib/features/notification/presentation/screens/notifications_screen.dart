@@ -70,9 +70,9 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: const SystemUiOverlayStyle(
-        statusBarColor: Colors.transparent,
-        statusBarIconBrightness: Brightness.dark,
-        statusBarBrightness: Brightness.light,
+        statusBarColor: AppColors.primary,
+        statusBarIconBrightness: Brightness.light,
+        statusBarBrightness: Brightness.dark,
         systemNavigationBarColor: Colors.transparent,
         systemNavigationBarDividerColor: Colors.transparent,
         systemNavigationBarIconBrightness: Brightness.dark,
@@ -81,10 +81,16 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
         backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         appBar: AppBar(
           title: "Notifications".text.white.bold.make(),
-          backgroundColor: Theme.of(context).primaryColor,
+          backgroundColor: AppColors.primary,
+          foregroundColor: Colors.white,
           elevation: 0,
           centerTitle: true,
           automaticallyImplyLeading: true,
+          systemOverlayStyle: const SystemUiOverlayStyle(
+            statusBarColor: AppColors.primary,
+            statusBarIconBrightness: Brightness.light,
+            statusBarBrightness: Brightness.dark,
+          ),
         ),
         body: VStack([
           8.heightBox,

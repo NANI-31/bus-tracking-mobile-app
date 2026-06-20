@@ -13,11 +13,12 @@ class RouteNotifier extends AsyncNotifier<List<RouteModel>> {
     return []; // Will be populated by specific fetchers or handled via family
   }
 
-  Future<void> createRoute(RouteModel route) async {
+  Future<RouteModel> createRoute(RouteModel route) async {
     final repo = ref.read(routeRepositoryProvider);
     final socket = ref.read(socketServiceProvider);
-    await repo.createRoute(route);
+    final created = await repo.createRoute(route);
     socket.sendRouteListUpdate();
+    return created;
   }
 
   Future<void> updateRoute(String routeId, Map<String, dynamic> data) async {

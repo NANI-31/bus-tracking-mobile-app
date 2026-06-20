@@ -192,35 +192,44 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
     try {
       if (currentUser != null) {
         // 1. Remove FCM Token
-        await _notificationRepo.removeFcmToken(currentUser.id);
+        try {
+          await _notificationRepo.removeFcmToken(currentUser.id);
+        } catch (fcmErr) {
+          debugPrint('Error removing FCM token during logout: $fcmErr');
+        }
 
         // 2. Call Server Logout to clear isLoggedIn flag
-        await _authRepo.logout();
-        debugPrint('AUTH NOTIFIER: Server logout successful');
+        try {
+          await _authRepo.logout();
+          debugPrint('AUTH NOTIFIER: Server logout successful');
+        } catch (apiErr) {
+          debugPrint('Error during server logout API call: $apiErr');
+        }
       }
-    } catch (e) {
-      debugPrint('\x1B[31mError during logout: $e\x1B[0m');
+    } finally {
+      // 3. Clear Local Storage
+      await SecureStorageService.clearAll();
+      await PersistenceService.removeAuthToken();
+      await PersistenceService.removeRefreshToken();
+      await PersistenceService.removeUserId();
+
+      // Clear Dashboard Preferences
+      await PersistenceService.setBottomNavIndex(0);
+      if (currentUser != null) {
+        await PersistenceService.removeSelectedBusId(currentUser.id);
+      } else {
+        await PersistenceService.removeSelectedBusId();
+      }
+
+      // Invalidate map navigation provider to reset state across logins.
+      // Defer to microtask queue to prevent CircularDependencyError in Riverpod.
+      Future.microtask(() {
+        ref.invalidate(mapNavigationProvider);
+      });
+
+      _premiumExpiryTimer?.cancel();
+      state = AsyncValue.data(const AuthState());
     }
-
-    // 3. Clear Local Storage
-    await SecureStorageService.clearAll();
-    await PersistenceService.removeAuthToken();
-    await PersistenceService.removeRefreshToken();
-    await PersistenceService.removeUserId();
-
-    // Clear Dashboard Preferences
-    await PersistenceService.setBottomNavIndex(0);
-    if (currentUser != null) {
-      await PersistenceService.removeSelectedBusId(currentUser.id);
-    } else {
-      await PersistenceService.removeSelectedBusId();
-    }
-
-    // Invalidate map navigation provider to reset state across logins
-    ref.invalidate(mapNavigationProvider);
-
-    _premiumExpiryTimer?.cancel();
-    state = AsyncValue.data(const AuthState());
   }
 
   void updateCurrentUser(UserModel user) {

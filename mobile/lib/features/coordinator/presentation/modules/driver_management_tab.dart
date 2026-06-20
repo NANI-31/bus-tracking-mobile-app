@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:velocity_x/velocity_x.dart';
@@ -14,7 +15,9 @@ import 'package:collegebus/features/bus/application/bus_provider.dart';
 import 'package:collegebus/features/user/application/user_provider.dart';
 import 'package:collegebus/features/sos/application/sos_provider.dart';
 import 'package:collegebus/core/providers/repository_providers.dart';
-import 'package:collegebus/shared/widgets/navigation/curved_bottom_nav_bar.dart';
+import 'package:collegebus/shared/widgets/shimmer_skeletons.dart';
+import 'package:collegebus/features/coordinator/presentation/widgets/coordinator_list_layout.dart';
+import 'bubble_tab_selector.dart';
 
 class DriverManagementTab extends ConsumerWidget {
   final Function(UserModel)? onEditDriver;
@@ -29,98 +32,68 @@ class DriverManagementTab extends ConsumerWidget {
 
     if (collegeId == null) return const SizedBox.shrink();
 
-    final pendingApprovals =
-        ref.watch(pendingApprovalsProvider(collegeId)).value ?? [];
-    final allDrivers =
-        ref
-            .watch(
-              usersByRoleProvider((
-                role: UserRole.driver,
-                collegeId: collegeId,
-              )),
-            )
-            .value ??
-        [];
-    final buses = ref.watch(collegeBusesStreamProvider(collegeId)).value ?? [];
-    final onlineDriverIds =
-        ref.watch(onlineDriversProvider(collegeId)).value ?? {};
+    final allDriversAsync = ref.watch(
+      usersByRoleProvider((
+        role: UserRole.driver,
+        collegeId: collegeId,
+      )),
+    );
+    final busesAsync = ref.watch(collegeBusesStreamProvider(collegeId));
+    final onlineDriverIdsAsync = ref.watch(onlineDriversProvider(collegeId));
+
+    final allDrivers = allDriversAsync.value ?? [];
+    final buses = busesAsync.value ?? [];
+    final onlineDriverIds = onlineDriverIdsAsync.value ?? {};
+    final isLoading = allDriversAsync.isLoading || busesAsync.isLoading;
 
     final l10n = coord_l10n.CoordinatorLocalizations.of(context)!;
     return DefaultTabController(
-      length: 4,
+      length: 3,
       child: Column(
         children: [
-          Container(
-            margin: const EdgeInsets.all(AppSizes.paddingMedium),
-            decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.surfaceContainerHighest, // Semantic color token
-              borderRadius: BorderRadius.circular(50),
-              border: Border.all(
-                color: Theme.of(context).dividerColor.withValues(alpha: 0.15),
-                width: 1,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.05),
-                  blurRadius: 10,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
-            child: TabBar(
-              isScrollable: false, // Fit all in one view
-              labelColor: Colors.white,
-              unselectedLabelColor: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
-              indicatorSize: TabBarIndicatorSize.tab,
-              indicator: BoxDecoration(
-                color: AppColors.primary, // Active pill color
-                borderRadius: BorderRadius.circular(50),
-                boxShadow: [
-                  BoxShadow(
-                    color: AppColors.primary.withValues(alpha: 0.4),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-              dividerColor: Colors.transparent,
-              labelPadding: EdgeInsets.zero,
-              tabs: [
-                Tab(text: l10n.all),
-                Tab(text: l10n.assigned),
-                Tab(text: l10n.accepted),
-                Tab(text: l10n.approvals),
-              ],
-            ).p4(), // Padding inside the capsule
+          BubbleTabSelector(
+            icons: const [
+              Icons.people_outline,
+              Icons.assignment_ind_outlined,
+              Icons.check_circle_outline,
+            ],
+            labels: [
+              l10n.all,
+              l10n.assigned,
+              l10n.accepted,
+            ],
           ),
           Expanded(
             child: TabBarView(
+              physics: const NeverScrollableScrollPhysics(),
               children: [
-                _buildDriversByStatus(
-                  context,
-                  ref,
-                  'all',
-                  allDrivers,
-                  buses,
-                  onlineDriverIds,
+                DriverStatusList(
+                  status: 'all',
+                  allDrivers: allDrivers,
+                  buses: buses,
+                  onlineDriverIds: onlineDriverIds,
+                  isLoading: isLoading,
+                  onTrack: onTrack,
+                  onEditDriver: onEditDriver,
                 ),
-                _buildDriversByStatus(
-                  context,
-                  ref,
-                  'assigned',
-                  allDrivers,
-                  buses,
-                  onlineDriverIds,
+                DriverStatusList(
+                  status: 'assigned',
+                  allDrivers: allDrivers,
+                  buses: buses,
+                  onlineDriverIds: onlineDriverIds,
+                  isLoading: isLoading,
+                  onTrack: onTrack,
+                  onEditDriver: onEditDriver,
                 ),
-                _buildDriversByStatus(
-                  context,
-                  ref,
-                  'accepted',
-                  allDrivers,
-                  buses,
-                  onlineDriverIds,
+                DriverStatusList(
+                  status: 'accepted',
+                  allDrivers: allDrivers,
+                  buses: buses,
+                  onlineDriverIds: onlineDriverIds,
+                  isLoading: isLoading,
+                  onTrack: onTrack,
+                  onEditDriver: onEditDriver,
                 ),
-                _buildPendingApprovals(context, ref, pendingApprovals),
               ],
             ),
           ),
@@ -128,87 +101,68 @@ class DriverManagementTab extends ConsumerWidget {
       ),
     );
   }
+}
 
-  Widget _buildPendingApprovals(
-    BuildContext context,
-    WidgetRef ref,
-    List<UserModel> pendingApprovals,
-  ) {
-    final l10n = coord_l10n.CoordinatorLocalizations.of(context)!;
-    if (pendingApprovals.isEmpty) {
-      return _buildEmptyState(
-        context,
-        l10n.noPendingApprovals,
-        Icons.check_circle_outline,
-      );
-    }
+class DriverStatusList extends ConsumerStatefulWidget {
+  final String status;
+  final List<UserModel> allDrivers;
+  final List<BusModel> buses;
+  final Set<String> onlineDriverIds;
+  final bool isLoading;
+  final Function(BusModel)? onTrack;
+  final Function(UserModel)? onEditDriver;
 
-    final double screenWidth = MediaQuery.of(context).size.width;
-    double cardWidth = double.infinity;
-    if (screenWidth >= 1000) {
-      cardWidth = (screenWidth - 32 - 24) / 3;
-    } else if (screenWidth >= 650) {
-      cardWidth = (screenWidth - 32 - 12) / 2;
-    }
+  const DriverStatusList({
+    super.key,
+    required this.status,
+    required this.allDrivers,
+    required this.buses,
+    required this.onlineDriverIds,
+    required this.isLoading,
+    this.onTrack,
+    this.onEditDriver,
+  });
 
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(AppSizes.paddingMedium),
-      child: Column(
-        children: [
-          Wrap(
-            spacing: 12,
-            runSpacing: 12,
-            children: List.generate(pendingApprovals.length, (index) {
-              final driver = pendingApprovals[index];
-              return SizedBox(
-                width: cardWidth,
-                child: DriverCard(
-                  driver: driver,
-                  ref: ref,
-                  isApproval: true,
-                  onEditDriver: onEditDriver,
-                  onTrack: onTrack,
-                ),
-              );
-            }),
-          ),
-          const BottomNavSpacer(),
-        ],
-      ),
-    );
-  }
+  @override
+  ConsumerState<DriverStatusList> createState() => _DriverStatusListState();
+}
 
-  Widget _buildDriversByStatus(
-    BuildContext context,
-    WidgetRef ref,
-    String status,
-    List<UserModel> allDrivers,
-    List<BusModel> buses,
-    Set<String> onlineDriverIds,
-  ) {
+class _DriverStatusListState extends ConsumerState<DriverStatusList>
+    with AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true;
+
+  @override
+  Widget build(BuildContext context) {
+    super.build(context); // Mandatory for KeepAlive
+
     final l10n = coord_l10n.CoordinatorLocalizations.of(context)!;
     List<UserModel> filteredDrivers = [];
 
-    if (status == 'all') {
-      filteredDrivers = allDrivers;
-    } else if (status == 'assigned') {
+    if (widget.status == 'all') {
+      filteredDrivers = widget.allDrivers;
+    } else if (widget.status == 'assigned') {
       // All drivers who have ANY non-unassigned assignment status
-      final assignedBusDriverIds = buses
+      final assignedBusDriverIds = widget.buses
           .where((b) => b.assignmentStatus != 'unassigned')
           .map((b) => b.driverId)
           .toSet();
-      filteredDrivers = allDrivers
+      filteredDrivers = widget.allDrivers
           .where((d) => assignedBusDriverIds.contains(d.id))
           .toList();
-    } else if (status == 'accepted') {
+    } else if (widget.status == 'accepted') {
       // Drivers with specific assignment status
-      final targetBusDriverIds = buses
+      final targetBusDriverIds = widget.buses
           .where((b) => b.assignmentStatus == 'accepted')
           .map((b) => b.driverId)
           .toSet();
-      filteredDrivers = allDrivers
+      filteredDrivers = widget.allDrivers
           .where((d) => targetBusDriverIds.contains(d.id))
           .toList();
+    }
+
+    if (widget.isLoading && filteredDrivers.isEmpty) {
+      return const DriverListSkeleton();
     }
 
     if (filteredDrivers.isEmpty) {
@@ -219,86 +173,83 @@ class DriverManagementTab extends ConsumerWidget {
       );
     }
 
-    final double screenWidth = MediaQuery.of(context).size.width;
-    double cardWidth = double.infinity;
-    if (screenWidth >= 1000) {
-      cardWidth = (screenWidth - 32 - 24) / 3;
-    } else if (screenWidth >= 650) {
-      cardWidth = (screenWidth - 32 - 12) / 2;
-    }
-
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(AppSizes.paddingMedium),
-      child: Column(
-        children: [
-          Wrap(
-            spacing: 12,
-            runSpacing: 12,
-            children: List.generate(filteredDrivers.length, (index) {
-              final driver = filteredDrivers[index];
-              BusModel? bus;
-              try {
-                bus = buses.firstWhere((b) => b.driverId == driver.id);
-              } catch (_) {
-                bus = null;
-              }
-              return SizedBox(
-                width: cardWidth,
-                child: TweenAnimationBuilder<double>(
-                  duration: const Duration(milliseconds: 400),
-                  tween: Tween(begin: 50.0, end: 0.0),
-                  builder: (context, value, child) {
-                    return Transform.translate(
-                      offset: Offset(0, value),
-                      child: Opacity(
-                        opacity: (1 - value / 50.0).clamp(0.0, 1.0),
-                        child: child,
-                      ),
-                    );
-                  },
-                  child: DriverCard(
-                    driver: driver,
-                    ref: ref,
-                    isApproval: false,
-                    bus: bus,
-                    onlineDriverIds: onlineDriverIds,
-                    onEditDriver: onEditDriver,
-                    onTrack: onTrack,
-                  ),
-                ),
-              );
-            }),
-          ),
-          const BottomNavSpacer(),
-        ],
+    return CoordinatorListLayout<UserModel>(
+      pageStorageKey: PageStorageKey<String>('driver_list_${widget.status}'),
+      items: filteredDrivers,
+      onRefresh: () async {
+        final user = ref.read(currentUserProvider);
+        if (user?.collegeId != null) {
+          ref.invalidate(usersByRoleProvider);
+          ref.invalidate(collegeBusesStreamProvider);
+          ref.invalidate(onlineDriversProvider);
+          await Future.delayed(const Duration(milliseconds: 600));
+        }
+      },
+      emptyState: _buildEmptyState(
+        context,
+        l10n.noDriversInCategory,
+        Icons.people_outline,
       ),
+      itemBuilder: (context, driver, itemIndex) {
+        BusModel? bus;
+        try {
+          bus = widget.buses.firstWhere((b) => b.driverId == driver.id);
+        } catch (_) {
+          bus = null;
+        }
+        return DriverCard(
+          driver: driver,
+          ref: ref,
+          isApproval: false,
+          bus: bus,
+          onlineDriverIds: widget.onlineDriverIds,
+          onEditDriver: widget.onEditDriver,
+          onTrack: widget.onTrack,
+        );
+      },
     );
   }
 
   Widget _buildEmptyState(BuildContext context, String message, IconData icon) {
-    return VStack(
-      [
-        Container(
-          padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(
-            color: Theme.of(context).primaryColor.withValues(alpha: 0.05),
-            shape: BoxShape.circle,
-          ),
-          child: Icon(
-            icon,
-            size: 48,
-            color: Theme.of(context).primaryColor.withValues(alpha: 0.5),
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Center(
+      child: Container(
+        margin: const EdgeInsets.all(AppSizes.paddingLarge),
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+        decoration: BoxDecoration(
+          color: isDark ? Colors.white.withValues(alpha: 0.03) : Colors.black.withValues(alpha: 0.01),
+          borderRadius: BorderRadius.circular(30),
+          border: Border.all(
+            color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.04),
           ),
         ),
-        24.heightBox,
-        message.text
-            .size(16)
-            .color(Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6))
-            .make(),
-      ],
-      alignment: MainAxisAlignment.center,
-      crossAlignment: CrossAxisAlignment.center,
-    ).centered();
+        child: VStack(
+          [
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: AppColors.primary.withValues(alpha: 0.08),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                icon,
+                size: 40,
+                color: AppColors.primary,
+              ),
+            ),
+            16.heightBox,
+            message.text
+                .size(15)
+                .medium
+                .color(Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6))
+                .center
+                .make(),
+          ],
+          alignment: MainAxisAlignment.center,
+          crossAlignment: CrossAxisAlignment.center,
+        ),
+      ),
+    );
   }
 }
 
@@ -341,13 +292,14 @@ class _DriverCardState extends State<DriverCard> with SingleTickerProviderStateM
     );
     _expandAnimation = CurvedAnimation(
       parent: _controller,
-      curve: Curves.elasticOut,
-      reverseCurve: Curves.easeInOut,
+      curve: const Cubic(0.34, 1.56, 0.64, 1.0),
+      reverseCurve: Curves.easeOut,
     );
     _rotateAnimation = Tween<double>(begin: 0.0, end: 0.5).animate(
       CurvedAnimation(
         parent: _controller,
-        curve: Curves.easeInOut,
+        curve: const Cubic(0.34, 1.56, 0.64, 1.0),
+        reverseCurve: Curves.easeOut,
       ),
     );
   }
@@ -371,48 +323,51 @@ class _DriverCardState extends State<DriverCard> with SingleTickerProviderStateM
   }
 
   Widget _buildAvatar(BuildContext context, UserModel driver, bool isOnline) {
+    final avatarWidget = Container(
+      padding: const EdgeInsets.all(2),
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        border: Border.all(
+          color: isOnline
+              ? const Color(0xFF00C6E6)
+              : Colors.grey.withValues(alpha: 0.2),
+          width: 2.0,
+        ),
+      ),
+      child: CircleAvatar(
+        radius: 24,
+        backgroundColor: Colors.transparent,
+        child: Container(
+          decoration: const BoxDecoration(
+            shape: BoxShape.circle,
+            gradient: LinearGradient(
+              colors: [Color(0xFF00C6E6), Color(0xFF0097B2)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+          alignment: Alignment.center,
+          child: (driver.fullName.isNotEmpty ? driver.fullName[0].toUpperCase() : '?')
+              .text
+              .size(20)
+              .color(Colors.white)
+              .bold
+              .make(),
+        ),
+      ),
+    );
+
     return Stack(
       children: [
-        Container(
-          padding: const EdgeInsets.all(2),
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            border: Border.all(
-              color: isOnline
-                  ? Colors.greenAccent
-                  : Colors.grey.withValues(alpha: 0.2),
-              width: 2.0,
-            ),
-          ),
-          child: CircleAvatar(
-            radius: 24,
-            backgroundColor: Theme.of(context).primaryColor.withValues(alpha: 0.1),
-            child: (driver.fullName.isNotEmpty ? driver.fullName[0] : '?').text
-                .size(20)
-                .color(Theme.of(context).primaryColor)
-                .bold
-                .make(),
-          ),
-        ),
         if (isOnline)
-          Positioned(
+          OnlineAvatarAura(child: avatarWidget)
+        else
+          avatarWidget,
+        if (isOnline)
+          const Positioned(
             bottom: 2,
             right: 2,
-            child: Container(
-              width: 12,
-              height: 12,
-              decoration: BoxDecoration(
-                color: Colors.greenAccent,
-                shape: BoxShape.circle,
-                border: Border.all(color: Colors.white, width: 2.0),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.greenAccent.withValues(alpha: 0.4),
-                    blurRadius: 4,
-                  ),
-                ],
-              ),
-            ),
+            child: OnlineStatusDot(),
           ),
       ],
     );
@@ -461,6 +416,7 @@ class _DriverCardState extends State<DriverCard> with SingleTickerProviderStateM
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     String status = 'unassigned';
     if (widget.bus != null) {
       status = widget.bus!.assignmentStatus;
@@ -468,28 +424,81 @@ class _DriverCardState extends State<DriverCard> with SingleTickerProviderStateM
 
     final isOnline = widget.onlineDriverIds.contains(widget.driver.id);
 
+    final Color cardBorderColor;
+    final List<Color> cardGradientColors;
+    final List<BoxShadow> cardShadows;
+
+    if (isOnline) {
+      if (isDark) {
+        cardBorderColor = const Color(0xFF00C6E6).withValues(alpha: 0.45);
+        cardGradientColors = [
+          const Color(0xFF0A2E3D), // Deep Navy-Teal
+          const Color(0xFF05161F), // Darker Navy
+        ];
+        cardShadows = [
+          BoxShadow(
+            color: const Color(0xFF00C6E6).withValues(alpha: 0.2),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
+        ];
+      } else {
+        cardBorderColor = const Color(0xFF0097B2).withValues(alpha: 0.35);
+        cardGradientColors = [
+          const Color(0xFFE0F7FA), // Fresh Ice-Teal
+          const Color(0xFFF0FDFD), // Very light soft blue-green
+        ];
+        cardShadows = [
+          BoxShadow(
+            color: const Color(0xFF0097B2).withValues(alpha: 0.15),
+            blurRadius: 16,
+            offset: const Offset(0, 6),
+          ),
+        ];
+      }
+    } else {
+      if (isDark) {
+        cardBorderColor = const Color(0xFF334155).withValues(alpha: 0.35); // Slate border
+        cardGradientColors = [
+          const Color(0xFF1E293B), // Slate Grey-Blue
+          const Color(0xFF0F172A), // Dark Slate/Navy
+        ];
+        cardShadows = [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.25),
+            blurRadius: 12,
+            offset: const Offset(0, 6),
+          ),
+        ];
+      } else {
+        cardBorderColor = const Color(0xFFE2E8F0); // Light Slate border
+        cardGradientColors = [
+          Colors.white,
+          const Color(0xFFF8FAFC), // Off-white/slate-tinted
+        ];
+        cardShadows = [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ];
+      }
+    }
+
     return Container(
       margin: const EdgeInsets.only(bottom: AppSizes.paddingMedium),
       decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(24),
         border: Border.all(
-          color: Theme.of(context).dividerColor.withValues(alpha: 0.1),
+          color: cardBorderColor,
+          width: 1.5,
         ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 20,
-            offset: const Offset(0, 10),
-          ),
-        ],
+        boxShadow: cardShadows,
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [
-            Theme.of(context).cardColor,
-            Theme.of(context).cardColor.withValues(alpha: 0.8),
-          ],
+          colors: cardGradientColors,
         ),
       ),
       child: widget.isApproval
@@ -498,16 +507,20 @@ class _DriverCardState extends State<DriverCard> with SingleTickerProviderStateM
                 horizontal: 20,
                 vertical: 8,
               ),
-              leading: _buildAvatar(context, widget.driver, isOnline),
+              leading: widget.bus != null
+                  ? Hero(
+                      tag: 'bus_marker_${widget.bus!.id}',
+                      child: _buildAvatar(context, widget.driver, isOnline),
+                    )
+                  : _buildAvatar(context, widget.driver, isOnline),
               title: widget.driver.fullName.text.semiBold.size(16).make(),
               subtitle: _buildDriverStatusBadge(
                 context,
                 status,
               ).pOnly(top: 8).objectTopLeft(),
               trailing: HStack([
-                IconButton(
-                  icon: Icon(Icons.check, color: AppColors.success),
-                  onPressed: () {
+                GestureDetector(
+                  onTap: () {
                     final approverId = widget.ref.read(currentUserProvider)?.id;
                     if (approverId != null) {
                       widget.ref
@@ -515,11 +528,42 @@ class _DriverCardState extends State<DriverCard> with SingleTickerProviderStateM
                           .approveUser(widget.driver.id, approverId);
                     }
                   },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: Colors.green.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: Colors.green.withValues(alpha: 0.3)),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.check_rounded, size: 14, color: Colors.green.shade700),
+                        4.widthBox,
+                        'Approve'.text.bold.size(11).color(Colors.green.shade700).make(),
+                      ],
+                    ),
+                  ),
                 ),
-                IconButton(
-                  icon: Icon(Icons.close, color: AppColors.error),
-                  onPressed: () =>
-                      widget.ref.read(userRepositoryProvider).deleteUser(widget.driver.id),
+                12.widthBox,
+                GestureDetector(
+                  onTap: () => widget.ref.read(userRepositoryProvider).deleteUser(widget.driver.id),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: Colors.red.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.close_rounded, size: 14, color: Colors.red.shade700),
+                        4.widthBox,
+                        'Reject'.text.bold.size(11).color(Colors.red.shade700).make(),
+                      ],
+                    ),
+                  ),
                 ),
               ]),
             )
@@ -532,7 +576,12 @@ class _DriverCardState extends State<DriverCard> with SingleTickerProviderStateM
                     padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
                     child: Row(
                       children: [
-                        _buildAvatar(context, widget.driver, isOnline),
+                        widget.bus != null
+                            ? Hero(
+                                tag: 'bus_marker_${widget.bus!.id}',
+                                child: _buildAvatar(context, widget.driver, isOnline),
+                              )
+                            : _buildAvatar(context, widget.driver, isOnline),
                         16.widthBox,
                         Expanded(
                           child: Column(
@@ -561,27 +610,76 @@ class _DriverCardState extends State<DriverCard> with SingleTickerProviderStateM
                   child: Padding(
                     padding: const EdgeInsets.only(left: 20, right: 20, bottom: 20),
                     child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Divider(
-                          color: Theme.of(context).dividerColor.withValues(alpha: 0.05),
+                          color: isDark
+                              ? (isOnline
+                                  ? const Color(0xFF00C6E6).withValues(alpha: 0.15)
+                                  : Colors.white.withValues(alpha: 0.08))
+                              : (isOnline
+                                  ? const Color(0xFF0097B2).withValues(alpha: 0.12)
+                                  : Colors.black.withValues(alpha: 0.06)),
                         ),
                         12.heightBox,
+                        
+                        // Contact Info Section
+                        VStack([
+                          if (widget.driver.phoneNumber != null)
+                            HStack([
+                              const Icon(Icons.phone_outlined, size: 16, color: Colors.grey),
+                              8.widthBox,
+                              widget.driver.phoneNumber!.text.size(13).medium.color(Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7)).make(),
+                            ]).pOnly(bottom: 6),
+                          HStack([
+                            const Icon(Icons.email_outlined, size: 16, color: Colors.grey),
+                            8.widthBox,
+                            widget.driver.email.text.size(13).medium.color(Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7)).make(),
+                          ]).pOnly(bottom: 6),
+                          if (widget.bus != null)
+                            HStack([
+                              const Icon(Icons.directions_bus_outlined, size: 16, color: Color(0xFF00C6E6)),
+                              8.widthBox,
+                              'Bus Number: '.text.size(13).color(Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6)).make(),
+                              widget.bus!.busNumber.text.size(13).bold.color(const Color(0xFF00C6E6)).make(),
+                              if (widget.bus!.capacity != null) ...[
+                                8.widthBox,
+                                '(${widget.bus!.capacity} capacity)'.text.size(12).color(Colors.grey.shade500).make(),
+                              ],
+                            ]).pOnly(bottom: 6),
+                        ]).pSymmetric(v: 4),
+                        
+                        16.heightBox,
+                        
+                        // Action Buttons Row
                         HStack([
                           ElevatedButton.icon(
                             onPressed: () {
                               widget.onEditDriver?.call(widget.driver);
                             },
-                            icon: const Icon(Icons.edit, size: 20),
+                            icon: const Icon(Icons.edit_outlined, size: 18),
                             label: const Text('Edit'),
                             style: ElevatedButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(vertical: 16),
-                              backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              backgroundColor: isDark
+                                  ? (isOnline
+                                      ? const Color(0xFF00C6E6).withValues(alpha: 0.08)
+                                      : Colors.white.withValues(alpha: 0.05))
+                                  : (isOnline
+                                      ? const Color(0xFF0097B2).withValues(alpha: 0.06)
+                                      : Colors.grey.shade100),
                               foregroundColor: Theme.of(context).textTheme.bodyLarge?.color,
                               elevation: 0,
                               shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(16),
+                                borderRadius: BorderRadius.circular(14),
                                 side: BorderSide(
-                                  color: Theme.of(context).dividerColor.withValues(alpha: 0.1),
+                                  color: isDark
+                                      ? (isOnline
+                                          ? const Color(0xFF00C6E6).withValues(alpha: 0.15)
+                                          : Colors.white.withValues(alpha: 0.08))
+                                      : (isOnline
+                                          ? const Color(0xFF0097B2).withValues(alpha: 0.15)
+                                          : Theme.of(context).dividerColor.withValues(alpha: 0.1)),
                                 ),
                               ),
                             ),
@@ -596,17 +694,29 @@ class _DriverCardState extends State<DriverCard> with SingleTickerProviderStateM
                                 ),
                               );
                             },
-                            icon: const Icon(Icons.history, size: 20),
+                            icon: const Icon(Icons.history_outlined, size: 18),
                             label: const Text('History'),
                             style: ElevatedButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(vertical: 16),
-                              backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              backgroundColor: isDark
+                                  ? (isOnline
+                                      ? const Color(0xFF00C6E6).withValues(alpha: 0.08)
+                                      : Colors.white.withValues(alpha: 0.05))
+                                  : (isOnline
+                                      ? const Color(0xFF0097B2).withValues(alpha: 0.06)
+                                      : Colors.grey.shade100),
                               foregroundColor: Theme.of(context).textTheme.bodyLarge?.color,
                               elevation: 0,
                               shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(16),
+                                borderRadius: BorderRadius.circular(14),
                                 side: BorderSide(
-                                  color: Theme.of(context).dividerColor.withValues(alpha: 0.1),
+                                  color: isDark
+                                      ? (isOnline
+                                          ? const Color(0xFF00C6E6).withValues(alpha: 0.15)
+                                          : Colors.white.withValues(alpha: 0.08))
+                                      : (isOnline
+                                          ? const Color(0xFF0097B2).withValues(alpha: 0.15)
+                                          : Theme.of(context).dividerColor.withValues(alpha: 0.1)),
                                 ),
                               ),
                             ),
@@ -614,32 +724,25 @@ class _DriverCardState extends State<DriverCard> with SingleTickerProviderStateM
                           const SizedBox(width: 12),
                           Container(
                             decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(16),
+                              borderRadius: BorderRadius.circular(14),
                               gradient: (widget.bus != null &&
                                       widget.bus!.isActive &&
                                       widget.bus!.status != 'not-running')
                                   ? const LinearGradient(
-                                      colors: [Color(0xFF2E3192), Color(0xFF1BFFFF)],
+                                      colors: [Color(0xFF00C6E6), Color(0xFF0097B2)],
                                       begin: Alignment.topLeft,
                                       end: Alignment.bottomRight,
                                     )
-                                  : LinearGradient(
-                                      colors: [
-                                        Colors.grey.shade200,
-                                        Colors.grey.shade300,
-                                      ],
-                                    ),
-                              boxShadow: (widget.bus != null &&
+                                  : null,
+                              color: (widget.bus != null &&
                                       widget.bus!.isActive &&
                                       widget.bus!.status != 'not-running')
-                                  ? [
-                                      BoxShadow(
-                                        color: const Color(0xFF2E3192).withValues(alpha: 0.3),
-                                        blurRadius: 10,
-                                        offset: const Offset(0, 4),
-                                      ),
-                                    ]
-                                  : [],
+                                  ? null
+                                  : (isDark
+                                      ? (isOnline
+                                          ? const Color(0xFF00C6E6).withValues(alpha: 0.05)
+                                          : Colors.white.withValues(alpha: 0.04))
+                                      : Colors.grey.shade200),
                             ),
                             child: ElevatedButton.icon(
                               onPressed: () {
@@ -666,8 +769,8 @@ class _DriverCardState extends State<DriverCard> with SingleTickerProviderStateM
                                 }
                               },
                               icon: Icon(
-                                Icons.location_searching,
-                                size: 20,
+                                Icons.location_searching_rounded,
+                                size: 18,
                                 color: (widget.bus != null &&
                                         widget.bus!.isActive &&
                                         widget.bus!.status != 'not-running')
@@ -676,7 +779,7 @@ class _DriverCardState extends State<DriverCard> with SingleTickerProviderStateM
                               ),
                               label: const Text('Track'),
                               style: ElevatedButton.styleFrom(
-                                padding: const EdgeInsets.symmetric(vertical: 16),
+                                padding: const EdgeInsets.symmetric(vertical: 14),
                                 backgroundColor: Colors.transparent,
                                 foregroundColor: (widget.bus != null &&
                                         widget.bus!.isActive &&
@@ -685,7 +788,7 @@ class _DriverCardState extends State<DriverCard> with SingleTickerProviderStateM
                                     : Colors.grey.shade400,
                                 shadowColor: Colors.transparent,
                                 shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(16),
+                                  borderRadius: BorderRadius.circular(14),
                                 ),
                               ),
                             ),
@@ -700,3 +803,244 @@ class _DriverCardState extends State<DriverCard> with SingleTickerProviderStateM
     );
   }
 }
+
+
+class OnlineStatusDot extends StatefulWidget {
+  const OnlineStatusDot({super.key});
+
+  @override
+  State<OnlineStatusDot> createState() => _OnlineStatusDotState();
+}
+
+class _OnlineStatusDotState extends State<OnlineStatusDot> with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1500),
+    )..repeat();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, child) {
+        final double scale = 1.0 + (_controller.value * 1.5);
+        final double opacity = (1.0 - _controller.value).clamp(0.0, 1.0);
+        return Stack(
+          alignment: Alignment.center,
+          children: [
+            Transform.scale(
+              scale: scale,
+              child: Container(
+                width: 10,
+                height: 10,
+                decoration: BoxDecoration(
+                  color: Colors.greenAccent.withValues(alpha: opacity * 0.6),
+                  shape: BoxShape.circle,
+                ),
+              ),
+            ),
+            Container(
+              width: 8,
+              height: 8,
+              decoration: BoxDecoration(
+                color: Colors.greenAccent,
+                shape: BoxShape.circle,
+                border: Border.all(color: Colors.white, width: 1.5),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.greenAccent.withValues(alpha: 0.4),
+                    blurRadius: 4,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class AnimatedTabIcon extends StatefulWidget {
+  final IconData icon;
+  final int index;
+
+  const AnimatedTabIcon({
+    super.key,
+    required this.icon,
+    required this.index,
+  });
+
+  @override
+  State<AnimatedTabIcon> createState() => _AnimatedTabIconState();
+}
+
+class _AnimatedTabIconState extends State<AnimatedTabIcon>
+    with SingleTickerProviderStateMixin {
+  TabController? _tabController;
+  late AnimationController _controller;
+  late Animation<double> _scaleAnimation;
+  late Animation<double> _rotationAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 500),
+    );
+
+    _scaleAnimation = Tween<double>(begin: 1.0, end: 1.12).animate(
+      CurvedAnimation(
+        parent: _controller,
+        curve: const Cubic(0.34, 1.56, 0.64, 1.0),
+        reverseCurve: Curves.easeOut,
+      ),
+    );
+
+    _rotationAnimation = Tween<double>(begin: 0.0, end: 0.15 * math.pi).animate(
+      CurvedAnimation(
+        parent: _controller,
+        curve: const Cubic(0.34, 1.56, 0.64, 1.0),
+        reverseCurve: Curves.easeOut,
+      ),
+    );
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final newController = DefaultTabController.of(context);
+    if (newController != _tabController) {
+      _tabController?.removeListener(_handleTabChange);
+      _tabController = newController;
+      _tabController?.addListener(_handleTabChange);
+      if (_tabController != null) {
+        if (_tabController!.index == widget.index) {
+          _controller.value = 1.0;
+        } else {
+          _controller.value = 0.0;
+        }
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _tabController?.removeListener(_handleTabChange);
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _handleTabChange() {
+    if (_tabController == null) return;
+    final isSelected = _tabController!.index == widget.index;
+    if (isSelected) {
+      if (_controller.status != AnimationStatus.completed &&
+          _controller.status != AnimationStatus.forward) {
+        _controller.forward();
+      }
+    } else {
+      if (_controller.status != AnimationStatus.dismissed &&
+          _controller.status != AnimationStatus.reverse) {
+        _controller.reverse();
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, child) {
+        return Transform.scale(
+          scale: _scaleAnimation.value,
+          child: Transform.rotate(
+            angle: _rotationAnimation.value,
+            child: child,
+          ),
+        );
+      },
+      child: Icon(
+        widget.icon,
+        size: 20,
+      ),
+    );
+  }
+}
+
+class OnlineAvatarAura extends StatefulWidget {
+  final Widget child;
+  const OnlineAvatarAura({super.key, required this.child});
+
+  @override
+  State<OnlineAvatarAura> createState() => _OnlineAvatarAuraState();
+}
+
+class _OnlineAvatarAuraState extends State<OnlineAvatarAura> with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _glowAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 2500),
+    )..repeat(reverse: true);
+    _glowAnimation = Tween<double>(begin: 4.0, end: 18.0).animate(
+      CurvedAnimation(
+        parent: _controller,
+        curve: Curves.easeInOut,
+      ),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _glowAnimation,
+      builder: (context, child) {
+        return Container(
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF00C6E6).withValues(alpha: 0.22),
+                blurRadius: _glowAnimation.value,
+                spreadRadius: _glowAnimation.value * 0.35,
+              ),
+              BoxShadow(
+                color: Colors.greenAccent.withValues(alpha: 0.12),
+                blurRadius: _glowAnimation.value * 1.5,
+                spreadRadius: 1.0,
+              ),
+            ],
+          ),
+          child: child,
+        );
+      },
+      child: widget.child,
+    );
+  }
+}
+
+

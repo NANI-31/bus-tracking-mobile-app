@@ -4,6 +4,8 @@ import 'package:collegebus/features/bus/domain/bus_model.dart';
 import 'package:collegebus/features/route/domain/route_model.dart';
 import 'package:collegebus/core/services/persistence_service.dart';
 import 'package:collegebus/features/auth/application/auth_provider.dart';
+import 'package:collegebus/features/bus/application/bus_provider.dart';
+import 'package:collegebus/features/route/application/route_provider.dart';
 
 class MapNavigationState {
   final LatLng? centerLocation;
@@ -59,6 +61,41 @@ class MapNavigationNotifier extends Notifier<MapNavigationState> {
     LatLng? initialCenter;
     if (savedLat != null && savedLng != null) {
       initialCenter = LatLng(savedLat, savedLng);
+    }
+
+    // Listen to college buses stream provider to reactively validate/clear selection
+    final user = ref.watch(currentUserProvider);
+    final collegeId = user?.collegeId;
+    if (collegeId != null) {
+      ref.listen(collegeBusesStreamProvider(collegeId), (previous, next) {
+        final buses = next.valueOrNull;
+        if (buses != null && state.selectedBus != null) {
+          final selectedBusId = state.selectedBus!.id;
+          final updatedBus = buses.cast<BusModel?>().firstWhere(
+            (b) => b!.id == selectedBusId,
+            orElse: () => null,
+          );
+          if (updatedBus == null || updatedBus.assignmentStatus != 'accepted') {
+            selectBus(null, null);
+          } else if (updatedBus.routeId != state.selectedBus!.routeId ||
+                     updatedBus.assignmentStatus != state.selectedBus!.assignmentStatus ||
+                     updatedBus.status != state.selectedBus!.status) {
+            // Update selected bus details if they changed
+            final targetRouteId = updatedBus.routeId ?? updatedBus.defaultRouteId;
+            final routes = ref.read(collegeRoutesProvider(collegeId)).valueOrNull ?? [];
+            final newActiveRoute = targetRouteId != null
+                ? routes.cast<RouteModel?>().firstWhere(
+                    (r) => r!.id == targetRouteId,
+                    orElse: () => null,
+                  )
+                : null;
+            state = state.copyWith(
+              selectedBus: () => updatedBus,
+              activeRoute: () => newActiveRoute,
+            );
+          }
+        }
+      });
     }
 
     return MapNavigationState(

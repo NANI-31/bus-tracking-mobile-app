@@ -101,6 +101,15 @@ export const deleteRoute = async (routeId) => {
     throw error.response ? error.response.data : error.message;
   }
 };
+
+export const clearRouteDirections = async (routeId) => {
+  try {
+    const response = await axios.delete(`/routes/${routeId}/directions`);
+    return response.data;
+  } catch (error) {
+    throw error.response ? error.response.data : error.message;
+  }
+};
 // Payments & Transactions
 export const fetchTransactions = async (params) => {
   try {

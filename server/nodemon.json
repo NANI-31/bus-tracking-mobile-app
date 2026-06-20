@@ -7,6 +7,6 @@
 		"node_modules",
 		"dist"
 	],
-	"exec": "ts-node --transpile-only -r tsconfig-paths/register src/index.ts",
+	"exec": "tsx src/index.ts",
 	"ext": "ts,json"
 }

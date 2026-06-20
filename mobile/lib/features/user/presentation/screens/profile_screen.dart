@@ -12,10 +12,12 @@ import 'package:collegebus/l10n/common/app_localizations.dart' as common_l10n;
 import 'package:collegebus/features/college/application/college_provider.dart';
 import 'package:collegebus/features/user/domain/user_model.dart';
 import 'package:collegebus/shared/widgets/shimmer_loading.dart';
+import 'package:collegebus/shared/widgets/staggered_entrance_widget.dart';
 
 // New standalone widgets
 import '../widgets/profile_section_card.dart';
 import '../widgets/profile_list_item.dart';
+import '../widgets/springy_switch.dart';
 import 'package:collegebus/shared/widgets/logout_confirmation_dialog.dart';
 import 'package:collegebus/features/settings/presentation/sos_sound_settings.dart';
 import 'package:collegebus/shared/widgets/navigation/curved_bottom_nav_bar.dart';
@@ -76,11 +78,15 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         statusBarBrightness: isDark ? Brightness.dark : Brightness.light,
         systemNavigationBarColor: Colors.transparent,
         systemNavigationBarDividerColor: Colors.transparent,
-        systemNavigationBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
+        systemNavigationBarIconBrightness: isDark
+            ? Brightness.light
+            : Brightness.dark,
       ),
       child: Scaffold(
         extendBodyBehindAppBar: true,
-        backgroundColor: isDark ? const Color(0xFF12181F) : const Color(0xFFF5F7FA),
+        backgroundColor: isDark
+            ? const Color(0xFF12181F)
+            : const Color(0xFFF5F7FA),
         appBar: AppBar(
           title: Text(
             l10n.profile,
@@ -89,8 +95,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           centerTitle: true,
           backgroundColor: _isScrolled
               ? (isDark
-                  ? const Color(0xFF12181F).withValues(alpha: 0.9)
-                  : const Color(0xFFF5F7FA).withValues(alpha: 0.9))
+                    ? const Color(0xFF12181F).withValues(alpha: 0.9)
+                    : const Color(0xFFF5F7FA).withValues(alpha: 0.9))
               : Colors.transparent,
           foregroundColor: _isScrolled
               ? Theme.of(context).colorScheme.onSurface
@@ -117,12 +123,16 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     colors: [
+                      isDark ? accentColor.withValues(alpha: 0.8) : accentColor,
                       isDark
-                          ? accentColor.withValues(alpha: 0.8)
-                          : accentColor,
-                      isDark
-                          ? Color.alphaBlend(Colors.black.withValues(alpha: 0.3), accentColor)
-                          : Color.alphaBlend(Colors.white.withValues(alpha: 0.15), accentColor),
+                          ? Color.alphaBlend(
+                              Colors.black.withValues(alpha: 0.3),
+                              accentColor,
+                            )
+                          : Color.alphaBlend(
+                              Colors.white.withValues(alpha: 0.15),
+                              accentColor,
+                            ),
                     ],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
@@ -174,48 +184,67 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                         Expanded(
                           flex: 4,
                           child: SingleChildScrollView(
-                            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 24,
+                              vertical: 16,
+                            ),
                             child: VStack([
                               30.heightBox, // Padding offset for avatar
-                              _buildUserProfileCard(context, user),
+                              StaggeredEntranceWidget(
+                                index: 0,
+                                child: _buildUserProfileCard(context, user),
+                              ),
                               24.heightBox,
                               // Quick stats stack inside left column
-                              _buildStatCard(
-                                context,
-                                l10n.role,
-                                user.role.displayName,
-                                Icons.badge_rounded,
-                                Colors.blue,
-                                fullWidth: true,
-                              ),
-                              12.heightBox,
-                              _buildStatCard(
-                                context,
-                                'College',
-                                collegesAsync.maybeWhen(
-                                  data: (colleges) {
-                                    try {
-                                      return colleges
-                                          .firstWhere((c) => c.id == user.collegeId)
-                                          .name;
-                                    } catch (_) {
-                                      return user.collegeId.isNotEmpty ? user.collegeId : 'N/A';
-                                    }
-                                  },
-                                  orElse: () => 'Loading...',
+                              StaggeredEntranceWidget(
+                                index: 1,
+                                child: _buildStatCard(
+                                  context,
+                                  l10n.role,
+                                  user.role.displayName,
+                                  Icons.badge_rounded,
+                                  Colors.blue,
+                                  fullWidth: true,
                                 ),
-                                Icons.school_rounded,
-                                Colors.purple,
-                                fullWidth: true,
                               ),
                               12.heightBox,
-                              _buildStatCard(
-                                context,
-                                l10n.phone,
-                                user.phoneNumber ?? 'Not provided',
-                                Icons.phone_rounded,
-                                Colors.teal,
-                                fullWidth: true,
+                              StaggeredEntranceWidget(
+                                index: 2,
+                                child: _buildStatCard(
+                                  context,
+                                  'College',
+                                  collegesAsync.maybeWhen(
+                                    data: (colleges) {
+                                      try {
+                                        return colleges
+                                            .firstWhere(
+                                              (c) => c.id == user.collegeId,
+                                            )
+                                            .name;
+                                      } catch (_) {
+                                        return user.collegeId.isNotEmpty
+                                            ? user.collegeId
+                                            : 'N/A';
+                                      }
+                                    },
+                                    orElse: () => 'Loading...',
+                                  ),
+                                  Icons.school_rounded,
+                                  Colors.purple,
+                                  fullWidth: true,
+                                ),
+                              ),
+                              12.heightBox,
+                              StaggeredEntranceWidget(
+                                index: 3,
+                                child: _buildStatCard(
+                                  context,
+                                  l10n.phone,
+                                  user.phoneNumber ?? 'Not provided',
+                                  Icons.phone_rounded,
+                                  Colors.teal,
+                                  fullWidth: true,
+                                ),
                               ),
                             ]),
                           ),
@@ -224,119 +253,143 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                         Container(
                           width: 1.5,
                           height: double.infinity,
-                          color: isDark ? Colors.white.withValues(alpha: 0.08) : Colors.black.withValues(alpha: 0.05),
+                          color: isDark
+                              ? Colors.white.withValues(alpha: 0.08)
+                              : Colors.black.withValues(alpha: 0.05),
                         ),
                         // Right Column (Settings Grid / Sections)
                         Expanded(
                           flex: 5,
                           child: SingleChildScrollView(
-                            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 24,
+                              vertical: 16,
+                            ),
                             child: VStack([
                               // Preferences
-                              ProfileSectionCard(
-                                title: l10n.preferences,
-                                children: [
-                                  ProfileListItem(
-                                    leadingIcon: Icons.notifications_active_outlined,
-                                    iconColor: accentColor,
-                                    title: l10n.notifications,
-                                    subtitle: l10n.receiveAlerts,
-                                    trailing: Switch(
-                                      value: true,
-                                      activeThumbColor: accentColor,
-                                      activeTrackColor: accentColor.withValues(alpha: 0.3),
-                                      onChanged: (val) {},
-                                    ),
-                                    showDivider: true,
-                                  ),
-                                  _buildLanguageSelector(context, l10n),
-                                  _buildAccentColorSelector(context, themeService.accentColorValue),
-                                  ProfileListItem(
-                                    leadingIcon: Icons.location_on_outlined,
-                                    iconColor: accentColor,
-                                    title: l10n.busStop,
-                                    subtitle: l10n.managePreferredPickup,
-                                    trailing: Icon(
-                                      Icons.chevron_right_rounded,
-                                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
-                                    ),
-                                    onTap: () => context.push('/student/bus-stop'),
-                                    showDivider: true,
-                                  ),
-                                  _buildMapThemeSelector(
-                                    context,
-                                    themeService.mapTheme,
-                                    themeService.isDarkMode,
-                                  ),
-                                  ProfileListItem(
-                                    leadingIcon: themeService.isDarkMode
-                                        ? Icons.dark_mode_rounded
-                                        : Icons.light_mode_rounded,
-                                    iconColor: accentColor,
-                                    title: l10n.darkMode,
-                                    subtitle: l10n.toggleDarkLight,
-                                    trailing: Switch(
-                                      value: themeService.isDarkMode,
-                                      activeThumbColor: accentColor,
-                                      activeTrackColor: accentColor.withValues(alpha: 0.3),
-                                      onChanged: (val) => ref
-                                          .read(themeServiceProvider.notifier)
-                                          .toggleTheme(val),
-                                    ),
-                                    showDivider: false,
-                                  ),
-                                ],
-                              ),
-                              24.heightBox,
-                              // Account & Security
-                              ProfileSectionCard(
-                                title: l10n.accountSecurity,
-                                children: [
-                                  ProfileListItem(
-                                    leadingIcon: Icons.lock_outline_rounded,
-                                    iconColor: accentColor,
-                                    title: l10n.changePassword,
-                                    subtitle: l10n.updateCredentials,
-                                    onTap: () => context.push('/student/change-password'),
-                                    showDivider: true,
-                                  ),
-                                  ProfileListItem(
-                                    leadingIcon: Icons.privacy_tip_outlined,
-                                    iconColor: accentColor,
-                                    title: l10n.privacyPolicy,
-                                    subtitle: l10n.dataHandling,
-                                    onTap: () => context.push('/student/privacy-policy'),
-                                    showDivider: true,
-                                  ),
-                                  ProfileListItem(
-                                    leadingIcon: Icons.description_outlined,
-                                    iconColor: accentColor,
-                                    title: l10n.termsConditions,
-                                    subtitle: l10n.legalUsageRequirements,
-                                    onTap: () => context.push('/student/terms-conditions'),
-                                    showDivider: true,
-                                  ),
-                                  if ([
-                                    UserRole.student,
-                                    UserRole.parent,
-                                    UserRole.teacher,
-                                  ].contains(user.role))
+                              StaggeredEntranceWidget(
+                                index: 1,
+                                child: ProfileSectionCard(
+                                  title: l10n.preferences,
+                                  children: [
                                     ProfileListItem(
-                                      leadingIcon: Icons.payment_rounded,
+                                      leadingIcon:
+                                          Icons.notifications_active_outlined,
                                       iconColor: accentColor,
-                                      title: "Payments",
-                                      subtitle: user.isPremium && user.premiumUntil != null
-                                          ? "Premium active until ${user.premiumUntil!.day}/${user.premiumUntil!.month}/${user.premiumUntil!.year}"
-                                          : "Pay fees & dues",
-                                      onTap: () => Navigator.of(context).push(
-                                        MaterialPageRoute(builder: (_) => const PaymentScreen()),
+                                      title: l10n.notifications,
+                                      trailing: SpringySwitch(
+                                        value: true,
+                                        activeColor: accentColor,
+                                        onChanged: (val) {},
+                                      ),
+                                      showDivider: true,
+                                    ),
+                                    _buildLanguageSelector(context, l10n),
+                                    _buildAccentColorSelector(
+                                      context,
+                                      themeService.accentColorValue,
+                                    ),
+                                    if (user.role == UserRole.student)
+                                      ProfileListItem(
+                                        leadingIcon: Icons.location_on_outlined,
+                                        iconColor: accentColor,
+                                        title: l10n.busStop,
+                                        trailing: Icon(
+                                          Icons.chevron_right_rounded,
+                                          color: Theme.of(context)
+                                              .colorScheme
+                                              .onSurface
+                                              .withValues(alpha: 0.5),
+                                        ),
+                                        onTap: () =>
+                                            context.push('/student/bus-stop'),
+                                        showDivider: true,
+                                      ),
+                                    _buildMapThemeSelector(
+                                      context,
+                                      themeService.mapTheme,
+                                      themeService.isDarkMode,
+                                    ),
+                                    ProfileListItem(
+                                      leadingIcon: themeService.isDarkMode
+                                          ? Icons.dark_mode_rounded
+                                          : Icons.light_mode_rounded,
+                                      iconColor: accentColor,
+                                      title: l10n.darkMode,
+                                      trailing: SpringySwitch(
+                                        value: themeService.isDarkMode,
+                                        activeColor: accentColor,
+                                        onChanged: (val) => ref
+                                            .read(themeServiceProvider.notifier)
+                                            .toggleTheme(val),
                                       ),
                                       showDivider: false,
                                     ),
-                                ],
+                                  ],
+                                ),
+                              ),
+                              24.heightBox,
+                              // Account & Security
+                              StaggeredEntranceWidget(
+                                index: 2,
+                                child: ProfileSectionCard(
+                                  title: l10n.accountSecurity,
+                                  children: [
+                                    ProfileListItem(
+                                      leadingIcon: Icons.lock_outline_rounded,
+                                      iconColor: accentColor,
+                                      title: l10n.changePassword,
+                                      onTap: () => context.push(
+                                        '/student/change-password',
+                                      ),
+                                      showDivider: true,
+                                    ),
+                                    ProfileListItem(
+                                      leadingIcon: Icons.privacy_tip_outlined,
+                                      iconColor: accentColor,
+                                      title: l10n.privacyPolicy,
+                                      onTap: () =>
+                                          context.push('/student/privacy-policy'),
+                                      showDivider: true,
+                                    ),
+                                    ProfileListItem(
+                                      leadingIcon: Icons.description_outlined,
+                                      iconColor: accentColor,
+                                      title: l10n.termsConditions,
+                                      onTap: () => context.push(
+                                        '/student/terms-conditions',
+                                      ),
+                                      showDivider: true,
+                                    ),
+                                    if ([
+                                      UserRole.student,
+                                      UserRole.parent,
+                                      UserRole.teacher,
+                                    ].contains(user.role))
+                                      ProfileListItem(
+                                        leadingIcon: Icons.payment_rounded,
+                                        iconColor: accentColor,
+                                        title: "Payments",
+                                        subtitle:
+                                            user.isPremium &&
+                                                user.premiumUntil != null
+                                            ? "Premium active until ${user.premiumUntil!.day}/${user.premiumUntil!.month}/${user.premiumUntil!.year}"
+                                            : "Pay fees & dues",
+                                        onTap: () => Navigator.of(context).push(
+                                          MaterialPageRoute(
+                                            builder: (_) => const PaymentScreen(),
+                                          ),
+                                        ),
+                                        showDivider: false,
+                                      ),
+                                  ],
+                                ),
                               ),
                               32.heightBox,
-                              _buildLogoutButton(context),
+                              StaggeredEntranceWidget(
+                                index: 3,
+                                child: _buildLogoutButton(context),
+                              ),
                               24.heightBox,
                               const BottomNavSpacer(),
                             ]),
@@ -350,112 +403,134 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     physics: const BouncingScrollPhysics(),
                     child: VStack([
                       // Spacer for status bar and appbar height
-                      (MediaQuery.of(context).padding.top + kToolbarHeight + 64).heightBox,
+                      (MediaQuery.of(context).padding.top + kToolbarHeight + 64)
+                          .heightBox,
 
                       // User details card (overlapping layout)
-                      _buildUserProfileCard(context, user),
+                      StaggeredEntranceWidget(
+                        index: 0,
+                        child: _buildUserProfileCard(context, user),
+                      ),
 
                       24.heightBox,
 
                       // Main sections
                       VStack([
                         // Quick stats grid
-                        HStack([
-                          _buildStatCard(
-                            context,
-                            l10n.role,
-                            user.role.displayName,
-                            Icons.badge_rounded,
-                            Colors.blue,
-                          ),
-                          12.widthBox,
-                          _buildStatCard(
-                            context,
-                            l10n.phone,
-                            user.phoneNumber ?? 'Not provided',
-                            Icons.phone_rounded,
-                            Colors.teal,
-                          ),
-                        ]),
+                        StaggeredEntranceWidget(
+                          index: 1,
+                          child: HStack([
+                            Expanded(
+                              child: _buildStatCard(
+                                context,
+                                l10n.role,
+                                user.role.displayName,
+                                Icons.badge_rounded,
+                                Colors.blue,
+                                fullWidth: true,
+                              ),
+                            ),
+                            12.widthBox,
+                            Expanded(
+                              child: _buildStatCard(
+                                context,
+                                l10n.phone,
+                                user.phoneNumber ?? 'Not provided',
+                                Icons.phone_rounded,
+                                Colors.teal,
+                                fullWidth: true,
+                              ),
+                            ),
+                          ]),
+                        ),
 
                         12.heightBox,
 
-                        _buildStatCard(
-                          context,
-                          'College',
-                          collegesAsync.maybeWhen(
-                            data: (colleges) {
-                              try {
-                                return colleges
-                                    .firstWhere((c) => c.id == user.collegeId)
-                                    .name;
-                              } catch (_) {
-                                return user.collegeId.isNotEmpty ? user.collegeId : 'N/A';
-                              }
-                            },
-                            orElse: () => 'Loading...',
+                        StaggeredEntranceWidget(
+                          index: 2,
+                          child: _buildStatCard(
+                            context,
+                            'College',
+                            collegesAsync.maybeWhen(
+                              data: (colleges) {
+                                try {
+                                  return colleges
+                                      .firstWhere((c) => c.id == user.collegeId)
+                                      .name;
+                                } catch (_) {
+                                  return user.collegeId.isNotEmpty
+                                      ? user.collegeId
+                                      : 'N/A';
+                                }
+                              },
+                              orElse: () => 'Loading...',
+                            ),
+                            Icons.school_rounded,
+                            Colors.purple,
+                            fullWidth: true,
                           ),
-                          Icons.school_rounded,
-                          Colors.purple,
-                          fullWidth: true,
                         ),
 
                         24.heightBox,
 
                         // Preferences section
-                        ProfileSectionCard(
-                          title: l10n.preferences,
-                          children: [
-                            ProfileListItem(
-                              leadingIcon: Icons.notifications_active_outlined,
-                              iconColor: accentColor,
-                              title: l10n.notifications,
-                              subtitle: l10n.receiveAlerts,
-                              trailing: Switch(
-                                value: true,
-                                activeThumbColor: accentColor,
-                                activeTrackColor: accentColor.withValues(alpha: 0.3),
-                                onChanged: (val) {},
+                        StaggeredEntranceWidget(
+                          index: 3,
+                          child: ProfileSectionCard(
+                            title: l10n.preferences,
+                            children: [
+                              ProfileListItem(
+                                leadingIcon: Icons.notifications_active_outlined,
+                                iconColor: accentColor,
+                                title: l10n.notifications,
+                                trailing: SpringySwitch(
+                                  value: true,
+                                  activeColor: accentColor,
+                                  onChanged: (val) {},
+                                ),
+                                showDivider: true,
                               ),
-                              showDivider: true,
-                            ),
-                            _buildLanguageSelector(context, l10n),
-                            _buildAccentColorSelector(context, themeService.accentColorValue),
-                            ProfileListItem(
-                              leadingIcon: Icons.location_on_outlined,
-                              iconColor: accentColor,
-                              title: l10n.busStop,
-                              subtitle: l10n.managePreferredPickup,
-                              trailing: Icon(
-                                Icons.chevron_right_rounded,
-                                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
+                              _buildLanguageSelector(context, l10n),
+                              _buildAccentColorSelector(
+                                context,
+                                themeService.accentColorValue,
                               ),
-                              onTap: () => context.push('/student/bus-stop'),
-                              showDivider: true,
-                            ),
-                            _buildMapThemeSelector(
-                              context,
-                              themeService.mapTheme,
-                              themeService.isDarkMode,
-                            ),
-                            ProfileListItem(
-                              leadingIcon: themeService.isDarkMode
-                                  ? Icons.dark_mode_rounded
-                                  : Icons.light_mode_rounded,
-                              iconColor: accentColor,
-                              title: l10n.darkMode,
-                              subtitle: l10n.toggleDarkLight,
-                              trailing: Switch(
-                                value: themeService.isDarkMode,
-                                activeThumbColor: accentColor,
-                                activeTrackColor: accentColor.withValues(alpha: 0.3),
-                                onChanged: (val) => ref
-                                    .read(themeServiceProvider.notifier)
-                                    .toggleTheme(val),
+                              if (user.role == UserRole.student)
+                                ProfileListItem(
+                                  leadingIcon: Icons.location_on_outlined,
+                                  iconColor: accentColor,
+                                  title: l10n.busStop,
+                                  trailing: Icon(
+                                    Icons.chevron_right_rounded,
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.onSurface.withValues(alpha: 0.5),
+                                  ),
+                                  onTap: () => context.push('/student/bus-stop'),
+                                  showDivider: true,
+                                ),
+                              _buildMapThemeSelector(
+                                context,
+                                themeService.mapTheme,
+                                themeService.isDarkMode,
                               ),
-                              showDivider: false,
-                            ),
-                          ],
+                              ProfileListItem(
+                                leadingIcon: themeService.isDarkMode
+                                    ? Icons.dark_mode_rounded
+                                    : Icons.light_mode_rounded,
+                                iconColor: accentColor,
+                                title: l10n.darkMode,
+                                trailing: SpringySwitch(
+                                  value: themeService.isDarkMode,
+                                  activeColor: accentColor,
+                                  onChanged: (val) => ref
+                                      .read(themeServiceProvider.notifier)
+                                      .toggleTheme(val),
+                                ),
+                                showDivider: false,
+                              ),
+                            ],
+                          ),
                         ),
 
                         24.heightBox,
@@ -467,72 +542,86 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                           UserRole.teacher,
                         ].contains(user.role)) ...[
                           Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 4.0),
-                            child: ProfileSectionCard(
-                              title: 'Emergency Settings',
-                              children: [
-                                Padding(
-                                  padding: const EdgeInsets.all(16.0),
-                                  child: const SosSoundSettings(),
-                                ),
-                              ],
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 4.0,
+                            ),
+                            child: StaggeredEntranceWidget(
+                              index: 4,
+                              child: ProfileSectionCard(
+                                title: 'Emergency Settings',
+                                children: [
+                                  Padding(
+                                    padding: const EdgeInsets.all(16.0),
+                                    child: const SosSoundSettings(),
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
                           24.heightBox,
                         ],
 
                         // Account and Security Section
-                        ProfileSectionCard(
-                          title: l10n.accountSecurity,
-                          children: [
-                            ProfileListItem(
-                              leadingIcon: Icons.lock_outline_rounded,
-                              iconColor: accentColor,
-                              title: l10n.changePassword,
-                              subtitle: l10n.updateCredentials,
-                              onTap: () => context.push('/student/change-password'),
-                              showDivider: true,
-                            ),
-                            ProfileListItem(
-                              leadingIcon: Icons.privacy_tip_outlined,
-                              iconColor: accentColor,
-                              title: l10n.privacyPolicy,
-                              subtitle: l10n.dataHandling,
-                              onTap: () => context.push('/student/privacy-policy'),
-                              showDivider: true,
-                            ),
-                            ProfileListItem(
-                              leadingIcon: Icons.description_outlined,
-                              iconColor: accentColor,
-                              title: l10n.termsConditions,
-                              subtitle: l10n.legalUsageRequirements,
-                              onTap: () => context.push('/student/terms-conditions'),
-                              showDivider: true,
-                            ),
-                            if ([
-                              UserRole.student,
-                              UserRole.parent,
-                              UserRole.teacher,
-                            ].contains(user.role))
+                        StaggeredEntranceWidget(
+                          index: 5,
+                          child: ProfileSectionCard(
+                            title: l10n.accountSecurity,
+                            children: [
                               ProfileListItem(
-                                leadingIcon: Icons.payment_rounded,
+                                leadingIcon: Icons.lock_outline_rounded,
                                 iconColor: accentColor,
-                                title: "Payments",
-                                subtitle: user.isPremium && user.premiumUntil != null
-                                    ? "Premium active until ${user.premiumUntil!.day}/${user.premiumUntil!.month}/${user.premiumUntil!.year}"
-                                    : "Pay fees & dues",
-                                onTap: () => Navigator.of(context).push(
-                                  MaterialPageRoute(builder: (_) => const PaymentScreen()),
-                                ),
-                                showDivider: false,
+                                title: l10n.changePassword,
+                                onTap: () =>
+                                    context.push('/student/change-password'),
+                                showDivider: true,
                               ),
-                          ],
+                              ProfileListItem(
+                                leadingIcon: Icons.privacy_tip_outlined,
+                                iconColor: accentColor,
+                                title: l10n.privacyPolicy,
+                                onTap: () =>
+                                    context.push('/student/privacy-policy'),
+                                showDivider: true,
+                              ),
+                              ProfileListItem(
+                                leadingIcon: Icons.description_outlined,
+                                iconColor: accentColor,
+                                title: l10n.termsConditions,
+                                onTap: () =>
+                                    context.push('/student/terms-conditions'),
+                                showDivider: true,
+                              ),
+                              if ([
+                                UserRole.student,
+                                UserRole.parent,
+                                UserRole.teacher,
+                              ].contains(user.role))
+                                ProfileListItem(
+                                  leadingIcon: Icons.payment_rounded,
+                                  iconColor: accentColor,
+                                  title: "Payments",
+                                  subtitle:
+                                      user.isPremium && user.premiumUntil != null
+                                      ? "Premium active until ${user.premiumUntil!.day}/${user.premiumUntil!.month}/${user.premiumUntil!.year}"
+                                      : "Pay fees & dues",
+                                  onTap: () => Navigator.of(context).push(
+                                    MaterialPageRoute(
+                                      builder: (_) => const PaymentScreen(),
+                                    ),
+                                  ),
+                                  showDivider: false,
+                                ),
+                            ],
+                          ),
                         ),
 
                         32.heightBox,
 
                         // Logout button
-                        _buildLogoutButton(context),
+                        StaggeredEntranceWidget(
+                          index: 6,
+                          child: _buildLogoutButton(context),
+                        ),
 
                         32.heightBox,
                         const BottomNavSpacer(),
@@ -585,7 +674,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             right: 0,
             height: 60,
             child: ClipRRect(
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(26)),
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(26),
+              ),
               child: Container(
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
@@ -603,7 +694,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
           VStack([
             56.heightBox, // Offset down for half-avatar overlap
-
             // Name and optional PRO badge
             HStack([
               user.fullName.text
@@ -614,7 +704,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               if (user.isPremium) ...[
                 8.widthBox,
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     gradient: const LinearGradient(
                       colors: [Color(0xFFFF8F00), Color(0xFFFFC107)],
@@ -633,7 +726,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: const [
-                      Icon(Icons.workspace_premium_rounded, size: 12, color: Colors.white),
+                      Icon(
+                        Icons.workspace_premium_rounded,
+                        size: 12,
+                        color: Colors.white,
+                      ),
                       SizedBox(width: 4),
                       Text(
                         "PRO",
@@ -654,100 +751,137 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             // Email address
             user.email.text
                 .size(13)
-                .color(Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5))
+                .color(
+                  Theme.of(
+                    context,
+                  ).colorScheme.onSurface.withValues(alpha: 0.5),
+                )
                 .make()
                 .centered(),
 
-            16.heightBox,
-
-            // Subscription Premium Actions banner
-            if (user.isPremium)
-              GestureDetector(
-                onTap: () => _showSubscriptionDetailsSheet(context, true),
-                child: Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 24),
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                  decoration: BoxDecoration(
-                    color: Colors.amber.withValues(alpha: isDark ? 0.12 : 0.08),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                      color: Colors.amber.withValues(alpha: isDark ? 0.25 : 0.15),
-                      width: 1,
+            if (user.role != UserRole.busCoordinator && user.role != UserRole.driver) ...[
+              16.heightBox,
+              // Subscription Premium Actions banner
+              if (user.isPremium)
+                GestureDetector(
+                  onTap: () => _showSubscriptionDetailsSheet(context, true),
+                  child: Container(
+                    margin: const EdgeInsets.symmetric(horizontal: 24),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 10,
                     ),
-                  ),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.star_rounded, color: Colors.amber, size: 20),
-                      10.widthBox,
-                      Expanded(
-                        child: "Premium Membership Active".text
-                            .size(12)
-                            .semiBold
-                            .color(isDark ? Colors.amber.shade300 : Colors.amber.shade800)
-                            .make(),
-                      ),
-                      Icon(
-                        Icons.info_outline_rounded,
-                        color: isDark ? Colors.amber.shade300 : Colors.amber.shade800,
-                        size: 16,
-                      ),
-                    ],
-                  ),
-                ),
-              )
-            else
-              GestureDetector(
-                onTap: () => _showSubscriptionDetailsSheet(context, false),
-                child: Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 24),
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [accentColor, Color.alphaBlend(Colors.white.withValues(alpha: 0.15), accentColor)],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                    borderRadius: BorderRadius.circular(16),
-                    boxShadow: [
-                      BoxShadow(
-                        color: accentColor.withValues(alpha: 0.25),
-                        blurRadius: 10,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.stars_rounded, color: Colors.white, size: 22),
-                      10.widthBox,
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: const [
-                            Text(
-                              "Upgrade to Premium",
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 13,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            SizedBox(height: 2),
-                            Text(
-                              "Unlock live map tracking & proximity alerts",
-                              style: TextStyle(
-                                color: Colors.white70,
-                                fontSize: 10,
-                              ),
-                            ),
-                          ],
+                    decoration: BoxDecoration(
+                      color: Colors.amber.withValues(alpha: isDark ? 0.12 : 0.08),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: Colors.amber.withValues(
+                          alpha: isDark ? 0.25 : 0.15,
                         ),
+                        width: 1,
                       ),
-                      const Icon(Icons.chevron_right_rounded, color: Colors.white, size: 20),
-                    ],
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.star_rounded,
+                          color: Colors.amber,
+                          size: 20,
+                        ),
+                        10.widthBox,
+                        Expanded(
+                          child: "Premium Membership Active".text
+                              .size(12)
+                              .semiBold
+                              .color(
+                                isDark
+                                    ? Colors.amber.shade300
+                                    : Colors.amber.shade800,
+                              )
+                              .make(),
+                        ),
+                        Icon(
+                          Icons.info_outline_rounded,
+                          color: isDark
+                              ? Colors.amber.shade300
+                              : Colors.amber.shade800,
+                          size: 16,
+                        ),
+                      ],
+                    ),
+                  ),
+                )
+              else
+                GestureDetector(
+                  onTap: () => _showSubscriptionDetailsSheet(context, false),
+                  child: Container(
+                    margin: const EdgeInsets.symmetric(horizontal: 24),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          accentColor,
+                          Color.alphaBlend(
+                            Colors.white.withValues(alpha: 0.15),
+                            accentColor,
+                          ),
+                        ],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                        BoxShadow(
+                          color: accentColor.withValues(alpha: 0.25),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.stars_rounded,
+                          color: Colors.white,
+                          size: 22,
+                        ),
+                        10.widthBox,
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: const [
+                              Text(
+                                "Upgrade to Premium",
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              SizedBox(height: 2),
+                              Text(
+                                "Unlock live map tracking & proximity alerts",
+                                style: TextStyle(
+                                  color: Colors.white70,
+                                  fontSize: 10,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const Icon(
+                          Icons.chevron_right_rounded,
+                          color: Colors.white,
+                          size: 20,
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-              ),
+            ],
 
             16.heightBox,
           ], crossAlignment: CrossAxisAlignment.center),
@@ -781,14 +915,15 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       backgroundColor: isDark
                           ? const Color(0xFF24303E)
                           : Colors.white,
-                      child: (user.fullName.isNotEmpty
-                              ? user.fullName.substring(0, 1).toUpperCase()
-                              : 'U')
-                          .text
-                          .size(30)
-                          .bold
-                          .color(accentColor)
-                          .make(),
+                      child:
+                          (user.fullName.isNotEmpty
+                                  ? user.fullName.substring(0, 1).toUpperCase()
+                                  : 'U')
+                              .text
+                              .size(30)
+                              .bold
+                              .color(accentColor)
+                              .make(),
                     ),
                   ),
 
@@ -856,7 +991,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       leadingIcon: Icons.language_rounded,
       iconColor: accentColor,
       title: l10n.language,
-      subtitle: l10n.chooseLanguage,
       onTap: () => _showLanguageBottomSheet(context, currentCode, l10n),
       trailing: HStack([
         languageName.text.bold
@@ -904,7 +1038,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   width: 40,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.2),
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.onSurface.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -924,7 +1060,13 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       margin: const EdgeInsets.only(bottom: 12),
                       decoration: BoxDecoration(
                         color: isSelected
-                            ? accentColor.withValues(alpha: Theme.of(context).brightness == Brightness.dark ? 0.15 : 0.08)
+                            ? accentColor.withValues(
+                                alpha:
+                                    Theme.of(context).brightness ==
+                                        Brightness.dark
+                                    ? 0.15
+                                    : 0.08,
+                              )
                             : Colors.transparent,
                         borderRadius: BorderRadius.circular(16),
                         border: Border.all(
@@ -942,7 +1084,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                         title: Text(
                           lang['name']!,
                           style: TextStyle(
-                            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                            fontWeight: isSelected
+                                ? FontWeight.bold
+                                : FontWeight.normal,
                             color: isSelected
                                 ? accentColor
                                 : Theme.of(context).colorScheme.onSurface,
@@ -956,7 +1100,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                               )
                             : null,
                         onTap: () {
-                          ref.read(localeServiceProvider.notifier).setLocale(Locale(lang['code']!));
+                          ref
+                              .read(localeServiceProvider.notifier)
+                              .setLocale(Locale(lang['code']!));
                           Navigator.pop(context);
                         },
                       ),
@@ -972,7 +1118,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     );
   }
 
-  Widget _buildAccentColorSelector(BuildContext context, int currentColorValue) {
+  Widget _buildAccentColorSelector(
+    BuildContext context,
+    int currentColorValue,
+  ) {
     final themeService = ref.watch(themeServiceProvider);
     final accentColor = Color(themeService.accentColorValue);
 
@@ -980,7 +1129,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       leadingIcon: Icons.palette_outlined,
       iconColor: accentColor,
       title: "Accent Color",
-      subtitle: "Customize UI highlight colors",
       onTap: () => _showAccentColorBottomSheet(context, currentColorValue),
       trailing: HStack([
         Container(
@@ -989,10 +1137,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           decoration: BoxDecoration(
             color: accentColor,
             shape: BoxShape.circle,
-            border: Border.all(
-              color: Colors.white,
-              width: 1.5,
-            ),
+            border: Border.all(color: Colors.white, width: 1.5),
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withValues(alpha: 0.15),
@@ -1012,7 +1157,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     );
   }
 
-  void _showAccentColorBottomSheet(BuildContext context, int currentColorValue) {
+  void _showAccentColorBottomSheet(
+    BuildContext context,
+    int currentColorValue,
+  ) {
     showModalBottomSheet(
       context: context,
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
@@ -1040,7 +1188,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   width: 40,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.2),
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.onSurface.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -1065,7 +1215,13 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                           margin: const EdgeInsets.only(bottom: 8),
                           decoration: BoxDecoration(
                             color: isSelected
-                                ? color.withValues(alpha: Theme.of(context).brightness == Brightness.dark ? 0.12 : 0.06)
+                                ? color.withValues(
+                                    alpha:
+                                        Theme.of(context).brightness ==
+                                            Brightness.dark
+                                        ? 0.12
+                                        : 0.06,
+                                  )
                                 : Colors.transparent,
                             borderRadius: BorderRadius.circular(16),
                             border: Border.all(
@@ -1089,15 +1245,25 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                             title: Text(
                               accent['name'] as String,
                               style: TextStyle(
-                                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                                color: isSelected ? color : Theme.of(context).colorScheme.onSurface,
+                                fontWeight: isSelected
+                                    ? FontWeight.bold
+                                    : FontWeight.normal,
+                                color: isSelected
+                                    ? color
+                                    : Theme.of(context).colorScheme.onSurface,
                               ),
                             ),
                             trailing: isSelected
-                                ? Icon(Icons.check_circle_rounded, color: color, size: 24)
+                                ? Icon(
+                                    Icons.check_circle_rounded,
+                                    color: color,
+                                    size: 24,
+                                  )
                                 : null,
                             onTap: () {
-                              ref.read(themeServiceProvider.notifier).setAccentColor(val);
+                              ref
+                                  .read(themeServiceProvider.notifier)
+                                  .setAccentColor(val);
                               Navigator.pop(context);
                             },
                           ),
@@ -1115,7 +1281,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     );
   }
 
-  void _showSubscriptionDetailsSheet(BuildContext context, bool isCurrentlyPremium) {
+  void _showSubscriptionDetailsSheet(
+    BuildContext context,
+    bool isCurrentlyPremium,
+  ) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -1142,7 +1311,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       width: 40,
                       height: 4,
                       decoration: BoxDecoration(
-                        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.2),
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.onSurface.withValues(alpha: 0.2),
                         borderRadius: BorderRadius.circular(2),
                       ),
                     ),
@@ -1175,18 +1346,25 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     child: "Experience college bus transit like never before"
                         .text
                         .size(13)
-                        .color(Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6))
+                        .color(
+                          Theme.of(
+                            context,
+                          ).colorScheme.onSurface.withValues(alpha: 0.6),
+                        )
                         .make(),
                   ),
 
                   24.heightBox,
 
-                  "PREMIUM FEATURES"
-                      .text
+                  "PREMIUM FEATURES".text
                       .size(11)
                       .bold
                       .letterSpacing(1.2)
-                      .color(Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5))
+                      .color(
+                        Theme.of(
+                          context,
+                        ).colorScheme.onSurface.withValues(alpha: 0.5),
+                      )
                       .make(),
                   12.heightBox,
 
@@ -1219,12 +1397,15 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
                   // Plans selection
                   if (!isCurrentlyPremium) ...[
-                    "SELECT YOUR PLAN"
-                        .text
+                    "SELECT YOUR PLAN".text
                         .size(11)
                         .bold
                         .letterSpacing(1.2)
-                        .color(Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5))
+                        .color(
+                          Theme.of(
+                            context,
+                          ).colorScheme.onSurface.withValues(alpha: 0.5),
+                        )
                         .make(),
                     12.heightBox,
                     Row(
@@ -1258,7 +1439,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                         onPressed: () {
                           Navigator.pop(context);
                           Navigator.of(context).push(
-                            MaterialPageRoute(builder: (_) => const PaymentScreen()),
+                            MaterialPageRoute(
+                              builder: (_) => const PaymentScreen(),
+                            ),
                           );
                         },
                         style: ElevatedButton.styleFrom(
@@ -1292,15 +1475,26 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       ),
                       child: Column(
                         children: [
-                          const Icon(Icons.check_circle_rounded, color: Colors.green, size: 32),
+                          const Icon(
+                            Icons.check_circle_rounded,
+                            color: Colors.green,
+                            size: 32,
+                          ),
                           8.heightBox,
-                          "You're a Premium Member".text.bold.size(15).color(Colors.green.shade700).make(),
+                          "You're a Premium Member".text.bold
+                              .size(15)
+                              .color(Colors.green.shade700)
+                              .make(),
                           4.heightBox,
                           "Enjoy all the high-end premium features and real-time transit updates."
                               .text
                               .size(12)
                               .align(TextAlign.center)
-                              .color(Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6))
+                              .color(
+                                Theme.of(
+                                  context,
+                                ).colorScheme.onSurface.withValues(alpha: 0.6),
+                              )
                               .make(),
                         ],
                       ),
@@ -1337,18 +1531,29 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               color: accentColor.withValues(alpha: isDark ? 0.15 : 0.08),
               borderRadius: BorderRadius.circular(10),
             ),
-            child: const Icon(Icons.check_rounded, color: Colors.green, size: 18),
+            child: const Icon(
+              Icons.check_rounded,
+              color: Colors.green,
+              size: 18,
+            ),
           ),
           12.widthBox,
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                title.text.bold.size(14).color(Theme.of(context).colorScheme.onSurface).make(),
+                title.text.bold
+                    .size(14)
+                    .color(Theme.of(context).colorScheme.onSurface)
+                    .make(),
                 4.heightBox,
                 description.text
                     .size(12)
-                    .color(Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6))
+                    .color(
+                      Theme.of(
+                        context,
+                      ).colorScheme.onSurface.withValues(alpha: 0.6),
+                    )
                     .make(),
               ],
             ),
@@ -1383,20 +1588,29 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             border: Border.all(
               color: isSelected
                   ? Colors.amber
-                  : (isDark ? Colors.white.withValues(alpha: 0.08) : Colors.black.withValues(alpha: 0.05)),
+                  : (isDark
+                        ? Colors.white.withValues(alpha: 0.08)
+                        : Colors.black.withValues(alpha: 0.05)),
               width: 2,
             ),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              planName.text.bold.size(15).color(Theme.of(context).colorScheme.onSurface).make(),
+              planName.text.bold
+                  .size(15)
+                  .color(Theme.of(context).colorScheme.onSurface)
+                  .make(),
               8.heightBox,
               price.text.size(24).bold.color(accentColor).make(),
               4.heightBox,
               billing.text
                   .size(11)
-                  .color(Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5))
+                  .color(
+                    Theme.of(
+                      context,
+                    ).colorScheme.onSurface.withValues(alpha: 0.5),
+                  )
                   .make(),
             ],
           ),
@@ -1477,7 +1691,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       leadingIcon: Icons.map_outlined,
       iconColor: accentColor,
       title: 'Map Theme',
-      subtitle: 'Change Google Maps styling',
       onTap: () {
         showModalBottomSheet(
           context: context,
@@ -1488,7 +1701,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           builder: (context) {
             return Consumer(
               builder: (context, ref, child) {
-                final currentMapTheme = ref.watch(themeServiceProvider).mapTheme;
+                final currentMapTheme = ref
+                    .watch(themeServiceProvider)
+                    .mapTheme;
                 final themes = [
                   'auto',
                   'standard',
@@ -1511,7 +1726,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                           width: 40,
                           height: 4,
                           decoration: BoxDecoration(
-                            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.2),
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurface.withValues(alpha: 0.2),
                             borderRadius: BorderRadius.circular(2),
                           ),
                         ),
@@ -1535,15 +1752,21 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                     themeIcon(themeKey),
                                     color: isSelected
                                         ? accentColor
-                                        : Theme.of(context).colorScheme.onSurface,
+                                        : Theme.of(
+                                            context,
+                                          ).colorScheme.onSurface,
                                   ),
                                   title: isSelected
-                                      ? themeDisplayName(themeKey).text.bold
-                                          .color(accentColor)
-                                          .make()
+                                      ? themeDisplayName(
+                                          themeKey,
+                                        ).text.bold.color(accentColor).make()
                                       : themeDisplayName(themeKey).text
-                                          .color(Theme.of(context).colorScheme.onSurface)
-                                          .make(),
+                                            .color(
+                                              Theme.of(
+                                                context,
+                                              ).colorScheme.onSurface,
+                                            )
+                                            .make(),
                                   trailing: isSelected
                                       ? Icon(
                                           Icons.check_circle_rounded,
@@ -1551,7 +1774,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                         )
                                       : null,
                                   onTap: () {
-                                    ref.read(themeServiceProvider.notifier).setMapTheme(themeKey);
+                                    ref
+                                        .read(themeServiceProvider.notifier)
+                                        .setMapTheme(themeKey);
                                     ref.invalidate(mapStyleProvider);
                                     Navigator.pop(context);
                                   },
@@ -1571,9 +1796,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         );
       },
       trailing: HStack([
-        themeDisplayName(currentTheme).text.bold
-            .color(Theme.of(context).colorScheme.onSurface)
-            .make(),
+        themeDisplayName(
+          currentTheme,
+        ).text.bold.color(Theme.of(context).colorScheme.onSurface).make(),
         8.widthBox,
         Icon(
           Icons.chevron_right_rounded,
@@ -1629,9 +1854,15 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             ], crossAlignment: CrossAxisAlignment.start).expand(),
           ]),
         )
-        .color(isDark ? const Color(0xFF1A222D).withValues(alpha: 0.8) : Colors.white.withValues(alpha: 0.9))
+        .color(
+          isDark
+              ? const Color(0xFF1A222D).withValues(alpha: 0.8)
+              : Colors.white.withValues(alpha: 0.9),
+        )
         .border(
-          color: isDark ? Colors.white.withValues(alpha: 0.08) : Colors.black.withValues(alpha: 0.05),
+          color: isDark
+              ? Colors.white.withValues(alpha: 0.08)
+              : Colors.black.withValues(alpha: 0.05),
           width: 1.5,
         )
         .roundedLg
@@ -1642,48 +1873,48 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
   Widget _buildLogoutButton(BuildContext context) {
     final l10n = common_l10n.CommonLocalizations.of(context)!;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final double buttonHeight = 54.0;
+    final double borderRadius = 16.0;
 
-    return Container(
+    return SizedBox(
       width: double.infinity,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.red.withValues(alpha: isDark ? 0.12 : 0.06),
-            blurRadius: 16,
-            offset: const Offset(0, 6),
-          ),
-        ],
-      ),
-      child: ElevatedButton.icon(
+      height: buttonHeight,
+      child: ElevatedButton(
         onPressed: () async {
-          final confirmed = await LogoutConfirmationDialog.show(
-            context,
-          );
+          final confirmed = await LogoutConfirmationDialog.show(context);
           if (confirmed) {
             await ref.read(authProvider.notifier).signOut();
           }
         },
-        icon: const Icon(Icons.logout_rounded, size: 20),
-        label: Text(l10n.logout),
         style: ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xFFE53935),
+          backgroundColor: const Color(0xFFEF4444), // Vibrant crimson red
           foregroundColor: Colors.white,
-          elevation: 0,
-          padding: const EdgeInsets.symmetric(vertical: 16),
-          textStyle: const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
-            letterSpacing: 0.5,
-          ),
+          elevation: 2,
+          shadowColor: const Color(0xFFEF4444).withValues(alpha: 0.3),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-            side: BorderSide(
-              color: Colors.red.withValues(alpha: 0.15),
-              width: 1,
-            ),
+            borderRadius: BorderRadius.circular(borderRadius),
           ),
+          padding: EdgeInsets.zero,
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(
+              Icons.logout_rounded,
+              size: 20,
+              color: Colors.white,
+            ),
+            10.widthBox,
+            Text(
+              l10n.logout,
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+                letterSpacing: 0.5,
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -1703,39 +1934,50 @@ class ProfileScreenSkeleton extends StatelessWidget {
         (MediaQuery.of(context).padding.top + kToolbarHeight + 64).heightBox,
 
         // Overlapping card skeleton
-        Container(
-          margin: const EdgeInsets.symmetric(horizontal: 16),
-          padding: const EdgeInsets.all(20),
-          width: double.infinity,
-          decoration: BoxDecoration(
-            color: isDark
-                ? const Color(0xFF1A222D).withValues(alpha: 0.5)
-                : Colors.white.withValues(alpha: 0.6),
-            borderRadius: BorderRadius.circular(28),
-            border: Border.all(
-              color: isDark
-                  ? Colors.white.withValues(alpha: 0.05)
-                  : Colors.black.withValues(alpha: 0.03),
-              width: 1.5,
-            ),
-          ),
-          child: Stack(
-            clipBehavior: Clip.none,
-            alignment: Alignment.topCenter,
-            children: [
-              VStack([
-                50.heightBox, // Offset down for half-avatar
-                const SkeletonBox(width: 140, height: 22, borderRadius: 6).centered(),
-                10.heightBox,
-                const SkeletonBox(width: 200, height: 12, borderRadius: 4).centered(),
-                16.heightBox,
-              ]),
-              // Floating overlapping avatar skeleton
-              const Positioned(
-                top: -65,
-                child: SkeletonBox.circle(size: 88),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(28),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+            child: Container(
+              margin: const EdgeInsets.symmetric(horizontal: 16),
+              padding: const EdgeInsets.all(20),
+              width: double.infinity,
+              decoration: BoxDecoration(
+                color: isDark
+                    ? const Color(0xFF1E293B).withValues(alpha: 0.85)
+                    : Colors.white.withValues(alpha: 0.95),
+                borderRadius: BorderRadius.circular(28),
+                border: Border.all(
+                  color: isDark
+                      ? const Color(0xFF334155).withValues(alpha: 0.5)
+                      : Colors.black.withValues(alpha: 0.05),
+                  width: 1.5,
+                ),
               ),
-            ],
+              child: Stack(
+                clipBehavior: Clip.none,
+                alignment: Alignment.topCenter,
+                children: [
+                  VStack([
+                    50.heightBox, // Offset down for half-avatar
+                    const SkeletonBox(
+                      width: 140,
+                      height: 22,
+                      borderRadius: 6,
+                    ).centered(),
+                    10.heightBox,
+                    const SkeletonBox(
+                      width: 200,
+                      height: 12,
+                      borderRadius: 4,
+                    ).centered(),
+                    16.heightBox,
+                  ]),
+                  // Floating overlapping avatar skeleton
+                  const Positioned(top: -65, child: SkeletonBox.circle(size: 88)),
+                ],
+              ),
+            ),
           ),
         ),
 
@@ -1827,37 +2069,52 @@ class ProfileScreenSkeleton extends StatelessWidget {
           24.heightBox,
 
           // Preferences card skeleton
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(vertical: 8),
-            decoration: BoxDecoration(
-              color: isDark
-                  ? const Color(0xFF1A222D).withValues(alpha: 0.5)
-                  : Colors.white.withValues(alpha: 0.6),
-              borderRadius: BorderRadius.circular(24),
-            ),
-            child: Column(
-              children: List.generate(3, (index) {
-                return Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                  child: Row(
-                    children: [
-                      const SkeletonBox.circle(size: 42),
-                      16.widthBox,
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: const [
-                            SkeletonBox(width: 100, height: 14),
-                            SizedBox(height: 6),
-                            SkeletonBox(width: 160, height: 10),
-                          ],
-                        ),
-                      ),
-                    ],
+          ClipRRect(
+            borderRadius: BorderRadius.circular(24),
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                decoration: BoxDecoration(
+                  color: isDark
+                      ? const Color(0xFF1E293B).withValues(alpha: 0.85)
+                      : Colors.white.withValues(alpha: 0.95),
+                  borderRadius: BorderRadius.circular(24),
+                  border: Border.all(
+                    color: isDark
+                        ? const Color(0xFF334155).withValues(alpha: 0.5)
+                        : Colors.black.withValues(alpha: 0.05),
+                    width: 1.0,
                   ),
-                );
-              }),
+                ),
+                child: Column(
+                  children: List.generate(3, (index) {
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 12,
+                      ),
+                      child: Row(
+                        children: [
+                          const SkeletonBox.circle(size: 42),
+                          16.widthBox,
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: const [
+                                SkeletonBox(width: 100, height: 14),
+                                SizedBox(height: 6),
+                                SkeletonBox(width: 160, height: 10),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }),
+                ),
+              ),
             ),
           ),
 
@@ -1867,7 +2124,9 @@ class ProfileScreenSkeleton extends StatelessWidget {
     }
 
     return Scaffold(
-      backgroundColor: isDark ? const Color(0xFF12181F) : const Color(0xFFF5F7FA),
+      backgroundColor: isDark
+          ? const Color(0xFF12181F)
+          : const Color(0xFFF5F7FA),
       body: Shimmer(
         child: Stack(
           children: [
@@ -1908,106 +2167,203 @@ class ProfileScreenSkeleton extends StatelessWidget {
                         Expanded(
                           flex: 4,
                           child: SingleChildScrollView(
-                            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 24,
+                              vertical: 16,
+                            ),
                             child: VStack([
                               30.heightBox,
                               // Card skeleton
-                              Container(
-                                padding: const EdgeInsets.all(20),
-                                decoration: BoxDecoration(
-                                  color: isDark ? const Color(0xFF1A222D).withValues(alpha: 0.5) : Colors.white.withValues(alpha: 0.6),
-                                  borderRadius: BorderRadius.circular(28),
-                                ),
-                                child: Column(
-                                  children: [
-                                    50.heightBox,
-                                    const SkeletonBox(width: 140, height: 22, borderRadius: 6).centered(),
-                                    10.heightBox,
-                                    const SkeletonBox(width: 200, height: 12, borderRadius: 4).centered(),
-                                    16.heightBox,
-                                  ],
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(28),
+                                child: BackdropFilter(
+                                  filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                                  child: Container(
+                                    padding: const EdgeInsets.all(20),
+                                    decoration: BoxDecoration(
+                                      color: isDark
+                                          ? const Color(0xFF1E293B).withValues(alpha: 0.85)
+                                          : Colors.white.withValues(alpha: 0.95),
+                                      borderRadius: BorderRadius.circular(28),
+                                      border: Border.all(
+                                        color: isDark
+                                            ? const Color(0xFF334155).withValues(alpha: 0.5)
+                                            : Colors.black.withValues(alpha: 0.05),
+                                        width: 1.5,
+                                      ),
+                                    ),
+                                    child: Column(
+                                      children: [
+                                        50.heightBox,
+                                        const SkeletonBox(
+                                          width: 140,
+                                          height: 22,
+                                          borderRadius: 6,
+                                        ).centered(),
+                                        10.heightBox,
+                                        const SkeletonBox(
+                                          width: 200,
+                                          height: 12,
+                                          borderRadius: 4,
+                                        ).centered(),
+                                        16.heightBox,
+                                      ],
+                                    ),
+                                  ),
                                 ),
                               ),
                               24.heightBox,
-                              const SkeletonBox(width: double.infinity, height: 60, borderRadius: 16),
+                              const SkeletonBox(
+                                width: double.infinity,
+                                height: 60,
+                                borderRadius: 16,
+                              ),
                               12.heightBox,
-                              const SkeletonBox(width: double.infinity, height: 60, borderRadius: 16),
+                              const SkeletonBox(
+                                width: double.infinity,
+                                height: 60,
+                                borderRadius: 16,
+                              ),
                               12.heightBox,
-                              const SkeletonBox(width: double.infinity, height: 60, borderRadius: 16),
+                              const SkeletonBox(
+                                width: double.infinity,
+                                height: 60,
+                                borderRadius: 16,
+                              ),
                             ]),
                           ),
                         ),
                         // Divider
-                        Container(width: 1.5, color: isDark ? Colors.white.withValues(alpha: 0.08) : Colors.black.withValues(alpha: 0.05)),
+                        Container(
+                          width: 1.5,
+                          color: isDark
+                              ? Colors.white.withValues(alpha: 0.08)
+                              : Colors.black.withValues(alpha: 0.05),
+                        ),
                         // Right skeleton pane
                         Expanded(
                           flex: 5,
                           child: SingleChildScrollView(
-                            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 24,
+                              vertical: 16,
+                            ),
                             child: VStack([
                               // Settings card skeleton
-                              Container(
-                                width: double.infinity,
-                                padding: const EdgeInsets.symmetric(vertical: 8),
-                                decoration: BoxDecoration(
-                                  color: isDark ? const Color(0xFF1A222D).withValues(alpha: 0.5) : Colors.white.withValues(alpha: 0.6),
-                                  borderRadius: BorderRadius.circular(24),
-                                ),
-                                child: Column(
-                                  children: List.generate(4, (index) {
-                                    return Padding(
-                                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                                      child: Row(
-                                        children: [
-                                          const SkeletonBox.circle(size: 42),
-                                          16.widthBox,
-                                          Expanded(
-                                            child: Column(
-                                              crossAxisAlignment: CrossAxisAlignment.start,
-                                              children: const [
-                                                SkeletonBox(width: 100, height: 14),
-                                                SizedBox(height: 6),
-                                                SkeletonBox(width: 160, height: 10),
-                                              ],
-                                            ),
-                                          ),
-                                        ],
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(24),
+                                child: BackdropFilter(
+                                  filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                                  child: Container(
+                                    width: double.infinity,
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 8,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: isDark
+                                          ? const Color(0xFF1E293B).withValues(alpha: 0.85)
+                                          : Colors.white.withValues(alpha: 0.95),
+                                      borderRadius: BorderRadius.circular(24),
+                                      border: Border.all(
+                                        color: isDark
+                                            ? const Color(0xFF334155).withValues(alpha: 0.5)
+                                            : Colors.black.withValues(alpha: 0.05),
+                                        width: 1.0,
                                       ),
-                                    );
-                                  }),
+                                    ),
+                                    child: Column(
+                                      children: List.generate(4, (index) {
+                                        return Padding(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 20,
+                                            vertical: 12,
+                                          ),
+                                          child: Row(
+                                            children: [
+                                              const SkeletonBox.circle(size: 42),
+                                              16.widthBox,
+                                              Expanded(
+                                                child: Column(
+                                                  crossAxisAlignment:
+                                                      CrossAxisAlignment.start,
+                                                  children: const [
+                                                    SkeletonBox(
+                                                      width: 100,
+                                                      height: 14,
+                                                    ),
+                                                    SizedBox(height: 6),
+                                                    SkeletonBox(
+                                                      width: 160,
+                                                      height: 10,
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        );
+                                      }),
+                                    ),
+                                  ),
                                 ),
                               ),
                               24.heightBox,
                               // Account card skeleton
-                              Container(
-                                width: double.infinity,
-                                padding: const EdgeInsets.symmetric(vertical: 8),
-                                decoration: BoxDecoration(
-                                  color: isDark ? const Color(0xFF1A222D).withValues(alpha: 0.5) : Colors.white.withValues(alpha: 0.6),
-                                  borderRadius: BorderRadius.circular(24),
-                                ),
-                                child: Column(
-                                  children: List.generate(3, (index) {
-                                    return Padding(
-                                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                                      child: Row(
-                                        children: [
-                                          const SkeletonBox.circle(size: 42),
-                                          16.widthBox,
-                                          Expanded(
-                                            child: Column(
-                                              crossAxisAlignment: CrossAxisAlignment.start,
-                                              children: const [
-                                                SkeletonBox(width: 120, height: 14),
-                                                SizedBox(height: 6),
-                                                SkeletonBox(width: 140, height: 10),
-                                              ],
-                                            ),
-                                          ),
-                                        ],
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(24),
+                                child: BackdropFilter(
+                                  filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                                  child: Container(
+                                    width: double.infinity,
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 8,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: isDark
+                                          ? const Color(0xFF1E293B).withValues(alpha: 0.85)
+                                          : Colors.white.withValues(alpha: 0.95),
+                                      borderRadius: BorderRadius.circular(24),
+                                      border: Border.all(
+                                        color: isDark
+                                            ? const Color(0xFF334155).withValues(alpha: 0.5)
+                                            : Colors.black.withValues(alpha: 0.05),
+                                        width: 1.0,
                                       ),
-                                    );
-                                  }),
+                                    ),
+                                    child: Column(
+                                      children: List.generate(3, (index) {
+                                        return Padding(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 20,
+                                            vertical: 12,
+                                          ),
+                                          child: Row(
+                                            children: [
+                                              const SkeletonBox.circle(size: 42),
+                                              16.widthBox,
+                                              Expanded(
+                                                child: Column(
+                                                  crossAxisAlignment:
+                                                      CrossAxisAlignment.start,
+                                                  children: const [
+                                                    SkeletonBox(
+                                                      width: 120,
+                                                      height: 14,
+                                                    ),
+                                                    SizedBox(height: 6),
+                                                    SkeletonBox(
+                                                      width: 140,
+                                                      height: 10,
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        );
+                                      }),
+                                    ),
+                                  ),
                                 ),
                               ),
                             ]),
@@ -2026,3 +2382,4 @@ class ProfileScreenSkeleton extends StatelessWidget {
     );
   }
 }
+

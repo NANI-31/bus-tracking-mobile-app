@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:collegebus/features/college_admin/application/college_admin_provider.dart';
@@ -175,30 +176,55 @@ class _FleetTabState extends ConsumerState<FleetTab> {
 
                 // Search & Filters Panel
                 Container(
-                  padding: const EdgeInsets.all(16.0),
                   decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: isDark
-                          ? [const Color(0xFF1E293B), const Color(0xFF0F172A)]
-                          : [Colors.white, const Color(0xFFF8FAFC)],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
                     borderRadius: BorderRadius.circular(24),
-                    border: Border.all(
-                      color: isDark
-                          ? Colors.white.withValues(alpha: 0.08)
-                          : Colors.black.withValues(alpha: 0.05),
-                    ),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.04),
-                        blurRadius: 18,
-                        offset: const Offset(0, 8),
+                        color: primaryColor.withValues(
+                          alpha: isDark ? 0.15 : 0.06,
+                        ),
+                        blurRadius: 16,
+                        spreadRadius: -2,
+                        offset: const Offset(0, 6),
+                      ),
+                      BoxShadow(
+                        color: Colors.black.withValues(
+                          alpha: isDark ? 0.15 : 0.03,
+                        ),
+                        blurRadius: 4,
+                        offset: const Offset(0, 2),
                       ),
                     ],
                   ),
-                  child: Column(
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(24),
+                    child: BackdropFilter(
+                      filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+                      child: Container(
+                        padding: const EdgeInsets.all(16.0),
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: isDark
+                                ? [
+                                    Colors.white.withValues(alpha: 0.08),
+                                    primaryColor.withValues(alpha: 0.04),
+                                  ]
+                                : [
+                                    const Color(0xFFE6F8FA).withValues(alpha: 0.32),
+                                    const Color(0xFFE0F2FE).withValues(alpha: 0.24),
+                                  ],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          borderRadius: BorderRadius.circular(24),
+                          border: Border.all(
+                            color: isDark
+                                ? primaryColor.withValues(alpha: 0.25)
+                                : const Color(0xFF0097B2).withValues(alpha: 0.12),
+                            width: 1.5,
+                          ),
+                        ),
+                        child: Column(
                     children: [
                       Row(
                         children: [
@@ -365,7 +391,10 @@ class _FleetTabState extends ConsumerState<FleetTab> {
                     ],
                   ),
                 ),
-                const SizedBox(height: 16),
+              ),
+            ),
+          ),
+        const SizedBox(height: 16),
 
                 // Analytics Stats Grid
                 GridView.count(
@@ -439,47 +468,86 @@ class _FleetTabState extends ConsumerState<FleetTab> {
     bool isDark,
   ) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E293B) : Colors.white,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: isDark ? Colors.white10 : const Color(0xFFF1F5F9),
-        ),
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(6),
-            decoration: BoxDecoration(
-              color: bgOpacityColor,
-              shape: BoxShape.circle,
-            ),
-            child: Icon(icon, color: textColor, size: 20),
+        boxShadow: [
+          BoxShadow(
+            color: textColor.withValues(alpha: isDark ? 0.15 : 0.06),
+            blurRadius: 16,
+            spreadRadius: -2,
+            offset: const Offset(0, 6),
           ),
-          const SizedBox(height: 8),
-          Text(
-            title,
-            style: const TextStyle(
-              fontSize: 9,
-              fontWeight: FontWeight.w900,
-              letterSpacing: 0.5,
-              color: Colors.grey,
-            ),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 2),
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.w900,
-              color: isDark ? Colors.white : Colors.black87,
-            ),
-            textAlign: TextAlign.center,
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDark ? 0.15 : 0.03),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
           ),
         ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(20),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: isDark
+                    ? [
+                        Colors.white.withValues(alpha: 0.08),
+                        textColor.withValues(alpha: 0.04),
+                      ]
+                    : [
+                        const Color(0xFFE6F8FA).withValues(alpha: 0.32),
+                        const Color(0xFFE0F2FE).withValues(alpha: 0.24),
+                      ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color: isDark
+                    ? textColor.withValues(alpha: 0.25)
+                    : const Color(0xFF0097B2).withValues(alpha: 0.12),
+                width: 1.5,
+              ),
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: BoxDecoration(
+                    color: bgOpacityColor,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(icon, color: textColor, size: 20),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 9,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 0.5,
+                    color: Colors.grey,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  value,
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w900,
+                    color: isDark ? Colors.white : Colors.black87,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -496,124 +564,246 @@ class _FleetTabState extends ConsumerState<FleetTab> {
 
     final String statusText = bus.status.replaceAll('-', ' ').toUpperCase();
 
-    return Container(
-      decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E293B) : Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: isDark ? Colors.white10 : const Color(0xFFF1F5F9),
-        ),
-        boxShadow: [
+    // Configure status-dependent gradients, borders, and shadows
+    final List<Color> cardGradientColors;
+    final Color cardBorderColor;
+    final List<BoxShadow> cardShadows;
+
+    if (isOnline) {
+      if (isDark) {
+        cardGradientColors = [
+          const Color(0xFF0A2E3D).withValues(alpha: 0.7),
+          const Color(0xFF05161F).withValues(alpha: 0.7),
+        ];
+        cardBorderColor = const Color(0xFF00C6E6).withValues(alpha: 0.45);
+        cardShadows = [
           BoxShadow(
-            color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.03),
+            color: const Color(0xFF00C6E6).withValues(alpha: 0.15),
+            blurRadius: 16,
+            spreadRadius: -2,
+            offset: const Offset(0, 6),
+          ),
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.2),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ];
+      } else {
+        cardGradientColors = [
+          const Color(0xFFE0F7FA).withValues(alpha: 0.5),
+          const Color(0xFFF0FDFD).withValues(alpha: 0.4),
+        ];
+        cardBorderColor = const Color(0xFF0097B2).withValues(alpha: 0.25);
+        cardShadows = [
+          BoxShadow(
+            color: const Color(0xFF0097B2).withValues(alpha: 0.08),
+            blurRadius: 16,
+            spreadRadius: -2,
+            offset: const Offset(0, 6),
+          ),
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ];
+      }
+    } else if (isDelayed) {
+      if (isDark) {
+        cardGradientColors = [
+          const Color(0xFF2E1A05).withValues(alpha: 0.7),
+          const Color(0xFF1A0E02).withValues(alpha: 0.7),
+        ];
+        cardBorderColor = const Color(0xFFF59E0B).withValues(alpha: 0.45);
+        cardShadows = [
+          BoxShadow(
+            color: const Color(0xFFF59E0B).withValues(alpha: 0.15),
+            blurRadius: 16,
+            spreadRadius: -2,
+            offset: const Offset(0, 6),
+          ),
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.2),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ];
+      } else {
+        cardGradientColors = [
+          const Color(0xFFFEF3C7).withValues(alpha: 0.5),
+          const Color(0xFFFFFBEB).withValues(alpha: 0.4),
+        ];
+        cardBorderColor = const Color(0xFFF59E0B).withValues(alpha: 0.25);
+        cardShadows = [
+          BoxShadow(
+            color: const Color(0xFFF59E0B).withValues(alpha: 0.08),
+            blurRadius: 16,
+            spreadRadius: -2,
+            offset: const Offset(0, 6),
+          ),
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ];
+      }
+    } else {
+      if (isDark) {
+        cardGradientColors = [
+          const Color(0xFF1E293B).withValues(alpha: 0.7),
+          const Color(0xFF0F172A).withValues(alpha: 0.7),
+        ];
+        cardBorderColor = const Color(0xFF334155).withValues(alpha: 0.45);
+        cardShadows = [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.25),
+            blurRadius: 12,
+            offset: const Offset(0, 6),
+          ),
+        ];
+      } else {
+        cardGradientColors = [
+          const Color(0xFFF1F5F9).withValues(alpha: 0.5),
+          const Color(0xFFF8FAFC).withValues(alpha: 0.4),
+        ];
+        cardBorderColor = const Color(0xFFCBD5E1).withValues(alpha: 0.25);
+        cardShadows = [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
-        ],
+        ];
+      }
+    }
+
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: cardShadows,
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(20),
-        child: Stack(
-          children: [
-            Positioned(
-              top: 0,
-              left: 0,
-              right: 0,
-              height: 6,
-              child: Container(color: statusColor),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+          child: Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: cardGradientColors,
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color: cardBorderColor,
+                width: 1.5,
+              ),
             ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 22, 16, 16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            child: Stack(
+              children: [
+                Positioned(
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  height: 6,
+                  child: Container(color: statusColor),
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 22, 16, 16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Stack(
-                        clipBehavior: Clip.none,
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Container(
-                            padding: const EdgeInsets.all(10),
-                            decoration: BoxDecoration(
-                              color: isDark ? Colors.white.withValues(alpha: 0.04) : Colors.grey.shade100,
-                              borderRadius: BorderRadius.circular(14),
-                              border: Border.all(color: isDark ? Colors.white10 : Colors.grey.shade200),
-                            ),
-                            child: Icon(Icons.directions_bus_outlined, color: primaryColor, size: 24),
+                          Stack(
+                            clipBehavior: Clip.none,
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(10),
+                                decoration: BoxDecoration(
+                                  color: isDark ? Colors.white.withValues(alpha: 0.04) : primaryColor.withValues(alpha: 0.06),
+                                  borderRadius: BorderRadius.circular(14),
+                                  border: Border.all(color: isDark ? Colors.white10 : primaryColor.withValues(alpha: 0.12)),
+                                ),
+                                child: Icon(Icons.directions_bus_outlined, color: primaryColor, size: 24),
+                              ),
+                              Positioned(
+                                top: -4,
+                                right: -4,
+                                child: LiveStatusDot(color: statusColor),
+                              ),
+                            ],
                           ),
-                          Positioned(
-                            top: -4,
-                            right: -4,
-                            child: LiveStatusDot(color: statusColor),
+                          IconButton(
+                            onPressed: () => _confirmDeleteBus(bus.id, bus.busNumber),
+                            icon: const Icon(Icons.delete_outline_rounded, color: Colors.grey, size: 20),
+                            style: IconButton.styleFrom(
+                              backgroundColor: isDark ? Colors.white.withValues(alpha: 0.02) : Colors.white.withValues(alpha: 0.3),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                side: BorderSide(color: isDark ? Colors.white10 : Colors.grey.shade300),
+                              ),
+                            ),
                           ),
                         ],
                       ),
-                      IconButton(
-                        onPressed: () => _confirmDeleteBus(bus.id, bus.busNumber),
-                        icon: const Icon(Icons.delete_outline_rounded, color: Colors.grey, size: 20),
-                        style: IconButton.styleFrom(
-                          backgroundColor: isDark ? Colors.white.withValues(alpha: 0.02) : Colors.grey.shade50,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            side: BorderSide(color: isDark ? Colors.white10 : Colors.grey.shade200),
-                          ),
+                      const SizedBox(height: 12),
+                      Text(
+                        'Bus ${bus.busNumber}',
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    'Bus ${bus.busNumber}',
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  Text(
-                    'Vehicle ID: ${bus.id.substring(0, 8).toUpperCase()}',
-                    style: const TextStyle(
-                      fontSize: 10,
-                      fontFamily: 'monospace',
-                      color: Colors.grey,
-                    ),
-                  ),
-                  const Spacer(),
-                  const Divider(height: 12, thickness: 0.5),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
                       Text(
-                        'Occupancy: ${bus.capacity ?? 40} Seats',
+                        'Vehicle ID: ${bus.id.substring(0, 8).toUpperCase()}',
                         style: const TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
+                          fontSize: 10,
+                          fontFamily: 'monospace',
                           color: Colors.grey,
                         ),
                       ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: statusColor.withValues(alpha: 0.12),
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: statusColor.withValues(alpha: 0.25)),
-                        ),
-                        child: Text(
-                          statusText,
-                          style: TextStyle(
-                            color: statusColor,
-                            fontSize: 9,
-                            fontWeight: FontWeight.w900,
-                            letterSpacing: 0.8,
+                      const Spacer(),
+                      const Divider(height: 12, thickness: 0.5),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'Occupancy: ${bus.capacity ?? 40} Seats',
+                            style: const TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.grey,
+                            ),
                           ),
-                        ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: statusColor.withValues(alpha: 0.12),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: statusColor.withValues(alpha: 0.25)),
+                            ),
+                            child: Text(
+                              statusText,
+                              style: TextStyle(
+                                color: statusColor,
+                                fontSize: 9,
+                                fontWeight: FontWeight.w900,
+                                letterSpacing: 0.8,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );

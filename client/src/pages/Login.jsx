@@ -82,6 +82,8 @@ const Login = () => {
         navigate("/super-admin");
       } else if (userInfo.role === "collegeAdmin") {
         navigate("/college-admin");
+      } else if (userInfo.role === "busCoordinator") {
+        navigate("/coordinator");
       }
     }
   }, [userInfo, userToken, navigate]);
@@ -322,6 +324,22 @@ const Login = () => {
                   >
                     College Admin
                   </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedRole("coordinator");
+                      setSelectedCollege(null);
+                      setEmail("c@kkr.ac.in");
+                      setPassword("a");
+                    }}
+                    className={`flex-1 py-2 px-3 rounded-lg border text-xs font-bold transition-all duration-200 cursor-pointer ${
+                      selectedRole === "coordinator"
+                        ? "bg-blue-500/15 border-blue-500/30 text-blue-600 dark:text-blue-400 shadow-sm shadow-blue-500/10"
+                        : "bg-background-paper/40 border-border-theme text-text-theme-secondary hover:text-text-theme-primary hover:bg-background-paper"
+                    }`}
+                  >
+                    Coordinator
+                  </button>
                 </div>
               </div>
 
@@ -393,6 +411,7 @@ const Login = () => {
                   </div>
                 </div>
               )}
+
             </motion.div>
           )}
         </div>

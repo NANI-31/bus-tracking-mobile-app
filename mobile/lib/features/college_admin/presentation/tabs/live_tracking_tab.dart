@@ -781,109 +781,144 @@ class _LiveTrackingTabState extends ConsumerState<LiveTrackingTab> {
   ) {
     final status = _getBusStatus(bus, loc);
 
-    return Card(
-      elevation: 6,
-      margin: EdgeInsets.zero,
-      color: const Color(0xFF0F172A),
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+        boxShadow: [
+          BoxShadow(
+            color: primaryColor.withValues(alpha: isDark ? 0.15 : 0.05),
+            blurRadius: 16,
+            offset: const Offset(0, -4),
+          ),
+        ],
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'System Details',
-                  style: TextStyle(
-                    color: primaryColor,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 12,
-                  ),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.close, color: Colors.grey, size: 18),
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(),
-                  onPressed: onClose,
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            _buildDetailRow(
-              'College',
-              collegeName,
-            ),
-            const SizedBox(height: 8),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text('Status', style: TextStyle(color: Colors.white60, fontSize: 11)),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                  decoration: BoxDecoration(
-                    color: _getStatusColor(status['color']).withValues(alpha: 0.2),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(
-                      color: _getStatusColor(status['color']).withValues(alpha: 0.4),
-                      width: 1,
-                    ),
-                  ),
-                  child: Text(
-                    status['label']!.toUpperCase(),
-                    style: TextStyle(
-                      color: _getStatusColor(status['color']),
-                      fontWeight: FontWeight.bold,
-                      fontSize: 9,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            _buildDetailRow('Bus Number', bus.busNumber, valueColor: primaryColor),
-            const SizedBox(height: 8),
-            _buildDetailRow('Speed', '${(loc?.speed ?? 0).toStringAsFixed(1)} km/h'),
-            const SizedBox(height: 12),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Contacting fleet coordinator...')),
-                  );
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: primaryColor,
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                  padding: const EdgeInsets.symmetric(vertical: 10),
-                ),
-                child: const Text('Contact Coordinator', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+      child: ClipRRect(
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+        child: BackdropFilter(
+          filter: ui.ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+          child: Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: isDark
+                    ? [
+                        Colors.white.withValues(alpha: 0.08),
+                        primaryColor.withValues(alpha: 0.04),
+                      ]
+                    : [
+                        const Color(0xFFE6F8FA).withValues(alpha: 0.32),
+                        const Color(0xFFE0F2FE).withValues(alpha: 0.24),
+                      ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+              border: Border.all(
+                color: isDark
+                    ? primaryColor.withValues(alpha: 0.25)
+                    : const Color(0xFF0097B2).withValues(alpha: 0.12),
+                width: 1.5,
               ),
             ),
-          ],
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'System Details',
+                        style: TextStyle(
+                          color: primaryColor,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12,
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.close, color: Colors.grey, size: 18),
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
+                        onPressed: onClose,
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  _buildDetailRow(
+                    'College',
+                    collegeName,
+                    isDark,
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text('Status', style: TextStyle(color: isDark ? Colors.white60 : Colors.black54, fontSize: 11)),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: _getStatusColor(status['color']).withValues(alpha: 0.2),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: _getStatusColor(status['color']).withValues(alpha: 0.4),
+                            width: 1,
+                          ),
+                        ),
+                        child: Text(
+                          status['label']!.toUpperCase(),
+                          style: TextStyle(
+                            color: _getStatusColor(status['color']),
+                            fontWeight: FontWeight.bold,
+                            fontSize: 9,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  _buildDetailRow('Bus Number', bus.busNumber, isDark, valueColor: primaryColor),
+                  const SizedBox(height: 8),
+                  _buildDetailRow('Speed', '${(loc?.speed ?? 0).toStringAsFixed(1)} km/h', isDark),
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: () {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Contacting fleet coordinator...')),
+                        );
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: primaryColor,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                      ),
+                      child: const Text('Contact Coordinator', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildDetailRow(String label, String value, {Color? valueColor}) {
+  Widget _buildDetailRow(String label, String value, bool isDark, {Color? valueColor}) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Text(
           label,
-          style: const TextStyle(color: Colors.white60, fontSize: 11),
+          style: TextStyle(color: isDark ? Colors.white60 : Colors.black54, fontSize: 11),
         ),
         Text(
           value,
           style: TextStyle(
-            color: valueColor ?? Colors.white,
+            color: valueColor ?? (isDark ? Colors.white : Colors.black87),
             fontWeight: FontWeight.bold,
             fontSize: 11,
           ),

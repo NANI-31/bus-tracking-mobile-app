@@ -31,10 +31,24 @@ export const getStorageStats = async (req: IAuthRequest, res: Response) => {
     if (!mongoose.connection.db) {
       return res.status(503).json({ message: "Database connection not ready" });
     }
-    const [dbStats, history, s3Stats] = await Promise.all([
+    const [
+      dbStats,
+      history,
+      s3Stats,
+      googleApiConfig,
+      googleDirectionsConfig,
+      googleAutocompleteConfig,
+      googlePlaceDetailsConfig,
+      googleGeocodingConfig,
+    ] = await Promise.all([
       mongoose.connection.db.stats(),
       MetricsService.getHistory(),
       s3Service.getBucketStats(),
+      SystemConfig.findOne({ key: "googleApiUsageCount" }),
+      SystemConfig.findOne({ key: "googleDirectionsCount" }),
+      SystemConfig.findOne({ key: "googleAutocompleteCount" }),
+      SystemConfig.findOne({ key: "googlePlaceDetailsCount" }),
+      SystemConfig.findOne({ key: "googleGeocodingCount" }),
     ]);
 
     // 2. Redis Memory Stats
@@ -72,6 +86,13 @@ export const getStorageStats = async (req: IAuthRequest, res: Response) => {
       s3: {
         totalSize: (s3Stats.totalSize / (1024 * 1024)).toFixed(2) + " MB",
         objectCount: s3Stats.objectCount,
+      },
+      googleApi: {
+        total: googleApiConfig ? googleApiConfig.value : 0,
+        directions: googleDirectionsConfig ? googleDirectionsConfig.value : 0,
+        autocomplete: googleAutocompleteConfig ? googleAutocompleteConfig.value : 0,
+        placeDetails: googlePlaceDetailsConfig ? googlePlaceDetailsConfig.value : 0,
+        geocoding: googleGeocodingConfig ? googleGeocodingConfig.value : 0,
       },
       history,
     });

@@ -1259,6 +1259,7 @@ class _BroadcastModalState extends ConsumerState<BroadcastModal> {
           child: Theme(
             data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
             child: ExpansionTile(
+              key: const PageStorageKey<String>('broadcast_audio_quality_tile'),
               title: 'Audio Quality Settings'
                   .text
                   .bold

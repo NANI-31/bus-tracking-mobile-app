@@ -134,11 +134,15 @@ class AppTheme {
     inputDecorationTheme: InputDecorationTheme(
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: AppColors.lightOutline.withValues(alpha: 0.3)),
+        borderSide: BorderSide(
+          color: AppColors.lightOutline.withValues(alpha: 0.3),
+        ),
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: AppColors.lightOutline.withValues(alpha: 0.3)),
+        borderSide: BorderSide(
+          color: AppColors.lightOutline.withValues(alpha: 0.3),
+        ),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
@@ -161,14 +165,14 @@ class AppTheme {
         color: AppColors.lightOnSurface,
         fontWeight: FontWeight.w600,
       ),
-      labelLarge: TextStyle(
-        color: AppColors.lightOnSurface,
-      ),
+      labelLarge: TextStyle(color: AppColors.lightOnSurface),
     ),
     iconTheme: IconThemeData(color: AppColors.lightOnSurface),
     extensions: <ThemeExtension<dynamic>>[
       const MapThemeExtension(
-        routeColor: Color(0xFF1565C0), // Deep Royal Blue for high contrast on light maps
+        routeColor: Color(
+          0xFF1565C0,
+        ), // Deep Royal Blue for high contrast on light maps
         startStopColor: Color(0xFF4CAF50), // Green (Success)
         intermediateStopColor: Color(0xFFFF9800), // Orange (Warning)
         endStopColor: Color(0xFFE53935), // Red (Danger)
@@ -197,10 +201,7 @@ class AppTheme {
         cardDecoration: BoxDecoration(
           color: AppColors.lightSurface,
           borderRadius: BorderRadius.circular(24),
-          border: Border.all(
-            color: const Color(0x14111418),
-            width: 1.5,
-          ),
+          border: Border.all(color: const Color(0x14111418), width: 1.5),
           boxShadow: const [
             BoxShadow(
               color: Color(0x05000000),
@@ -216,6 +217,39 @@ class AppTheme {
             color: Colors.white.withValues(alpha: 0.4),
             width: 1.5,
           ),
+        ),
+        glassBackgroundColor: const Color.fromARGB(
+          255,
+          255,
+          255,
+          255,
+        ).withValues(alpha: 0.24),
+        glassBorderColor: const Color.fromARGB(
+          255,
+          0,
+          0,
+          0,
+        ).withValues(alpha: 0.3),
+        glassBlurSigma: 2.0,
+        defaultGlass: const GlassThemeSpec(
+          backgroundColor: Color.fromARGB(
+            255,
+            255,
+            255,
+            255,
+          ), // Alpha 0.24 in withValues
+          borderColor: Color.fromARGB(255, 0, 0, 0), // Alpha 0.3 in withValues
+          blurSigma: 2.0,
+        ),
+        cardGlass: const GlassThemeSpec(
+          backgroundColor: Color.fromARGB(191, 255, 255, 255), // Alpha 0.75
+          borderColor: Color.fromARGB(38, 0, 0, 0), // Alpha 0.15
+          blurSigma: 10.0,
+        ),
+        headerGlass: const GlassThemeSpec(
+          backgroundColor: Color.fromARGB(115, 255, 255, 255), // Alpha 0.45
+          borderColor: Color.fromARGB(51, 0, 0, 0), // Alpha 0.2
+          blurSigma: 20.0,
         ),
       ),
     ],
@@ -289,11 +323,15 @@ class AppTheme {
     inputDecorationTheme: InputDecorationTheme(
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: AppColors.darkSecondary.withValues(alpha: 0.3)),
+        borderSide: BorderSide(
+          color: AppColors.darkSecondary.withValues(alpha: 0.3),
+        ),
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: AppColors.darkSecondary.withValues(alpha: 0.3)),
+        borderSide: BorderSide(
+          color: AppColors.darkSecondary.withValues(alpha: 0.3),
+        ),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
@@ -321,7 +359,9 @@ class AppTheme {
     iconTheme: IconThemeData(color: AppColors.darkOnSurface),
     extensions: <ThemeExtension<dynamic>>[
       const MapThemeExtension(
-        routeColor: Color(0xFF00E5FF), // Electric Cyan for high contrast on dark maps
+        routeColor: Color(
+          0xFF00E5FF,
+        ), // Electric Cyan for high contrast on dark maps
         startStopColor: Color(0xFF00E676), // Bright Green
         intermediateStopColor: Color(0xFFFF9100), // Bright Orange
         endStopColor: Color(0xFFFF1744), // Bright Red
@@ -350,10 +390,7 @@ class AppTheme {
         cardDecoration: BoxDecoration(
           color: AppColors.darkSurface,
           borderRadius: BorderRadius.circular(24),
-          border: Border.all(
-            color: const Color(0x14E1E3E6),
-            width: 1.5,
-          ),
+          border: Border.all(color: const Color(0x14E1E3E6), width: 1.5),
           boxShadow: const [
             BoxShadow(
               color: Color(0x05000000),
@@ -369,6 +406,34 @@ class AppTheme {
             color: Colors.white.withValues(alpha: 0.1),
             width: 1.5,
           ),
+        ),
+        glassBackgroundColor: Colors.black.withValues(alpha: 0.28),
+        glassBorderColor: Colors.white.withValues(alpha: 0.08),
+        glassBlurSigma: 2.0,
+        defaultGlass: const GlassThemeSpec(
+          backgroundColor: Color.fromARGB(71, 0, 0, 0), // Alpha 0.28
+          borderColor: Color.fromARGB(20, 255, 255, 255), // Alpha 0.08
+          blurSigma: 2.0,
+        ),
+        cardGlass: const GlassThemeSpec(
+          backgroundColor: Color.fromARGB(
+            199,
+            30,
+            39,
+            50,
+          ), // Alpha 0.78 of 0xFF1E2732
+          borderColor: Color.fromARGB(25, 255, 255, 255), // Alpha 0.1
+          blurSigma: 10.0,
+        ),
+        headerGlass: const GlassThemeSpec(
+          backgroundColor: Color.fromARGB(
+            140,
+            30,
+            39,
+            50,
+          ), // Alpha 0.55 of 0xFF1E2732
+          borderColor: Color.fromARGB(31, 255, 255, 255), // Alpha 0.12
+          blurSigma: 20.0,
         ),
       ),
     ],
@@ -492,7 +557,8 @@ class MapThemeExtension extends ThemeExtension<MapThemeExtension> {
     return MapThemeExtension(
       routeColor: routeColor ?? this.routeColor,
       startStopColor: startStopColor ?? this.startStopColor,
-      intermediateStopColor: intermediateStopColor ?? this.intermediateStopColor,
+      intermediateStopColor:
+          intermediateStopColor ?? this.intermediateStopColor,
       endStopColor: endStopColor ?? this.endStopColor,
     );
   }
@@ -505,13 +571,38 @@ class MapThemeExtension extends ThemeExtension<MapThemeExtension> {
     return MapThemeExtension(
       routeColor: Color.lerp(routeColor, other.routeColor, t)!,
       startStopColor: Color.lerp(startStopColor, other.startStopColor, t)!,
-      intermediateStopColor: Color.lerp(intermediateStopColor, other.intermediateStopColor, t)!,
+      intermediateStopColor: Color.lerp(
+        intermediateStopColor,
+        other.intermediateStopColor,
+        t,
+      )!,
       endStopColor: Color.lerp(endStopColor, other.endStopColor, t)!,
     );
   }
 }
 
-class DesignSystemThemeExtension extends ThemeExtension<DesignSystemThemeExtension> {
+class GlassThemeSpec {
+  final Color backgroundColor;
+  final Color borderColor;
+  final double blurSigma;
+
+  const GlassThemeSpec({
+    required this.backgroundColor,
+    required this.borderColor,
+    required this.blurSigma,
+  });
+
+  static GlassThemeSpec lerp(GlassThemeSpec a, GlassThemeSpec b, double t) {
+    return GlassThemeSpec(
+      backgroundColor: Color.lerp(a.backgroundColor, b.backgroundColor, t)!,
+      borderColor: Color.lerp(a.borderColor, b.borderColor, t)!,
+      blurSigma: a.blurSigma + (b.blurSigma - a.blurSigma) * t,
+    );
+  }
+}
+
+class DesignSystemThemeExtension
+    extends ThemeExtension<DesignSystemThemeExtension> {
   final double mobileBreakpoint;
   final double tabletBreakpoint;
   final double desktopBreakpoint;
@@ -522,6 +613,12 @@ class DesignSystemThemeExtension extends ThemeExtension<DesignSystemThemeExtensi
   final double secondaryButtonElevation;
   final BoxDecoration cardDecoration;
   final BoxDecoration glassDecoration;
+  final Color glassBackgroundColor;
+  final Color glassBorderColor;
+  final double glassBlurSigma;
+  final GlassThemeSpec defaultGlass;
+  final GlassThemeSpec cardGlass;
+  final GlassThemeSpec headerGlass;
 
   const DesignSystemThemeExtension({
     required this.mobileBreakpoint,
@@ -534,6 +631,12 @@ class DesignSystemThemeExtension extends ThemeExtension<DesignSystemThemeExtensi
     required this.secondaryButtonElevation,
     required this.cardDecoration,
     required this.glassDecoration,
+    required this.glassBackgroundColor,
+    required this.glassBorderColor,
+    required this.glassBlurSigma,
+    required this.defaultGlass,
+    required this.cardGlass,
+    required this.headerGlass,
   });
 
   @override
@@ -548,6 +651,12 @@ class DesignSystemThemeExtension extends ThemeExtension<DesignSystemThemeExtensi
     double? secondaryButtonElevation,
     BoxDecoration? cardDecoration,
     BoxDecoration? glassDecoration,
+    Color? glassBackgroundColor,
+    Color? glassBorderColor,
+    double? glassBlurSigma,
+    GlassThemeSpec? defaultGlass,
+    GlassThemeSpec? cardGlass,
+    GlassThemeSpec? headerGlass,
   }) {
     return DesignSystemThemeExtension(
       mobileBreakpoint: mobileBreakpoint ?? this.mobileBreakpoint,
@@ -556,37 +665,86 @@ class DesignSystemThemeExtension extends ThemeExtension<DesignSystemThemeExtensi
       cardHeaderStyle: cardHeaderStyle ?? this.cardHeaderStyle,
       cardBodyStyle: cardBodyStyle ?? this.cardBodyStyle,
       badgeStyle: badgeStyle ?? this.badgeStyle,
-      primaryButtonElevation: primaryButtonElevation ?? this.primaryButtonElevation,
-      secondaryButtonElevation: secondaryButtonElevation ?? this.secondaryButtonElevation,
+      primaryButtonElevation:
+          primaryButtonElevation ?? this.primaryButtonElevation,
+      secondaryButtonElevation:
+          secondaryButtonElevation ?? this.secondaryButtonElevation,
       cardDecoration: cardDecoration ?? this.cardDecoration,
       glassDecoration: glassDecoration ?? this.glassDecoration,
+      glassBackgroundColor: glassBackgroundColor ?? this.glassBackgroundColor,
+      glassBorderColor: glassBorderColor ?? this.glassBorderColor,
+      glassBlurSigma: glassBlurSigma ?? this.glassBlurSigma,
+      defaultGlass: defaultGlass ?? this.defaultGlass,
+      cardGlass: cardGlass ?? this.cardGlass,
+      headerGlass: headerGlass ?? this.headerGlass,
     );
   }
 
   @override
-  DesignSystemThemeExtension lerp(ThemeExtension<DesignSystemThemeExtension>? other, double t) {
+  DesignSystemThemeExtension lerp(
+    ThemeExtension<DesignSystemThemeExtension>? other,
+    double t,
+  ) {
     if (other is! DesignSystemThemeExtension) {
       return this;
     }
     return DesignSystemThemeExtension(
-      mobileBreakpoint: mobileBreakpoint + (other.mobileBreakpoint - mobileBreakpoint) * t,
-      tabletBreakpoint: tabletBreakpoint + (other.tabletBreakpoint - tabletBreakpoint) * t,
-      desktopBreakpoint: desktopBreakpoint + (other.desktopBreakpoint - desktopBreakpoint) * t,
-      cardHeaderStyle: TextStyle.lerp(cardHeaderStyle, other.cardHeaderStyle, t)!,
+      mobileBreakpoint:
+          mobileBreakpoint + (other.mobileBreakpoint - mobileBreakpoint) * t,
+      tabletBreakpoint:
+          tabletBreakpoint + (other.tabletBreakpoint - tabletBreakpoint) * t,
+      desktopBreakpoint:
+          desktopBreakpoint + (other.desktopBreakpoint - desktopBreakpoint) * t,
+      cardHeaderStyle: TextStyle.lerp(
+        cardHeaderStyle,
+        other.cardHeaderStyle,
+        t,
+      )!,
       cardBodyStyle: TextStyle.lerp(cardBodyStyle, other.cardBodyStyle, t)!,
       badgeStyle: TextStyle.lerp(badgeStyle, other.badgeStyle, t)!,
-      primaryButtonElevation: primaryButtonElevation + (other.primaryButtonElevation - primaryButtonElevation) * t,
-      secondaryButtonElevation: secondaryButtonElevation + (other.secondaryButtonElevation - secondaryButtonElevation) * t,
-      cardDecoration: BoxDecoration.lerp(cardDecoration, other.cardDecoration, t)!,
-      glassDecoration: BoxDecoration.lerp(glassDecoration, other.glassDecoration, t)!,
+      primaryButtonElevation:
+          primaryButtonElevation +
+          (other.primaryButtonElevation - primaryButtonElevation) * t,
+      secondaryButtonElevation:
+          secondaryButtonElevation +
+          (other.secondaryButtonElevation - secondaryButtonElevation) * t,
+      cardDecoration: BoxDecoration.lerp(
+        cardDecoration,
+        other.cardDecoration,
+        t,
+      )!,
+      glassDecoration: BoxDecoration.lerp(
+        glassDecoration,
+        other.glassDecoration,
+        t,
+      )!,
+      glassBackgroundColor: Color.lerp(
+        glassBackgroundColor,
+        other.glassBackgroundColor,
+        t,
+      )!,
+      glassBorderColor: Color.lerp(
+        glassBorderColor,
+        other.glassBorderColor,
+        t,
+      )!,
+      glassBlurSigma:
+          glassBlurSigma + (other.glassBlurSigma - glassBlurSigma) * t,
+      defaultGlass: GlassThemeSpec.lerp(defaultGlass, other.defaultGlass, t),
+      cardGlass: GlassThemeSpec.lerp(cardGlass, other.cardGlass, t),
+      headerGlass: GlassThemeSpec.lerp(headerGlass, other.headerGlass, t),
     );
   }
 }
 
 extension DesignSystemThemeExtensionContext on BuildContext {
-  DesignSystemThemeExtension get designTheme => Theme.of(this).extension<DesignSystemThemeExtension>()!;
-  bool get isTabletLayout => MediaQuery.of(this).size.width >= designTheme.mobileBreakpoint && MediaQuery.of(this).size.width < designTheme.tabletBreakpoint;
-  bool get isDesktopLayout => MediaQuery.of(this).size.width >= designTheme.tabletBreakpoint;
-  bool get isMobileLayout => MediaQuery.of(this).size.width < designTheme.mobileBreakpoint;
+  DesignSystemThemeExtension get designTheme =>
+      Theme.of(this).extension<DesignSystemThemeExtension>()!;
+  bool get isTabletLayout =>
+      MediaQuery.of(this).size.width >= designTheme.mobileBreakpoint &&
+      MediaQuery.of(this).size.width < designTheme.tabletBreakpoint;
+  bool get isDesktopLayout =>
+      MediaQuery.of(this).size.width >= designTheme.tabletBreakpoint;
+  bool get isMobileLayout =>
+      MediaQuery.of(this).size.width < designTheme.mobileBreakpoint;
 }
-

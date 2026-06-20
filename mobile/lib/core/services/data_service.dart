@@ -241,7 +241,7 @@ class DataService extends ChangeNotifier {
   }
 
   // Route Operations
-  Future<void> createRoute(RouteModel route) =>
+  Future<RouteModel> createRoute(RouteModel route) =>
       _routeService.createRoute(route);
 
   Future<void> updateRoute(String routeId, Map<String, dynamic> data) =>

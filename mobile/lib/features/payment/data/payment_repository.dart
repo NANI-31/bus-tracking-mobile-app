@@ -112,4 +112,43 @@ class PaymentRepository extends BaseRepository {
       throw handleError(e);
     }
   }
+
+  Future<List<dynamic>> getAllPlans() async {
+    try {
+      final response = await dio.get('/plans/all');
+      return response.data as List<dynamic>;
+    } catch (e) {
+      throw handleError(e);
+    }
+  }
+
+  Future<Map<String, dynamic>> createPlan(Map<String, dynamic> data) async {
+    try {
+      final response = await dio.post('/plans', data: data);
+      return response.data as Map<String, dynamic>;
+    } catch (e) {
+      throw handleError(e);
+    }
+  }
+
+  Future<Map<String, dynamic>> updatePlan(
+    String id,
+    Map<String, dynamic> data,
+  ) async {
+    try {
+      final response = await dio.put('/plans/$id', data: data);
+      return response.data as Map<String, dynamic>;
+    } catch (e) {
+      throw handleError(e);
+    }
+  }
+
+  Future<void> deletePlan(String id) async {
+    try {
+      await dio.delete('/plans/$id');
+    } catch (e) {
+      throw handleError(e);
+    }
+  }
 }
+

@@ -7,6 +7,7 @@ import {
   updateRoute,
   deleteRoute,
   getRouteDirections,
+  clearRouteDirections,
 } from "../../controllers/transport/route.controller";
 
 import { protect, authorize } from "@/middleware/authMiddleware";
@@ -22,6 +23,12 @@ router.post(
 router.get("/", protect, getAllRoutes);
 router.get("/college/:collegeId", protect, getRoutesByCollege);
 router.get("/:id/directions", protect, getRouteDirections);
+router.delete(
+  "/:id/directions",
+  protect,
+  authorize("superAdmin", "busCoordinator", "collegeAdmin"),
+  clearRouteDirections,
+);
 router.get("/:id", protect, getRoute);
 router.put(
   "/:id",

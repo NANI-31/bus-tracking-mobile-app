@@ -290,7 +290,7 @@ const UserTable = ({
                               ? "bg-secondary-main/10 text-secondary-dark dark:text-secondary-light border-secondary-main/20"
                               : user.role === "driver"
                                 ? "bg-warning-main/10 text-amber-600 dark:text-warning-main border-warning-main/20"
-                                : user.role === "coordinator"
+                                : (user.role === "coordinator" || user.role === "busCoordinator")
                                   ? "bg-indigo-main/10 text-indigo-main border-indigo-main/20"
                                   : "bg-primary-main/10 text-primary-main border-primary-main/20"
                           }`}
@@ -308,7 +308,7 @@ const UserTable = ({
                               }}
                             />
                             <div className="absolute top-full left-0 mt-1 bg-background-paper border border-border-theme shadow-xl rounded-xl p-1 z-40 min-w-[120px] flex flex-col gap-0.5">
-                              {["student", "driver", "coordinator", "admin"].map((r) => (
+                              {["student", "driver", "busCoordinator", "admin"].map((r) => (
                                 <button
                                   key={r}
                                   onClick={(e) => {

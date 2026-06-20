@@ -58,6 +58,7 @@ class BusListCard extends StatelessWidget {
       child: Theme(
         data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
         child: ExpansionTile(
+          key: PageStorageKey<String>('bus_tile_$busNumber'),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(24),
           ),

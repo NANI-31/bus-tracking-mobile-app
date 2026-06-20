@@ -4,6 +4,7 @@ import 'package:collegebus/features/bus/application/bus_provider.dart';
 import 'package:collegebus/core/constants/constants.dart';
 import 'package:velocity_x/velocity_x.dart';
 import 'package:intl/intl.dart';
+import 'package:collegebus/shared/widgets/shimmer_skeletons.dart';
 
 class AssignmentHistoryScreen extends ConsumerWidget {
   final String busId;
@@ -22,7 +23,7 @@ class AssignmentHistoryScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(title: 'Assignment History - $busNumber'.text.make()),
       body: logsAsync.when(
-        loading: () => const CircularProgressIndicator().centered(),
+        loading: () => const BusListSkeleton(),
         error: (err, stack) =>
             err.toString().text.color(AppColors.error).make().centered(),
         data: (logs) {

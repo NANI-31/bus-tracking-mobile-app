@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:collection/collection.dart';
 import 'package:collegebus/features/super_admin/application/super_admin_provider.dart';
+import 'package:collegebus/features/super_admin/presentation/screens/plans_management_screen.dart';
+
 
 class PaymentsTab extends ConsumerStatefulWidget {
   const PaymentsTab({super.key});
@@ -190,6 +192,27 @@ class _PaymentsTabState extends ConsumerState<PaymentsTab> {
                                 ),
                               ),
                             ],
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        TextButton.icon(
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const PlansManagementScreen(),
+                              ),
+                            );
+                          },
+                          icon: const Icon(Icons.card_membership, size: 16),
+                          label: const Text('Manage Plans', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                          style: TextButton.styleFrom(
+                            backgroundColor: Colors.deepPurple.withValues(alpha: 0.1),
+                            foregroundColor: Colors.deepPurple,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                           ),
                         ),
                       ],

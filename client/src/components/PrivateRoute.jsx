@@ -18,6 +18,8 @@ const PrivateRoute = ({ allowedRoles }) => {
       return <Navigate to="/college-admin" replace />;
     } else if (userInfo.role === "superAdmin") {
       return <Navigate to="/super-admin" replace />;
+    } else if (userInfo.role === "busCoordinator") {
+      return <Navigate to="/coordinator" replace />;
     }
     return <Navigate to="/login" replace />;
   }

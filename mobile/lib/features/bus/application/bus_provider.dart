@@ -3,6 +3,8 @@ import 'package:collegebus/features/bus/domain/bus_model.dart';
 import 'package:collegebus/features/coordinator/domain/assignment_log_model.dart';
 import 'package:collegebus/core/providers/repository_providers.dart';
 import 'package:collegebus/core/providers/socket_provider.dart';
+import 'package:collegebus/features/auth/application/auth_provider.dart';
+import 'package:collegebus/core/constants/constants.dart';
 
 /// Bus notifier for managing the list of buses
 class BusNotifier extends AsyncNotifier<List<BusModel>> {
@@ -143,13 +145,21 @@ final collegeBusLocationsProvider =
 
         controller.onCancel = () => subscription.cancel();
 
-        try {
-          final repo = ref.watch(busRepositoryProvider);
-          final apiLocations = await repo.getCollegeBusLocations(collegeId);
-          currentLocations = List.from(apiLocations);
-          if (!controller.isClosed) controller.add(currentLocations);
-        } catch (e) {
-          // initial fetch error handled by stream
+        final user = ref.read(currentUserProvider);
+        final isAuthorized = user != null &&
+            user.role != UserRole.student &&
+            user.role != UserRole.parent &&
+            user.role != UserRole.teacher;
+
+        if (isAuthorized) {
+          try {
+            final repo = ref.watch(busRepositoryProvider);
+            final apiLocations = await repo.getCollegeBusLocations(collegeId);
+            currentLocations = List.from(apiLocations);
+            if (!controller.isClosed) controller.add(currentLocations);
+          } catch (e) {
+            // initial fetch error handled by stream
+          }
         }
       });
     });

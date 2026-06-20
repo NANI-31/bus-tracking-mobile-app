@@ -224,3 +224,41 @@ export const wipeCollegeData = async (
     throw error.response ? error.response.data : error.message;
   }
 };
+
+// Subscription Plans Management
+export const fetchAllPlans = async () => {
+  try {
+    const response = await axios.get("/plans/all");
+    return response.data;
+  } catch (error) {
+    throw error.response ? error.response.data : error.message;
+  }
+};
+
+export const createPlan = async (planData) => {
+  try {
+    const response = await axios.post("/plans", planData);
+    return response.data;
+  } catch (error) {
+    throw error.response ? error.response.data : error.message;
+  }
+};
+
+export const updatePlan = async (planId, planData) => {
+  try {
+    const response = await axios.put(`/plans/${planId}`, planData);
+    return response.data;
+  } catch (error) {
+    throw error.response ? error.response.data : error.message;
+  }
+};
+
+export const deletePlan = async (planId) => {
+  try {
+    const response = await axios.delete(`/plans/${planId}`);
+    return response.data;
+  } catch (error) {
+    throw error.response ? error.response.data : error.message;
+  }
+};
+

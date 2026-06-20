@@ -47,6 +47,7 @@ class SosLogsTab extends ConsumerWidget {
                     );
                     return Card(
                       child: ExpansionTile(
+                        key: PageStorageKey<String>('sos_log_tile_${sos.sosId}'),
                         leading: const CircleAvatar(
                           backgroundColor: Colors.redAccent,
                           child: Icon(

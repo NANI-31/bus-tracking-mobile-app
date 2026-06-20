@@ -10,6 +10,7 @@ class GlassCard extends StatelessWidget {
   final double? height;
   final double? borderRadius;
   final EdgeInsetsGeometry? padding;
+  final Color? color;
 
   const GlassCard({
     super.key,
@@ -20,6 +21,7 @@ class GlassCard extends StatelessWidget {
     this.height,
     this.borderRadius,
     this.padding,
+    this.color,
   });
 
   @override
@@ -32,15 +34,16 @@ class GlassCard extends StatelessWidget {
       borderRadius: BorderRadius.circular(24),
       border: Border.all(
         color: Theme.of(context).brightness == Brightness.dark
-            ? Colors.white.withValues(alpha: 0.1)
-            : Colors.white.withValues(alpha: 0.3),
+          ? Colors.white.withValues(alpha: 0.1)
+          : Colors.white.withValues(alpha: 0.3),
         width: 1.5,
       ),
     );
 
-    // Apply custom border radius if specified
+    // Apply custom border radius and color if specified
     final decoration = baseDecoration.copyWith(
       borderRadius: borderRadius != null ? BorderRadius.circular(borderRadius!) : baseDecoration.borderRadius,
+      color: color ?? baseDecoration.color,
     );
 
     return ClipRRect(

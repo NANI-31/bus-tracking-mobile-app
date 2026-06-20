@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:math' as math;
-import 'dart:ui' show lerpDouble;
-import 'dart:ui' as ui;
+import 'dart:ui' show lerpDouble, Offset;
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -19,9 +18,10 @@ import 'package:collegebus/core/services/directions_result.dart';
 import 'package:collegebus/features/student/application/map_navigation_provider.dart';
 import 'package:collegebus/shared/widgets/maps/map_skeleton_loader.dart';
 import 'package:collegebus/shared/widgets/skeleton_transition.dart';
-import 'package:collegebus/shared/widgets/maps/route_path_skeleton.dart';
 import 'package:collegebus/core/services/theme_service.dart';
 import 'package:collegebus/core/constants/constants.dart';
+import 'package:collegebus/features/sos/domain/sos_model.dart';
+import 'package:collegebus/features/sos/application/sos_provider.dart';
 
 class LiveBusMap extends ConsumerStatefulWidget {
   final List<BusModel> buses;
@@ -63,11 +63,14 @@ class LiveBusMapState extends ConsumerState<LiveBusMap>
 
   // Animation maps
   final Map<String, AnimationController> _animationControllers = {};
+  final List<AnimationController> _controllersPendingDispose = [];
   final Map<String, LatLng> _animatedLocations = {};
   final Map<String, double> _animatedRotations = {};
 
   LatLng? _centerLocation;
   GoogleMapController? _mapController;
+  AnimationController? _cameraAnimationController;
+  final Map<String, Offset> _sosScreenPositions = {};
 
   // Smart centering logic
   bool _isProgrammaticMove = false;
@@ -77,146 +80,6 @@ class LiveBusMapState extends ConsumerState<LiveBusMap>
   final Map<String, Marker> _stopMarkers = {};
   DirectionsResult? _directionsResult;
   String? _loadedRouteId;
-  bool _isFetchingRoute = false;
-
-  Map<String, Offset> _screenPositions = {};
-
-  LatLng? _positionsProjectedCenter;
-  double _positionsProjectedZoom = 17.0;
-  LatLng? _routeProjectedCenter;
-  double _routeProjectedZoom = 17.0;
-
-  bool _isProjectingPositions = false;
-  bool _isProjectingRoute = false;
-
-  DateTime _lastPositionsUpdateTime = DateTime.fromMillisecondsSinceEpoch(0);
-
-  Future<void> _updateScreenPositions({bool force = false}) async {
-    if (_mapController == null || _isProjectingPositions) return;
-    
-    final now = DateTime.now();
-    if (!force && now.difference(_lastPositionsUpdateTime).inMilliseconds < 150) {
-      return;
-    }
-    
-    _isProjectingPositions = true;
-    try {
-      final navState = ref.read(mapNavigationProvider);
-      final LatLng? projCenter = navState.centerLocation;
-      final double projZoom = navState.zoom;
-
-      final user = ref.read(currentUserProvider);
-      final collegeId = user?.collegeId;
-      final Set<String> liveBusIds = {};
-      if (collegeId != null) {
-        final locations = ref.read(collegeBusLocationsProvider(collegeId)).value;
-        if (locations != null) {
-          liveBusIds.addAll(locations.map((l) => l.busId));
-        }
-      }
-
-      int projectedCount = 0;
-      final Map<String, Offset> nextPositions = {};
-      for (var bus in widget.buses) {
-        final isSelectedBus = widget.selectedBus?.id == bus.id;
-        // A bus is only considered "live" on the map when the driver is
-        // ACTIVELY broadcasting GPS via socket (liveBusIds). bus.status is a
-        // stale DB field — it changes on assignment, not on broadcast start,
-        // so it must NOT be used as a visibility gate here.
-        final isLive = liveBusIds.contains(bus.id) || isSelectedBus;
-        if (!isLive) continue;
-        if (bus.assignmentStatus != 'accepted' && !isSelectedBus) continue;
-        var pos = _animatedLocations[bus.id] ?? _liveLocations[bus.id]?.currentLocation;
-        if (pos != null) {
-          projectedCount++;
-          try {
-            final screenCoord = await _mapController!.getScreenCoordinate(pos);
-            nextPositions[bus.id] = Offset(screenCoord.x.toDouble(), screenCoord.y.toDouble());
-          } catch (e) {
-            // Ignore projection failures in test or when controller is being disposed
-          }
-        }
-      }
-      if (mounted) {
-        setState(() {
-          _screenPositions = nextPositions;
-          _positionsProjectedCenter = projCenter;
-          _positionsProjectedZoom = projZoom;
-          _lastPositionsUpdateTime = now;
-        });
-
-        final bool isUninitialized = projectedCount > 0 &&
-            (nextPositions.isEmpty || nextPositions.values.every((pt) => pt == Offset.zero));
-        if (isUninitialized) {
-          Future.delayed(const Duration(milliseconds: 300), () {
-            if (mounted) _updateScreenPositions(force: true);
-          });
-        }
-      }
-    } finally {
-      _isProjectingPositions = false;
-    }
-  }
-
-  ui.FragmentShader? _shader;
-  List<Offset> _routeScreenPoints = [];
-
-  Future<void> _loadShader() async {
-    try {
-      final program = await ui.FragmentProgram.fromAsset('shaders/glow_route.frag');
-      if (mounted) {
-        setState(() {
-          _shader = program.fragmentShader();
-        });
-      }
-    } catch (e) {
-      debugPrint('Failed to load shader: $e. Using canvas fallback.');
-    }
-  }
-
-
-
-  Future<void> _updateRouteScreenPoints() async {
-    if (_mapController == null || _directionsResult == null || _isProjectingRoute) return;
-    _isProjectingRoute = true;
-    try {
-      final navState = ref.read(mapNavigationProvider);
-      final LatLng? projCenter = navState.centerLocation;
-      final double projZoom = navState.zoom;
-
-      final simplifiedPoints = DouglasPeucker.simplifyToMaxPoints(
-        _directionsResult!.polylinePoints,
-        25,
-      );
-      
-      final List<Offset> points = [];
-      for (final latLng in simplifiedPoints) {
-        try {
-          final screenCoord = await _mapController!.getScreenCoordinate(latLng);
-          points.add(Offset(screenCoord.x.toDouble(), screenCoord.y.toDouble()));
-        } catch (e) {
-          // Ignore
-        }
-      }
-      if (mounted) {
-        setState(() {
-          _routeScreenPoints = points;
-          _routeProjectedCenter = projCenter;
-          _routeProjectedZoom = projZoom;
-        });
-
-        // If projection failed to return any points, retry after a short delay
-        final bool isUninitialized = points.isEmpty || points.every((pt) => pt == Offset.zero);
-        if (isUninitialized && _directionsResult != null) {
-          Future.delayed(const Duration(milliseconds: 300), () {
-            if (mounted) _updateRouteScreenPoints();
-          });
-        }
-      }
-    } finally {
-      _isProjectingRoute = false;
-    }
-  }
 
   void resumeFollowing() {
     if (mounted) {
@@ -242,7 +105,6 @@ class LiveBusMapState extends ConsumerState<LiveBusMap>
       const Color(0xFFFF9800),
       const Color(0xFFE53935),
     );
-    _loadShader();
 
     if (widget.activeRoute != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -260,8 +122,6 @@ class LiveBusMapState extends ConsumerState<LiveBusMap>
 
   Future<void> _loadCustomMarker() async {
     try {
-      // Clear cache to pick up any size changes
-      MapMarkerHelper.clearCache();
       final icon = await MapMarkerHelper.createBusMarker();
       debugPrint('[LiveBusMap] Custom bus marker loaded successfully');
       if (mounted) {
@@ -332,7 +192,6 @@ class LiveBusMapState extends ConsumerState<LiveBusMap>
             // A new bus was selected — center on it and start following
             ref.read(mapNavigationProvider.notifier).setFollowing(true);
             _animateToBus(widget.selectedBus!);
-            _schedulePositionRetries();
             _waitForSelectedBusLocation(widget.selectedBus!);
           } else if (oldWidget.selectedBus != null) {
             // Bus was deselected — return camera to student's own location
@@ -359,12 +218,7 @@ class LiveBusMapState extends ConsumerState<LiveBusMap>
     try {
       final pos = await locationService.getCurrentLocation();
       if (pos != null && mounted && _mapController != null) {
-        _isProgrammaticMove = true;
-        _mapController!.animateCamera(CameraUpdate.newLatLngZoom(pos, 15.0)).then((_) {
-          Future.delayed(const Duration(milliseconds: 1500), () {
-            if (mounted) _isProgrammaticMove = false;
-          });
-        });
+        _animateCameraTo(pos, 15.0);
         ref.read(mapNavigationProvider.notifier).updateUserLocation(pos);
       }
     } catch (_) {}
@@ -377,6 +231,12 @@ class LiveBusMapState extends ConsumerState<LiveBusMap>
     for (var controller in _animationControllers.values) {
       controller.dispose();
     }
+    _animationControllers.clear();
+    for (var controller in _controllersPendingDispose) {
+      controller.dispose();
+    }
+    _controllersPendingDispose.clear();
+    _cameraAnimationController?.dispose();
     super.dispose();
   }
 
@@ -445,24 +305,11 @@ class LiveBusMapState extends ConsumerState<LiveBusMap>
     final user = ref.read(currentUserProvider);
     if (user?.collegeId == null) return;
     final currentLocs =
-        ref.read(collegeBusLocationsProvider(user!.collegeId)).value;
+        ref.read(collegeBusLocationsProvider(user!.collegeId)).valueOrNull;
     if (currentLocs != null && currentLocs.isNotEmpty) {
       for (final loc in currentLocs) {
         _handleLocationUpdate(loc);
       }
-    }
-  }
-
-  /// Schedules staggered re-projection calls so the map has time to
-  /// fully stabilise before we ask for screen coordinates.
-  void _schedulePositionRetries() {
-    for (final delay in [200, 600, 1200, 2000]) {
-      Future.delayed(Duration(milliseconds: delay), () {
-        if (mounted) {
-          _updateScreenPositions(force: true);
-          _updateRouteScreenPoints();
-        }
-      });
     }
   }
 
@@ -477,7 +324,6 @@ class LiveBusMapState extends ConsumerState<LiveBusMap>
       _seedLocationsFromProvider();
       _rebuildMarkers();
       _animateToBus(bus);
-      _schedulePositionRetries();
       return;
     }
     // Retry up to 20 times (10 seconds total)
@@ -488,8 +334,49 @@ class LiveBusMapState extends ConsumerState<LiveBusMap>
     }
   }
 
-  void _handleLocationUpdate(BusLocationModel nextLoc) {
+  Future<void> _updateSosOverlayPositions() async {
+    if (_mapController == null || !mounted) return;
 
+    final user = ref.read(currentUserProvider);
+    final collegeId = user?.collegeId;
+    if (collegeId == null) return;
+
+    final activeSosList = ref.read(activeSosProvider(collegeId)).value ?? [];
+
+    final Map<String, Offset> newPositions = {};
+    final devicePixelRatio = MediaQuery.of(context).devicePixelRatio;
+
+    for (final sos in activeSosList) {
+      if (sos.status == SosStatus.active) {
+        final LatLng pos;
+        final liveLoc = _animatedLocations[sos.busId] ?? _liveLocations[sos.busId]?.currentLocation;
+        if (liveLoc != null) {
+          pos = liveLoc;
+        } else {
+          pos = LatLng(sos.latitude, sos.longitude);
+        }
+
+        try {
+          final screenCoord = await _mapController!.getScreenCoordinate(pos);
+          newPositions[sos.busId] = Offset(
+            screenCoord.x.toDouble() / devicePixelRatio,
+            screenCoord.y.toDouble() / devicePixelRatio,
+          );
+        } catch (e) {
+          debugPrint('Error getting screen coordinate for SOS bus ${sos.busId}: $e');
+        }
+      }
+    }
+
+    if (mounted) {
+      setState(() {
+        _sosScreenPositions.clear();
+        _sosScreenPositions.addAll(newPositions);
+      });
+    }
+  }
+
+  void _handleLocationUpdate(BusLocationModel nextLoc) {
     final busId = nextLoc.busId;
     final prevLoc = _liveLocations[busId];
 
@@ -560,6 +447,7 @@ class LiveBusMapState extends ConsumerState<LiveBusMap>
           );
           _animatedRotations[busId] = lerpDouble(startRot, endRot, t)!;
           _rebuildMarkers();
+          _updateSosOverlayPositions();
         }
       });
     } else {
@@ -584,6 +472,7 @@ class LiveBusMapState extends ConsumerState<LiveBusMap>
           );
           _animatedRotations[busId] = lerpDouble(startRot, endRot, t)!;
           _rebuildMarkers();
+          _updateSosOverlayPositions();
         }
       });
     }
@@ -604,28 +493,66 @@ class LiveBusMapState extends ConsumerState<LiveBusMap>
     final collegeId = user?.collegeId;
     final Set<String> liveBusIds = {};
     if (collegeId != null) {
-      final locations = ref.read(collegeBusLocationsProvider(collegeId)).value;
+      final locations = ref.read(collegeBusLocationsProvider(collegeId)).valueOrNull;
       if (locations != null) {
         liveBusIds.addAll(locations.map((l) => l.busId));
       }
     }
 
-    for (var bus in widget.buses) {
+    final activeSosList = collegeId != null ? (ref.read(activeSosProvider(collegeId)).value ?? []) : <SosModel>[];
+
+    // Seed locations for active SOS alerts if not present
+    for (final sos in activeSosList) {
+      if (sos.status == SosStatus.active && !_liveLocations.containsKey(sos.busId)) {
+        _liveLocations[sos.busId] = BusLocationModel(
+          busId: sos.busId,
+          currentLocation: LatLng(sos.latitude, sos.longitude),
+          timestamp: sos.timestamp,
+          heading: 0.0,
+          collegeId: sos.collegeId,
+        );
+      }
+    }
+
+    final allBuses = List<BusModel>.from(widget.buses);
+    for (final sos in activeSosList) {
+      if (sos.status == SosStatus.active && !allBuses.any((b) => b.id == sos.busId)) {
+        allBuses.add(
+          BusModel(
+            id: sos.busId,
+            busNumber: sos.busNumber,
+            driverId: sos.userId,
+            collegeId: sos.collegeId,
+            createdAt: sos.timestamp,
+            assignmentStatus: 'accepted',
+            isActive: true,
+            status: 'emergency',
+          ),
+        );
+      }
+    }
+
+    for (var bus in allBuses) {
       final isSelectedBus = widget.selectedBus?.id == bus.id;
+      final isSos = activeSosList.any((s) => s.busId == bus.id && s.status == SosStatus.active);
       // Only show a bus on the map when its driver is actively broadcasting GPS
       // (liveBusIds). bus.status alone is NOT sufficient — it updates on DB
       // assignment, not when the driver actually starts sending location data.
-      final isLive = liveBusIds.contains(bus.id) || isSelectedBus;
+      final isLive = liveBusIds.contains(bus.id) || isSelectedBus || isSos;
       // Remove marker if bus has no live broadcast AND is not the selected bus.
-      if (!isLive || (bus.assignmentStatus != 'accepted' && !isSelectedBus)) {
+      if (!isLive || (bus.assignmentStatus != 'accepted' && !isSelectedBus && !isSos)) {
         // Preserve the selected bus's data even if temporarily unassigned —
         // clearing it would prevent the BusTrackerMarker from ever projecting.
         _liveLocations.remove(bus.id);
         _animatedLocations.remove(bus.id);
         final controller = _animationControllers.remove(bus.id);
         if (controller != null) {
+          _controllersPendingDispose.add(controller);
           WidgetsBinding.instance.addPostFrameCallback((_) {
-            controller.dispose();
+            if (mounted && _controllersPendingDispose.contains(controller)) {
+              controller.dispose();
+              _controllersPendingDispose.remove(controller);
+            }
           });
         }
         continue;
@@ -638,7 +565,7 @@ class LiveBusMapState extends ConsumerState<LiveBusMap>
             _animatedRotations[bus.id] ??
             _liveLocations[bus.id]?.heading ??
             0.0;
-        final marker = _createMarker(bus, pos, rot);
+        final marker = _createMarker(bus, pos, rot, activeSosList);
         newMarkers[bus.id] = marker;
       }
     }
@@ -649,44 +576,97 @@ class LiveBusMapState extends ConsumerState<LiveBusMap>
     // always shows bus pins (as a reliable fallback when the custom overlay
     // BusTrackerMarker cannot be projected yet).
     _markersNotifier.value = {..._markers.values, ..._stopMarkers.values};
-    _updateScreenPositions();
   }
 
-  // Removed _updateScreenPositions for Rive
+  Marker _createMarker(BusModel bus, LatLng pos, double rotation, List<SosModel> activeSosList) {
+    final isSos = activeSosList.any((s) => s.busId == bus.id && s.status == SosStatus.active);
 
-  Marker _createMarker(BusModel bus, LatLng pos, double rotation) {
     return Marker(
       markerId: MarkerId(bus.id),
       position: pos,
       rotation: rotation,
-      icon:
-          _busIcon ??
-          BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueAzure),
+      icon: isSos
+          ? BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed)
+          : (_busIcon ?? BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueAzure)),
       anchor: const Offset(0.5, 0.5),
       infoWindow: InfoWindow(
-        title: 'Bus ${bus.busNumber}',
-        snippet: bus.status,
+        title: isSos ? 'Bus ${bus.busNumber} [SOS ACTIVE]' : 'Bus ${bus.busNumber}',
+        snippet: isSos ? 'EMERGENCY SOS ALERT' : bus.status,
       ),
       onTap: () => widget.onBusTap?.call(bus),
     );
   }
 
-  // Removed _deriveTripStatus for Rive
-
   void _animateToBus(BusModel bus) {
     final pos =
         _animatedLocations[bus.id] ?? _liveLocations[bus.id]?.currentLocation;
     if (pos != null && _mapController != null) {
-      _isProgrammaticMove = true;
-      _mapController!.animateCamera(CameraUpdate.newLatLngZoom(pos, 17.0)).then(
-        (_) {
-          // Reset flag after animation completes/starts
-          Future.delayed(const Duration(milliseconds: 1500), () {
-            if (mounted) _isProgrammaticMove = false;
-          });
-        },
-      );
+      _animateCameraTo(pos, 17.0);
     }
+  }
+
+  void _animateCameraTo(LatLng target, double targetZoom) {
+    if (_mapController == null || !mounted) return;
+
+    final navState = ref.read(mapNavigationProvider);
+    final startLatLng = navState.centerLocation ?? _centerLocation ?? const LatLng(16.2345, 80.4567);
+    final startZoom = navState.zoom;
+
+    _cameraAnimationController?.stop();
+    _cameraAnimationController?.dispose();
+
+    final distanceMeters = Geolocator.distanceBetween(
+      startLatLng.latitude,
+      startLatLng.longitude,
+      target.latitude,
+      target.longitude,
+    );
+    
+    final durationMs = (800 + (distanceMeters / 15.0).clamp(0.0, 1000.0)).round();
+    final duration = Duration(milliseconds: durationMs);
+
+    _cameraAnimationController = AnimationController(
+      vsync: this,
+      duration: duration,
+    );
+
+    final curve = CurvedAnimation(
+      parent: _cameraAnimationController!,
+      curve: const Cubic(0.05, 0.7, 0.1, 1.0),
+    );
+
+    _isProgrammaticMove = true;
+
+    _cameraAnimationController!.addListener(() {
+      if (!mounted || _mapController == null) return;
+      final t = curve.value;
+      
+      final lat = lerpDouble(startLatLng.latitude, target.latitude, t)!;
+      final lng = lerpDouble(startLatLng.longitude, target.longitude, t)!;
+      
+      double zoom;
+      if (distanceMeters > 150.0) {
+        final maxDip = (distanceMeters / 250.0).clamp(0.0, 2.2);
+        final dip = maxDip * math.sin(math.pi * t);
+        zoom = lerpDouble(startZoom, targetZoom, t)! - dip;
+      } else {
+        zoom = lerpDouble(startZoom, targetZoom, t)!;
+      }
+      
+      _mapController!.moveCamera(
+        CameraUpdate.newLatLngZoom(LatLng(lat, lng), zoom),
+      );
+    });
+
+    _cameraAnimationController!.addStatusListener((status) {
+      if (status == AnimationStatus.completed || status == AnimationStatus.dismissed) {
+        if (mounted) {
+          _isProgrammaticMove = false;
+        }
+      }
+    });
+
+    _cameraAnimationController!.forward();
   }
 
   // ===== Route Overlay Methods =====
@@ -698,12 +678,6 @@ class LiveBusMapState extends ConsumerState<LiveBusMap>
 
     debugPrint('[LiveBusMap] Loading route overlay for ${route.routeName}');
 
-    setState(() {
-      _isFetchingRoute = true;
-    });
-
-    final startTime = DateTime.now();
-
     try {
       final directionsService = DirectionsService();
       final result = await directionsService.getDirectionsForRoute(route);
@@ -713,33 +687,13 @@ class LiveBusMapState extends ConsumerState<LiveBusMap>
       final themeState = ref.read(themeServiceProvider);
       final routeColor = _getRouteColor(themeState);
 
-      // Force a minimum loading delay of 3.0 seconds to allow the skeleton route animation to complete
-      final elapsed = DateTime.now().difference(startTime).inMilliseconds;
-      final remainingDelay = 3000 - elapsed;
-      if (remainingDelay > 0) {
-        await Future.delayed(Duration(milliseconds: remainingDelay));
-      }
+      if (result != null && result.hasRoute) {
+        setState(() {
+          _directionsResult = result;
+          _loadedRouteId = route.id;
 
-      if (!mounted) return;
-
-      setState(() {
-        _directionsResult = result;
-        _loadedRouteId = route.id;
-
-        if (result != null && result.hasRoute) {
-          // Build the route polyline with modern dual glowing style
+          // Build a single solid route polyline
           _routePolylines = {
-            // Glow background layer
-            Polyline(
-              polylineId: const PolylineId('active_route_glow'),
-              points: result.polylinePoints,
-              color: routeColor.withValues(alpha: 0.3),
-              width: 10,
-              startCap: Cap.roundCap,
-              endCap: Cap.roundCap,
-              geodesic: true,
-            ),
-            // Clean solid core layer
             Polyline(
               polylineId: const PolylineId('active_route'),
               points: result.polylinePoints,
@@ -754,12 +708,11 @@ class LiveBusMapState extends ConsumerState<LiveBusMap>
           // Build stop markers
           _stopMarkers.clear();
           _buildStopMarkers(route);
-          _updateRouteScreenPoints();
 
           // Fit camera to show entire route
           _fitCameraToRoute(result.polylinePoints);
-        }
-      });
+        });
+      }
 
       // Notify parent about directions result (for trip progress sheet)
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -767,12 +720,8 @@ class LiveBusMapState extends ConsumerState<LiveBusMap>
           widget.onDirectionsLoaded?.call(result);
         }
       });
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isFetchingRoute = false;
-        });
-      }
+    } catch (e) {
+      debugPrint('[LiveBusMap] Error loading route overlay: $e');
     }
   }
 
@@ -797,6 +746,14 @@ class LiveBusMapState extends ConsumerState<LiveBusMap>
     for (int i = 0; i < route.stopPoints.length; i++) {
       final stop = route.stopPoints[i];
       if (stop.lat == 0 && stop.lng == 0) continue;
+
+      // Filter out intermediate stops that are at the exact same location as start or end points
+      final isAtStart = (stop.lat - route.startPoint.lat).abs() < 0.00001 &&
+          (stop.lng - route.startPoint.lng).abs() < 0.00001;
+      final isAtEnd = (stop.lat - route.endPoint.lat).abs() < 0.00001 &&
+          (stop.lng - route.endPoint.lng).abs() < 0.00001;
+      if (isAtStart || isAtEnd) continue;
+
       _stopMarkers['stop_$i'] = Marker(
         markerId: MarkerId('stop_$i'),
         position: LatLng(stop.lat, stop.lng),
@@ -863,7 +820,6 @@ class LiveBusMapState extends ConsumerState<LiveBusMap>
       _stopMarkers.clear();
       _directionsResult = null;
       _loadedRouteId = null;
-      _routeScreenPoints = [];
     });
     _rebuildMarkers();
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -934,17 +890,6 @@ class LiveBusMapState extends ConsumerState<LiveBusMap>
     // Reactively update route polyline colors when map theme changes
     if (_routePolylines.isNotEmpty && _directionsResult != null) {
       _routePolylines = {
-        // Glow background layer
-        Polyline(
-          polylineId: const PolylineId('active_route_glow'),
-          points: _directionsResult!.polylinePoints,
-          color: routeColorTheme.withValues(alpha: 0.3),
-          width: 10,
-          startCap: Cap.roundCap,
-          endCap: Cap.roundCap,
-          geodesic: true,
-        ),
-        // Clean solid core layer
         Polyline(
           polylineId: const PolylineId('active_route'),
           points: _directionsResult!.polylinePoints,
@@ -972,6 +917,16 @@ class LiveBusMapState extends ConsumerState<LiveBusMap>
       });
     }
 
+    if (collegeId != null) {
+      ref.watch(activeSosProvider(collegeId)).whenData((alerts) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) {
+            _updateSosOverlayPositions();
+          }
+        });
+      });
+    }
+
     ref.listen<bool>(
       mapNavigationProvider.select((s) => s.isFollowing),
       (previous, next) {
@@ -988,7 +943,6 @@ class LiveBusMapState extends ConsumerState<LiveBusMap>
           ? const SizedBox.shrink()
           : LayoutBuilder(
               builder: (context, constraints) {
-                final mapSize = Size(constraints.maxWidth, constraints.maxHeight);
                 return Stack(
                   children: [
                     ValueListenableBuilder<Set<Marker>>(
@@ -997,45 +951,47 @@ class LiveBusMapState extends ConsumerState<LiveBusMap>
                         return CommonMapView(
                           currentLocation: _centerLocation!,
                           markers: markers,
-                          polylines: const {},
+                          polylines: _routePolylines,
                           onMapCreated: (controller) {
                             _mapController = controller;
                             widget.onMapCreated?.call(controller);
                             // Seed any existing locations into _liveLocations
-                            // immediately so that _updateScreenPositions has data.
                             _seedLocationsFromProvider();
                             _rebuildMarkers();
-                            // Staggered retries — getScreenCoordinate can silently
-                            // return (0,0) until the map layout is fully stable.
-                            _schedulePositionRetries();
+                            Future.delayed(const Duration(milliseconds: 300), () {
+                              _updateSosOverlayPositions();
+                            });
                           },
                           onCameraMove: (position) {
                             ref.read(mapNavigationProvider.notifier).updateCamera(position.target, position.zoom);
-                            _updateScreenPositions();
+                            _updateSosOverlayPositions();
                           },
                           onCameraIdle: () async {
-                            _isProjectingPositions = false;
-                            _isProjectingRoute = false;
-                            _updateScreenPositions(force: true);
-                            _updateRouteScreenPoints();
                             if (_mapController != null && collegeId != null) {
-                              final bounds = await _mapController!.getVisibleRegion();
-                              try {
-                                final repo = ref.read(busRepositoryProvider);
-                                final locations = await repo.getCollegeBusLocations(
-                                  collegeId,
-                                  minLat: bounds.southwest.latitude,
-                                  maxLat: bounds.northeast.latitude,
-                                  minLng: bounds.southwest.longitude,
-                                  maxLng: bounds.northeast.longitude,
-                                );
-                                if (mounted) {
-                                  for (var loc in locations) {
-                                    _handleLocationUpdate(loc);
+                              final user = ref.read(currentUserProvider);
+                              final isAuthorized = user != null &&
+                                  user.role != UserRole.student &&
+                                  user.role != UserRole.parent &&
+                                  user.role != UserRole.teacher;
+                              if (isAuthorized) {
+                                final bounds = await _mapController!.getVisibleRegion();
+                                try {
+                                  final repo = ref.read(busRepositoryProvider);
+                                  final locations = await repo.getCollegeBusLocations(
+                                    collegeId,
+                                    minLat: bounds.southwest.latitude,
+                                    maxLat: bounds.northeast.latitude,
+                                    minLng: bounds.southwest.longitude,
+                                    maxLng: bounds.northeast.longitude,
+                                  );
+                                  if (mounted) {
+                                    for (var loc in locations) {
+                                      _handleLocationUpdate(loc);
+                                    }
                                   }
+                                } catch (e) {
+                                  debugPrint('Failed to fetch bounded buses: $e');
                                 }
-                              } catch (e) {
-                                debugPrint('Failed to fetch bounded buses: $e');
                               }
                             }
                           },
@@ -1055,69 +1011,21 @@ class LiveBusMapState extends ConsumerState<LiveBusMap>
                       },
                     ),
 
-                    Positioned.fill(
-                      child: IgnorePointer(
-                        child: AnimatedSwitcher(
-                          duration: const Duration(milliseconds: 400),
-                          child: (_isFetchingRoute || (_directionsResult != null && _routeScreenPoints.isEmpty))
-                              ? const RoutePathSkeleton(
-                                  key: ValueKey('route_skeleton'),
-                                  height: double.infinity,
-                                )
-                              : _directionsResult != null
-                                  ? AnimatedRouteOverlay(
-                                      key: const ValueKey('route_overlay'),
-                                      points: _routeScreenPoints,
-                                      shader: _shader,
-                                      routeColor: routeColorTheme,
-                                      trafficDensity: 0.55,
-                                      projectedCenter: _routeProjectedCenter,
-                                      projectedZoom: _routeProjectedZoom,
-                                    )
-                                  : const SizedBox.shrink(key: ValueKey('route_empty')),
+                    // Radar pulse overlays for active SOS alerts
+                    ..._sosScreenPositions.entries.map((entry) {
+                      final offset = entry.value;
+                      final busId = entry.key;
+                      return Positioned(
+                        left: offset.dx - 60,
+                        top: offset.dy - 60,
+                        child: IgnorePointer(
+                          child: Hero(
+                            tag: 'sos-marker-$busId',
+                            child: const RadarPulseWidget(),
+                          ),
                         ),
-                      ),
-                    ),
-
-                    // Projected Rive Markers Layer
-                    Consumer(
-                      builder: (context, ref, child) {
-                        final navState = ref.watch(mapNavigationProvider);
-                        final currentCenter = navState.centerLocation;
-                        final currentZoom = navState.zoom;
-
-                        return Stack(
-                          children: [
-                            for (final bus in widget.buses)
-                              if (_screenPositions.containsKey(bus.id))
-                                Builder(
-                                  builder: (context) {
-                                    Offset pos = _screenPositions[bus.id]!;
-                                    if (_positionsProjectedCenter != null && currentCenter != null) {
-                                      pos = _transformPoint(
-                                        point: pos,
-                                        size: mapSize,
-                                        projectedCenter: _positionsProjectedCenter!,
-                                        projectedZoom: _positionsProjectedZoom,
-                                        currentCenter: currentCenter,
-                                        currentZoom: currentZoom,
-                                      );
-                                    }
-                                    return Positioned(
-                                      left: pos.dx - 27,
-                                      top: pos.dy - 27,
-                                      child: BusTrackerMarker(
-                                        bus: bus,
-                                        rotation: _animatedRotations[bus.id] ?? _liveLocations[bus.id]?.heading ?? 0.0,
-                                        onTap: () => widget.onBusTap?.call(bus),
-                                      ),
-                                    );
-                                  },
-                                ),
-                          ],
-                        );
-                      },
-                    ),
+                      );
+                    }),
 
                     if (!ref.watch(mapNavigationProvider.select((s) => s.isFollowing)) && widget.selectedBus != null)
                       Positioned(
@@ -1142,81 +1050,14 @@ class LiveBusMapState extends ConsumerState<LiveBusMap>
   }
 }
 
-class BusTrackerMarker extends StatelessWidget {
-  final BusModel bus;
-  final double rotation;
-  final VoidCallback onTap;
-
-  const BusTrackerMarker({
-    super.key,
-    required this.bus,
-    required this.rotation,
-    required this.onTap,
-  });
+class RadarPulseWidget extends StatefulWidget {
+  const RadarPulseWidget({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final primaryColor = Theme.of(context).primaryColor;
-    return GestureDetector(
-      onTap: onTap,
-      child: Transform.rotate(
-        angle: rotation * math.pi / 180,
-        child: Container(
-          width: 54,
-          height: 54,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: Colors.white,
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.15),
-                blurRadius: 8,
-                spreadRadius: 2,
-              ),
-            ],
-            border: Border.all(
-              color: primaryColor,
-              width: 2,
-            ),
-          ),
-          child: ClipOval(
-            child: Padding(
-              padding: const EdgeInsets.all(4.0),
-              child: Image.asset(
-                'assets/bus_icon.png',
-                fit: BoxFit.contain,
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
+  State<RadarPulseWidget> createState() => _RadarPulseWidgetState();
 }
 
-class AnimatedRouteOverlay extends ConsumerStatefulWidget {
-  final List<Offset> points;
-  final ui.FragmentShader? shader;
-  final Color routeColor;
-  final double trafficDensity;
-  final LatLng? projectedCenter;
-  final double projectedZoom;
-
-  const AnimatedRouteOverlay({
-    super.key,
-    required this.points,
-    required this.shader,
-    required this.routeColor,
-    required this.trafficDensity,
-    required this.projectedCenter,
-    required this.projectedZoom,
-  });
-
-  @override
-  ConsumerState<AnimatedRouteOverlay> createState() => _AnimatedRouteOverlayState();
-}
-
-class _AnimatedRouteOverlayState extends ConsumerState<AnimatedRouteOverlay>
+class _RadarPulseWidgetState extends State<RadarPulseWidget>
     with SingleTickerProviderStateMixin {
   late AnimationController _animationController;
 
@@ -1225,7 +1066,7 @@ class _AnimatedRouteOverlayState extends ConsumerState<AnimatedRouteOverlay>
     super.initState();
     _animationController = AnimationController(
       vsync: this,
-      duration: const Duration(seconds: 4),
+      duration: const Duration(seconds: 2),
     )..repeat();
   }
 
@@ -1237,259 +1078,51 @@ class _AnimatedRouteOverlayState extends ConsumerState<AnimatedRouteOverlay>
 
   @override
   Widget build(BuildContext context) {
-    final navState = ref.watch(mapNavigationProvider);
-    return CustomPaint(
-      size: Size.infinite,
-      painter: RoutePainter(
-        points: widget.points,
-        shader: widget.shader,
-        routeColor: widget.routeColor,
-        trafficDensity: widget.trafficDensity,
-        time: _animationController.value,
-        projectedCenter: widget.projectedCenter,
-        projectedZoom: widget.projectedZoom,
-        currentCenter: navState.centerLocation,
-        currentZoom: navState.zoom,
-      ),
+    return AnimatedBuilder(
+      animation: _animationController,
+      builder: (context, child) {
+        return CustomPaint(
+          painter: _RadarPulsePainter(progress: _animationController.value),
+          size: const Size(120, 120),
+        );
+      },
     );
   }
 }
 
-class RoutePainter extends CustomPainter {
-  final List<Offset> points;
-  final ui.FragmentShader? shader;
-  final Color routeColor;
-  final double trafficDensity;
-  final double time;
-  final LatLng? projectedCenter;
-  final double projectedZoom;
-  final LatLng? currentCenter;
-  final double currentZoom;
+class _RadarPulsePainter extends CustomPainter {
+  final double progress;
 
-  RoutePainter({
-    required this.points,
-    required this.shader,
-    required this.routeColor,
-    required this.trafficDensity,
-    required this.time,
-    required this.projectedCenter,
-    required this.projectedZoom,
-    required this.currentCenter,
-    required this.currentZoom,
-  });
+  _RadarPulsePainter({required this.progress});
 
   @override
   void paint(Canvas canvas, Size size) {
-    if (points.isEmpty || size.width <= 0.0 || size.height <= 0.0) return;
+    final center = Offset(size.width / 2, size.height / 2);
+    final maxRadius = size.width / 2;
 
-    List<Offset> transformedPoints = points;
-    if (projectedCenter != null && currentCenter != null) {
-      transformedPoints = points.map((pt) {
-        return _transformPoint(
-          point: pt,
-          size: size,
-          projectedCenter: projectedCenter!,
-          projectedZoom: projectedZoom,
-          currentCenter: currentCenter!,
-          currentZoom: currentZoom,
-        );
-      }).toList();
-    }
+    for (int i = 0; i < 3; i++) {
+      final ringProgress = (progress + i / 3.0) % 1.0;
+      final radius = maxRadius * ringProgress;
+      final opacity = (1.0 - ringProgress).clamp(0.0, 1.0);
 
-    final path = Path();
-    path.moveTo(transformedPoints.first.dx, transformedPoints.first.dy);
-    for (int i = 1; i < transformedPoints.length; i++) {
-      path.lineTo(transformedPoints[i].dx, transformedPoints[i].dy);
-    }
-
-    if (shader != null) {
-      shader!.setFloat(0, size.width);
-      shader!.setFloat(1, size.height);
-      shader!.setFloat(2, time * 10.0);
-      shader!.setFloat(3, trafficDensity);
-      shader!.setFloat(4, routeColor.r);
-      shader!.setFloat(5, routeColor.g);
-      shader!.setFloat(6, routeColor.b);
-      shader!.setFloat(7, routeColor.a);
-
-      final paint = Paint()
-        ..shader = shader
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 8.0
-        ..strokeCap = StrokeCap.round
-        ..strokeJoin = StrokeJoin.round;
-
-      canvas.drawPath(path, paint);
-    } else {
-      // Fallback glow painter
-      // 1. Outer Blur Glow
+      // Glow fill
       final glowPaint = Paint()
-        ..color = routeColor.withValues(alpha: 0.35)
+        ..color = Colors.red.withValues(alpha: opacity * 0.15)
+        ..style = PaintingStyle.fill;
+      canvas.drawCircle(center, radius, glowPaint);
+
+      // Stroke ring
+      final linePaint = Paint()
+        ..color = Colors.red.withValues(alpha: opacity * 0.8)
         ..style = PaintingStyle.stroke
-        ..strokeWidth = 14.0
-        ..strokeCap = StrokeCap.round
-        ..strokeJoin = StrokeJoin.round
-        ..imageFilter = ui.ImageFilter.blur(sigmaX: 4.0, sigmaY: 4.0);
-
-      canvas.drawPath(path, glowPaint);
-
-      // 2. Solid Core
-      final corePaint = Paint()
-        ..color = routeColor
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 6.0
-        ..strokeCap = StrokeCap.round
-        ..strokeJoin = StrokeJoin.round;
-
-      canvas.drawPath(path, corePaint);
-
-      // 3. Animated progress sweep pulse
-      final sweepPaint = Paint()
-        ..color = Colors.white.withValues(alpha: 0.7)
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 4.0
-        ..strokeCap = StrokeCap.round
-        ..strokeJoin = StrokeJoin.round;
-
-      for (final pathMetric in path.computeMetrics()) {
-        final length = pathMetric.length;
-        if (length == 0) continue;
-        final dashLength = 30.0;
-        final gapLength = 90.0;
-        final totalPeriod = dashLength + gapLength;
-
-        final offset = (time * length * 0.5) % totalPeriod;
-
-        double distance = offset;
-        while (distance < length) {
-          final extract = pathMetric.extractPath(
-            distance,
-            math.min(distance + dashLength, length),
-          );
-          canvas.drawPath(extract, sweepPaint);
-          distance += totalPeriod;
-        }
-      }
+        ..strokeWidth = 2.0;
+      canvas.drawCircle(center, radius, linePaint);
     }
   }
 
   @override
-  bool shouldRepaint(covariant RoutePainter oldDelegate) {
-    return oldDelegate.time != time ||
-        oldDelegate.points != points ||
-        oldDelegate.routeColor != routeColor ||
-        oldDelegate.trafficDensity != trafficDensity ||
-        oldDelegate.projectedCenter != projectedCenter ||
-        oldDelegate.projectedZoom != projectedZoom ||
-        oldDelegate.currentCenter != currentCenter ||
-        oldDelegate.currentZoom != currentZoom;
+  bool shouldRepaint(covariant _RadarPulsePainter oldDelegate) {
+    return oldDelegate.progress != progress;
   }
-}
-
-class DouglasPeucker {
-  static List<LatLng> simplify(List<LatLng> points, double epsilon) {
-    if (points.length < 3 || epsilon <= 0.0) return points;
-
-    double dmax = 0.0;
-    int index = 0;
-    int end = points.length - 1;
-
-    for (int i = 1; i < end; i++) {
-      double d = _perpendicularDistance(points[i], points[0], points[end]);
-      if (d > dmax) {
-        index = i;
-        dmax = d;
-      }
-    }
-
-    if (dmax > epsilon) {
-      final results1 = simplify(points.sublist(0, index + 1), epsilon);
-      final results2 = simplify(points.sublist(index), epsilon);
-      return [...results1.sublist(0, results1.length - 1), ...results2];
-    } else {
-      return [points.first, points.last];
-    }
-  }
-
-  static List<LatLng> simplifyToMaxPoints(List<LatLng> points, int maxPoints) {
-    if (points.length <= maxPoints) return points;
-
-    double epsilon = 0.00002;
-    List<LatLng> simplified = points;
-
-    for (int iter = 0; iter < 8; iter++) {
-      simplified = simplify(points, epsilon);
-      if (simplified.length <= maxPoints) {
-        break;
-      }
-      epsilon *= 2.0;
-    }
-    return simplified;
-  }
-
-  static double _perpendicularDistance(LatLng p, LatLng start, LatLng end) {
-    double dx = end.longitude - start.longitude;
-    double dy = end.latitude - start.latitude;
-
-    double mag = math.sqrt(dx * dx + dy * dy);
-    if (mag > 0.0) {
-      dx /= mag;
-      dy /= mag;
-    }
-
-    final pvalx = p.longitude - start.longitude;
-    final pvaly = p.latitude - start.latitude;
-
-    return (pvalx * dy - pvaly * dx).abs();
-  }
-}
-
-double _lngToMercator(double lng) {
-  return (lng + 180.0) / 360.0;
-}
-
-double _latToMercator(double lat) {
-  final rad = lat * math.pi / 180.0;
-  final sinLat = math.sin(rad);
-  final clampedSin = sinLat.clamp(-0.9999, 0.9999);
-  return 0.5 - math.log((1.0 + clampedSin) / (1.0 - clampedSin)) / (4.0 * math.pi);
-}
-
-Offset _transformPoint({
-  required Offset point,
-  required Size size,
-  required LatLng projectedCenter,
-  required double projectedZoom,
-  required LatLng currentCenter,
-  required double currentZoom,
-}) {
-  final double centerX = size.width / 2.0;
-  final double centerY = size.height / 2.0;
-
-  // 1. Translate relative to screen center
-  final double xOff = point.dx - centerX;
-  final double yOff = point.dy - centerY;
-
-  // 2. Scale by zoom change
-  final double zoomScale = math.pow(2.0, currentZoom - projectedZoom).toDouble();
-  final double xScaled = xOff * zoomScale;
-  final double yScaled = yOff * zoomScale;
-
-  // 3. Translate by Mercator difference
-  final double mxP = _lngToMercator(projectedCenter.longitude);
-  final double myP = _latToMercator(projectedCenter.latitude);
-  final double mxC = _lngToMercator(currentCenter.longitude);
-  final double myC = _latToMercator(currentCenter.latitude);
-
-  // Map size in pixels at current zoom level
-  final double mapSize = 256.0 * math.pow(2.0, currentZoom);
-  final double dx = (mxC - mxP) * mapSize;
-  final double dy = (myC - myP) * mapSize;
-
-  final double xTransformed = xScaled - dx;
-  final double yTransformed = yScaled - dy;
-
-  // 4. Translate back to widget coordinates
-  return Offset(xTransformed + centerX, yTransformed + centerY);
 }
 

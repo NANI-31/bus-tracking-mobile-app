@@ -12,6 +12,12 @@ import LoadingFallback from "@/components/common/LoadingFallback";
 // Layouts
 const CollegeAdminLayout = lazy(() => import("@/layouts/CollegeAdminLayout"));
 const SuperAdminLayout = lazy(() => import("@/layouts/SuperAdminLayout"));
+const CoordinatorLayout = lazy(() => import("@/layouts/CoordinatorLayout"));
+
+// Coordinator Pages
+const CoordinatorDashboard = lazy(() => import("@/features/coordinator/pages/CoordinatorDashboard"));
+const CoordinatorLiveTracking = lazy(() => import("@/features/coordinator/pages/CoordinatorLiveTracking"));
+const CoordinatorRoutes = lazy(() => import("@/features/coordinator/pages/CoordinatorRoutes"));
 
 // College Admin Pages
 const Dashboard = lazy(() => import("@/features/college-admin/pages/Dashboard"));
@@ -33,6 +39,8 @@ const GlobalPayments = lazy(() => import("@/features/super-admin/pages/GlobalPay
 const AdvancedAnalytics = lazy(() => import("@/features/super-admin/pages/AdvancedAnalytics"));
 const GlobalTracking = lazy(() => import("@/features/super-admin/pages/GlobalTracking"));
 const SystemAnalysis = lazy(() => import("@/features/super-admin/pages/SystemAnalysis"));
+const SubscriptionPlans = lazy(() => import("@/features/super-admin/pages/SubscriptionPlans"));
+
 
 // Auth & Other Pages
 const Login = lazy(() => import("@/pages/Login"));
@@ -97,6 +105,16 @@ function App() {
                   <Route path="analytics" element={<AdvancedAnalytics />} />
                   <Route path="tracking" element={<GlobalTracking />} />
                   <Route path="analysis" element={<SystemAnalysis />} />
+                  <Route path="plans" element={<SubscriptionPlans />} />
+                </Route>
+              </Route>
+
+              {/* Coordinator Routes */}
+              <Route element={<PrivateRoute allowedRoles={["busCoordinator"]} />}>
+                <Route path="/coordinator" element={<CoordinatorLayout />}>
+                  <Route index element={<CoordinatorDashboard />} />
+                  <Route path="tracking" element={<CoordinatorLiveTracking />} />
+                  <Route path="routes" element={<CoordinatorRoutes />} />
                 </Route>
               </Route>
             </Routes>

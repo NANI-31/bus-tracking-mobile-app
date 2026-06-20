@@ -11,7 +11,7 @@ class RouteService {
   RouteService(this._routeRepo, this._scheduleRepo, SocketService socket);
 
   // Route Operations
-  Future<void> createRoute(RouteModel route) => _routeRepo.createRoute(route);
+  Future<RouteModel> createRoute(RouteModel route) => _routeRepo.createRoute(route);
 
   Future<void> updateRoute(String routeId, Map<String, dynamic> data) =>
       _routeRepo.updateRoute(routeId, data);

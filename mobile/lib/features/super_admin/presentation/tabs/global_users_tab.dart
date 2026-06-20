@@ -577,6 +577,7 @@ class _GlobalUsersTabState extends ConsumerState<GlobalUsersTab> {
               Theme(
                 data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
                 child: ExpansionTile(
+                  key: const PageStorageKey<String>('user_filter_role_tile'),
                   initiallyExpanded: true,
                   title: Row(
                     children: [
@@ -615,6 +616,7 @@ class _GlobalUsersTabState extends ConsumerState<GlobalUsersTab> {
               Theme(
                 data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
                 child: ExpansionTile(
+                  key: const PageStorageKey<String>('user_filter_college_tile'),
                   initiallyExpanded: true,
                   title: Row(
                     children: [

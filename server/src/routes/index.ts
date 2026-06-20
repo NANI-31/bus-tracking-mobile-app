@@ -12,6 +12,7 @@ import incidentRoutes from "@/routes/features/incident.routes";
 import historyRoutes from "@/routes/transport/history.routes";
 import paymentRoutes from "@/routes/features/payment.routes";
 import planRoutes from "@/routes/features/plan.routes";
+import placesRoutes from "@/routes/core/places.routes";
 
 import collegeAdminRoutes from "@/routes/admin/collegeAdmin.routes";
 import superAdminRoutes from "@/routes/admin/superAdmin.routes";
@@ -23,6 +24,7 @@ const router = Router();
 router.use("/users", userRoutes);
 router.use("/buses", busRoutes);
 router.use("/colleges", collegeRoutes);
+router.use("/places", placesRoutes);
 router.use("/routes", routeRoutes);
 router.use("/schedules", scheduleRoutes);
 router.use("/notifications", notificationRoutes);

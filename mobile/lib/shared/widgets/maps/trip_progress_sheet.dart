@@ -5,6 +5,8 @@ import 'package:collegebus/features/route/domain/route_model.dart';
 import 'package:collegebus/core/services/directions_result.dart';
 import 'package:collegebus/core/services/persistence_service.dart';
 import 'package:collegebus/core/constants/constants.dart';
+import 'package:collegebus/shared/widgets/navigation/curved_bottom_nav_bar.dart';
+
 
 /// Ola/Uber-style trip progress bottom sheet showing route stops,
 /// ETA, distance, and real-time bus progress along the route.
@@ -236,7 +238,7 @@ class TripProgressSheet extends StatelessWidget {
                       : null,
                 );
               } else {
-                return const SizedBox(height: 16);
+                return const BottomNavSpacer();
               }
             },
           ),

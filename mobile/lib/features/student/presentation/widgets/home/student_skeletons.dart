@@ -6,6 +6,10 @@ class StudentHomeSkeleton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardColor = Theme.of(context).colorScheme.surface.withValues(alpha: isDark ? 0.35 : 0.65);
+    final borderColor = Theme.of(context).colorScheme.onSurface.withValues(alpha: isDark ? 0.08 : 0.12);
+
     return Shimmer(
       child: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -40,10 +44,10 @@ class StudentHomeSkeleton extends StatelessWidget {
               width: double.infinity,
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.surface,
+                color: cardColor,
                 borderRadius: BorderRadius.circular(24),
                 border: Border.all(
-                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.08),
+                  color: borderColor,
                 ),
               ),
               child: Column(
@@ -96,10 +100,10 @@ class StudentHomeSkeleton extends StatelessWidget {
               width: double.infinity,
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.surface,
+                color: cardColor,
                 borderRadius: BorderRadius.circular(24),
                 border: Border.all(
-                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.08),
+                  color: borderColor,
                 ),
               ),
               child: Column(
@@ -169,6 +173,10 @@ class StudentBusStopSkeleton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardColor = Theme.of(context).colorScheme.surface.withValues(alpha: isDark ? 0.35 : 0.65);
+    final borderColor = Theme.of(context).colorScheme.onSurface.withValues(alpha: isDark ? 0.08 : 0.12);
+
     return Shimmer(
       child: ListView.builder(
         padding: const EdgeInsets.all(20),
@@ -190,10 +198,10 @@ class StudentBusStopSkeleton extends StatelessWidget {
             margin: const EdgeInsets.only(bottom: 16),
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.surface,
+              color: cardColor,
               borderRadius: BorderRadius.circular(16),
               border: Border.all(
-                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.08),
+                color: borderColor,
               ),
             ),
             child: Row(
@@ -225,6 +233,10 @@ class BusScheduleSkeleton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardColor = Theme.of(context).colorScheme.surface.withValues(alpha: isDark ? 0.35 : 0.65);
+    final borderColor = Theme.of(context).colorScheme.onSurface.withValues(alpha: isDark ? 0.08 : 0.12);
+
     return Shimmer(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -254,10 +266,10 @@ class BusScheduleSkeleton extends StatelessWidget {
                     margin: const EdgeInsets.only(bottom: 16),
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.surface,
+                      color: cardColor,
                       borderRadius: BorderRadius.circular(16),
                       border: Border.all(
-                        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.08),
+                        color: borderColor,
                       ),
                     ),
                     child: Row(

@@ -1,6 +1,7 @@
 import 'dart:math' show pi;
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
+import 'package:collegebus/core/utils/shader_precompiler.dart';
 
 class LiquidGlassCard extends StatefulWidget {
   final Widget child;
@@ -45,15 +46,15 @@ class _LiquidGlassCardState extends State<LiquidGlassCard>
 
   Future<void> _loadShaders() async {
     try {
-      final glass = await ui.FragmentProgram.fromAsset(
-        'shaders/liquid_glass.frag',
-      );
-      final shimmer = await ui.FragmentProgram.fromAsset(
-        'shaders/shimmer.frag',
-      );
-      final refraction = await ui.FragmentProgram.fromAsset(
-        'shaders/refraction.frag',
-      );
+      final glass = ShaderPrecompiler.hasProgram('shaders/liquid_glass.frag')
+          ? ShaderPrecompiler.getProgram('shaders/liquid_glass.frag')!
+          : await ui.FragmentProgram.fromAsset('shaders/liquid_glass.frag');
+      final shimmer = ShaderPrecompiler.hasProgram('shaders/shimmer.frag')
+          ? ShaderPrecompiler.getProgram('shaders/shimmer.frag')!
+          : await ui.FragmentProgram.fromAsset('shaders/shimmer.frag');
+      final refraction = ShaderPrecompiler.hasProgram('shaders/refraction.frag')
+          ? ShaderPrecompiler.getProgram('shaders/refraction.frag')!
+          : await ui.FragmentProgram.fromAsset('shaders/refraction.frag');
 
       if (mounted) {
         setState(() {

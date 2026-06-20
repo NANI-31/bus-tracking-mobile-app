@@ -7,6 +7,7 @@ import {
   ArrowPathIcon,
   ChartBarIcon,
   CloudIcon,
+  MapIcon,
 } from "@heroicons/react/24/outline";
 import {
   PieChart,
@@ -67,7 +68,27 @@ const StorageAnalysis = () => {
 
   if (!storageStats) return null;
 
-  const { mongodb, redis, history } = storageStats;
+  const { mongodb, redis, history, googleApi } = storageStats;
+
+  const googleApiData = googleApi || {
+    total: 0,
+    directions: 0,
+    autocomplete: 0,
+    placeDetails: 0,
+    geocoding: 0,
+  };
+
+  const googleChartData = [
+    { name: "Directions", value: googleApiData.directions || 0, color: "#1E90FF" },
+    { name: "Autocomplete", value: googleApiData.autocomplete || 0, color: "#22c55e" },
+    { name: "Place Details", value: googleApiData.placeDetails || 0, color: "#eab308" },
+    { name: "Geocoding", value: googleApiData.geocoding || 0, color: "#ec4899" },
+  ];
+
+  const hasGoogleData = googleChartData.some(d => d.value > 0);
+  const displayGoogleChartData = hasGoogleData 
+    ? googleChartData 
+    : [{ name: "No Usage", value: 1, color: "var(--border-color)" }];
 
   // MongoDB Data for Donut Chart
   const mongoChartData = [
@@ -267,6 +288,70 @@ const StorageAnalysis = () => {
               <div className="mt-4 p-3 bg-background-default border border-border-theme italic text-[11px] text-text-theme-secondary rounded-lg">
                 Managed storage for all broadcast and directed voice messages
                 across the platform.
+              </div>
+            </div>
+          </div>
+        </motion.div>
+
+        {/* Google Maps API Analysis */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+          className="bg-background-paper rounded-xl shadow-sm border border-border-theme overflow-hidden flex flex-col text-text-theme-primary transition-all duration-300"
+        >
+          <div className="bg-[#4285F4] p-4 flex justify-between items-center text-white shrink-0">
+            <div className="flex items-center space-x-2">
+              <MapIcon className="w-5 h-5" />
+              <h2 className="font-bold">Google Maps API Usage</h2>
+            </div>
+            <button
+              onClick={refreshStats}
+              className="p-1 hover:bg-white/20 rounded-full transition-colors cursor-pointer"
+              title="Refresh"
+            >
+              <ArrowPathIcon
+                className={`w-4 h-4 ${loading ? "animate-spin" : ""}`}
+              />
+            </button>
+          </div>
+
+          <div className="p-5 flex-1 grid grid-cols-1 xl:grid-cols-2 gap-6 items-center">
+            <div className="h-[200px] w-full relative">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={displayGoogleChartData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={60}
+                    outerRadius={80}
+                    paddingAngle={5}
+                    dataKey="value"
+                    stroke="var(--background-paper)"
+                    strokeWidth={2}
+                  >
+                    {displayGoogleChartData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <RechartsTooltip content={<GlassmorphicTooltip formatter={(value) => hasGoogleData ? `${value} calls` : "0 calls"} />} />
+                </PieChart>
+              </ResponsiveContainer>
+              {!hasGoogleData && (
+                <div className="absolute inset-0 flex items-center justify-center text-xs text-text-theme-secondary">
+                  No API calls logged
+                </div>
+              )}
+            </div>
+            <div className="space-y-1">
+              <MetricRow label="Directions API" value={googleApiData.directions || 0} />
+              <MetricRow label="Autocomplete API" value={googleApiData.autocomplete || 0} />
+              <MetricRow label="Place Details API" value={googleApiData.placeDetails || 0} />
+              <MetricRow label="Geocoding API" value={googleApiData.geocoding || 0} />
+              <div className="pt-2 border-t border-border-theme/40 mt-2 flex justify-between font-bold text-sm">
+                <span>Total Calls</span>
+                <span>{googleApiData.total || 0}</span>
               </div>
             </div>
           </div>

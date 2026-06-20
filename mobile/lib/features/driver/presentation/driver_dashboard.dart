@@ -53,7 +53,6 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
   bool _hasInitialized = false; // Prevent auto-resume during first build
 
   DateTime? _lastDeviationAlertTime;
-  Timer? _bannerDelayTimer;
   BitmapDescriptor? _busIcon;
   BitmapDescriptor? _startStopIcon;
   BitmapDescriptor? _intermediateStopIcon;
@@ -146,7 +145,6 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
-    _bannerDelayTimer?.cancel();
     super.dispose();
   }
 
@@ -157,11 +155,6 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
         '[DriverDashboard] App resumed. Ensuring socket connection...',
       );
       ref.read(socketServiceProvider).ensureConnected();
-    } else if (state == AppLifecycleState.paused ||
-        state == AppLifecycleState.inactive) {
-      // Cancel any pending banner timer when going to background
-      _bannerDelayTimer?.cancel();
-      ref.read(driverUiStateProvider.notifier).setShowDisconnectedBanner(false);
     }
   }
 
@@ -484,89 +477,7 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
     }
   }
 
-  Widget _buildConnectivityBanner() {
-    return Consumer(
-      builder: (context, ref, child) {
-        final socketService = ref.watch(socketServiceProvider);
-        final isConnected = socketService.isConnected;
-        final isConnecting = socketService.isConnecting;
-        final showDisconnectedBanner = ref.watch(driverUiStateProvider.select((s) => s.showDisconnectedBanner));
-
-        // If connected, hide banner and cancel any pending timer
-        if (isConnected && !isConnecting) {
-          _bannerDelayTimer?.cancel();
-          if (showDisconnectedBanner) {
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              ref.read(driverUiStateProvider.notifier).setShowDisconnectedBanner(false);
-            });
-          }
-          return const SizedBox.shrink();
-        }
-
-        // If just came back from background or briefly disconnected,
-        // add a 3-second grace period before showing the banner
-        if (!showDisconnectedBanner && !isConnecting) {
-          _bannerDelayTimer?.cancel();
-          _bannerDelayTimer = Timer(const Duration(seconds: 3), () {
-            if (mounted && !socketService.isConnected) {
-              ref.read(driverUiStateProvider.notifier).setShowDisconnectedBanner(true);
-            }
-          });
-          return const SizedBox.shrink();
-        }
-
-        // Show "Connecting..." immediately but "Disconnected" after grace period
-        if (!isConnecting && !showDisconnectedBanner) {
-          return const SizedBox.shrink();
-        }
-
-        return Positioned(
-          top: MediaQuery.of(context).padding.top + 12,
-          left: 20,
-          right: 20,
-          child: TweenAnimationBuilder<double>(
-            tween: Tween(begin: 0.0, end: 1.0),
-            duration: const Duration(milliseconds: 500),
-            curve: Curves.easeOutBack,
-            builder: (context, value, child) {
-              return Opacity(
-                opacity: value.clamp(0.0, 1.0),
-                child: Transform.translate(
-                  offset: Offset(0, (1 - value) * -20),
-                  child: child,
-                ),
-              );
-            },
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-              decoration: BoxDecoration(
-                color: isConnecting ? Colors.amber : Colors.red,
-                borderRadius: BorderRadius.circular(30),
-                boxShadow: [
-                  BoxShadow(
-                    color: (isConnecting ? Colors.amber : Colors.red)
-                        .withValues(alpha: 0.3),
-                    blurRadius: 10,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-              ),
-              child: Text(
-                isConnecting ? "Connecting..." : "Server Disconnected",
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: isConnecting ? Colors.black87 : Colors.white,
-                  fontWeight: FontWeight.w900,
-                  fontSize: 14,
-                  letterSpacing: 0.8,
-                ),
-              ),
-            ),
-          ),
-        );
-      },
-    );
-  }
+  // Global Connectivity Banner is now handled globally in MaterialApp.router builder
 
 
   @override
@@ -802,7 +713,7 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
                 ),
               ],
             ),
-            SafeArea(child: _buildConnectivityBanner()),
+            const SizedBox.shrink(),
           ],
         ),
       );
@@ -810,6 +721,7 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      resizeToAvoidBottomInset: false,
       body: Stack(
         children: [
           // Main Content — always inside RepaintBoundary so the nav bar's
@@ -831,8 +743,7 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
             ),
           ),
 
-          // Connectivity Banner
-          SafeArea(child: _buildConnectivityBanner()),
+          const SizedBox.shrink(),
 
           // Floating bottom navigation bar placed directly in Stack overlay
           Align(
@@ -843,6 +754,11 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
                 ref.read(driverUiStateProvider.notifier).setBottomNavIndex(index);
               },
               activeColor: _getDriverActiveColor(context),
+              activeColors: [
+                AppColors.turkishBlue,
+                AppColors.success,
+                Colors.purple.shade400,
+              ],
               backgroundColor: Theme.of(context).cardColor,
               backgroundKey: _backgroundKey,
               items: [
@@ -1164,6 +1080,14 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
                   for (int i = 0; i < route.stopPoints.length; i++) {
                     final stop = route.stopPoints[i];
                     if (stop.lat == 0 && stop.lng == 0) continue;
+
+                    // Filter out intermediate stops that are at the exact same location as start or end points
+                    final isAtStart = (stop.lat - route.startPoint.lat).abs() < 0.00001 &&
+                        (stop.lng - route.startPoint.lng).abs() < 0.00001;
+                    final isAtEnd = (stop.lat - route.endPoint.lat).abs() < 0.00001 &&
+                        (stop.lng - route.endPoint.lng).abs() < 0.00001;
+                    if (isAtStart || isAtEnd) continue;
+
                     stopMarkers.add(Marker(
                       markerId: MarkerId('dstop_$i'),
                       position: LatLng(stop.lat, stop.lng),
@@ -1515,13 +1439,13 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
     final bottomNavIndex = ref.read(driverUiStateProvider).bottomNavIndex;
     switch (bottomNavIndex) {
       case 0:
-        return Theme.of(context).primaryColor;
+        return AppColors.turkishBlue;
       case 1:
         return AppColors.success;
       case 2:
         return Colors.purple.shade400;
       default:
-        return Theme.of(context).primaryColor;
+        return AppColors.turkishBlue;
     }
   }
 }

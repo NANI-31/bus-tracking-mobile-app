@@ -33,13 +33,13 @@ class ProfileSectionCard extends StatelessWidget {
           boxShadow: [
             BoxShadow(
               color: isDark
-                  ? Colors.black.withValues(alpha: 0.25)
+                  ? Colors.black.withValues(alpha: 0.45)
                   : Colors.black.withValues(alpha: 0.04),
               blurRadius: 24,
               offset: const Offset(0, 10),
             ),
             BoxShadow(
-              color: colorScheme.primary.withValues(alpha: isDark ? 0.08 : 0.04),
+              color: colorScheme.primary.withValues(alpha: isDark ? 0.12 : 0.04),
               blurRadius: 20,
               spreadRadius: -4,
               offset: const Offset(0, 12),
@@ -53,11 +53,13 @@ class ProfileSectionCard extends StatelessWidget {
             child: Container(
               decoration: BoxDecoration(
                 color: isDark
-                    ? colorScheme.surface.withValues(alpha: 0.45)
+                    ? const Color(0xFF1E293B).withValues(alpha: 0.85)
                     : colorScheme.surface,
                 borderRadius: BorderRadius.circular(24),
                 border: Border.all(
-                  color: colorScheme.primary.withValues(alpha: isDark ? 0.2 : 0.1),
+                  color: isDark
+                      ? const Color(0xFF334155).withValues(alpha: 0.5)
+                      : colorScheme.primary.withValues(alpha: 0.1),
                   width: 1.0,
                 ),
               ),
