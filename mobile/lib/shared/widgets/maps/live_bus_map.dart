@@ -341,6 +341,13 @@ class LiveBusMapState extends ConsumerState<LiveBusMap>
     final collegeId = user?.collegeId;
     if (collegeId == null) return;
 
+    final isAuthorizedForSos = user != null &&
+        (user.role == UserRole.busCoordinator ||
+         user.role == UserRole.collegeAdmin ||
+         user.role == UserRole.superAdmin);
+
+    if (!isAuthorizedForSos) return;
+
     final activeSosList = ref.read(activeSosProvider(collegeId)).value ?? [];
 
     final Map<String, Offset> newPositions = {};
@@ -499,7 +506,14 @@ class LiveBusMapState extends ConsumerState<LiveBusMap>
       }
     }
 
-    final activeSosList = collegeId != null ? (ref.read(activeSosProvider(collegeId)).value ?? []) : <SosModel>[];
+    final isAuthorizedForSos = user != null &&
+        (user.role == UserRole.busCoordinator ||
+         user.role == UserRole.collegeAdmin ||
+         user.role == UserRole.superAdmin);
+
+    final activeSosList = (collegeId != null && isAuthorizedForSos)
+        ? (ref.read(activeSosProvider(collegeId)).value ?? [])
+        : <SosModel>[];
 
     // Seed locations for active SOS alerts if not present
     for (final sos in activeSosList) {
@@ -918,13 +932,20 @@ class LiveBusMapState extends ConsumerState<LiveBusMap>
     }
 
     if (collegeId != null) {
-      ref.watch(activeSosProvider(collegeId)).whenData((alerts) {
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (mounted) {
-            _updateSosOverlayPositions();
-          }
+      final isAuthorizedForSos = user != null &&
+          (user.role == UserRole.busCoordinator ||
+           user.role == UserRole.collegeAdmin ||
+           user.role == UserRole.superAdmin);
+
+      if (isAuthorizedForSos) {
+        ref.watch(activeSosProvider(collegeId)).whenData((alerts) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) {
+              _updateSosOverlayPositions();
+            }
+          });
         });
-      });
+      }
     }
 
     ref.listen<bool>(

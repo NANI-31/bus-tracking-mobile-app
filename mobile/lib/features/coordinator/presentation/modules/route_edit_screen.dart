@@ -349,7 +349,11 @@ class _RouteEditScreenState extends ConsumerState<RouteEditScreen>
             )
           else
             IconButton(
-              icon: const Icon(Icons.check_rounded, color: Colors.white, size: 28),
+              icon: const Icon(
+                Icons.check_rounded,
+                color: Colors.white,
+                size: 28,
+              ),
               tooltip: l10n.save,
               onPressed: _saveRoute,
             ),
@@ -1253,12 +1257,9 @@ class _LiveTimelinePreview extends StatelessWidget {
         if (!isLast)
           Positioned(
             left: 11, // Centered inside the 24px zone (24/2 - 1 = 11)
-            top: 14,  // Starts after the icon container (height 14)
+            top: 14, // Starts after the icon container (height 14)
             bottom: 0,
-            child: Container(
-              width: 2.5,
-              color: color.withValues(alpha: 0.4),
-            ),
+            child: Container(width: 2.5, color: color.withValues(alpha: 0.4)),
           ),
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -1276,10 +1277,7 @@ class _LiveTimelinePreview extends StatelessWidget {
                       : (isEnd ? Colors.transparent : Colors.transparent),
                   shape: isEnd ? BoxShape.rectangle : BoxShape.circle,
                   borderRadius: isEnd ? BorderRadius.circular(4) : null,
-                  border: Border.all(
-                    color: color,
-                    width: isStart ? 0.0 : 3.0,
-                  ),
+                  border: Border.all(color: color, width: isStart ? 0.0 : 3.0),
                 ),
                 child: isEnd
                     ? Center(
@@ -1582,7 +1580,7 @@ class _VectorMapPainter extends CustomPainter {
       } else if (isEnd) {
         labelText = endName.isNotEmpty ? endName : "End";
       } else {
-        labelText = stops[i - 1].isNotEmpty ? stops[i - 1] : "S${i}";
+        labelText = stops[i - 1].isNotEmpty ? stops[i - 1] : "S$i";
       }
 
       if (labelText.length > 10) {

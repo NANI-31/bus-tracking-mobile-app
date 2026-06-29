@@ -1,5 +1,4 @@
 import 'dart:math' as math;
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/rendering.dart';
@@ -89,7 +88,9 @@ class _ScheduleManagementScreenState
                             Container(
                               padding: const EdgeInsets.all(8),
                               decoration: BoxDecoration(
-                                color: AppColors.primary.withValues(alpha: 0.12),
+                                color: AppColors.primary.withValues(
+                                  alpha: 0.12,
+                                ),
                                 shape: BoxShape.circle,
                               ),
                               child: const Icon(
@@ -105,7 +106,9 @@ class _ScheduleManagementScreenState
                                 style: TextStyle(
                                   fontSize: 18,
                                   fontWeight: FontWeight.bold,
-                                  color: isDark ? Colors.white : const Color(0xFF111418),
+                                  color: isDark
+                                      ? Colors.white
+                                      : const Color(0xFF111418),
                                 ),
                               ),
                             ),
@@ -115,22 +118,35 @@ class _ScheduleManagementScreenState
                         DropdownButtonFormField<RouteModel>(
                           initialValue: selectedRoute,
                           isExpanded: true,
-                          dropdownColor: isDark ? const Color(0xFF1E2732) : Colors.white,
+                          dropdownColor: isDark
+                              ? const Color(0xFF1E2732)
+                              : Colors.white,
                           style: TextStyle(
-                            color: isDark ? Colors.white : const Color(0xFF111418),
+                            color: isDark
+                                ? Colors.white
+                                : const Color(0xFF111418),
                           ),
                           decoration: InputDecoration(
                             labelText: 'Select Route',
                             labelStyle: TextStyle(
-                              color: isDark ? Colors.white60 : Colors.grey.shade600,
+                              color: isDark
+                                  ? Colors.white60
+                                  : Colors.grey.shade600,
                             ),
                             filled: true,
-                            fillColor: isDark ? Colors.white.withValues(alpha: 0.04) : Colors.grey.shade50,
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                            fillColor: isDark
+                                ? Colors.white.withValues(alpha: 0.04)
+                                : Colors.grey.shade50,
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 16,
+                            ),
                             enabledBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(14),
                               borderSide: BorderSide(
-                                color: isDark ? Colors.white.withValues(alpha: 0.08) : Colors.grey.shade200,
+                                color: isDark
+                                    ? Colors.white.withValues(alpha: 0.08)
+                                    : Colors.grey.shade200,
                               ),
                             ),
                             focusedBorder: OutlineInputBorder(
@@ -141,7 +157,11 @@ class _ScheduleManagementScreenState
                               ),
                             ),
                           ),
-                          icon: const Icon(Icons.arrow_drop_down_rounded, color: AppColors.primary, size: 28),
+                          icon: const Icon(
+                            Icons.arrow_drop_down_rounded,
+                            color: AppColors.primary,
+                            size: 28,
+                          ),
                           items: routes
                               .map(
                                 (route) => DropdownMenuItem(
@@ -163,22 +183,35 @@ class _ScheduleManagementScreenState
                         DropdownButtonFormField<BusModel>(
                           initialValue: selectedBus,
                           isExpanded: true,
-                          dropdownColor: isDark ? const Color(0xFF1E2732) : Colors.white,
+                          dropdownColor: isDark
+                              ? const Color(0xFF1E2732)
+                              : Colors.white,
                           style: TextStyle(
-                            color: isDark ? Colors.white : const Color(0xFF111418),
+                            color: isDark
+                                ? Colors.white
+                                : const Color(0xFF111418),
                           ),
                           decoration: InputDecoration(
                             labelText: 'Select Bus',
                             labelStyle: TextStyle(
-                              color: isDark ? Colors.white60 : Colors.grey.shade600,
+                              color: isDark
+                                  ? Colors.white60
+                                  : Colors.grey.shade600,
                             ),
                             filled: true,
-                            fillColor: isDark ? Colors.white.withValues(alpha: 0.04) : Colors.grey.shade50,
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                            fillColor: isDark
+                                ? Colors.white.withValues(alpha: 0.04)
+                                : Colors.grey.shade50,
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 16,
+                            ),
                             enabledBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(14),
                               borderSide: BorderSide(
-                                color: isDark ? Colors.white.withValues(alpha: 0.08) : Colors.grey.shade200,
+                                color: isDark
+                                    ? Colors.white.withValues(alpha: 0.08)
+                                    : Colors.grey.shade200,
                               ),
                             ),
                             focusedBorder: OutlineInputBorder(
@@ -189,7 +222,11 @@ class _ScheduleManagementScreenState
                               ),
                             ),
                           ),
-                          icon: const Icon(Icons.arrow_drop_down_rounded, color: AppColors.primary, size: 28),
+                          icon: const Icon(
+                            Icons.arrow_drop_down_rounded,
+                            color: AppColors.primary,
+                            size: 28,
+                          ),
                           items: buses
                               .map(
                                 (bus) => DropdownMenuItem(
@@ -207,22 +244,35 @@ class _ScheduleManagementScreenState
                         DropdownButtonFormField<String>(
                           initialValue: selectedTripType,
                           isExpanded: true,
-                          dropdownColor: isDark ? const Color(0xFF1E2732) : Colors.white,
+                          dropdownColor: isDark
+                              ? const Color(0xFF1E2732)
+                              : Colors.white,
                           style: TextStyle(
-                            color: isDark ? Colors.white : const Color(0xFF111418),
+                            color: isDark
+                                ? Colors.white
+                                : const Color(0xFF111418),
                           ),
                           decoration: InputDecoration(
                             labelText: 'Trip Type',
                             labelStyle: TextStyle(
-                              color: isDark ? Colors.white60 : Colors.grey.shade600,
+                              color: isDark
+                                  ? Colors.white60
+                                  : Colors.grey.shade600,
                             ),
                             filled: true,
-                            fillColor: isDark ? Colors.white.withValues(alpha: 0.04) : Colors.grey.shade50,
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                            fillColor: isDark
+                                ? Colors.white.withValues(alpha: 0.04)
+                                : Colors.grey.shade50,
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 16,
+                            ),
                             enabledBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(14),
                               borderSide: BorderSide(
-                                color: isDark ? Colors.white.withValues(alpha: 0.08) : Colors.grey.shade200,
+                                color: isDark
+                                    ? Colors.white.withValues(alpha: 0.08)
+                                    : Colors.grey.shade200,
                               ),
                             ),
                             focusedBorder: OutlineInputBorder(
@@ -233,7 +283,11 @@ class _ScheduleManagementScreenState
                               ),
                             ),
                           ),
-                          icon: const Icon(Icons.arrow_drop_down_rounded, color: AppColors.primary, size: 28),
+                          icon: const Icon(
+                            Icons.arrow_drop_down_rounded,
+                            color: AppColors.primary,
+                            size: 28,
+                          ),
                           items: const [
                             DropdownMenuItem(
                               value: 'pickup',
@@ -258,7 +312,9 @@ class _ScheduleManagementScreenState
                               color: AppColors.primary.withValues(alpha: 0.08),
                               borderRadius: BorderRadius.circular(14),
                               border: Border.all(
-                                color: AppColors.primary.withValues(alpha: 0.15),
+                                color: AppColors.primary.withValues(
+                                  alpha: 0.15,
+                                ),
                                 width: 1.0,
                               ),
                             ),
@@ -278,7 +334,9 @@ class _ScheduleManagementScreenState
                                       style: TextStyle(
                                         fontSize: 15,
                                         fontWeight: FontWeight.bold,
-                                        color: isDark ? Colors.white : const Color(0xFF111418),
+                                        color: isDark
+                                            ? Colors.white
+                                            : const Color(0xFF111418),
                                       ),
                                     ),
                                   ],
@@ -289,7 +347,9 @@ class _ScheduleManagementScreenState
                                   style: TextStyle(
                                     fontSize: 14,
                                     fontWeight: FontWeight.w500,
-                                    color: isDark ? Colors.white.withValues(alpha: 0.8) : Colors.grey.shade800,
+                                    color: isDark
+                                        ? Colors.white.withValues(alpha: 0.8)
+                                        : Colors.grey.shade800,
                                   ),
                                 ),
                                 if (selectedRoute!.stopPoints.isNotEmpty) ...[
@@ -298,7 +358,9 @@ class _ScheduleManagementScreenState
                                     'Stops: ${selectedRoute!.stopPoints.map((s) => s.name).join(' → ')}',
                                     style: TextStyle(
                                       fontSize: 12,
-                                      color: isDark ? Colors.white60 : Colors.grey.shade600,
+                                      color: isDark
+                                          ? Colors.white60
+                                          : Colors.grey.shade600,
                                     ),
                                     maxLines: 2,
                                     overflow: TextOverflow.ellipsis,
@@ -316,8 +378,13 @@ class _ScheduleManagementScreenState
                             TextButton(
                               onPressed: () => Navigator.of(context).pop(),
                               style: TextButton.styleFrom(
-                                foregroundColor: isDark ? Colors.white70 : Colors.grey.shade700,
-                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                foregroundColor: isDark
+                                    ? Colors.white70
+                                    : Colors.grey.shade700,
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 12,
+                                ),
                               ),
                               child: const Text('Cancel'),
                             ),
@@ -327,7 +394,10 @@ class _ScheduleManagementScreenState
                                 backgroundColor: AppColors.primary,
                                 foregroundColor: Colors.white,
                                 elevation: 0,
-                                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 20,
+                                  vertical: 14,
+                                ),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(12),
                                 ),
@@ -388,16 +458,17 @@ class _ScheduleManagementScreenState
                                         SuccessModal.show(
                                           context: context,
                                           title: 'Timetable Created',
-                                          message: '$shift shift timetable created successfully',
+                                          message:
+                                              '$shift shift timetable created successfully',
                                           primaryActionText: 'OK',
                                         );
                                       } catch (e) {
                                         ApiErrorModal.show(
                                           context: context,
                                           error: e.toString().replaceAll(
-                                                'Exception: ',
-                                                '',
-                                              ),
+                                            'Exception: ',
+                                            '',
+                                          ),
                                         );
                                       }
                                     }
@@ -527,10 +598,16 @@ class _ScheduleManagementScreenState
                     decoration: InputDecoration(
                       hintText: 'Search by bus number or route...',
                       hintStyle: TextStyle(color: Colors.grey.shade500),
-                      prefixIcon: const Icon(Icons.search_rounded, color: AppColors.primary),
+                      prefixIcon: const Icon(
+                        Icons.search_rounded,
+                        color: AppColors.primary,
+                      ),
                       suffixIcon: _searchController.text.isNotEmpty
                           ? IconButton(
-                              icon: const Icon(Icons.clear_rounded, color: Colors.grey),
+                              icon: const Icon(
+                                Icons.clear_rounded,
+                                color: Colors.grey,
+                              ),
                               onPressed: () {
                                 _searchController.clear();
                                 setState(() {
@@ -564,7 +641,9 @@ class _ScheduleManagementScreenState
                 ),
               ),
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: AppSizes.paddingMedium),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSizes.paddingMedium,
+                ),
                 child: Row(
                   children: [
                     _buildFilterChip(
@@ -595,7 +674,7 @@ class _ScheduleManagementScreenState
                   data: (schedules) {
                     final routes = routesAsync.valueOrNull ?? [];
                     final buses = busesAsync.valueOrNull ?? [];
-  
+
                     if (hasMultipleShifts) {
                       return TabBarView(
                         children: college.shifts.map((shift) {
@@ -669,7 +748,7 @@ class _ScheduleManagementScreenState
   }) {
     final isSelected = _selectedTripFilter == value;
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    
+
     return Expanded(
       child: InkWell(
         onTap: () {
@@ -689,7 +768,9 @@ class _ScheduleManagementScreenState
             border: Border.all(
               color: isSelected
                   ? AppColors.primary
-                  : (isDark ? Colors.white.withValues(alpha: 0.08) : const Color(0x14000000)),
+                  : (isDark
+                        ? Colors.white.withValues(alpha: 0.08)
+                        : const Color(0x14000000)),
               width: 1.2,
             ),
             boxShadow: isSelected
@@ -737,7 +818,8 @@ class _ScheduleManagementScreenState
   ) {
     // Apply filters
     final filteredSchedules = schedules.where((schedule) {
-      if (_selectedTripFilter != 'all' && schedule.tripType != _selectedTripFilter) {
+      if (_selectedTripFilter != 'all' &&
+          schedule.tripType != _selectedTripFilter) {
         return false;
       }
 
@@ -821,14 +903,17 @@ class _ScheduleManagementScreenState
               collegeId: '',
               createdAt: DateTime.now(),
             ),
-          );          final isDark = Theme.of(context).brightness == Brightness.dark;
+          );
+          final isDark = Theme.of(context).brightness == Brightness.dark;
           return Container(
             margin: const EdgeInsets.only(bottom: AppSizes.paddingMedium),
             decoration: BoxDecoration(
               color: isDark ? const Color(0xFF1E2732) : Colors.white,
               borderRadius: BorderRadius.circular(20),
               border: Border.all(
-                color: isDark ? Colors.white.withValues(alpha: 0.08) : const Color(0x14000000),
+                color: isDark
+                    ? Colors.white.withValues(alpha: 0.08)
+                    : const Color(0x14000000),
                 width: 1.2,
               ),
               boxShadow: [
@@ -865,7 +950,9 @@ class _ScheduleManagementScreenState
                           ),
                           child: Center(
                             child: Icon(
-                              shift == '1st' ? Icons.wb_sunny_rounded : Icons.nights_stay_rounded,
+                              shift == '1st'
+                                  ? Icons.wb_sunny_rounded
+                                  : Icons.nights_stay_rounded,
                               color: AppColors.primary,
                               size: 24,
                             ),
@@ -878,38 +965,60 @@ class _ScheduleManagementScreenState
                             children: [
                               Row(
                                 children: [
-                                  'Bus ${bus.busNumber}'.text
-                                      .bold
+                                  'Bus ${bus.busNumber}'.text.bold
                                       .size(16)
-                                      .color(isDark ? Colors.white : const Color(0xFF111418))
+                                      .color(
+                                        isDark
+                                            ? Colors.white
+                                            : const Color(0xFF111418),
+                                      )
                                       .make(),
                                   8.widthBox,
                                   Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                      vertical: 3,
+                                    ),
                                     decoration: BoxDecoration(
-                                      color: (schedule.tripType == 'pickup' ? const Color(0xFF10B981) : const Color(0xFF3B82F6)).withValues(alpha: 0.12),
+                                      color:
+                                          (schedule.tripType == 'pickup'
+                                                  ? const Color(0xFF10B981)
+                                                  : const Color(0xFF3B82F6))
+                                              .withValues(alpha: 0.12),
                                       borderRadius: BorderRadius.circular(20),
                                     ),
-                                    child: (schedule.tripType == 'pickup' ? 'Pickup' : 'Drop')
-                                        .text
-                                        .size(10)
-                                        .bold
-                                        .color(schedule.tripType == 'pickup' ? const Color(0xFF10B981) : const Color(0xFF3B82F6))
-                                        .make(),
+                                    child:
+                                        (schedule.tripType == 'pickup'
+                                                ? 'Pickup'
+                                                : 'Drop')
+                                            .text
+                                            .size(10)
+                                            .bold
+                                            .color(
+                                              schedule.tripType == 'pickup'
+                                                  ? const Color(0xFF10B981)
+                                                  : const Color(0xFF3B82F6),
+                                            )
+                                            .make(),
                                   ),
                                 ],
                               ),
                               4.heightBox,
-                              'Route: ${route.routeName}'
-                                  .text
+                              'Route: ${route.routeName}'.text
                                   .size(13)
-                                  .color(isDark ? Colors.white60 : Colors.grey.shade600)
+                                  .color(
+                                    isDark
+                                        ? Colors.white60
+                                        : Colors.grey.shade600,
+                                  )
                                   .make(),
                             ],
                           ),
                         ),
                         Icon(
-                          isExpanded ? Icons.keyboard_arrow_up_rounded : Icons.keyboard_arrow_down_rounded,
+                          isExpanded
+                              ? Icons.keyboard_arrow_up_rounded
+                              : Icons.keyboard_arrow_down_rounded,
                           color: isDark ? Colors.white60 : Colors.grey.shade600,
                           size: 26,
                         ),
@@ -919,28 +1028,34 @@ class _ScheduleManagementScreenState
                 ),
                 AnimatedSwitcher(
                   duration: const Duration(milliseconds: 250),
-                  transitionBuilder: (Widget child, Animation<double> animation) {
-                    return AnimatedBuilder(
-                      animation: animation,
-                      builder: (context, _) {
-                        return SizeTransition(
-                          sizeFactor: animation,
-                          axisAlignment: -1.0,
-                          child: ExcludeSemantics(
-                            excluding: !animation.isCompleted && !animation.isDismissed,
-                            child: child,
-                          ),
+                  transitionBuilder:
+                      (Widget child, Animation<double> animation) {
+                        return AnimatedBuilder(
+                          animation: animation,
+                          builder: (context, _) {
+                            return SizeTransition(
+                              sizeFactor: animation,
+                              axisAlignment: -1.0,
+                              child: ExcludeSemantics(
+                                excluding:
+                                    !animation.isCompleted &&
+                                    !animation.isDismissed,
+                                child: child,
+                              ),
+                            );
+                          },
                         );
                       },
-                    );
-                  },
                   child: isExpanded
                       ? Column(
                           key: ValueKey('expanded_${schedule.id}'),
                           children: [
                             const Divider(height: 1, thickness: 1),
                             Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 12,
+                              ),
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
@@ -948,25 +1063,33 @@ class _ScheduleManagementScreenState
                                     children: [
                                       Expanded(
                                         child: ElevatedButton.icon(
-                                          icon: const Icon(Icons.edit_rounded, size: 18),
+                                          icon: const Icon(
+                                            Icons.edit_rounded,
+                                            size: 18,
+                                          ),
                                           label: const Text('Edit'),
                                           style: ElevatedButton.styleFrom(
-                                            backgroundColor: AppColors.primary.withValues(alpha: 0.1),
+                                            backgroundColor: AppColors.primary
+                                                .withValues(alpha: 0.1),
                                             foregroundColor: AppColors.primary,
                                             elevation: 0,
-                                            padding: const EdgeInsets.symmetric(vertical: 10),
+                                            padding: const EdgeInsets.symmetric(
+                                              vertical: 10,
+                                            ),
                                             shape: RoundedRectangleBorder(
-                                              borderRadius: BorderRadius.circular(14),
+                                              borderRadius:
+                                                  BorderRadius.circular(14),
                                             ),
                                           ),
                                           onPressed: () {
                                             Navigator.of(context).push(
                                               MaterialPageRoute(
-                                                builder: (context) => EditScheduleScreen(
-                                                  schedule: schedule,
-                                                  routes: routes,
-                                                  buses: buses,
-                                                ),
+                                                builder: (context) =>
+                                                    EditScheduleScreen(
+                                                      schedule: schedule,
+                                                      routes: routes,
+                                                      buses: buses,
+                                                    ),
                                               ),
                                             );
                                           },
@@ -975,39 +1098,54 @@ class _ScheduleManagementScreenState
                                       12.widthBox,
                                       Expanded(
                                         child: ElevatedButton.icon(
-                                          icon: const Icon(Icons.delete_rounded, size: 18),
+                                          icon: const Icon(
+                                            Icons.delete_rounded,
+                                            size: 18,
+                                          ),
                                           label: const Text('Delete'),
                                           style: ElevatedButton.styleFrom(
-                                            backgroundColor: AppColors.error.withValues(alpha: 0.1),
+                                            backgroundColor: AppColors.error
+                                                .withValues(alpha: 0.1),
                                             foregroundColor: AppColors.error,
                                             elevation: 0,
-                                            padding: const EdgeInsets.symmetric(vertical: 10),
+                                            padding: const EdgeInsets.symmetric(
+                                              vertical: 10,
+                                            ),
                                             shape: RoundedRectangleBorder(
-                                              borderRadius: BorderRadius.circular(14),
+                                              borderRadius:
+                                                  BorderRadius.circular(14),
                                             ),
                                           ),
                                           onPressed: () async {
                                             final confirmed = await showDialog<bool>(
                                               context: context,
                                               builder: (context) => AlertDialog(
-                                                title: const Text('Delete Timetable'),
+                                                title: const Text(
+                                                  'Delete Timetable',
+                                                ),
                                                 content: const Text(
                                                   'Are you sure you want to delete this timetable?',
                                                 ),
                                                 actions: [
                                                   TextButton(
                                                     onPressed: () =>
-                                                        Navigator.of(context).pop(false),
+                                                        Navigator.of(
+                                                          context,
+                                                        ).pop(false),
                                                     child: const Text('Cancel'),
                                                   ),
                                                   ElevatedButton(
                                                     onPressed: () =>
-                                                        Navigator.of(context).pop(true),
-                                                    style: ElevatedButton.styleFrom(
-                                                      backgroundColor: Theme.of(
-                                                        context,
-                                                      ).colorScheme.error,
-                                                    ),
+                                                        Navigator.of(
+                                                          context,
+                                                        ).pop(true),
+                                                    style:
+                                                        ElevatedButton.styleFrom(
+                                                          backgroundColor:
+                                                              Theme.of(context)
+                                                                  .colorScheme
+                                                                  .error,
+                                                        ),
                                                     child: const Text('Delete'),
                                                   ),
                                                 ],
@@ -1018,7 +1156,9 @@ class _ScheduleManagementScreenState
                                               final repo = ref.read(
                                                 scheduleRepositoryProvider,
                                               );
-                                              await repo.deleteSchedule(schedule.id);
+                                              await repo.deleteSchedule(
+                                                schedule.id,
+                                              );
                                               ref.invalidate(
                                                 collegeSchedulesProvider(
                                                   schedule.collegeId,
@@ -1028,7 +1168,8 @@ class _ScheduleManagementScreenState
                                               SuccessModal.show(
                                                 context: context,
                                                 title: 'Timetable Deleted',
-                                                message: 'Timetable deleted successfully',
+                                                message:
+                                                    'Timetable deleted successfully',
                                                 primaryActionText: 'OK',
                                               );
                                             }
@@ -1038,20 +1179,31 @@ class _ScheduleManagementScreenState
                                     ],
                                   ),
                                   12.heightBox,
-                                  'Bus Stops Sequence'.text.size(15).bold.color(isDark ? Colors.white : const Color(0xFF111418)).make(),
+                                  'Bus Stops Sequence'.text
+                                      .size(15)
+                                      .bold
+                                      .color(
+                                        isDark
+                                            ? Colors.white
+                                            : const Color(0xFF111418),
+                                      )
+                                      .make(),
                                   8.heightBox,
                                   Column(
                                     children: List.generate(
                                       schedule.stopSchedules.length,
                                       (stopIndex) {
-                                        final stop = schedule.stopSchedules[stopIndex];
+                                        final stop =
+                                            schedule.stopSchedules[stopIndex];
                                         final isStart = stopIndex == 0;
-                                        final isEnd = stopIndex == schedule.stopSchedules.length - 1;
+                                        final isEnd =
+                                            stopIndex ==
+                                            schedule.stopSchedules.length - 1;
                                         final nodeColor = isStart
                                             ? const Color(0xFF10B981)
                                             : isEnd
-                                                ? const Color(0xFFEF4444)
-                                                : const Color(0xFFF97316);
+                                            ? const Color(0xFFEF4444)
+                                            : const Color(0xFFF97316);
                                         return Stack(
                                           children: [
                                             // Left connector line
@@ -1063,7 +1215,10 @@ class _ScheduleManagementScreenState
                                                   ? const SizedBox.shrink()
                                                   : Container(
                                                       width: 2,
-                                                      color: Colors.grey.withValues(alpha: 0.3),
+                                                      color: Colors.grey
+                                                          .withValues(
+                                                            alpha: 0.3,
+                                                          ),
                                                     ),
                                             ),
                                             if (isEnd)
@@ -1073,30 +1228,44 @@ class _ScheduleManagementScreenState
                                                 child: Container(
                                                   width: 2,
                                                   height: 9,
-                                                  color: Colors.grey.withValues(alpha: 0.3),
+                                                  color: Colors.grey.withValues(
+                                                    alpha: 0.3,
+                                                  ),
                                                 ),
                                               ),
                                             Row(
-                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
                                               children: [
                                                 SizedBox(
                                                   width: 32,
                                                   child: Padding(
-                                                    padding: const EdgeInsets.only(top: 2.0),
+                                                    padding:
+                                                        const EdgeInsets.only(
+                                                          top: 2.0,
+                                                        ),
                                                     child: Center(
                                                       child: Container(
                                                         width: 14,
                                                         height: 14,
                                                         decoration: BoxDecoration(
                                                           color: nodeColor,
-                                                          shape: BoxShape.circle,
+                                                          shape:
+                                                              BoxShape.circle,
                                                           border: Border.all(
-                                                            color: isDark ? const Color(0xFF1E2732) : Colors.white,
+                                                            color: isDark
+                                                                ? const Color(
+                                                                    0xFF1E2732,
+                                                                  )
+                                                                : Colors.white,
                                                             width: 2.5,
                                                           ),
                                                           boxShadow: [
                                                             BoxShadow(
-                                                              color: nodeColor.withValues(alpha: 0.4),
+                                                              color: nodeColor
+                                                                  .withValues(
+                                                                    alpha: 0.4,
+                                                                  ),
                                                               blurRadius: 6,
                                                               spreadRadius: 1,
                                                             ),
@@ -1109,24 +1278,43 @@ class _ScheduleManagementScreenState
                                                 12.widthBox,
                                                 Expanded(
                                                   child: Padding(
-                                                    padding: const EdgeInsets.only(top: 2.0, bottom: 10.0),
+                                                    padding:
+                                                        const EdgeInsets.only(
+                                                          top: 2.0,
+                                                          bottom: 10.0,
+                                                        ),
                                                     child: Column(
-                                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                                      crossAxisAlignment:
+                                                          CrossAxisAlignment
+                                                              .start,
                                                       children: [
                                                         stop.stopName.text
                                                             .size(14)
                                                             .semiBold
-                                                            .color(isDark ? Colors.white : const Color(0xFF111418))
+                                                            .color(
+                                                              isDark
+                                                                  ? Colors.white
+                                                                  : const Color(
+                                                                      0xFF111418,
+                                                                    ),
+                                                            )
                                                             .make(),
                                                         4.heightBox,
                                                         (isStart
                                                                 ? 'Starting Point'
                                                                 : isEnd
-                                                                    ? 'Destination'
-                                                                    : 'Intermediate Stop')
+                                                                ? 'Destination'
+                                                                : 'Intermediate Stop')
                                                             .text
                                                             .size(11)
-                                                            .color(isDark ? Colors.white60 : Colors.grey.shade600)
+                                                            .color(
+                                                              isDark
+                                                                  ? Colors
+                                                                        .white60
+                                                                  : Colors
+                                                                        .grey
+                                                                        .shade600,
+                                                            )
                                                             .make(),
                                                       ],
                                                     ),
@@ -1144,13 +1332,11 @@ class _ScheduleManagementScreenState
                             ),
                           ],
                         )
-                      : SizedBox(
-                          key: ValueKey('collapsed_${schedule.id}'),
-                        ),
-                  ),
-                ],
-              ),
-            );
+                      : SizedBox(key: ValueKey('collapsed_${schedule.id}')),
+                ),
+              ],
+            ),
+          );
         } catch (e) {
           return Card(
             color: Theme.of(context).colorScheme.errorContainer,
@@ -1185,10 +1371,13 @@ class InactiveScheduleIllustration extends StatefulWidget {
   });
 
   @override
-  State<InactiveScheduleIllustration> createState() => _InactiveScheduleIllustrationState();
+  State<InactiveScheduleIllustration> createState() =>
+      _InactiveScheduleIllustrationState();
 }
 
-class _InactiveScheduleIllustrationState extends State<InactiveScheduleIllustration> with SingleTickerProviderStateMixin {
+class _InactiveScheduleIllustrationState
+    extends State<InactiveScheduleIllustration>
+    with SingleTickerProviderStateMixin {
   late AnimationController _controller;
 
   @override
@@ -1233,7 +1422,9 @@ class _InactiveScheduleIllustrationState extends State<InactiveScheduleIllustrat
             .size(18)
             .bold
             .center
-            .color(Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.85))
+            .color(
+              Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.85),
+            )
             .make(),
         const SizedBox(height: 8),
         (widget.searchQuery.isEmpty
@@ -1242,7 +1433,9 @@ class _InactiveScheduleIllustrationState extends State<InactiveScheduleIllustrat
             .text
             .size(13)
             .center
-            .color(Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.55))
+            .color(
+              Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.55),
+            )
             .make(),
       ],
     );
@@ -1260,10 +1453,25 @@ class SleepingBusPainter extends CustomPainter {
     final x = start.dx;
     final y = start.dy;
     path.moveTo(x, y);
-    path.quadraticBezierTo(x + 5 * scale, y - 10 * scale, x + 15 * scale, y - 8 * scale);
-    path.quadraticBezierTo(x + 25 * scale, y - 20 * scale, x + 40 * scale, y - 12 * scale);
+    path.quadraticBezierTo(
+      x + 5 * scale,
+      y - 10 * scale,
+      x + 15 * scale,
+      y - 8 * scale,
+    );
+    path.quadraticBezierTo(
+      x + 25 * scale,
+      y - 20 * scale,
+      x + 40 * scale,
+      y - 12 * scale,
+    );
     path.quadraticBezierTo(x + 55 * scale, y - 10 * scale, x + 58 * scale, y);
-    path.quadraticBezierTo(x + 65 * scale, y + 8 * scale, x + 55 * scale, y + 12 * scale);
+    path.quadraticBezierTo(
+      x + 65 * scale,
+      y + 8 * scale,
+      x + 55 * scale,
+      y + 12 * scale,
+    );
     path.lineTo(x + 5 * scale, y + 12 * scale);
     path.quadraticBezierTo(x - 5 * scale, y + 10 * scale, x, y);
     path.close();
@@ -1274,7 +1482,7 @@ class SleepingBusPainter extends CustomPainter {
     final paint = Paint()
       ..color = Colors.amber.shade200.withValues(alpha: opacity)
       ..style = PaintingStyle.fill;
-      
+
     final path = Path();
     path.moveTo(center.dx, center.dy - size);
     path.quadraticBezierTo(center.dx, center.dy, center.dx + size, center.dy);
@@ -1282,7 +1490,7 @@ class SleepingBusPainter extends CustomPainter {
     path.quadraticBezierTo(center.dx, center.dy, center.dx - size, center.dy);
     path.quadraticBezierTo(center.dx, center.dy, center.dx, center.dy - size);
     path.close();
-    
+
     canvas.drawPath(path, paint);
   }
 
@@ -1296,14 +1504,36 @@ class SleepingBusPainter extends CustomPainter {
     // --------------------------------------------------------
     // Background Stars (Twinkling)
     // --------------------------------------------------------
-    final star1Opacity = (0.2 + 0.8 * math.sin(animationValue * 2 * math.pi)).clamp(0.0, 1.0);
-    _drawSparkle(canvas, Offset(centerBusX - 20, centerBusY - 65), 4.0, star1Opacity);
+    final star1Opacity = (0.2 + 0.8 * math.sin(animationValue * 2 * math.pi))
+        .clamp(0.0, 1.0);
+    _drawSparkle(
+      canvas,
+      Offset(centerBusX - 20, centerBusY - 65),
+      4.0,
+      star1Opacity,
+    );
 
-    final star2Opacity = (0.2 + 0.8 * math.sin(animationValue * 2 * math.pi + math.pi / 2)).clamp(0.0, 1.0);
-    _drawSparkle(canvas, Offset(centerBusX + 45, centerBusY - 60), 3.0, star2Opacity);
+    final star2Opacity =
+        (0.2 + 0.8 * math.sin(animationValue * 2 * math.pi + math.pi / 2))
+            .clamp(0.0, 1.0);
+    _drawSparkle(
+      canvas,
+      Offset(centerBusX + 45, centerBusY - 60),
+      3.0,
+      star2Opacity,
+    );
 
-    final star3Opacity = (0.2 + 0.8 * math.sin(animationValue * 2 * math.pi + math.pi)).clamp(0.0, 1.0);
-    _drawSparkle(canvas, Offset(centerBusX - 75, centerBusY - 30), 3.5, star3Opacity);
+    final star3Opacity =
+        (0.2 + 0.8 * math.sin(animationValue * 2 * math.pi + math.pi)).clamp(
+          0.0,
+          1.0,
+        );
+    _drawSparkle(
+      canvas,
+      Offset(centerBusX - 75, centerBusY - 30),
+      3.5,
+      star3Opacity,
+    );
 
     // --------------------------------------------------------
     // Crescent Moon with independent floating & rotation & pulse glow
@@ -1312,18 +1542,25 @@ class SleepingBusPainter extends CustomPainter {
     final moonY = centerBusY - 50;
 
     final moonFloatX = math.sin(animationValue * 2 * math.pi) * 3.0;
-    final moonFloatY = math.cos(animationValue * 2 * math.pi + math.pi / 2) * 2.0;
+    final moonFloatY =
+        math.cos(animationValue * 2 * math.pi + math.pi / 2) * 2.0;
 
     // Glowing aura behind the moon
     final moonGlowPaint = Paint()
-      ..color = Colors.amber.shade300.withValues(alpha: 0.12 + 0.04 * math.sin(animationValue * 2 * math.pi))
+      ..color = Colors.amber.shade300.withValues(
+        alpha: 0.12 + 0.04 * math.sin(animationValue * 2 * math.pi),
+      )
       ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 10)
       ..style = PaintingStyle.fill;
-    canvas.drawCircle(Offset(moonX + moonFloatX, moonY + moonFloatY), 16, moonGlowPaint);
+    canvas.drawCircle(
+      Offset(moonX + moonFloatX, moonY + moonFloatY),
+      16,
+      moonGlowPaint,
+    );
 
     canvas.save();
     canvas.translate(moonX + moonFloatX, moonY + moonFloatY);
-    
+
     final moonRot = math.sin(animationValue * 2 * math.pi) * 0.05;
     canvas.rotate(moonRot);
 
@@ -1332,7 +1569,7 @@ class SleepingBusPainter extends CustomPainter {
     moonPath2.quadraticBezierTo(12, 0, 0, 18);
     moonPath2.quadraticBezierTo(7, 0, 0, -18);
     moonPath2.close();
-    
+
     final crescentPaint = Paint()
       ..color = Colors.amber.withValues(alpha: 0.85)
       ..style = PaintingStyle.fill;
@@ -1343,32 +1580,46 @@ class SleepingBusPainter extends CustomPainter {
     // Background Clouds (Drifting/Floating)
     // --------------------------------------------------------
     // Cloud 1: Right side, behind the bus
-    final cloud1FloatX = math.sin(animationValue * 2 * math.pi - math.pi / 3) * 6.0;
+    final cloud1FloatX =
+        math.sin(animationValue * 2 * math.pi - math.pi / 3) * 6.0;
     final cloud1FloatY = math.cos(animationValue * 2 * math.pi) * 2.5;
     final cloud1X = centerBusX + 50 + cloud1FloatX;
     final cloud1Y = centerBusY - 45 + cloud1FloatY;
 
     final cloudPaint1 = Paint()
-      ..color = (isDark ? Colors.white : Colors.blueGrey.shade100).withValues(alpha: isDark ? 0.08 : 0.4)
+      ..color = (isDark ? Colors.white : Colors.blueGrey.shade100).withValues(
+        alpha: isDark ? 0.08 : 0.4,
+      )
       ..style = PaintingStyle.fill;
-    canvas.drawPath(_createCloudPath(Offset(cloud1X, cloud1Y), 0.9), cloudPaint1);
+    canvas.drawPath(
+      _createCloudPath(Offset(cloud1X, cloud1Y), 0.9),
+      cloudPaint1,
+    );
 
     // Cloud 2: Left side, slightly lower
-    final cloud2FloatX = math.cos(animationValue * 2 * math.pi + math.pi / 6) * 5.0;
+    final cloud2FloatX =
+        math.cos(animationValue * 2 * math.pi + math.pi / 6) * 5.0;
     final cloud2FloatY = math.sin(animationValue * 2 * math.pi) * 3.0;
     final cloud2X = centerBusX - 95 + cloud2FloatX;
     final cloud2Y = centerBusY - 15 + cloud2FloatY;
 
     final cloudPaint2 = Paint()
-      ..color = (isDark ? Colors.white : Colors.blueGrey.shade200).withValues(alpha: isDark ? 0.06 : 0.3)
+      ..color = (isDark ? Colors.white : Colors.blueGrey.shade200).withValues(
+        alpha: isDark ? 0.06 : 0.3,
+      )
       ..style = PaintingStyle.fill;
-    canvas.drawPath(_createCloudPath(Offset(cloud2X, cloud2Y), 0.75), cloudPaint2);
+    canvas.drawPath(
+      _createCloudPath(Offset(cloud2X, cloud2Y), 0.75),
+      cloudPaint2,
+    );
 
     // --------------------------------------------------------
     // Bus shadow (Scales/fades with breathing motion)
     // --------------------------------------------------------
     final shadowPaint = Paint()
-      ..color = Colors.black.withValues(alpha: (isDark ? 0.25 : 0.08) * (1.0 - (breatheOffsetY.abs() / 15.0)))
+      ..color = Colors.black.withValues(
+        alpha: (isDark ? 0.25 : 0.08) * (1.0 - (breatheOffsetY.abs() / 15.0)),
+      )
       ..style = PaintingStyle.fill;
     canvas.drawOval(
       Rect.fromCenter(
@@ -1388,8 +1639,15 @@ class SleepingBusPainter extends CustomPainter {
     final busPaint = Paint()
       ..color = Colors.amber.shade400
       ..style = PaintingStyle.fill;
-    final busRect = Rect.fromCenter(center: Offset(centerBusX, centerBusY), width: 100, height: 50);
-    canvas.drawRRect(RRect.fromRectAndRadius(busRect, const Radius.circular(12)), busPaint);
+    final busRect = Rect.fromCenter(
+      center: Offset(centerBusX, centerBusY),
+      width: 100,
+      height: 50,
+    );
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(busRect, const Radius.circular(12)),
+      busPaint,
+    );
 
     final roofPaint = Paint()
       ..color = Colors.amber.shade600
@@ -1401,8 +1659,16 @@ class SleepingBusPainter extends CustomPainter {
       ..color = isDark ? Colors.blueGrey.shade800 : Colors.blue.shade100
       ..style = PaintingStyle.fill;
     for (int i = 0; i < 3; i++) {
-      final winRect = Rect.fromLTWH(centerBusX - 42 + i * 28, centerBusY - 12, 20, 16);
-      canvas.drawRRect(RRect.fromRectAndRadius(winRect, const Radius.circular(4)), windowPaint);
+      final winRect = Rect.fromLTWH(
+        centerBusX - 42 + i * 28,
+        centerBusY - 12,
+        20,
+        16,
+      );
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(winRect, const Radius.circular(4)),
+        windowPaint,
+      );
     }
 
     final wheelPaint = Paint()
@@ -1477,13 +1743,17 @@ class SleepingBusPainter extends CustomPainter {
       canvas.save();
       canvas.translate(busTopRightX + driftX, busTopRightY - riseY);
       canvas.rotate(math.sin(t * math.pi) * 0.2);
-      textPainter.paint(canvas, Offset(-textPainter.width / 2, -textPainter.height / 2));
+      textPainter.paint(
+        canvas,
+        Offset(-textPainter.width / 2, -textPainter.height / 2),
+      );
       canvas.restore();
     }
   }
 
   @override
   bool shouldRepaint(covariant SleepingBusPainter oldDelegate) {
-    return oldDelegate.animationValue != animationValue || oldDelegate.isDark != isDark;
+    return oldDelegate.animationValue != animationValue ||
+        oldDelegate.isDark != isDark;
   }
 }

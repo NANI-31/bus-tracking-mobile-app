@@ -246,22 +246,25 @@ class _BusScheduleScreenState extends ConsumerState<BusScheduleScreen> {
     ) {
       return schedules.where((schedule) {
         if (shiftId != null && schedule.shift != shiftId) return false;
+        final bus = buses.firstWhere(
+          (b) => b.id == schedule.busId,
+          orElse: () => BusModel(
+            id: '',
+            busNumber: '',
+            driverId: '',
+            collegeId: '',
+            createdAt: DateTime.now(),
+          ),
+        );
         if (_selectedBusNumber != null) {
-          final bus = buses.firstWhere(
-            (b) => b.id == schedule.busId,
-            orElse: () => BusModel(
-              id: '',
-              busNumber: '',
-              driverId: '',
-              collegeId: '',
-              createdAt: DateTime.now(),
-            ),
-          );
           if (bus.busNumber != _selectedBusNumber) return false;
         }
+        final targetRouteId = (bus.assignmentStatus == 'accepted' && bus.routeId != null)
+            ? bus.routeId!
+            : schedule.routeId;
         if (_selectedRoute != null) {
           final route = routes.firstWhere(
-            (r) => r.id == schedule.routeId,
+            (r) => r.id == targetRouteId,
             orElse: () => RouteModel(
               id: '',
               routeName: '',
@@ -278,21 +281,29 @@ class _BusScheduleScreenState extends ConsumerState<BusScheduleScreen> {
           if (route.routeName != _selectedRoute) return false;
         }
         if (_selectedStop != null) {
-          if (!schedule.stopSchedules.any((s) => s.stopName == _selectedStop)) {
-            return false;
-          }
-        }
-        if (_selectedStatus != 'all') {
-          final bus = buses.firstWhere(
-            (b) => b.id == schedule.busId,
-            orElse: () => BusModel(
+          final route = routes.firstWhere(
+            (r) => r.id == targetRouteId,
+            orElse: () => RouteModel(
               id: '',
-              busNumber: '',
-              driverId: '',
+              routeName: '',
+              routeType: '',
+              startPoint: RoutePoint(name: '', lat: 0, lng: 0),
+              endPoint: RoutePoint(name: '', lat: 0, lng: 0),
+              stopPoints: [],
               collegeId: '',
+              createdBy: '',
+              isActive: false,
               createdAt: DateTime.now(),
             ),
           );
+          final hasStop = route.id != schedule.routeId
+              ? (route.startPoint.name == _selectedStop ||
+                  route.endPoint.name == _selectedStop ||
+                  route.stopPoints.any((s) => s.name == _selectedStop))
+              : schedule.stopSchedules.any((s) => s.stopName == _selectedStop);
+          if (!hasStop) return false;
+        }
+        if (_selectedStatus != 'all') {
           if (bus.status != _selectedStatus) return false;
         }
         return true;
@@ -1401,19 +1412,64 @@ class _BusScheduleScreenState extends ConsumerState<BusScheduleScreen> {
     required VoidCallback onApply,
   }) {
     final matchCount = allSchedules.where((schedule) {
+      final bus = buses.firstWhere(
+        (b) => b.id == schedule.busId,
+        orElse: () => BusModel(
+          id: '',
+          busNumber: '',
+          driverId: '',
+          collegeId: '',
+          createdAt: DateTime.now(),
+        ),
+      );
       if (tempBusNumber != null) {
-        final bus = buses.firstWhere((b) => b.id == schedule.busId, orElse: () => BusModel(id: '', busNumber: '', driverId: '', collegeId: '', createdAt: DateTime.now()));
         if (bus.busNumber != tempBusNumber) return false;
       }
+      final targetRouteId = (bus.assignmentStatus == 'accepted' && bus.routeId != null)
+          ? bus.routeId!
+          : schedule.routeId;
       if (tempRoute != null) {
-        final route = routes.firstWhere((r) => r.id == schedule.routeId, orElse: () => RouteModel(id: '', routeName: '', routeType: '', startPoint: RoutePoint(name: '', lat: 0, lng: 0), endPoint: RoutePoint(name: '', lat: 0, lng: 0), stopPoints: [], collegeId: '', createdBy: '', isActive: false, createdAt: DateTime.now()));
+        final route = routes.firstWhere(
+          (r) => r.id == targetRouteId,
+          orElse: () => RouteModel(
+            id: '',
+            routeName: '',
+            routeType: '',
+            startPoint: RoutePoint(name: '', lat: 0, lng: 0),
+            endPoint: RoutePoint(name: '', lat: 0, lng: 0),
+            stopPoints: [],
+            collegeId: '',
+            createdBy: '',
+            isActive: false,
+            createdAt: DateTime.now(),
+          ),
+        );
         if (route.routeName != tempRoute) return false;
       }
       if (tempStop != null) {
-        if (!schedule.stopSchedules.any((s) => s.stopName == tempStop)) return false;
+        final route = routes.firstWhere(
+          (r) => r.id == targetRouteId,
+          orElse: () => RouteModel(
+            id: '',
+            routeName: '',
+            routeType: '',
+            startPoint: RoutePoint(name: '', lat: 0, lng: 0),
+            endPoint: RoutePoint(name: '', lat: 0, lng: 0),
+            stopPoints: [],
+            collegeId: '',
+            createdBy: '',
+            isActive: false,
+            createdAt: DateTime.now(),
+          ),
+        );
+        final hasStop = route.id != schedule.routeId
+            ? (route.startPoint.name == tempStop ||
+                route.endPoint.name == tempStop ||
+                route.stopPoints.any((s) => s.name == tempStop))
+            : schedule.stopSchedules.any((s) => s.stopName == tempStop);
+        if (!hasStop) return false;
       }
       if (tempStatus != 'all') {
-        final bus = buses.firstWhere((b) => b.id == schedule.busId, orElse: () => BusModel(id: '', busNumber: '', driverId: '', collegeId: '', createdAt: DateTime.now()));
         if (bus.status != tempStatus) return false;
       }
       return true;
@@ -1569,8 +1625,21 @@ class _BusScheduleScreenState extends ConsumerState<BusScheduleScreen> {
         }
 
         final schedule = schedules[index - 1];
+        final bus = buses.firstWhere(
+          (b) => b.id == schedule.busId,
+          orElse: () => BusModel(
+            id: '',
+            busNumber: 'N/A',
+            driverId: '',
+            collegeId: '',
+            createdAt: DateTime.now(),
+          ),
+        );
+        final targetRouteId = (bus.assignmentStatus == 'accepted' && bus.routeId != null)
+            ? bus.routeId!
+            : schedule.routeId;
         final route = routes.firstWhere(
-          (r) => r.id == schedule.routeId,
+          (r) => r.id == targetRouteId,
           orElse: () => RouteModel(
             id: '',
             routeName: 'Unknown Route',
@@ -1581,16 +1650,6 @@ class _BusScheduleScreenState extends ConsumerState<BusScheduleScreen> {
             collegeId: '',
             createdBy: '',
             isActive: false,
-            createdAt: DateTime.now(),
-          ),
-        );
-        final bus = buses.firstWhere(
-          (b) => b.id == schedule.busId,
-          orElse: () => BusModel(
-            id: '',
-            busNumber: 'N/A',
-            driverId: '',
-            collegeId: '',
             createdAt: DateTime.now(),
           ),
         );
@@ -1615,7 +1674,15 @@ class _BusScheduleScreenState extends ConsumerState<BusScheduleScreen> {
     required dynamic user,
     required bool isDark,
   }) {
-    final stopCount = schedule.stopSchedules.length;
+    final displayStopSchedules = route.id != schedule.routeId
+        ? [
+            StopSchedule(stopName: route.startPoint.name, arrivalTime: '--:--', departureTime: '--:--'),
+            ...route.stopPoints.map((s) => StopSchedule(stopName: s.name, arrivalTime: '--:--', departureTime: '--:--')),
+            StopSchedule(stopName: route.endPoint.name, arrivalTime: '--:--', departureTime: '--:--'),
+          ].where((s) => s.stopName.isNotEmpty).toList()
+        : schedule.stopSchedules;
+
+    final stopCount = displayStopSchedules.length;
     final routeTypeIsPickup = route.routeType.toLowerCase() == 'pickup';
 
     return Padding(
@@ -1880,10 +1947,10 @@ class _BusScheduleScreenState extends ConsumerState<BusScheduleScreen> {
                   ),
                   const SizedBox(height: 8),
                   // Timeline rows
-                  ...schedule.stopSchedules.asMap().entries.map((entry) {
+                  ...displayStopSchedules.asMap().entries.map((entry) {
                     final idx = entry.key;
                     final stopSchedule = entry.value;
-                    final totalStops = schedule.stopSchedules.length;
+                    final totalStops = displayStopSchedules.length;
                     final isFirst = idx == 0;
                     final isLast = idx == totalStops - 1;
 
@@ -2063,11 +2130,15 @@ class _BusScheduleScreenState extends ConsumerState<BusScheduleScreen> {
     dynamic user,
     bool isDark,
   ) {
-    final canTrack = user.isPremium && bus.assignmentStatus == 'accepted';
+    // Commented out premium checking logic for testing live tracking
+    // final canTrack = user.isPremium && bus.assignmentStatus == 'accepted';
+    final canTrack = bus.assignmentStatus == 'accepted';
     final color = canTrack ? const Color(0xFF00C6E6) : Colors.grey;
 
     return GestureDetector(
       onTap: () {
+        // Commented out premium check for testing live tracking
+        /*
         if (!user.isPremium) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
@@ -2077,6 +2148,7 @@ class _BusScheduleScreenState extends ConsumerState<BusScheduleScreen> {
           );
           return;
         }
+        */
         if (bus.assignmentStatus != 'accepted') {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(

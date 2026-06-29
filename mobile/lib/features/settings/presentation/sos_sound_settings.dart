@@ -48,7 +48,8 @@ class SosSoundSettings extends ConsumerStatefulWidget {
   ConsumerState<SosSoundSettings> createState() => _SosSoundSettingsState();
 }
 
-class _SosSoundSettingsState extends ConsumerState<SosSoundSettings> with TickerProviderStateMixin {
+class _SosSoundSettingsState extends ConsumerState<SosSoundSettings>
+    with TickerProviderStateMixin {
   bool _soundEnabled = true;
   String _selectedSound = 'sos_alarm_1.mp3';
   double _volume = 1.0;
@@ -114,7 +115,8 @@ class _SosSoundSettingsState extends ConsumerState<SosSoundSettings> with Ticker
     final themeService = ref.watch(themeServiceProvider);
     final isDark = themeService.isDarkMode;
 
-    final playerState = ref.watch(sosPlayerStateProvider).value ?? PlayerState.stopped;
+    final playerState =
+        ref.watch(sosPlayerStateProvider).value ?? PlayerState.stopped;
     final isPlaying = playerState == PlayerState.playing;
 
     if (isPlaying) {
@@ -137,13 +139,19 @@ class _SosSoundSettingsState extends ConsumerState<SosSoundSettings> with Ticker
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
                   color: _soundEnabled
-                      ? Colors.redAccent.withOpacity(isDark ? 0.15 : 0.08)
-                      : (isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.03)),
+                      ? Colors.redAccent.withValues(alpha: isDark ? 0.15 : 0.08)
+                      : (isDark
+                            ? Colors.white.withValues(alpha: 0.05)
+                            : Colors.black.withValues(alpha: 0.03)),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
-                  _soundEnabled ? Icons.emergency_rounded : Icons.notifications_off_rounded,
-                  color: _soundEnabled ? Colors.redAccent : (isDark ? Colors.white38 : Colors.black38),
+                  _soundEnabled
+                      ? Icons.emergency_rounded
+                      : Icons.notifications_off_rounded,
+                  color: _soundEnabled
+                      ? Colors.redAccent
+                      : (isDark ? Colors.white38 : Colors.black38),
                   size: 20,
                 ),
               ),
@@ -173,7 +181,7 @@ class _SosSoundSettingsState extends ConsumerState<SosSoundSettings> with Ticker
               ),
               Switch(
                 value: _soundEnabled,
-                activeColor: Colors.redAccent,
+                activeThumbColor: Colors.redAccent,
                 onChanged: _toggleSound,
               ),
             ],
@@ -244,12 +252,18 @@ class _SosSoundSettingsState extends ConsumerState<SosSoundSettings> with Ticker
                 child: SliderTheme(
                   data: SliderTheme.of(context).copyWith(
                     activeTrackColor: Colors.redAccent,
-                    inactiveTrackColor: isDark ? Colors.white.withOpacity(0.08) : Colors.black.withOpacity(0.06),
+                    inactiveTrackColor: isDark
+                        ? Colors.white.withValues(alpha: 0.08)
+                        : Colors.black.withValues(alpha: 0.06),
                     trackHeight: 4.5,
                     thumbColor: Colors.redAccent,
-                    thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 8.0),
-                    overlayColor: Colors.redAccent.withOpacity(0.12),
-                    overlayShape: const RoundSliderOverlayShape(overlayRadius: 18.0),
+                    thumbShape: const RoundSliderThumbShape(
+                      enabledThumbRadius: 8.0,
+                    ),
+                    overlayColor: Colors.redAccent.withValues(alpha: 0.12),
+                    overlayShape: const RoundSliderOverlayShape(
+                      overlayRadius: 18.0,
+                    ),
                   ),
                   child: Slider(
                     value: _volume,
@@ -277,10 +291,14 @@ class _SosSoundSettingsState extends ConsumerState<SosSoundSettings> with Ticker
           Container(
             padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
             decoration: BoxDecoration(
-              color: isDark ? Colors.white.withOpacity(0.02) : Colors.black.withOpacity(0.015),
+              color: isDark
+                  ? Colors.white.withValues(alpha: 0.02)
+                  : Colors.black.withValues(alpha: 0.015),
               borderRadius: BorderRadius.circular(16),
               border: Border.all(
-                color: isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.04),
+                color: isDark
+                    ? Colors.white.withValues(alpha: 0.05)
+                    : Colors.black.withValues(alpha: 0.04),
                 width: 1,
               ),
             ),
@@ -297,7 +315,7 @@ class _SosSoundSettingsState extends ConsumerState<SosSoundSettings> with Ticker
                           height: 48,
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
-                            color: Colors.redAccent.withOpacity(0.15),
+                            color: Colors.redAccent.withValues(alpha: 0.15),
                           ),
                         ),
                       ),
@@ -309,10 +327,14 @@ class _SosSoundSettingsState extends ConsumerState<SosSoundSettings> with Ticker
                         height: 36,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          color: isPlaying ? Colors.redAccent : Colors.redAccent.withOpacity(0.12),
+                          color: isPlaying
+                              ? Colors.redAccent
+                              : Colors.redAccent.withValues(alpha: 0.12),
                         ),
                         child: Icon(
-                          isPlaying ? Icons.stop_rounded : Icons.play_arrow_rounded,
+                          isPlaying
+                              ? Icons.stop_rounded
+                              : Icons.play_arrow_rounded,
                           color: isPlaying ? Colors.white : Colors.redAccent,
                           size: 20,
                         ),
@@ -326,16 +348,22 @@ class _SosSoundSettingsState extends ConsumerState<SosSoundSettings> with Ticker
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        isPlaying ? 'Alarm Preview Active' : 'Preview Sound Settings',
+                        isPlaying
+                            ? 'Alarm Preview Active'
+                            : 'Preview Sound Settings',
                         style: TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.bold,
-                          color: isPlaying ? Colors.redAccent : (isDark ? Colors.white : Colors.black),
+                          color: isPlaying
+                              ? Colors.redAccent
+                              : (isDark ? Colors.white : Colors.black),
                         ),
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        isPlaying ? 'Tap stop to stop playback' : 'Test the selected sound and volume',
+                        isPlaying
+                            ? 'Tap stop to stop playback'
+                            : 'Test the selected sound and volume',
                         style: TextStyle(
                           fontSize: 10,
                           color: isDark ? Colors.white54 : Colors.black54,
@@ -380,22 +408,28 @@ class _SoundOptionCard extends StatelessWidget {
         padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
         decoration: BoxDecoration(
           color: isSelected
-              ? (isDark ? Colors.redAccent.withOpacity(0.08) : Colors.red.withOpacity(0.04))
-              : (isDark ? Colors.white.withOpacity(0.02) : Colors.black.withOpacity(0.01)),
+              ? (isDark
+                    ? Colors.redAccent.withValues(alpha: 0.08)
+                    : Colors.red.withValues(alpha: 0.04))
+              : (isDark
+                    ? Colors.white.withValues(alpha: 0.02)
+                    : Colors.black.withValues(alpha: 0.01)),
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
             color: isSelected
-                ? Colors.redAccent.withOpacity(0.4)
-                : (isDark ? Colors.white.withOpacity(0.08) : Colors.black.withOpacity(0.05)),
+                ? Colors.redAccent.withValues(alpha: 0.4)
+                : (isDark
+                      ? Colors.white.withValues(alpha: 0.08)
+                      : Colors.black.withValues(alpha: 0.05)),
             width: 1.5,
           ),
           boxShadow: isSelected
               ? [
                   BoxShadow(
-                    color: Colors.redAccent.withOpacity(0.06),
+                    color: Colors.redAccent.withValues(alpha: 0.06),
                     blurRadius: 8,
                     offset: const Offset(0, 4),
-                  )
+                  ),
                 ]
               : null,
         ),
@@ -404,7 +438,9 @@ class _SoundOptionCard extends StatelessWidget {
             Icon(
               icon,
               size: 26,
-              color: isSelected ? Colors.redAccent : (isDark ? Colors.white60 : Colors.black45),
+              color: isSelected
+                  ? Colors.redAccent
+                  : (isDark ? Colors.white60 : Colors.black45),
             ),
             const SizedBox(height: 8),
             Text(
@@ -413,7 +449,11 @@ class _SoundOptionCard extends StatelessWidget {
               style: TextStyle(
                 fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
                 fontSize: 12,
-                color: isSelected ? Colors.redAccent : (isDark ? Colors.white.withValues(alpha: 0.8) : Colors.black.withValues(alpha: 0.8)),
+                color: isSelected
+                    ? Colors.redAccent
+                    : (isDark
+                          ? Colors.white.withValues(alpha: 0.8)
+                          : Colors.black.withValues(alpha: 0.8)),
               ),
             ),
             const SizedBox(height: 2),

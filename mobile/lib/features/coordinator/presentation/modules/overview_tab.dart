@@ -1610,8 +1610,9 @@ class _LiquidSpringRefreshState extends State<LiquidSpringRefresh>
 
   bool _handleScrollNotification(ScrollNotification notification) {
     if (_state == CustomRefreshState.refreshing ||
-        _state == CustomRefreshState.done)
+        _state == CustomRefreshState.done) {
       return false;
+    }
     if (notification.depth != 0) return false;
 
     final double pixels = notification.metrics.pixels;
@@ -2081,7 +2082,8 @@ class TelemetryChartsCard extends StatefulWidget {
   State<TelemetryChartsCard> createState() => _TelemetryChartsCardState();
 }
 
-class _TelemetryChartsCardState extends State<TelemetryChartsCard> with SingleTickerProviderStateMixin {
+class _TelemetryChartsCardState extends State<TelemetryChartsCard>
+    with SingleTickerProviderStateMixin {
   int _selectedIndex = 0; // 0 for Delay Trends, 1 for Route Coverage
   int? _hoveredIndex;
   Offset? _hoverPos;
@@ -2112,12 +2114,18 @@ class _TelemetryChartsCardState extends State<TelemetryChartsCard> with SingleTi
   final List<String> days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
   final List<double> routeCoverage = [0.85, 0.90, 0.60, 0.95, 0.40];
-  final List<String> routes = ['Route A', 'Route B', 'Route C', 'Route D', 'Route E'];
+  final List<String> routes = [
+    'Route A',
+    'Route B',
+    'Route C',
+    'Route D',
+    'Route E',
+  ];
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    
+
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
@@ -2164,7 +2172,8 @@ class _TelemetryChartsCardState extends State<TelemetryChartsCard> with SingleTi
                 children: [
                   LayoutBuilder(
                     builder: (context, headerConstraints) {
-                      final useVerticalLayout = headerConstraints.maxWidth < 330;
+                      final useVerticalLayout =
+                          headerConstraints.maxWidth < 330;
                       if (useVerticalLayout) {
                         return Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -2207,9 +2216,8 @@ class _TelemetryChartsCardState extends State<TelemetryChartsCard> with SingleTi
                                   'Telemetry Analytics'.text.bold.lg.make(),
                                   'Live system monitoring metrics'.text
                                       .color(
-                                        context.colorScheme.onSurface.withValues(
-                                          alpha: 0.5,
-                                        ),
+                                        context.colorScheme.onSurface
+                                            .withValues(alpha: 0.5),
                                       )
                                       .size(11)
                                       .make(),
@@ -2252,12 +2260,24 @@ class _TelemetryChartsCardState extends State<TelemetryChartsCard> with SingleTi
                               clipBehavior: Clip.none,
                               children: [
                                 GestureDetector(
-                                  onPanStart: (details) => _handleHover(details.localPosition, width, height),
-                                  onPanUpdate: (details) => _handleHover(details.localPosition, width, height),
+                                  onPanStart: (details) => _handleHover(
+                                    details.localPosition,
+                                    width,
+                                    height,
+                                  ),
+                                  onPanUpdate: (details) => _handleHover(
+                                    details.localPosition,
+                                    width,
+                                    height,
+                                  ),
                                   onPanEnd: (_) => setState(() {
                                     _hoveredIndex = null;
                                   }),
-                                  onTapDown: (details) => _handleHover(details.localPosition, width, height),
+                                  onTapDown: (details) => _handleHover(
+                                    details.localPosition,
+                                    width,
+                                    height,
+                                  ),
                                   onTapUp: (_) => setState(() {
                                     _hoveredIndex = null;
                                   }),
@@ -2318,7 +2338,9 @@ class _TelemetryChartsCardState extends State<TelemetryChartsCard> with SingleTi
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
         decoration: BoxDecoration(
           color: isSelected
-              ? (isDark ? const Color(0xFF00C6E6) : const Color(0xFF0097B2).withValues(alpha: 0.15))
+              ? (isDark
+                    ? const Color(0xFF00C6E6)
+                    : const Color(0xFF0097B2).withValues(alpha: 0.15))
               : Colors.transparent,
           borderRadius: BorderRadius.circular(10),
         ),
@@ -2336,7 +2358,11 @@ class _TelemetryChartsCardState extends State<TelemetryChartsCard> with SingleTi
     );
   }
 
-  void _handleHover(Offset localPosition, double totalWidth, double totalHeight) {
+  void _handleHover(
+    Offset localPosition,
+    double totalWidth,
+    double totalHeight,
+  ) {
     if (_selectedIndex == 0) {
       const leftPadding = 40.0;
       const rightPadding = 20.0;
@@ -2348,7 +2374,8 @@ class _TelemetryChartsCardState extends State<TelemetryChartsCard> with SingleTi
           _hoveredIndex = index;
           final x = leftPadding + index * (usableWidth / 6);
           final usableHeight = totalHeight - 50.0;
-          final y = 20.0 + usableHeight - (delayData[index] / 20.0) * usableHeight;
+          final y =
+              20.0 + usableHeight - (delayData[index] / 20.0) * usableHeight;
           _hoverPos = Offset(x, y);
         });
       }
@@ -2373,7 +2400,8 @@ class _TelemetryChartsCardState extends State<TelemetryChartsCard> with SingleTi
   }
 
   Widget _buildTooltipPositioned(double totalWidth, double totalHeight) {
-    if (_hoveredIndex == null || _hoverPos == null) return const SizedBox.shrink();
+    if (_hoveredIndex == null || _hoverPos == null)
+      return const SizedBox.shrink();
 
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final String title;
@@ -2405,10 +2433,14 @@ class _TelemetryChartsCardState extends State<TelemetryChartsCard> with SingleTi
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
               decoration: BoxDecoration(
-                color: isDark ? Colors.black.withValues(alpha: 0.65) : Colors.white.withValues(alpha: 0.85),
+                color: isDark
+                    ? Colors.black.withValues(alpha: 0.65)
+                    : Colors.white.withValues(alpha: 0.85),
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
-                  color: isDark ? Colors.white.withValues(alpha: 0.2) : const Color(0xFF0097B2).withValues(alpha: 0.15),
+                  color: isDark
+                      ? Colors.white.withValues(alpha: 0.2)
+                      : const Color(0xFF0097B2).withValues(alpha: 0.15),
                   width: 1.0,
                 ),
                 boxShadow: [
@@ -2436,7 +2468,9 @@ class _TelemetryChartsCardState extends State<TelemetryChartsCard> with SingleTi
                     style: TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.bold,
-                      color: isDark ? const Color(0xFF00E5FF) : const Color(0xFF0097B2),
+                      color: isDark
+                          ? const Color(0xFF00E5FF)
+                          : const Color(0xFF0097B2),
                     ),
                   ),
                 ],
@@ -2477,7 +2511,9 @@ class DelayTrendsPainter extends CustomPainter {
     if (usableWidth <= 0 || usableHeight <= 0) return;
 
     final gridPaint = Paint()
-      ..color = isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.04)
+      ..color = isDark
+          ? Colors.white.withValues(alpha: 0.05)
+          : Colors.black.withValues(alpha: 0.04)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1.0;
 
@@ -2487,7 +2523,11 @@ class DelayTrendsPainter extends CustomPainter {
       final delayVal = i * 5;
       final y = topPadding + usableHeight - (delayVal / 20.0) * usableHeight;
 
-      canvas.drawLine(Offset(leftPadding, y), Offset(size.width - rightPadding, y), gridPaint);
+      canvas.drawLine(
+        Offset(leftPadding, y),
+        Offset(size.width - rightPadding, y),
+        gridPaint,
+      );
 
       textPainter.text = TextSpan(
         text: '${delayVal}m',
@@ -2498,7 +2538,10 @@ class DelayTrendsPainter extends CustomPainter {
         ),
       );
       textPainter.layout();
-      textPainter.paint(canvas, Offset(leftPadding - textPainter.width - 8, y - textPainter.height / 2));
+      textPainter.paint(
+        canvas,
+        Offset(leftPadding - textPainter.width - 8, y - textPainter.height / 2),
+      );
     }
 
     final points = <Offset>[];
@@ -2522,21 +2565,36 @@ class DelayTrendsPainter extends CustomPainter {
         final controlX2 = p1.dx + (p2.dx - p1.dx) / 2;
         final controlY2 = p2.dy;
 
-        fillPath.cubicTo(controlX1, controlY1, controlX2, controlY2, p2.dx, p2.dy);
+        fillPath.cubicTo(
+          controlX1,
+          controlY1,
+          controlX2,
+          controlY2,
+          p2.dx,
+          p2.dy,
+        );
       }
 
       fillPath.lineTo(points.last.dx, topPadding + usableHeight);
       fillPath.close();
 
       final fillPaint = Paint()
-        ..shader = LinearGradient(
-          colors: [
-            const Color(0xFF00C6E6).withValues(alpha: isDark ? 0.25 : 0.15),
-            const Color(0xFF00C6E6).withValues(alpha: 0.0),
-          ],
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-        ).createShader(Rect.fromLTRB(leftPadding, topPadding, size.width - rightPadding, topPadding + usableHeight))
+        ..shader =
+            LinearGradient(
+              colors: [
+                const Color(0xFF00C6E6).withValues(alpha: isDark ? 0.25 : 0.15),
+                const Color(0xFF00C6E6).withValues(alpha: 0.0),
+              ],
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+            ).createShader(
+              Rect.fromLTRB(
+                leftPadding,
+                topPadding,
+                size.width - rightPadding,
+                topPadding + usableHeight,
+              ),
+            )
         ..style = PaintingStyle.fill;
 
       canvas.drawPath(fillPath, fillPaint);
@@ -2552,7 +2610,14 @@ class DelayTrendsPainter extends CustomPainter {
         final controlX2 = p1.dx + (p2.dx - p1.dx) / 2;
         final controlY2 = p2.dy;
 
-        linePath.cubicTo(controlX1, controlY1, controlX2, controlY2, p2.dx, p2.dy);
+        linePath.cubicTo(
+          controlX1,
+          controlY1,
+          controlX2,
+          controlY2,
+          p2.dx,
+          p2.dy,
+        );
       }
 
       final linePaint = Paint()
@@ -2609,7 +2674,10 @@ class DelayTrendsPainter extends CustomPainter {
         ),
       );
       textPainter.layout();
-      textPainter.paint(canvas, Offset(p.dx - textPainter.width / 2, topPadding + usableHeight + 8));
+      textPainter.paint(
+        canvas,
+        Offset(p.dx - textPainter.width / 2, topPadding + usableHeight + 8),
+      );
 
       canvas.drawCircle(p, isHovered ? 6.0 : 4.0, pointPaint);
       canvas.drawCircle(p, isHovered ? 6.0 : 4.0, borderPointPaint);
@@ -2670,23 +2738,44 @@ class RouteStatusPainter extends CustomPainter {
         ),
       );
       textPainter.layout();
-      textPainter.paint(canvas, Offset(leftPadding - textPainter.width - 12, yCenter - textPainter.height / 2));
+      textPainter.paint(
+        canvas,
+        Offset(
+          leftPadding - textPainter.width - 12,
+          yCenter - textPainter.height / 2,
+        ),
+      );
 
       final barHeight = 10.0;
-      final barRect = Rect.fromLTWH(leftPadding, yCenter - barHeight / 2, usableWidth, barHeight);
+      final barRect = Rect.fromLTWH(
+        leftPadding,
+        yCenter - barHeight / 2,
+        usableWidth,
+        barHeight,
+      );
       final bgPaint = Paint()
-        ..color = isDark ? Colors.white.withValues(alpha: 0.06) : Colors.black.withValues(alpha: 0.05)
+        ..color = isDark
+            ? Colors.white.withValues(alpha: 0.06)
+            : Colors.black.withValues(alpha: 0.05)
         ..style = PaintingStyle.fill;
-      final rrectBg = RRect.fromRectAndRadius(barRect, const Radius.circular(5.0));
+      final rrectBg = RRect.fromRectAndRadius(
+        barRect,
+        const Radius.circular(5.0),
+      );
       canvas.drawRRect(rrectBg, bgPaint);
 
       final filledWidth = usableWidth * data[i] * progress;
       if (filledWidth > 0) {
-        final filledRect = Rect.fromLTWH(leftPadding, yCenter - barHeight / 2, filledWidth, barHeight);
+        final filledRect = Rect.fromLTWH(
+          leftPadding,
+          yCenter - barHeight / 2,
+          filledWidth,
+          barHeight,
+        );
         final progressColors = isHovered
             ? [const Color(0xFF00E5FF), const Color(0xFF0097B2)]
             : [const Color(0xFF00C6E6), const Color(0xFF0097B2)];
-        
+
         final fillPaint = Paint()
           ..shader = LinearGradient(
             colors: progressColors,
@@ -2694,8 +2783,11 @@ class RouteStatusPainter extends CustomPainter {
             end: Alignment.centerRight,
           ).createShader(filledRect)
           ..style = PaintingStyle.fill;
-          
-        final rrectFilled = RRect.fromRectAndRadius(filledRect, const Radius.circular(5.0));
+
+        final rrectFilled = RRect.fromRectAndRadius(
+          filledRect,
+          const Radius.circular(5.0),
+        );
         canvas.drawRRect(rrectFilled, fillPaint);
 
         if (isHovered) {

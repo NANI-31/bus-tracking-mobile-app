@@ -2,7 +2,7 @@
 ///
 /// Usage in nav bars and other widgets:
 ///   import 'package:collegebus/widgets/liquid_glass/liquid_glass.dart';
-library liquid_glass;
+library;
 
 export 'base_shader.dart';
 export 'background_capture_widget.dart';
