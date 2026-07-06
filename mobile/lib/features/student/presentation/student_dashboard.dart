@@ -40,10 +40,19 @@ class _StudentDashboardState extends ConsumerState<StudentDashboard>
   LatLng? _currentLocation;
   int _bottomNavIndex = 0;
 
+  /// Tracks which tabs have been visited (and thus mounted).
+  /// P0.3 fix: Tabs are lazily built — only mounted on first visit.
+  /// This prevents Google Maps + schedule streams from initializing at startup.
+  final Set<int> _visitedTabs = {};
+
   /// Key for the [RepaintBoundary] wrapping the main content.
   /// Passed to [CurvedBottomNavBar] so the liquid-glass lens shader can
   /// sample the real pixels rendered behind the navigation bar.
   final GlobalKey _backgroundKey = GlobalKey();
+
+  /// P2.1 fix: Guard to ensure bus-from-prefs restoration only runs once,
+  /// not on every build triggered by socket events.
+  bool _busRestoredFromPrefs = false;
 
   @override
   void initState() {
@@ -56,6 +65,9 @@ class _StudentDashboardState extends ConsumerState<StudentDashboard>
     );
 
     _bottomNavIndex = PersistenceService.getBottomNavIndex();
+    // Seed the visited set with whichever tab was last open
+    _visitedTabs.add(_bottomNavIndex);
+
     _getCurrentLocation();
 
     // Listen for user data to join socket room
@@ -95,6 +107,8 @@ class _StudentDashboardState extends ConsumerState<StudentDashboard>
     if (mounted) {
       setState(() {
         _bottomNavIndex = index;
+        // Mark this tab as visited so it gets built on the first switch.
+        _visitedTabs.add(index);
       });
       PersistenceService.setBottomNavIndex(index);
     }
@@ -217,52 +231,58 @@ class _StudentDashboardState extends ConsumerState<StudentDashboard>
     final routesAsync = collegeId != null
         ? ref.watch(collegeRoutesProvider(collegeId))
         : const AsyncValue<List<RouteModel>>.data([]);
-    final liveLocationsAsync = collegeId != null
-        ? ref.watch(collegeBusLocationsProvider(collegeId))
-        : const AsyncValue<List<BusLocationModel>>.data([]);
-    final liveLocations = liveLocationsAsync.valueOrNull ?? [];
-    final liveBusIds = liveLocations.map((loc) => loc.busId).toSet();
+    // P1.1 perf fix: Watch the pre-computed live bus IDs provider instead of
+    // the raw collegeBusLocationsProvider. This ensures build() only runs when
+    // the SET of live buses changes, not on every GPS coordinate update.
+    final liveBusIds = collegeId != null
+        ? ref.watch(studentLiveBusIdsProvider(collegeId))
+        : const <String>{};
 
     final allBusesRaw = busesAsync.valueOrNull ?? [];
     final routes = routesAsync.valueOrNull ?? [];
 
-    // Restore saved bus selection when buses list becomes available
-    final savedBusId = user != null
-        ? PersistenceService.getSelectedBusId(user.id)
-        : null;
-    if (savedBusId != null && selectedBus == null && busesAsync.hasValue) {
-      BusModel? match;
-      for (final b in allBusesRaw) {
-        if (b.id == savedBusId) {
-          match = b;
-          break;
+    // Restore saved bus selection when buses list becomes available.
+    // P2.1 fix: guarded by _busRestoredFromPrefs so this runs at most once
+    // instead of on every build triggered by socket location updates.
+    if (!_busRestoredFromPrefs) {
+      final savedBusId = user != null
+          ? PersistenceService.getSelectedBusId(user.id)
+          : null;
+      if (savedBusId != null && selectedBus == null && busesAsync.hasValue) {
+        _busRestoredFromPrefs = true; // prevent re-entry
+        BusModel? match;
+        for (final b in allBusesRaw) {
+          if (b.id == savedBusId) {
+            match = b;
+            break;
+          }
         }
-      }
-      if (match != null) {
-        if (match.assignmentStatus == 'accepted') {
-          final targetRouteId = match.routeId ?? match.defaultRouteId;
-          final activeRoute = targetRouteId != null
-              ? routes.cast<RouteModel?>().firstWhere(
-                  (r) => r!.id == targetRouteId,
-                  orElse: () => null,
-                )
-              : null;
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            ref
-                .read(mapNavigationProvider.notifier)
-                .selectBus(match, activeRoute);
-          });
-        } else {
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            PersistenceService.removeSelectedBusId(user?.id);
-          });
+        if (match != null) {
+          if (match.assignmentStatus == 'accepted') {
+            final targetRouteId = match.routeId ?? match.defaultRouteId;
+            final restoredRoute = targetRouteId != null
+                ? routes.cast<RouteModel?>().firstWhere(
+                    (r) => r!.id == targetRouteId,
+                    orElse: () => null,
+                  )
+                : null;
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              ref
+                  .read(mapNavigationProvider.notifier)
+                  .selectBus(match, restoredRoute);
+            });
+          } else {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              PersistenceService.removeSelectedBusId(user?.id);
+            });
+          }
         }
       }
     }
 
-    // Set default stop from preference if not set
+    // Set default stop from preference if not set — guarded, runs once
     final preferredStop = user?.preferredStop;
-    if (selectedStop == null && preferredStop != null) {
+    if (selectedStop == null && preferredStop != null && !_busRestoredFromPrefs) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         ref
             .read(mapNavigationProvider.notifier)
@@ -270,29 +290,9 @@ class _StudentDashboardState extends ConsumerState<StudentDashboard>
       });
     }
 
-    // Compute filter options
-    final stopsSet = <String>{};
-    for (final bus in allBusesRaw) {
-      final route = routes.firstWhere(
-        (r) => r.id == bus.routeId,
-        orElse: () => RouteModel(
-          id: '',
-          routeName: 'N/A',
-          routeType: '',
-          startPoint: RoutePoint(name: '', lat: 0, lng: 0),
-          endPoint: RoutePoint(name: '', lat: 0, lng: 0),
-          stopPoints: [],
-          collegeId: '',
-          createdBy: '',
-          isActive: false,
-          createdAt: DateTime.now(),
-        ),
-      );
-      stopsSet.add(route.startPoint.name);
-      stopsSet.add(route.endPoint.name);
-      stopsSet.addAll(route.stopPoints.map((s) => s.name));
-    }
-    // Apply filters
+    // P1.1 perf fix: Removed O(N×M) stopsSet loop. Stop filter options are
+    // computed inside BusScheduleScreen which has its own data access.
+    // Apply live tracking filter — only buses actively broadcasting GPS.
     var filteredBuses = allBusesRaw.where((bus) {
       // Only show buses whose driver is ACTIVELY broadcasting GPS.
       // bus.status updates on DB assignment (not on broadcast start),
@@ -360,76 +360,96 @@ class _StudentDashboardState extends ConsumerState<StudentDashboard>
           key: _backgroundKey,
           child: ColoredBox(
             color: Theme.of(context).scaffoldBackgroundColor,
-            child: AnimatedIndexedStack(
+            // P0.3 fix: Lazy IndexedStack — only mount a tab after first visit.
+            // Unvisited tabs render a lightweight SizedBox.shrink() placeholder.
+            // Once visited, the real widget stays mounted (state preserved).
+            // This avoids initialising Google Maps, socket streams, and
+            // multiple BackdropFilter trees for all 5 tabs at startup.
+            child: IndexedStack(
               index: _bottomNavIndex,
               children: [
-                StudentHomeScreen(
-                  isTab: true,
-                  onTrackLive: () => _onBottomNavChanged(1),
-                ),
-                StudentMapTab(
-                  currentLocation: _currentLocation,
-                  buses:
-                      selectedBus != null &&
-                              selectedBus.assignmentStatus == 'accepted' &&
-                              liveBusIds.contains(selectedBus.id)
-                          ? [selectedBus]
-                          : const [],
-                  selectedBus:
-                      selectedBus != null &&
-                              selectedBus.assignmentStatus == 'accepted'
-                          ? selectedBus
-                          : null,
-                  selectedRouteType: selectedRouteType,
-                  allBuses: allBusesRaw,
-                  filteredBusesCount: selectedBus != null &&
-                          selectedBus.assignmentStatus == 'accepted' &&
-                          liveBusIds.contains(selectedBus.id)
-                      ? 1
-                      : 0,
-                  onMapCreated: (controller) => _mapController = controller,
-                  onRouteTypeSelected: _onRouteTypeSelected,
-                  onBusNumberSelected: _onBusNumberSelected,
-                  onClearFilters: _clearFilters,
-                  onBusSelected: (bus) {
-                    if (bus != null && bus.assignmentStatus != 'accepted') {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(
-                            'Bus ${bus.busNumber} is not active yet (pending driver acceptance).',
-                          ),
-                          backgroundColor: Colors.redAccent,
-                          behavior: SnackBarBehavior.floating,
-                        ),
-                      );
-                      return;
-                    }
-                    RouteModel? activeRoute;
-                    if (bus != null && collegeId != null) {
-                      final routes =
-                          ref.read(collegeRoutesProvider(collegeId)).valueOrNull ?? [];
-                      final targetRouteId = bus.routeId ?? bus.defaultRouteId;
-                      activeRoute = routes.cast<RouteModel?>().firstWhere(
-                        (r) => r!.id == targetRouteId,
-                        orElse: () => null,
-                      );
-                    }
-                    ref
-                        .read(mapNavigationProvider.notifier)
-                        .selectBus(bus, activeRoute);
-                  },
-                  activeRoute:
-                      selectedBus != null &&
-                              selectedBus.assignmentStatus == 'accepted'
-                          ? activeRoute
-                          : null,
-                ),
-                BusScheduleScreen(
-                  isTab: true,
-                  onBusSelected: (bus) => _selectBus(bus),
-                ),
-                StudentNotificationsScreen(),
-                const ProfileScreen(),
+                // Tab 0 — Home
+                _visitedTabs.contains(0)
+                    ? StudentHomeScreen(
+                        isTab: true,
+                        onTrackLive: () => _onBottomNavChanged(1),
+                      )
+                    : const SizedBox.shrink(),
+                // Tab 1 — Live Map
+                _visitedTabs.contains(1)
+                    ? StudentMapTab(
+                        currentLocation: _currentLocation,
+                        buses:
+                            selectedBus != null &&
+                                    selectedBus.assignmentStatus == 'accepted' &&
+                                    liveBusIds.contains(selectedBus.id)
+                                ? [selectedBus]
+                                : const [],
+                        selectedBus:
+                            selectedBus != null &&
+                                    selectedBus.assignmentStatus == 'accepted'
+                                ? selectedBus
+                                : null,
+                        selectedRouteType: selectedRouteType,
+                        allBuses: allBusesRaw,
+                        filteredBusesCount: selectedBus != null &&
+                                selectedBus.assignmentStatus == 'accepted' &&
+                                liveBusIds.contains(selectedBus.id)
+                            ? 1
+                            : 0,
+                        onMapCreated: (controller) => _mapController = controller,
+                        onRouteTypeSelected: _onRouteTypeSelected,
+                        onBusNumberSelected: _onBusNumberSelected,
+                        onClearFilters: _clearFilters,
+                        onBusSelected: (bus) {
+                          if (bus != null && bus.assignmentStatus != 'accepted') {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  'Bus ${bus.busNumber} is not active yet (pending driver acceptance).',
+                                ),
+                                backgroundColor: Colors.redAccent,
+                                behavior: SnackBarBehavior.floating,
+                              ),
+                            );
+                            return;
+                          }
+                          RouteModel? activeRoute;
+                          if (bus != null && collegeId != null) {
+                            final routes =
+                                ref.read(collegeRoutesProvider(collegeId)).valueOrNull ?? [];
+                            final targetRouteId = bus.routeId ?? bus.defaultRouteId;
+                            activeRoute = routes.cast<RouteModel?>().firstWhere(
+                              (r) => r!.id == targetRouteId,
+                              orElse: () => null,
+                            );
+                          }
+                          ref
+                              .read(mapNavigationProvider.notifier)
+                              .selectBus(bus, activeRoute);
+                        },
+                        activeRoute:
+                            selectedBus != null &&
+                                    selectedBus.assignmentStatus == 'accepted'
+                                ? activeRoute
+                                : null,
+                      )
+                    : const SizedBox.shrink(),
+                // Tab 2 — Schedule
+                _visitedTabs.contains(2)
+                    ? BusScheduleScreen(
+                        isTab: true,
+                        onBusSelected: (bus) => _selectBus(bus),
+                      )
+                    : const SizedBox.shrink(),
+                // Tab 3 — Notifications
+                _visitedTabs.contains(3)
+                    ? StudentNotificationsScreen()
+                    : const SizedBox.shrink(),
+                // Tab 4 — Profile
+                _visitedTabs.contains(4)
+                    ? const ProfileScreen()
+                    : const SizedBox.shrink(),
               ],
             ),
           ),

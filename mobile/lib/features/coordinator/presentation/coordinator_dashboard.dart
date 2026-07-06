@@ -34,7 +34,6 @@ import 'package:collegebus/shared/widgets/navigation/curved_bottom_nav_bar.dart'
 import 'package:collegebus/features/notification/application/notification_provider.dart';
 import 'package:collegebus/shared/widgets/api_error_modal.dart';
 import 'package:collegebus/shared/widgets/success_modal.dart';
-import 'package:collegebus/shared/widgets/tab_transition_view.dart';
 
 import 'package:collegebus/features/coordinator/presentation/modules/live_map_tab.dart';
 import 'package:collegebus/features/settings/presentation/sos_sound_settings.dart';
@@ -57,6 +56,16 @@ class _CoordinatorDashboardState extends ConsumerState<CoordinatorDashboard>
   late ScrollController _scrollController;
   int _bottomNavIndex = 0;
   BusModel? _selectedBus;
+
+  // Cached sub-tab widgets — never recreated after initState.
+  // Creating them inside build() or _getSubTabPage() caused full remount
+  // on every build triggered by the TabController animation listener.
+  late final List<Widget> _subTabPages;
+
+  // Tracks which bottom-nav pages have been mounted at least once.
+  // Unvisited pages render SizedBox.shrink() to avoid mounting
+  // GoogleMaps / socket streams that are not yet needed.
+  final Set<int> _visitedBottomNavPages = {0};
 
   final Set<String> _resolvedMockIds = {};
 
@@ -89,6 +98,11 @@ class _CoordinatorDashboardState extends ConsumerState<CoordinatorDashboard>
       }
     });
 
+    // Build sub-tab widgets once and cache them.
+    // Previously _getSubTabPage() was called inside build() which caused
+    // fresh widget instances on every rebuild → full remount on every tab change.
+    _initSubTabs();
+
     // Listen for user data to join socket room
     // This handles both initial load and re-auth scenarios
     ref.listenManual(currentUserProvider, (previous, next) {
@@ -110,6 +124,25 @@ class _CoordinatorDashboardState extends ConsumerState<CoordinatorDashboard>
   }
 
   StreamSubscription? _sosAlertSubscription;
+
+  /// Build all sub-tab widgets once so they are stable across rebuilds.
+  /// Calling setState on the TabController listener previously caused all
+  /// 5 tabs to be recreated (new widget instances = full remount = jank).
+  void _initSubTabs() {
+    _subTabPages = [
+      OverviewTab(
+        onSosTap: () => setState(() => _tabController.animateTo(1)),
+        onActiveBusesTap: () => setState(() => _tabController.animateTo(1)),
+      ),
+      LiveMapTab(selectedBus: _selectedBus),
+      DriverManagementTab(
+        onTrack: _handleTrackBus,
+        onEditDriver: _handleEditDriver,
+      ),
+      const BusNumbersTab(),
+      const RoutesTab(),
+    ];
+  }
 
   void _setupSosListener() {
     final socket = ref.read(socketServiceProvider);
@@ -153,14 +186,17 @@ class _CoordinatorDashboardState extends ConsumerState<CoordinatorDashboard>
       debugPrint('[CoordinatorDashboard] Error prefetching map markers: $e');
     }
 
-    // 2. Precache background assets
+    // 2. Precache background assets — check mounted after every await since
+    //    this is an async method and the widget may have been disposed.
     if (!mounted) return;
     try {
       await precacheImage(const AssetImage('assets/images/login.png'), context);
+      if (!mounted) return;
       await precacheImage(
         const AssetImage('assets/images/registration.png'),
         context,
       );
+      if (!mounted) return;
       await precacheImage(
         const AssetImage('assets/images/upashtit-logo-new.png'),
         context,
@@ -179,10 +215,12 @@ class _CoordinatorDashboardState extends ConsumerState<CoordinatorDashboard>
     setState(() {
       _selectedBus = bus;
       if (_bottomNavIndex != 0) {
-        _stopSosSound(); // Stop preview if switching from profile
+        _stopSosSound();
       }
-      _bottomNavIndex = 0; // Go to Dashboard
-      _tabController.animateTo(1); // Switch to Live Map tab
+      _bottomNavIndex = 0;
+      _tabController.animateTo(1);
+      // Update the cached LiveMapTab with the new selected bus.
+      _subTabPages[1] = LiveMapTab(selectedBus: _selectedBus);
     });
     if (_scrollController.hasClients) {
       _scrollController.animateTo(
@@ -679,54 +717,42 @@ class _CoordinatorDashboardState extends ConsumerState<CoordinatorDashboard>
       {'text': l10n.routes, 'icon': Icons.route},
     ];
 
-    return AnimatedBuilder(
-      animation: _tabController.animation!,
-      builder: (context, child) {
-        final double animationValue = _tabController.animation!.value;
+    return Container(
+      height: isCompact ? 66 : 80,
+      padding: EdgeInsets.symmetric(vertical: isCompact ? 4 : 6),
+      child: SingleChildScrollView(
+        physics: const NeverScrollableScrollPhysics(),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8),
+          child: Row(
+            children: List.generate(tabs.length, (index) {
+              final isSelected = _tabController.index == index;
 
-        return AnimatedContainer(
-          duration: const Duration(milliseconds: 250),
-          curve: Curves.easeInOut,
-          height: isCompact ? 66 : 80,
-          padding: EdgeInsets.symmetric(vertical: isCompact ? 4 : 6),
-          child: SingleChildScrollView(
-            physics: const NeverScrollableScrollPhysics(),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8),
-              child: Row(
-                children: List.generate(tabs.length, (index) {
-                  final double distance = (animationValue - index).abs();
-                  final double selectedRatio = (1.0 - distance).clamp(0.0, 1.0);
-                  final isSelected = _tabController.index == index;
-
-                  return _TabItem(
-                    index: index,
-                    tab: tabs[index],
-                    isSelected: isSelected,
-                    selectedRatio: selectedRatio,
-                    isDark: isDark,
-                    isCompact: isCompact,
-                    onTap: () {
-                      if (_tabController.index != index) {
-                        setState(() {
-                          _tabController.animateTo(index);
-                        });
-                        if (_scrollController.hasClients) {
-                          _scrollController.animateTo(
-                            0.0,
-                            duration: const Duration(milliseconds: 200),
-                            curve: Curves.easeOut,
-                          );
-                        }
-                      }
-                    },
-                  );
-                }),
-              ),
-            ),
+              return _TabItem(
+                index: index,
+                tab: tabs[index],
+                isSelected: isSelected,
+                isDark: isDark,
+                isCompact: isCompact,
+                onTap: () {
+                  if (_tabController.index != index) {
+                    setState(() {
+                      _tabController.animateTo(index);
+                    });
+                    if (_scrollController.hasClients) {
+                      _scrollController.animateTo(
+                        0.0,
+                        duration: const Duration(milliseconds: 200),
+                        curve: Curves.easeOut,
+                      );
+                    }
+                  }
+                },
+              );
+            }),
           ),
-        );
-      },
+        ),
+      ),
     );
   }
 
@@ -794,58 +820,49 @@ class _CoordinatorDashboardState extends ConsumerState<CoordinatorDashboard>
   }
 
   Widget _getMainPage(int index) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     switch (index) {
       case 0:
-        final isDark = Theme.of(context).brightness == Brightness.dark;
         return Column(
           children: [
-            ClipRect(
-              child: BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
-                child: Container(
-                  decoration: BoxDecoration(
+            // P0 fix: BackdropFilter here ran on every animation frame during
+            // tab switches — 60 expensive GPU blur readback passes per second.
+            // Replaced with a solid semi-opaque container (visually equivalent).
+            Container(
+              decoration: BoxDecoration(
+                color: isDark
+                    ? Colors.black.withValues(alpha: 0.45)
+                    : Colors.white.withValues(alpha: 0.75),
+                border: Border(
+                  bottom: BorderSide(
                     color: isDark
-                        ? Colors.black.withValues(alpha: 0.25)
-                        : Colors.white.withValues(alpha: 0.40),
-                    border: Border(
-                      bottom: BorderSide(
-                        color: isDark
-                            ? const Color(0xFF00E5FF).withValues(alpha: 0.15)
-                            : const Color(0xFF0097B2).withValues(alpha: 0.10),
-                        width: 1.5,
-                      ),
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(
-                          alpha: isDark ? 0.30 : 0.08,
-                        ),
-                        blurRadius: 10,
-                        offset: const Offset(0, 4),
-                      ),
-                      BoxShadow(
-                        color: const Color(
-                          0xFF00C6E6,
-                        ).withValues(alpha: isDark ? 0.05 : 0.03),
-                        blurRadius: 15,
-                        spreadRadius: -2,
-                      ),
-                    ],
+                        ? const Color(0xFF00E5FF).withValues(alpha: 0.15)
+                        : const Color(0xFF0097B2).withValues(alpha: 0.10),
+                    width: 1.5,
                   ),
-                  child: _buildCapsuleTabBar(context, isCompact: false),
                 ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(
+                      alpha: isDark ? 0.30 : 0.08,
+                    ),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
               ),
+              child: _buildCapsuleTabBar(context, isCompact: false),
             ),
             Expanded(
-              child: TabTransitionView(
+              // P0 fix: TabTransitionView ran AnimatedBuilder on EVERY tab-controller
+              // animation frame, building a Stack with all 5 heavyweight tabs + Opacity
+              // transitions. Replaced with a lazy IndexedStack:
+              // - Only the active tab is painted (GPU)
+              // - Unvisited tabs are SizedBox.shrink() until first visit
+              // - Once visited, tabs stay mounted (state preserved, no flash)
+              child: _LazyCoordSubTabStack(
                 controller: _tabController,
-                children: [
-                  _getSubTabPage(0),
-                  _getSubTabPage(1),
-                  _getSubTabPage(2),
-                  _getSubTabPage(3),
-                  _getSubTabPage(4),
-                ],
+                pages: _subTabPages,
               ),
             ),
           ],
@@ -856,37 +873,6 @@ class _CoordinatorDashboardState extends ConsumerState<CoordinatorDashboard>
         return const ScheduleManagementScreen();
       case 3:
         return const ProfileScreen();
-      default:
-        return const SizedBox.shrink();
-    }
-  }
-
-  Widget _getSubTabPage(int index) {
-    switch (index) {
-      case 0:
-        return OverviewTab(
-          onSosTap: () {
-            setState(() {
-              _tabController.animateTo(1);
-            });
-          },
-          onActiveBusesTap: () {
-            setState(() {
-              _tabController.animateTo(1);
-            });
-          },
-        );
-      case 1:
-        return LiveMapTab(selectedBus: _selectedBus);
-      case 2:
-        return DriverManagementTab(
-          onTrack: _handleTrackBus,
-          onEditDriver: _handleEditDriver,
-        );
-      case 3:
-        return const BusNumbersTab();
-      case 4:
-        return const RoutesTab();
       default:
         return const SizedBox.shrink();
     }
@@ -941,12 +927,14 @@ class _CoordinatorDashboardState extends ConsumerState<CoordinatorDashboard>
       });
     }
 
-    final mainBody = SpatialTabTransition(
+    // P0 fix: SpatialTabTransition used Opacity + Transform.scale for the
+    // bottom-nav page switch — Opacity with non-0/1 values forces a GPU
+    // save-layer. Combined with the inner tab animation this doubled GPU load.
+    // Replaced with a lazy IndexedStack: instant switch, state preserved.
+    final mainBody = _LazyCoordBottomNavStack(
       currentIndex: _bottomNavIndex,
-      child: KeyedSubtree(
-        key: ValueKey<int>(_bottomNavIndex),
-        child: _getMainPage(_bottomNavIndex),
-      ),
+      visitedPages: _visitedBottomNavPages,
+      pageBuilder: _getMainPage,
     );
 
     final Widget dashboardContent;
@@ -964,6 +952,7 @@ class _CoordinatorDashboardState extends ConsumerState<CoordinatorDashboard>
                 }
                 setState(() {
                   _bottomNavIndex = index;
+                  _visitedBottomNavPages.add(index);
                 });
                 if (_scrollController.hasClients) {
                   _scrollController.animateTo(
@@ -1091,6 +1080,7 @@ class _CoordinatorDashboardState extends ConsumerState<CoordinatorDashboard>
                   }
                   setState(() {
                     _bottomNavIndex = index;
+                    _visitedBottomNavPages.add(index);
                   });
                   if (_scrollController.hasClients) {
                     _scrollController.animateTo(
@@ -1157,8 +1147,11 @@ class _CoordinatorDashboardState extends ConsumerState<CoordinatorDashboard>
       );
     }
 
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 500),
+    // P2 fix: AnimatedContainer animates the background gradient on every
+    // tab switch — smooth gradient on a full-screen container every frame.
+    // Replaced with a plain Container. The gradient still updates correctly
+    // on tab changes, just without the interpolation overhead.
+    return Container(
       decoration: BoxDecoration(gradient: _getAmbientGradient(context)),
       child: dashboardContent,
     );
@@ -1259,7 +1252,6 @@ class _TabItem extends StatefulWidget {
   final int index;
   final Map<String, dynamic> tab;
   final bool isSelected;
-  final double selectedRatio;
   final bool isDark;
   final bool isCompact;
   final VoidCallback onTap;
@@ -1268,7 +1260,6 @@ class _TabItem extends StatefulWidget {
     required this.index,
     required this.tab,
     required this.isSelected,
-    required this.selectedRatio,
     required this.isDark,
     required this.isCompact,
     required this.onTap,
@@ -1282,6 +1273,7 @@ class _TabItemState extends State<_TabItem> with TickerProviderStateMixin {
   late AnimationController _pressController;
   late Animation<double> _pressScaleAnimation;
   late AnimationController _splatterController;
+  late AnimationController _selectController;
 
   @override
   void initState() {
@@ -1299,8 +1291,14 @@ class _TabItemState extends State<_TabItem> with TickerProviderStateMixin {
       duration: const Duration(milliseconds: 400),
     );
 
+    _selectController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 200),
+    );
+
     if (widget.isSelected) {
       _splatterController.value = 1.0;
+      _selectController.value = 1.0;
     }
   }
 
@@ -1310,12 +1308,20 @@ class _TabItemState extends State<_TabItem> with TickerProviderStateMixin {
     if (widget.isSelected && !oldWidget.isSelected) {
       _splatterController.forward(from: 0.0);
     }
+    if (widget.isSelected != oldWidget.isSelected) {
+      if (widget.isSelected) {
+        _selectController.forward();
+      } else {
+        _selectController.reverse();
+      }
+    }
   }
 
   @override
   void dispose() {
     _pressController.dispose();
     _splatterController.dispose();
+    _selectController.dispose();
     super.dispose();
   }
 
@@ -1331,38 +1337,15 @@ class _TabItemState extends State<_TabItem> with TickerProviderStateMixin {
     const activeColorStart = Color(0xFF0097B2);
     const activeColorEnd = Color(0xFF00C6E6);
 
-    final startColor = interpolateColorHSL(
-      inactiveBgColor,
-      activeColorStart,
-      widget.selectedRatio,
-    );
-    final endColor = interpolateColorHSL(
-      inactiveBgColor,
-      activeColorEnd,
-      widget.selectedRatio,
-    );
-
     final borderActiveColor = const Color(0xFF00E5FF).withValues(alpha: 0.5);
     final borderInactiveColor = widget.isDark
         ? Colors.white.withValues(alpha: 0.12)
         : Colors.black.withValues(alpha: 0.06);
-    final borderColor = interpolateColorHSL(
-      borderInactiveColor,
-      borderActiveColor,
-      widget.selectedRatio,
-    );
 
     final contentActiveColor = Colors.white;
     final contentInactiveColor = widget.isDark
         ? Colors.white70
         : const Color(0xFF004D40);
-    final contentColor = interpolateColorHSL(
-      contentInactiveColor,
-      contentActiveColor,
-      widget.selectedRatio,
-    );
-
-    final double baseScale = 0.96 + 0.08 * widget.selectedRatio;
 
     return Expanded(
       child: GestureDetector(
@@ -1378,83 +1361,108 @@ class _TabItemState extends State<_TabItem> with TickerProviderStateMixin {
         },
         onTap: widget.onTap,
         child: AnimatedBuilder(
-          animation: _pressScaleAnimation,
+          animation: Listenable.merge([_selectController, _pressScaleAnimation]),
           builder: (context, child) {
+            final selectedRatio = _selectController.value;
+            final double baseScale = 0.96 + 0.08 * selectedRatio;
+
+            final startColor = interpolateColorHSL(
+              inactiveBgColor,
+              activeColorStart,
+              selectedRatio,
+            );
+            final endColor = interpolateColorHSL(
+              inactiveBgColor,
+              activeColorEnd,
+              selectedRatio,
+            );
+
+            final borderColor = interpolateColorHSL(
+              borderInactiveColor,
+              borderActiveColor,
+              selectedRatio,
+            );
+
+            final contentColor = interpolateColorHSL(
+              contentInactiveColor,
+              contentActiveColor,
+              selectedRatio,
+            );
+
             return Transform.scale(
               scale: baseScale * _pressScaleAnimation.value,
-              child: child,
-            );
-          },
-          child: Container(
-            margin: const EdgeInsets.symmetric(horizontal: 3),
-            padding: EdgeInsets.symmetric(
-              horizontal: widget.isCompact ? 2 : 4,
-              vertical: widget.isCompact ? 6 : 8,
-            ),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [startColor, endColor],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: BorderRadius.circular(16),
-              boxShadow: widget.selectedRatio > 0.01
-                  ? [
-                      BoxShadow(
-                        color: const Color(
-                          0xFF00C6E6,
-                        ).withValues(alpha: 0.35 * widget.selectedRatio),
-                        blurRadius: 10,
-                        spreadRadius: -2,
-                        offset: const Offset(0, 3),
-                      ),
-                    ]
-                  : null,
-              border: Border.all(color: borderColor, width: 1.2),
-            ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    AnimatedBuilder(
-                      animation: _splatterController,
-                      builder: (context, child) {
-                        return CustomPaint(
-                          size: const Size(32, 32),
-                          painter: SplatterPainter(
-                            progress: _splatterController.value,
-                            color: const Color(0xFF00E5FF),
+              child: Container(
+                margin: const EdgeInsets.symmetric(horizontal: 3),
+                padding: EdgeInsets.symmetric(
+                  horizontal: widget.isCompact ? 2 : 4,
+                  vertical: widget.isCompact ? 6 : 8,
+                ),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [startColor, endColor],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: selectedRatio > 0.01
+                      ? [
+                          BoxShadow(
+                            color: const Color(
+                              0xFF00C6E6,
+                            ).withValues(alpha: 0.35 * selectedRatio),
+                            blurRadius: 10,
+                            spreadRadius: -2,
+                            offset: const Offset(0, 3),
                           ),
-                        );
-                      },
+                        ]
+                      : null,
+                  border: Border.all(color: borderColor, width: 1.2),
+                ),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        AnimatedBuilder(
+                          animation: _splatterController,
+                          builder: (context, child) {
+                            return CustomPaint(
+                              size: const Size(32, 32),
+                              painter: SplatterPainter(
+                                progress: _splatterController.value,
+                                color: const Color(0xFF00E5FF),
+                              ),
+                            );
+                          },
+                        ),
+                        Icon(
+                          icon,
+                          size: 15 + 3 * selectedRatio,
+                          color: contentColor,
+                        ),
+                      ],
                     ),
-                    Icon(
-                      icon,
-                      size: 15 + 3 * widget.selectedRatio,
-                      color: contentColor,
+                    const SizedBox(height: 3),
+                    Text(
+                      text,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontWeight: selectedRatio > 0.5
+                            ? FontWeight.bold
+                            : FontWeight.w600,
+                        color: contentColor,
+                        fontSize: 9.5,
+                        letterSpacing: 0.2 * selectedRatio,
+                      ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 3),
-                Text(
-                  text,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontWeight: widget.selectedRatio > 0.5
-                        ? FontWeight.bold
-                        : FontWeight.w600,
-                    color: contentColor,
-                    fontSize: 9.5,
-                    letterSpacing: 0.2 * widget.selectedRatio,
-                  ),
-                ),
-              ],
-            ),
-          ),
+              ),
+            );
+          },
         ),
       ),
     );
@@ -2404,6 +2412,95 @@ class SweepingRadarPainter extends CustomPainter {
   bool shouldRepaint(covariant SweepingRadarPainter oldDelegate) {
     return oldDelegate.animationValue != animationValue ||
         oldDelegate.isDark != isDark;
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Lazy IndexedStack for coordinator sub-tabs (replaces TabTransitionView).
+// Only the active tab is in the render tree. Tabs are mounted on first visit
+// and remain mounted thereafter to preserve state (map, scroll positions).
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _LazyCoordSubTabStack extends StatefulWidget {
+  final TabController controller;
+  final List<Widget> pages;
+
+  const _LazyCoordSubTabStack({
+    required this.controller,
+    required this.pages,
+  });
+
+  @override
+  State<_LazyCoordSubTabStack> createState() => _LazyCoordSubTabStackState();
+}
+
+class _LazyCoordSubTabStackState extends State<_LazyCoordSubTabStack> {
+  late int _currentIndex;
+  final Set<int> _visited = {};
+
+  @override
+  void initState() {
+    super.initState();
+    _currentIndex = widget.controller.index;
+    _visited.add(_currentIndex);
+    widget.controller.addListener(_onTabChanged);
+  }
+
+  @override
+  void dispose() {
+    widget.controller.removeListener(_onTabChanged);
+    super.dispose();
+  }
+
+  void _onTabChanged() {
+    final newIndex = widget.controller.index;
+    if (newIndex != _currentIndex) {
+      setState(() {
+        _currentIndex = newIndex;
+        _visited.add(_currentIndex);
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return IndexedStack(
+      index: _currentIndex,
+      children: List.generate(widget.pages.length, (i) {
+        if (!_visited.contains(i)) return const SizedBox.shrink();
+        return widget.pages[i];
+      }),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Lazy IndexedStack for coordinator bottom nav pages (replaces SpatialTabTransition).
+// Mounts each page only on first visit to avoid loading Google Maps + socket
+// streams for pages the user hasn't opened yet.
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _LazyCoordBottomNavStack extends StatelessWidget {
+  final int currentIndex;
+  final Set<int> visitedPages;
+  final Widget Function(int) pageBuilder;
+
+  const _LazyCoordBottomNavStack({
+    required this.currentIndex,
+    required this.visitedPages,
+    required this.pageBuilder,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    // 4 bottom nav pages: Dashboard(0), Notifications(1), Schedule(2), Profile(3)
+    return IndexedStack(
+      index: currentIndex,
+      children: List.generate(4, (i) {
+        if (!visitedPages.contains(i)) return const SizedBox.shrink();
+        return pageBuilder(i);
+      }),
+    );
   }
 }
 

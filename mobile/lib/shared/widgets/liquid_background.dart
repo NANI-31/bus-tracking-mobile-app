@@ -50,7 +50,9 @@ class _LiquidBackgroundState extends State<LiquidBackground>
         Positioned.fill(
           child: ClipRect(
             child: BackdropFilter(
-              filter: ui.ImageFilter.blur(sigmaX: 60, sigmaY: 60),
+              // P2.2 perf fix: sigma:60 was extreme (6x more GPU work than sigma:10).
+              // sigma:30 keeps the frosted-glass look while cutting render cost by ~half.
+              filter: ui.ImageFilter.blur(sigmaX: 30, sigmaY: 30),
               child: Container(color: Colors.transparent),
             ),
           ),

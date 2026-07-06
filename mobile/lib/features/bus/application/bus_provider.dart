@@ -285,3 +285,19 @@ final globalBusLocationsProvider =
         }
       });
     });
+/// Pre-computed set of live bus IDs for a college (P1.1 perf fix).
+///
+/// Derived from [collegeBusLocationsProvider] so it is updated by the socket
+/// stream. Using a [Provider] (not a [StreamProvider]) here means Riverpod
+/// will memoize the result and only propagate a change when the Set value
+/// actually differs \u2014 preventing downstream widgets from rebuilding on every
+/// GPS tick when the set of active bus IDs has NOT changed.
+///
+/// Widgets that only need to know "which buses are live" should watch this
+/// instead of [collegeBusLocationsProvider] to avoid unnecessary rebuilds.
+final studentLiveBusIdsProvider =
+    Provider.family<Set<String>, String>((ref, collegeId) {
+      final liveLocations =
+          ref.watch(collegeBusLocationsProvider(collegeId)).valueOrNull ?? [];
+      return liveLocations.map((loc) => loc.busId).toSet();
+    });

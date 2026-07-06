@@ -1,4 +1,4 @@
-import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -381,76 +381,79 @@ class _BusScheduleScreenState extends ConsumerState<BusScheduleScreen> {
     List<BusModel> allBuses,
     List<RouteModel> allRoutes,
   ) {
-    return ClipRRect(
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          decoration: BoxDecoration(
+    // P0.2 fix: Replaced BackdropFilter (GPU-expensive blur) with near-opaque
+    // solid background. Visually near-identical but avoids per-frame blur pass.
+    // Also removed IntrinsicHeight (was forcing double layout pass).
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: isDark
+            ? const Color(0xFF0D1B2A).withValues(alpha: 0.97)
+            : Colors.white.withValues(alpha: 0.98),
+        border: Border(
+          bottom: BorderSide(
             color: isDark
-                ? const Color(0xFF0D1B2A).withValues(alpha: 0.25)
-                : Colors.white.withValues(alpha: 0.45),
-            border: Border(
-              bottom: BorderSide(
-                color: isDark
-                    ? Colors.white.withValues(alpha: 0.08)
-                    : Colors.black.withValues(alpha: 0.06),
-                width: 1.2,
-              ),
-            ),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Row 1 & 2 combined using IntrinsicHeight
-              IntrinsicHeight(
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    // Left 2x2 grid for Status Cards (Row 1 and Row 2)
-                    Expanded(
-                      child: Column(
-                        children: [
-                          // Row 1: Status Card 1, Status Card 2
-                          Row(
-                            children: [
-                              Expanded(child: _buildGridStatusCard('all', 'All Status', Icons.grid_view_rounded, isDark)),
-                              const SizedBox(width: 8),
-                              Expanded(child: _buildGridStatusCard('on-time', 'On Time', Icons.offline_pin_rounded, isDark)),
-                            ],
-                          ),
-                          const SizedBox(height: 8),
-                          // Row 2: Status Card 3, Status Card 4
-                          Row(
-                            children: [
-                              Expanded(child: _buildGridStatusCard('delayed', 'Delayed', Icons.watch_later_rounded, isDark)),
-                              const SizedBox(width: 8),
-                              Expanded(child: _buildGridStatusCard('not-running', 'Offline', Icons.power_settings_new_rounded, isDark)),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    // Right column: Filter Icon Card spanning Row 1 and Row 2
-                    _buildGridFilterCard(context, isDark, buses, routes, stops, filterSchedules, allSchedules, allBuses, allRoutes),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 8),
-              // Row 3: Active chips in Col 1 & 2, Reset Badge in Col 3
-              Row(
-                children: [
-                  Expanded(
-                    child: _buildGridActiveChips(isDark, buses, routes, stops, filterSchedules, allSchedules),
-                  ),
-                  const SizedBox(width: 8),
-                  _buildRow1Col3Badge(isDark), // Vertically aligned under the filter card
-                ],
-              ),
-            ],
+                ? Colors.white.withValues(alpha: 0.08)
+                : Colors.black.withValues(alpha: 0.06),
+            width: 1.2,
           ),
         ),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Row 1 & 2 — fixed 76px height avoids double IntrinsicHeight layout pass
+          SizedBox(
+            height: 76,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // Left 2x2 grid for Status Cards
+                Expanded(
+                  child: Column(
+                    children: [
+                      // Row 1: Status Card 1, Status Card 2
+                      Expanded(
+                        child: Row(
+                          children: [
+                            Expanded(child: _buildGridStatusCard('all', 'All Status', Icons.grid_view_rounded, isDark)),
+                            const SizedBox(width: 8),
+                            Expanded(child: _buildGridStatusCard('on-time', 'On Time', Icons.offline_pin_rounded, isDark)),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      // Row 2: Status Card 3, Status Card 4
+                      Expanded(
+                        child: Row(
+                          children: [
+                            Expanded(child: _buildGridStatusCard('delayed', 'Delayed', Icons.watch_later_rounded, isDark)),
+                            const SizedBox(width: 8),
+                            Expanded(child: _buildGridStatusCard('not-running', 'Offline', Icons.power_settings_new_rounded, isDark)),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                // Right column: Filter Icon Card
+                _buildGridFilterCard(context, isDark, buses, routes, stops, filterSchedules, allSchedules, allBuses, allRoutes),
+              ],
+            ),
+          ),
+          const SizedBox(height: 8),
+          // Row 3: Active chips + Reset Badge
+          Row(
+            children: [
+              Expanded(
+                child: _buildGridActiveChips(isDark, buses, routes, stops, filterSchedules, allSchedules),
+              ),
+              const SizedBox(width: 8),
+              _buildRow1Col3Badge(isDark),
+            ],
+          ),
+        ],
       ),
     );
   }
@@ -1685,24 +1688,28 @@ class _BusScheduleScreenState extends ConsumerState<BusScheduleScreen> {
     final stopCount = displayStopSchedules.length;
     final routeTypeIsPickup = route.routeType.toLowerCase() == 'pickup';
 
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(20),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
-          child: Container(
-            decoration: BoxDecoration(
+    // P0.1 + P1.2 fix: Removed BackdropFilter from every card in the list.
+    // BackdropFilter inside ListView forces GPU to readback+blur per visible
+    // card on every scroll frame — extremely expensive. Using a solid near-
+    // opaque background instead. Wrapped in RepaintBoundary so expansion of
+    // one card doesn't repaint neighbouring cards.
+    return RepaintBoundary(
+      child: Padding(
+        padding: const EdgeInsets.only(bottom: 12),
+        child: Container(
+          decoration: BoxDecoration(
+            color: isDark
+                ? const Color(0xFF1E293B)
+                : Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
               color: isDark
-                  ? const Color(0xFF1E293B).withValues(alpha: 0.55)
-                  : Colors.white.withValues(alpha: 0.82),
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(
-                color: isDark
-                    ? Colors.white.withValues(alpha: 0.06)
-                    : Colors.black.withValues(alpha: 0.05),
-              ),
+                  ? Colors.white.withValues(alpha: 0.06)
+                  : Colors.black.withValues(alpha: 0.05),
             ),
+          ),
+          child: Material(
+            color: Colors.transparent,
             child: Theme(
               data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
               child: ExpansionTile(
@@ -1711,388 +1718,386 @@ class _BusScheduleScreenState extends ConsumerState<BusScheduleScreen> {
                 maintainState: false,
                 tilePadding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
                 childrenPadding: const EdgeInsets.fromLTRB(14, 0, 14, 16),
-                leading: Container(
-                  width: 50,
-                  height: 50,
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFF00C6E6), Color(0xFF0076A3)],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                    borderRadius: BorderRadius.circular(15),
-                    boxShadow: [
-                      BoxShadow(
-                        color: const Color(0xFF00C6E6).withValues(alpha: 0.3),
-                        blurRadius: 12,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
+              leading: Container(
+                width: 50,
+                height: 50,
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF00C6E6), Color(0xFF0076A3)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
                   ),
-                  alignment: Alignment.center,
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(
-                        Icons.directions_bus_rounded,
-                        color: Colors.white,
-                        size: 16,
-                      ),
-                      Text(
-                        bus.busNumber.replaceAll(RegExp(r'[A-Za-z\s]'), '').trim().isEmpty
-                            ? bus.busNumber.substring(0, bus.busNumber.length.clamp(0, 3))
-                            : bus.busNumber.replaceAll(RegExp(r'[A-Za-z\s]'), '').trim(),
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w800,
-                          fontSize: 13,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                title: Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        'Bus ${bus.busNumber}',
-                        style: TextStyle(
-                          fontWeight: FontWeight.w800,
-                          fontSize: 16,
-                          letterSpacing: -0.3,
-                          color: isDark ? Colors.white : const Color(0xFF0F172A),
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
+                  borderRadius: BorderRadius.circular(15),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF00C6E6).withValues(alpha: 0.3),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
                     ),
-                    const SizedBox(width: 8),
-                    _buildRouteTypeChip(routeTypeIsPickup, isDark),
                   ],
                 ),
-                subtitle: Padding(
-                  padding: const EdgeInsets.only(top: 5),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Icon(
-                            Icons.linear_scale_rounded,
-                            size: 12,
-                            color: isDark
-                                ? Colors.white.withValues(alpha: 0.35)
-                                : Colors.black.withValues(alpha: 0.3),
-                          ),
-                          const SizedBox(width: 5),
-                          Expanded(
-                            child: Text(
-                              route.startPoint.name.isNotEmpty
-                                  ? '${route.startPoint.name} → ${route.endPoint.name}'
-                                  : 'Route not assigned',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: isDark
-                                    ? Colors.white.withValues(alpha: 0.45)
-                                    : Colors.black.withValues(alpha: 0.4),
-                                fontWeight: FontWeight.w500,
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          _buildStatusBadge(bus.status, bus.delay),
-                        ],
-                      ),
-                      const SizedBox(height: 5),
-                      Row(
-                        children: [
-                          Icon(
-                            Icons.location_on_rounded,
-                            size: 11,
-                            color: isDark
-                                ? Colors.white.withValues(alpha: 0.25)
-                                : Colors.black.withValues(alpha: 0.25),
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            '$stopCount stop${stopCount == 1 ? '' : 's'} on this route',
-                            style: TextStyle(
-                              fontSize: 11,
-                              color: isDark
-                                  ? Colors.white.withValues(alpha: 0.3)
-                                  : Colors.black.withValues(alpha: 0.3),
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-                trailing: Container(
-                  padding: const EdgeInsets.all(6),
-                  decoration: BoxDecoration(
-                    color: isDark
-                        ? Colors.white.withValues(alpha: 0.06)
-                        : Colors.black.withValues(alpha: 0.04),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Icon(
-                    Icons.expand_more_rounded,
-                    color: isDark
-                        ? Colors.white.withValues(alpha: 0.4)
-                        : Colors.black.withValues(alpha: 0.3),
-                    size: 18,
-                  ),
-                ),
-                children: [
-                  // ── Expanded Detail ─────────────────────────────────────
-                  Container(
-                    margin: const EdgeInsets.only(bottom: 8),
-                    height: 1,
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [
-                          Colors.transparent,
-                          isDark
-                              ? Colors.white.withValues(alpha: 0.08)
-                              : Colors.black.withValues(alpha: 0.06),
-                          Colors.transparent,
-                        ],
+                alignment: Alignment.center,
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(
+                      Icons.directions_bus_rounded,
+                      color: Colors.white,
+                      size: 16,
+                    ),
+                    Text(
+                      bus.busNumber.replaceAll(RegExp(r'[A-Za-z\s]'), '').trim().isEmpty
+                          ? bus.busNumber.substring(0, bus.busNumber.length.clamp(0, 3))
+                          : bus.busNumber.replaceAll(RegExp(r'[A-Za-z\s]'), '').trim(),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 13,
                       ),
                     ),
-                  ),
-                  // Action row
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(6),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF00C6E6).withValues(alpha: 0.1),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: const Icon(
-                              Icons.access_time_filled_rounded,
-                              size: 14,
-                              color: Color(0xFF00C6E6),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            'Stop Schedule',
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w700,
-                              color: isDark
-                                  ? Colors.white.withValues(alpha: 0.85)
-                                  : const Color(0xFF0F172A),
-                            ),
-                          ),
-                        ],
+                  ],
+                ),
+              ),
+              title: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      'Bus ${bus.busNumber}',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w800,
+                        fontSize: 16,
+                        letterSpacing: -0.3,
+                        color: isDark ? Colors.white : const Color(0xFF0F172A),
                       ),
-                      if (widget.onBusSelected != null)
-                        _buildTrackButton(context, bus, user, isDark),
-                    ],
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
-                  const SizedBox(height: 14),
-                  // Column headers
-                  Padding(
-                    padding: const EdgeInsets.only(left: 34),
-                    child: Row(
+                  const SizedBox(width: 8),
+                  _buildRouteTypeChip(routeTypeIsPickup, isDark),
+                ],
+              ),
+              subtitle: Padding(
+                padding: const EdgeInsets.only(top: 5),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
                       children: [
+                        Icon(
+                          Icons.linear_scale_rounded,
+                          size: 12,
+                          color: isDark
+                              ? Colors.white.withValues(alpha: 0.35)
+                              : Colors.black.withValues(alpha: 0.3),
+                        ),
+                        const SizedBox(width: 5),
                         Expanded(
                           child: Text(
-                            'STOP',
+                            route.startPoint.name.isNotEmpty
+                                ? '${route.startPoint.name} → ${route.endPoint.name}'
+                                : 'Route not assigned',
                             style: TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.w800,
-                              letterSpacing: 0.8,
+                              fontSize: 12,
                               color: isDark
-                                  ? Colors.white.withValues(alpha: 0.3)
-                                  : Colors.black.withValues(alpha: 0.3),
+                                  ? Colors.white.withValues(alpha: 0.45)
+                                  : Colors.black.withValues(alpha: 0.4),
+                              fontWeight: FontWeight.w500,
                             ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ),
+                        const SizedBox(width: 8),
+                        _buildStatusBadge(bus.status, bus.delay),
+                      ],
+                    ),
+                    const SizedBox(height: 5),
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.location_on_rounded,
+                          size: 11,
+                          color: isDark
+                              ? Colors.white.withValues(alpha: 0.25)
+                              : Colors.black.withValues(alpha: 0.25),
+                        ),
+                        const SizedBox(width: 4),
                         Text(
-                          'ARR',
+                          '$stopCount stop${stopCount == 1 ? '' : 's'} on this route',
                           style: TextStyle(
-                            fontSize: 10,
-                            fontWeight: FontWeight.w800,
-                            letterSpacing: 0.8,
+                            fontSize: 11,
                             color: isDark
                                 ? Colors.white.withValues(alpha: 0.3)
                                 : Colors.black.withValues(alpha: 0.3),
+                            fontWeight: FontWeight.w500,
                           ),
                         ),
-                        const SizedBox(width: 18),
-                        Text(
-                          'DEP',
-                          style: TextStyle(
-                            fontSize: 10,
-                            fontWeight: FontWeight.w800,
-                            letterSpacing: 0.8,
-                            color: isDark
-                                ? Colors.white.withValues(alpha: 0.3)
-                                : Colors.black.withValues(alpha: 0.3),
-                          ),
-                        ),
-                        const SizedBox(width: 2),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              trailing: Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: isDark
+                      ? Colors.white.withValues(alpha: 0.06)
+                      : Colors.black.withValues(alpha: 0.04),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(
+                  Icons.expand_more_rounded,
+                  color: isDark
+                      ? Colors.white.withValues(alpha: 0.4)
+                      : Colors.black.withValues(alpha: 0.3),
+                  size: 18,
+                ),
+              ),
+              children: [
+                // ── Expanded Detail ─────────────────────────────────────
+                Container(
+                  margin: const EdgeInsets.only(bottom: 8),
+                  height: 1,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        Colors.transparent,
+                        isDark
+                            ? Colors.white.withValues(alpha: 0.08)
+                            : Colors.black.withValues(alpha: 0.06),
+                        Colors.transparent,
                       ],
                     ),
                   ),
-                  const SizedBox(height: 8),
-                  // Timeline rows
-                  ...displayStopSchedules.asMap().entries.map((entry) {
-                    final idx = entry.key;
-                    final stopSchedule = entry.value;
-                    final totalStops = displayStopSchedules.length;
-                    final isFirst = idx == 0;
-                    final isLast = idx == totalStops - 1;
+                ),
+                // Action row
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(6),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF00C6E6).withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Icon(
+                            Icons.access_time_filled_rounded,
+                            size: 14,
+                            color: Color(0xFF00C6E6),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Stop Schedule',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            color: isDark
+                                ? Colors.white.withValues(alpha: 0.85)
+                                : const Color(0xFF0F172A),
+                          ),
+                        ),
+                      ],
+                    ),
+                    if (widget.onBusSelected != null)
+                      _buildTrackButton(context, bus, user, isDark),
+                  ],
+                ),
+                const SizedBox(height: 14),
+                // Column headers
+                Padding(
+                  padding: const EdgeInsets.only(left: 34),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          'STOP',
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 0.8,
+                            color: isDark
+                                ? Colors.white.withValues(alpha: 0.3)
+                                : Colors.black.withValues(alpha: 0.3),
+                          ),
+                        ),
+                      ),
+                      Text(
+                        'ARR',
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 0.8,
+                          color: isDark
+                              ? Colors.white.withValues(alpha: 0.3)
+                              : Colors.black.withValues(alpha: 0.3),
+                        ),
+                      ),
+                      const SizedBox(width: 18),
+                      Text(
+                        'DEP',
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 0.8,
+                          color: isDark
+                              ? Colors.white.withValues(alpha: 0.3)
+                              : Colors.black.withValues(alpha: 0.3),
+                        ),
+                      ),
+                      const SizedBox(width: 2),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 8),
+                // Timeline rows
+                ...displayStopSchedules.asMap().entries.map((entry) {
+                  final idx = entry.key;
+                  final stopSchedule = entry.value;
+                  final totalStops = displayStopSchedules.length;
+                  final isFirst = idx == 0;
+                  final isLast = idx == totalStops - 1;
 
-                    final Color nodeColor;
-                    if (isFirst) {
-                      nodeColor = const Color(0xFF10B981);
-                    } else if (isLast) {
-                      nodeColor = const Color(0xFFEF4444);
-                    } else {
-                      nodeColor = const Color(0xFFF97316);
-                    }
+                  final Color nodeColor;
+                  if (isFirst) {
+                    nodeColor = const Color(0xFF10B981);
+                  } else if (isLast) {
+                    nodeColor = const Color(0xFFEF4444);
+                  } else {
+                    nodeColor = const Color(0xFFF97316);
+                  }
 
-                    // Dynamically calculate connector line gradient colors
-                    final Color startLineColor = (isFirst ? const Color(0xFF10B981) : const Color(0xFFF97316))
-                        .withValues(alpha: isDark ? 0.35 : 0.25);
-                    final Color endLineColor = (isLast ? const Color(0xFFEF4444) : (idx == totalStops - 2 ? const Color(0xFFEF4444) : const Color(0xFFF97316)))
-                        .withValues(alpha: isDark ? 0.35 : 0.25);
+                  // Dynamically calculate connector line gradient colors
+                  final Color startLineColor = (isFirst ? const Color(0xFF10B981) : const Color(0xFFF97316))
+                      .withValues(alpha: isDark ? 0.35 : 0.25);
+                  final Color endLineColor = (isLast ? const Color(0xFFEF4444) : (idx == totalStops - 2 ? const Color(0xFFEF4444) : const Color(0xFFF97316)))
+                      .withValues(alpha: isDark ? 0.35 : 0.25);
 
-                    return SizedBox(
-                      height: 50,
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          // Timeline column
-                          SizedBox(
-                            width: 24,
-                            height: 50, // CRITICAL: Explicit height matches parent height to ensure Stack stretches fully
-                            child: Stack(
-                              alignment: Alignment.center,
-                              children: [
-                                // Connector line
-                                Positioned(
-                                  top: isFirst ? 25 : 0,
-                                  bottom: isLast ? 25 : 0,
-                                  width: 2.2, // Slightly thicker line for better visual presence
-                                  child: Container(
-                                    decoration: BoxDecoration(
-                                      gradient: LinearGradient(
-                                        begin: Alignment.topCenter,
-                                        end: Alignment.bottomCenter,
-                                        colors: [startLineColor, endLineColor],
-                                      ),
-                                      borderRadius: BorderRadius.circular(1),
+                  return SizedBox(
+                    height: 50,
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        // Timeline column
+                        SizedBox(
+                          width: 24,
+                          height: 50, // CRITICAL: Explicit height matches parent height to ensure Stack stretches fully
+                          child: Stack(
+                            alignment: Alignment.center,
+                            children: [
+                              // Connector line
+                              Positioned(
+                                top: isFirst ? 25 : 0,
+                                bottom: isLast ? 25 : 0,
+                                width: 2.2, // Slightly thicker line for better visual presence
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    gradient: LinearGradient(
+                                      begin: Alignment.topCenter,
+                                      end: Alignment.bottomCenter,
+                                      colors: [startLineColor, endLineColor],
                                     ),
+                                    borderRadius: BorderRadius.circular(1),
                                   ),
                                 ),
-                                // Node dot
-                                isFirst || isLast
-                                    ? Container(
-                                        width: 12,
-                                        height: 12,
-                                        decoration: BoxDecoration(
-                                          color: isDark ? const Color(0xFF0F172A) : Colors.white,
-                                          shape: BoxShape.circle,
-                                          border: Border.all(
-                                            color: nodeColor,
-                                            width: 2.5,
-                                          ),
-                                          boxShadow: [
-                                            BoxShadow(
-                                              color: nodeColor.withValues(alpha: 0.45),
-                                              blurRadius: 6,
-                                              spreadRadius: 1,
-                                            ),
-                                          ],
-                                        ),
-                                      )
-                                    : Container(
-                                        width: 8,
-                                        height: 8,
-                                        decoration: BoxDecoration(
-                                          color: nodeColor,
-                                          shape: BoxShape.circle,
-                                          boxShadow: [
-                                            BoxShadow(
-                                              color: nodeColor.withValues(alpha: 0.4),
-                                              blurRadius: 4,
-                                              spreadRadius: 0,
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(width: 10),
-                          // Stop name
-                          Expanded(
-                            child: Text(
-                              stopSchedule.stopName,
-                              style: TextStyle(
-                                fontSize: 13,
-                                fontWeight: isFirst || isLast
-                                    ? FontWeight.w700
-                                    : FontWeight.w500,
-                                color: isDark
-                                    ? (isFirst || isLast
-                                        ? Colors.white.withValues(alpha: 0.9)
-                                        : Colors.white.withValues(alpha: 0.7))
-                                    : (isFirst || isLast
-                                        ? const Color(0xFF0F172A)
-                                        : Colors.black.withValues(alpha: 0.6)),
                               ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
+                              // Node dot
+                              isFirst || isLast
+                                  ? Container(
+                                      width: 12,
+                                      height: 12,
+                                      decoration: BoxDecoration(
+                                        color: isDark ? const Color(0xFF0F172A) : Colors.white,
+                                        shape: BoxShape.circle,
+                                        border: Border.all(
+                                          color: nodeColor,
+                                          width: 2.5,
+                                        ),
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: nodeColor.withValues(alpha: 0.45),
+                                            blurRadius: 6,
+                                            spreadRadius: 1,
+                                          ),
+                                        ],
+                                      ),
+                                    )
+                                  : Container(
+                                      width: 8,
+                                      height: 8,
+                                      decoration: BoxDecoration(
+                                        color: nodeColor,
+                                        shape: BoxShape.circle,
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: nodeColor.withValues(alpha: 0.4),
+                                            blurRadius: 4,
+                                            spreadRadius: 0,
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                            ],
                           ),
-                          // Arrival
-                          Text(
-                            stopSchedule.arrivalTime,
-                            style: const TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w700,
-                              color: Color(0xFF00C6E6),
-                              fontFeatures: [FontFeature.tabularFigures()],
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          // Departure
-                          Text(
-                            stopSchedule.departureTime,
+                        ),
+                        const SizedBox(width: 10),
+                        // Stop name
+                        Expanded(
+                          child: Text(
+                            stopSchedule.stopName,
                             style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w500,
+                              fontSize: 13,
+                              fontWeight: isFirst || isLast ? FontWeight.w700 : FontWeight.w500,
                               color: isDark
-                                  ? Colors.white.withValues(alpha: 0.5)
-                                  : Colors.black.withValues(alpha: 0.45),
-                              fontFeatures: const [FontFeature.tabularFigures()],
+                                  ? (isFirst || isLast
+                                      ? Colors.white.withValues(alpha: 0.9)
+                                      : Colors.white.withValues(alpha: 0.7))
+                                  : (isFirst || isLast
+                                      ? const Color(0xFF0F172A)
+                                      : Colors.black.withValues(alpha: 0.6)),
                             ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
-                        ],
-                      ),
-                    );
-                  }),
-                ],
-              ),
+                        ),
+                        // Arrival
+                        Text(
+                          stopSchedule.arrivalTime,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF00C6E6),
+                            fontFeatures: [FontFeature.tabularFigures()],
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        // Departure
+                        Text(
+                          stopSchedule.departureTime,
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                            color: isDark
+                                ? Colors.white.withValues(alpha: 0.5)
+                                : Colors.black.withValues(alpha: 0.45),
+                            fontFeatures: const [FontFeature.tabularFigures()],
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }),
+              ],
             ),
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildRouteTypeChip(bool isPickup, bool isDark) {
     final color = isPickup ? const Color(0xFF6366F1) : const Color(0xFF10B981);

@@ -45,7 +45,9 @@ class BusModel {
       isActive: parseBool(map['isActive'], true),
       status: map['status'] ?? 'on-time',
       assignmentStatus: map['assignmentStatus'] ?? 'unassigned',
-      delay: map['delay'] ?? 0,
+      // delay may arrive as double (e.g. 0.0) from some API versions;
+      // cast via num to avoid TypeError.
+      delay: (map['delay'] as num?)?.toInt() ?? 0,
       capacity: map['capacity'],
       shiftId: map['shiftId'],
       createdAt: parseDateTime(map['createdAt']),
@@ -133,9 +135,8 @@ class BusLocationModel {
         locData?['lat']?.toDouble() ?? 0.0,
         locData?['lng']?.toDouble() ?? 0.0,
       ),
-      timestamp: map['timestamp'] != null
-          ? DateTime.parse(map['timestamp'])
-          : DateTime.now(),
+      // Use parseDateTime for safe null/malformed handling
+      timestamp: parseDateTime(map['timestamp']),
       speed: map['speed']?.toDouble(),
       heading: map['heading']?.toDouble(),
       collegeId: map['collegeId'],

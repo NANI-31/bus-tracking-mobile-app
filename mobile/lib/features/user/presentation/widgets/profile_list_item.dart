@@ -57,50 +57,53 @@ class _ProfileListItemState extends State<ProfileListItem>
 
     Widget child = Column(
       children: [
-        ListTile(
-          onTap: widget.onTap != null
-              ? () {
-                  widget.onTap!();
-                }
-              : null,
-          contentPadding: const EdgeInsets.symmetric(
-            horizontal: 20,
-            vertical: 6,
-          ),
-          leading: Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: widget.iconColor.withValues(alpha: isDark ? 0.12 : 0.08),
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(
-                color: widget.iconColor.withValues(alpha: isDark ? 0.25 : 0.15),
-                width: 1,
-              ),
+        Material(
+          color: Colors.transparent,
+          child: ListTile(
+            onTap: widget.onTap != null
+                ? () {
+                    widget.onTap!();
+                  }
+                : null,
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 20,
+              vertical: 6,
             ),
-            child: Icon(widget.leadingIcon, color: widget.iconColor, size: 22),
-          ),
-          title: widget.title.text.semiBold
-              .size(15)
-              .color(Theme.of(context).colorScheme.onSurface)
-              .make(),
-          subtitle: widget.subtitle != null && widget.subtitle!.isNotEmpty
-              ? widget.subtitle!.text
-                  .size(12)
-                  .color(
-                    Theme.of(context)
-                        .colorScheme
-                        .onSurface
-                        .withValues(alpha: 0.5),
+            leading: Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: widget.iconColor.withValues(alpha: isDark ? 0.12 : 0.08),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(
+                  color: widget.iconColor.withValues(alpha: isDark ? 0.25 : 0.15),
+                  width: 1,
+                ),
+              ),
+              child: Icon(widget.leadingIcon, color: widget.iconColor, size: 22),
+            ),
+            title: widget.title.text.semiBold
+                .size(15)
+                .color(Theme.of(context).colorScheme.onSurface)
+                .make(),
+            subtitle: widget.subtitle != null && widget.subtitle!.isNotEmpty
+                ? widget.subtitle!.text
+                    .size(12)
+                    .color(
+                      Theme.of(context)
+                          .colorScheme
+                          .onSurface
+                          .withValues(alpha: 0.5),
+                    )
+                    .make()
+                    .pOnly(top: 2)
+                : null,
+            trailing: widget.trailing != null
+                ? AnimatedTrailingChevron(
+                    parentController: _controller,
+                    child: widget.trailing!,
                   )
-                  .make()
-                  .pOnly(top: 2)
-              : null,
-          trailing: widget.trailing != null
-              ? AnimatedTrailingChevron(
-                  parentController: _controller,
-                  child: widget.trailing!,
-                )
-              : null,
+                : null,
+          ),
         ),
         if (widget.showDivider)
           Divider(

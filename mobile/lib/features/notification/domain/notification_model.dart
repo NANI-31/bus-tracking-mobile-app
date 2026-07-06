@@ -35,7 +35,7 @@ class NotificationModel {
       receiverId: map['receiverId'] ?? '',
       message: map['message'] ?? '',
       type: map['type'] ?? '',
-      timestamp: DateTime.parse(map['timestamp']),
+      timestamp: parseDateTime(map['timestamp']),
       isRead: parseBool(map['isRead'], false),
       groupId: map['groupId'],
       data: map['data'],

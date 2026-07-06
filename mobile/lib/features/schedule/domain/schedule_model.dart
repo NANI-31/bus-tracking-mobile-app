@@ -30,20 +30,26 @@ class ScheduleModel {
   factory ScheduleModel.fromMap(Map<String, dynamic> map, String id) {
     return ScheduleModel(
       id: id,
-      routeId: map['routeId'] ?? '',
-      busId: map['busId'] ?? '',
-      shift: map['shift'] ?? '1st',
-      tripType: map['tripType'] ?? 'pickup',
+      routeId: map['routeId'] as String? ?? '',
+      busId: map['busId'] as String? ?? '',
+      shift: map['shift'] as String? ?? '1st',
+      tripType: map['tripType'] as String? ?? 'pickup',
+      // Defensive: item may arrive as Map<String, dynamic> or LinkedMap —
+      // cast explicitly to avoid ClassCastException.
       stopSchedules:
           (map['stopSchedules'] as List<dynamic>?)
-              ?.map((item) => StopSchedule.fromMap(item))
+              ?.map((item) => StopSchedule.fromMap(
+                    Map<String, dynamic>.from(item as Map),
+                  ))
               .toList() ??
           [],
-      collegeId: map['collegeId'] ?? '',
-      createdBy: map['createdBy'] ?? '',
-      createdAt: DateTime.parse(map['createdAt']),
+      collegeId: map['collegeId'] as String? ?? '',
+      createdBy: map['createdBy'] as String? ?? '',
+      // Use parseDateTime to safely handle null / malformed date strings
+      // instead of raw DateTime.parse() which throws on null.
+      createdAt: parseDateTime(map['createdAt']),
       updatedAt: map['updatedAt'] != null
-          ? DateTime.parse(map['updatedAt'])
+          ? parseDateTime(map['updatedAt'])
           : null,
       isActive: parseBool(map['isActive'], true),
     );
