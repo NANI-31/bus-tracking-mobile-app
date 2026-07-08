@@ -119,18 +119,34 @@ final busNumbersProvider = StreamProvider.family<List<String>, String>((
   });
 });
 
+/// In-memory cache of the latest locations for each bus (keyed by busId),
+/// to ensure that when providers are remounted (e.g. on tab switches),
+/// the last known positions are delivered immediately rather than waiting for the next socket tick.
+final Map<String, BusLocationModel> _lastKnownLocations = {};
+
 /// StreamProvider for real-time bus locations in a specific college
 final collegeBusLocationsProvider =
     StreamProvider.family<List<BusLocationModel>, String>((ref, collegeId) {
       final socket = ref.read(socketServiceProvider);
 
       return Stream.multi((controller) async {
-        List<BusLocationModel> currentLocations = [];
+        // Pre-seed from cache if available to prevent blank screens/flashing on tab switch
+        List<BusLocationModel> currentLocations = _lastKnownLocations.values
+            .where((loc) => loc.collegeId == collegeId)
+            .toList();
+
+        if (currentLocations.isNotEmpty && !controller.isClosed) {
+          controller.add(List.from(currentLocations));
+        }
 
         final subscription = socket.locationUpdateStream.listen((data) {
           if (data['collegeId'] == collegeId) {
             final busId = data['busId'];
             final newLoc = BusLocationModel.fromMap(data, busId);
+
+            // Cache the location
+            _lastKnownLocations[busId] = newLoc;
+
             final index = currentLocations.indexWhere((l) => l.busId == busId);
             if (index != -1) {
               currentLocations[index] = newLoc;
@@ -156,6 +172,12 @@ final collegeBusLocationsProvider =
             final repo = ref.watch(busRepositoryProvider);
             final apiLocations = await repo.getCollegeBusLocations(collegeId);
             currentLocations = List.from(apiLocations);
+
+            // Update cache with REST API fetched locations
+            for (final loc in apiLocations) {
+              _lastKnownLocations[loc.busId] = loc;
+            }
+
             if (!controller.isClosed) controller.add(currentLocations);
           } catch (e) {
             // initial fetch error handled by stream
@@ -173,14 +195,24 @@ final busLocationProvider = StreamProvider.family<BusLocationModel?, String>((
   final socket = ref.watch(socketServiceProvider);
 
   return Stream.multi((controller) async {
+    // Deliver cached location immediately
+    if (_lastKnownLocations.containsKey(busId)) {
+      if (!controller.isClosed) controller.add(_lastKnownLocations[busId]);
+    }
+
     try {
       final location = await repo.getBusLocation(busId);
+      if (location != null) {
+        _lastKnownLocations[busId] = location;
+      }
       if (!controller.isClosed) controller.add(location);
     } catch (_) {}
 
     final subscription = socket.locationUpdateStream.listen((data) {
       if (data['busId'] == busId) {
-        controller.add(BusLocationModel.fromMap(data, busId));
+        final newLoc = BusLocationModel.fromMap(data, busId);
+        _lastKnownLocations[busId] = newLoc;
+        if (!controller.isClosed) controller.add(newLoc);
       }
     });
     controller.onCancel = () => subscription.cancel();
@@ -238,11 +270,20 @@ final globalBusLocationsProvider =
       final repo = ref.watch(busRepositoryProvider);
 
       return Stream.multi((controller) async {
-        List<BusLocationModel> currentLocations = [];
+        // Pre-seed from cache if available
+        List<BusLocationModel> currentLocations = _lastKnownLocations.values.toList();
+
+        if (currentLocations.isNotEmpty && !controller.isClosed) {
+          controller.add(List.from(currentLocations));
+        }
 
         final subscription = socket.locationUpdateStream.listen((data) {
           final busId = data['busId'];
           final newLoc = BusLocationModel.fromMap(data, busId);
+
+          // Update cache
+          _lastKnownLocations[busId] = newLoc;
+
           final index = currentLocations.indexWhere((l) => l.busId == busId);
           if (index != -1) {
             currentLocations[index] = newLoc;
@@ -270,6 +311,9 @@ final globalBusLocationsProvider =
           
           for (final locs in locationResults) {
             for (final loc in locs) {
+              // Update cache
+              _lastKnownLocations[loc.busId] = loc;
+
               final idx = currentLocations.indexWhere((l) => l.busId == loc.busId);
               if (idx != -1) {
                 currentLocations[idx] = loc;

@@ -9,6 +9,15 @@ class GlobalConnectivityBanner extends ConsumerStatefulWidget {
   final Widget? child;
   const GlobalConnectivityBanner({super.key, this.child});
 
+  /// Suppress the offline banner for [duration] starting now.
+  /// Call from anywhere (e.g. driver dashboard on app resume) to prevent
+  /// the misleading red flash during normal post-resume socket reconnection.
+  static void suppress(Duration duration) {
+    _suppressUntil = DateTime.now().add(duration);
+  }
+
+  static DateTime? _suppressUntil;
+
   @override
   ConsumerState<GlobalConnectivityBanner> createState() => _GlobalConnectivityBannerState();
 }
@@ -110,10 +119,18 @@ class _GlobalConnectivityBannerState extends ConsumerState<GlobalConnectivityBan
       if (_wasConnected) {
         _wasConnected = false;
         _hideTimer?.cancel();
-        
-        // Add a 2-second grace period for brief network blips before showing offline banner
+
+        // Add a grace period before showing the offline banner.
+        // On resume from background, we extend the grace period to 5 s to
+        // cover the normal socket reconnect window (avoids misleading flash).
         _gracePeriodTimer?.cancel();
-        _gracePeriodTimer = Timer(const Duration(seconds: 2), () {
+        final isSuppressed = GlobalConnectivityBanner._suppressUntil != null &&
+            DateTime.now().isBefore(GlobalConnectivityBanner._suppressUntil!);
+        final graceDuration = isSuppressed
+            ? const Duration(seconds: 5)
+            : const Duration(seconds: 2);
+
+        _gracePeriodTimer = Timer(graceDuration, () {
           if (mounted && !ref.read(socketServiceProvider).isConnected) {
             setState(() {
               _isReconnectedState = false;

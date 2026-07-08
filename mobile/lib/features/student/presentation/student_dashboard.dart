@@ -16,6 +16,8 @@ import 'package:collegebus/features/notification/application/proximity_provider.
 import 'package:collegebus/features/notification/application/notification_provider.dart';
 import 'package:collegebus/features/notification/services/fcm_service.dart';
 
+import 'package:collegebus/features/notification/services/notification_service.dart';
+
 // Import the new modules
 import 'package:collegebus/features/student/application/map_navigation_provider.dart';
 import 'tabs/student_map_tab.dart';
@@ -54,6 +56,18 @@ class _StudentDashboardState extends ConsumerState<StudentDashboard>
   /// not on every build triggered by socket events.
   bool _busRestoredFromPrefs = false;
 
+  /// Subscription to the socket stop_reached stream.
+  /// Shows an in-app banner when the student's tracked bus arrives at a stop.
+  StreamSubscription<Map<String, dynamic>>? _stopReachedSub;
+
+  /// Active stop arrival in-app toast overlay.
+  OverlayEntry? _activeStopArrivalOverlay;
+
+  /// Tracks the current app lifecycle state to determine whether to show
+  /// an in-app toast or background system notification.
+  AppLifecycleState _lifecycleState = AppLifecycleState.resumed;
+
+
   @override
   void initState() {
     super.initState();
@@ -86,11 +100,191 @@ class _StudentDashboardState extends ConsumerState<StudentDashboard>
         ref.read(socketServiceProvider).joinCollege(collegeId);
       }
       _checkPermissions(); // Request permissions after dashboard load
+      _subscribeToStopArrivals(); // Start listening for stop_reached events
     });
   }
 
+  /// Listen to the socket stop_reached stream and show a banner/notification whenever
+  /// the bus the student is currently tracking arrives at a stop.
+  ///
+  /// Filters by [selectedBus.id] so only events for the tracked bus appear.
+  void _subscribeToStopArrivals() {
+    final socketService = ref.read(socketServiceProvider);
+    _stopReachedSub = socketService.stopReachedStream.listen((data) {
+      if (!mounted) return;
+
+      // Only show the banner for the bus the student is currently tracking.
+      final selectedBus =
+          ref.read(mapNavigationProvider.select((s) => s.selectedBus));
+      if (selectedBus == null || data['busId'] != selectedBus.id) return;
+
+      final stopName = data['stopName'] as String? ?? 'a stop';
+      final busNumber = selectedBus.busNumber;
+
+      if (_lifecycleState == AppLifecycleState.resumed) {
+        // App is open (foreground) -> Show custom swipe-dismissible top toast
+        _showStopArrivalToast(
+          busNumber: busNumber,
+          stopName: stopName,
+        );
+      } else {
+        // App is in background -> Send system status bar notification
+        NotificationService.showStopArrivalAlert(
+          busNumber: busNumber,
+          stopName: stopName,
+        );
+      }
+    });
+  }
+
+  /// Displays a premium in-app toast for stop arrival.
+  /// This toast is overlay-based, placed below the status bar, and is swipeable.
+  void _showStopArrivalToast({
+    required String busNumber,
+    required String stopName,
+  }) {
+    if (!mounted) return;
+
+    // Remove any active overlay first to prevent overlaps
+    _activeStopArrivalOverlay?.remove();
+    _activeStopArrivalOverlay = null;
+
+    final overlay = Overlay.of(context);
+    late final OverlayEntry entry;
+
+    entry = OverlayEntry(
+      builder: (context) {
+        return Positioned(
+          top: MediaQuery.of(context).padding.top + 16,
+          left: 16,
+          right: 16,
+          child: Material(
+            color: Colors.transparent,
+            child: SwipeDismissibleToast(
+              onDismissed: () {
+                if (_activeStopArrivalOverlay == entry) {
+                  entry.remove();
+                  _activeStopArrivalOverlay = null;
+                }
+              },
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF0097B2), Color(0xFF0076A3)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF0097B2).withValues(alpha: 0.35),
+                      blurRadius: 15,
+                      spreadRadius: 2,
+                      offset: const Offset(0, 5),
+                    ),
+                  ],
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.15),
+                    width: 1.5,
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    // Bus Icon with background container
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.2),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.directions_bus_filled_rounded,
+                        color: Colors.white,
+                        size: 24,
+                      ),
+                    ),
+                    const SizedBox(width: 14),
+                    // Notification details text
+                    Expanded(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Bus $busNumber has arrived!',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w800,
+                              fontSize: 14,
+                              letterSpacing: -0.2,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            'Now at: $stopName',
+                            style: TextStyle(
+                              color: Colors.white.withValues(alpha: 0.9),
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Swipe left, right, or up to dismiss',
+                            style: TextStyle(
+                              color: Colors.white.withValues(alpha: 0.65),
+                              fontSize: 9,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 0.2,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    // Action button (View)
+                    TextButton(
+                      style: TextButton.styleFrom(
+                        backgroundColor: Colors.white.withValues(alpha: 0.15),
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                      ),
+                      onPressed: () {
+                        if (_activeStopArrivalOverlay == entry) {
+                          entry.remove();
+                          _activeStopArrivalOverlay = null;
+                        }
+                        // Navigate to map tab
+                        _onBottomNavChanged(1);
+                      },
+                      child: const Text(
+                        'View',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+
+    _activeStopArrivalOverlay = entry;
+    overlay.insert(entry);
+  }
+
+
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
+    _lifecycleState = state;
     if (state == AppLifecycleState.resumed) {
       // Reconnect socket when app comes back to foreground
       ref.read(socketServiceProvider).ensureConnected();
@@ -99,9 +293,13 @@ class _StudentDashboardState extends ConsumerState<StudentDashboard>
 
   @override
   void dispose() {
+    _activeStopArrivalOverlay?.remove();
+    _activeStopArrivalOverlay = null;
+    _stopReachedSub?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
+
 
   void _onBottomNavChanged(int index) {
     if (mounted) {
@@ -696,3 +894,78 @@ class _AnimatedIndexedStackState extends State<AnimatedIndexedStack>
 }
 
 // PulsatingDot class removed in favor of RiveSosIndicator
+
+
+class SwipeDismissibleToast extends StatefulWidget {
+  final Widget child;
+  final VoidCallback onDismissed;
+
+  const SwipeDismissibleToast({
+    super.key,
+    required this.child,
+    required this.onDismissed,
+  });
+
+  @override
+  State<SwipeDismissibleToast> createState() => _SwipeDismissibleToastState();
+}
+
+class _SwipeDismissibleToastState extends State<SwipeDismissibleToast>
+    with SingleTickerProviderStateMixin {
+  Offset _dragOffset = Offset.zero;
+  double _opacity = 1.0;
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedOpacity(
+      duration: const Duration(milliseconds: 100),
+      opacity: _opacity,
+      child: Transform.translate(
+        offset: _dragOffset,
+        child: GestureDetector(
+          onPanUpdate: (details) {
+            setState(() {
+              _dragOffset += details.delta;
+              // Fade out slightly as user drags further away
+              final double distance = _dragOffset.dx.abs().clamp(0.0, 150.0) +
+                  _dragOffset.dy.abs().clamp(0.0, 150.0);
+              _opacity = (1.0 - (distance / 300.0)).clamp(0.2, 1.0);
+            });
+          },
+          onPanEnd: (details) {
+            final double velocityX = details.velocity.pixelsPerSecond.dx;
+            final double velocityY = details.velocity.pixelsPerSecond.dy;
+
+            // Dismiss if swiped left, right, or up
+            final bool dismissedLeft = _dragOffset.dx < -100 || velocityX < -800;
+            final bool dismissedRight = _dragOffset.dx > 100 || velocityX > 800;
+            final bool dismissedUp = _dragOffset.dy < -80 || velocityY < -600;
+
+            if (dismissedLeft || dismissedRight || dismissedUp) {
+              setState(() {
+                _opacity = 0.0;
+                // Translate off-screen in the main drag direction
+                if (dismissedUp && _dragOffset.dy.abs() > _dragOffset.dx.abs()) {
+                  _dragOffset = Offset(_dragOffset.dx, -400);
+                } else if (_dragOffset.dx > 0) {
+                  _dragOffset = Offset(500, _dragOffset.dy);
+                } else {
+                  _dragOffset = Offset(-500, _dragOffset.dy);
+                }
+              });
+              Future.delayed(const Duration(milliseconds: 150), widget.onDismissed);
+            } else {
+              // Snap back
+              setState(() {
+                _dragOffset = Offset.zero;
+                _opacity = 1.0;
+              });
+            }
+          },
+          child: widget.child,
+        ),
+      ),
+    );
+  }
+}
+

@@ -1677,13 +1677,53 @@ class _BusScheduleScreenState extends ConsumerState<BusScheduleScreen> {
     required dynamic user,
     required bool isDark,
   }) {
-    final displayStopSchedules = route.id != schedule.routeId
+    final rawSchedules = route.id != schedule.routeId
         ? [
             StopSchedule(stopName: route.startPoint.name, arrivalTime: '--:--', departureTime: '--:--'),
             ...route.stopPoints.map((s) => StopSchedule(stopName: s.name, arrivalTime: '--:--', departureTime: '--:--')),
             StopSchedule(stopName: route.endPoint.name, arrivalTime: '--:--', departureTime: '--:--'),
           ].where((s) => s.stopName.isNotEmpty).toList()
         : schedule.stopSchedules;
+
+    // Filter out intermediate duplicates matching start or end name/coordinates
+    final List<StopSchedule> displayStopSchedules = [];
+    if (rawSchedules.isNotEmpty) {
+      final startName = route.startPoint.name.trim().toLowerCase();
+      final endName = route.endPoint.name.trim().toLowerCase();
+
+      for (int i = 0; i < rawSchedules.length; i++) {
+        final stop = rawSchedules[i];
+        final name = stop.stopName.trim().toLowerCase();
+
+        // Always keep the absolute first and last items (which represent the true start and end points)
+        final isFirst = i == 0;
+        final isLast = i == rawSchedules.length - 1;
+
+        if (!isFirst && !isLast) {
+          final duplicatesStart = startName.isNotEmpty && name == startName;
+          final duplicatesEnd = endName.isNotEmpty && name == endName;
+          
+          // Also check coordinates from route stopPoints if we can match by name
+          bool isCoordinateMatch = false;
+          final matchInRoute = route.stopPoints.firstWhere(
+            (s) => s.name.trim().toLowerCase() == name,
+            orElse: () => RoutePoint(name: '', lat: 0, lng: 0),
+          );
+          if (matchInRoute.name.isNotEmpty) {
+            final isAtStart = (matchInRoute.lat - route.startPoint.lat).abs() < 0.00001 &&
+                (matchInRoute.lng - route.startPoint.lng).abs() < 0.00001;
+            final isAtEnd = (matchInRoute.lat - route.endPoint.lat).abs() < 0.00001 &&
+                (matchInRoute.lng - route.endPoint.lng).abs() < 0.00001;
+            isCoordinateMatch = isAtStart || isAtEnd;
+          }
+
+          if (duplicatesStart || duplicatesEnd || isCoordinateMatch) {
+            continue; // Skip intermediate duplicates
+          }
+        }
+        displayStopSchedules.add(stop);
+      }
+    }
 
     final stopCount = displayStopSchedules.length;
     final routeTypeIsPickup = route.routeType.toLowerCase() == 'pickup';

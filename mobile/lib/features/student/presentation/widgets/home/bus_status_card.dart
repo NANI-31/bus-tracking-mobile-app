@@ -57,12 +57,28 @@ class BusStatusCard extends ConsumerWidget {
     final liveLocation = busLocationAsync.valueOrNull;
     String arrivalText = "Not Started";
     String etaText = "---";
+    bool isLiveEta = false;
 
     if (isRunning && liveLocation != null && stopLocation != null) {
-      etaText = _calculateETA(liveLocation.currentLocation, stopLocation!);
-      arrivalText = (etaText == "Arrived")
-          ? "Now"
-          : _getExpectedTime(liveLocation.currentLocation, stopLocation!);
+      if (liveLocation.etaMinutes != null) {
+        // Use the driver's authoritative ETA from the socket payload.
+        // This is computed by the driver at 30 km/h to the nearest route stop.
+        final mins = liveLocation.etaMinutes!;
+        etaText = mins < 1 ? "< 1 min" : "$mins mins";
+        isLiveEta = true;
+        if (mins < 1) {
+          arrivalText = "Now";
+        } else {
+          final arrivalTime = DateTime.now().add(Duration(minutes: mins));
+          arrivalText = DateFormat('h:mm a').format(arrivalTime);
+        }
+      } else {
+        // Fallback: local estimate from bus position to student's stop.
+        etaText = _calculateETA(liveLocation.currentLocation, stopLocation!);
+        arrivalText = etaText == "Arrived"
+            ? "Now"
+            : _getExpectedTime(liveLocation.currentLocation, stopLocation!);
+      }
     } else if (isRunning) {
       arrivalText = "Calculating...";
     }
@@ -224,18 +240,45 @@ class BusStatusCard extends ConsumerWidget {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    Text(
-                      "ETA IN MINUTES",
-                      style: TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: 1.2,
-                        color: colorScheme.onSurface.withValues(alpha: 0.45),
-                      ),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          "ETA IN MINUTES",
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: 1.2,
+                            color: colorScheme.onSurface.withValues(alpha: 0.45),
+                          ),
+                        ),
+                        if (isLiveEta) ...
+                          [
+                            const SizedBox(width: 6),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 5, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: AppColors.primary.withValues(alpha: 0.15),
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: const Text(
+                                'LIVE',
+                                style: TextStyle(
+                                  fontSize: 8,
+                                  fontWeight: FontWeight.w900,
+                                  color: AppColors.primary,
+                                  letterSpacing: 0.8,
+                                ),
+                              ),
+                            ),
+                          ],
+                      ],
                     ),
                     const SizedBox(height: 6),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 4),
                       decoration: BoxDecoration(
                         color: AppColors.primary.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(10),

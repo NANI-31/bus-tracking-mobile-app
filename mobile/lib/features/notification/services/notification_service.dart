@@ -92,7 +92,40 @@ class NotificationService {
     );
   }
 
+  static Future<void> showStopArrivalAlert({
+    required String busNumber,
+    required String stopName,
+  }) async {
+    const androidDetails = AndroidNotificationDetails(
+      'stop_arrivals',
+      'Stop Arrivals',
+      channelDescription: 'Alarm when the bus arrives at a stop',
+      importance: Importance.max,
+      priority: Priority.high,
+      playSound: true,
+      enableVibration: true,
+    );
+
+    const iosDetails = DarwinNotificationDetails(
+      presentSound: true,
+      presentAlert: true,
+    );
+
+    const details = NotificationDetails(
+      android: androidDetails,
+      iOS: iosDetails,
+    );
+
+    await _localNotifications.show(
+      DateTime.now().millisecond + 2000,
+      'Bus $busNumber has arrived!',
+      'Now at: $stopName',
+      details,
+    );
+  }
+
   /// Cancel a specific local notification by ID
+
   static Future<void> cancel(int id) async {
     await _localNotifications.cancel(id);
     AppLogger.d('Canceled local notification: $id');

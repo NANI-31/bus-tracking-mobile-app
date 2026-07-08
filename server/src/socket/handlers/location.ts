@@ -10,6 +10,36 @@ import { ThrottledBroadcast } from "../types";
 const throttledBroadcasts = new Map<string, ThrottledBroadcast>();
 const THROTTLE_INTERVAL_MS = 3000;
 
+// ── Server-side GPS outlier guard ─────────────────────────────────────────
+// Tracks the last accepted coordinate per busId so we can reject GPS teleports
+// before they are broadcast to any client. Keyed by busId (not socketId) so
+// the guard persists across reconnects within the same server process.
+const lastKnownPositions = new Map<
+  string,
+  { lat: number; lng: number }
+>();
+
+const OUTLIER_THRESHOLD_M = 500;
+
+/**
+ * Haversine distance in metres between two lat/lng pairs.
+ * Fast enough for a per-message hot path (no external dependencies).
+ */
+function haversineMeters(
+  lat1: number, lng1: number,
+  lat2: number, lng2: number,
+): number {
+  const R = 6_371_000; // Earth radius in metres
+  const toRad = (d: number) => (d * Math.PI) / 180;
+  const dLat = toRad(lat2 - lat1);
+  const dLng = toRad(lng2 - lng1);
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+
 export const registerLocationHandlers = (io: Server, socket: Socket) => {
   const authSocket = socket as AuthenticatedSocket;
   const user = authSocket.user;
@@ -56,6 +86,27 @@ export const registerLocationHandlers = (io: Server, socket: Socket) => {
     const lat = parseFloat(data.location.lat.toFixed(5));
     const lng = parseFloat(data.location.lng.toFixed(5));
 
+    // ── GPS outlier guard ────────────────────────────────────────────────────
+    // Reject fixes that are implausibly far from the last accepted coordinate.
+    // This prevents phantom GPS positions (provider hiccups, cold-start noise)
+    // from being broadcast to students and coordinators.
+    // Threshold: 500 m — buses at 80 km/h cover ~67 m/s; at a 3 s socket
+    // interval that's ~200 m max legitimate movement. 500 m gives 2.5× margin.
+    const prevPos = lastKnownPositions.get(busId);
+    if (prevPos) {
+      const jumpM = haversineMeters(prevPos.lat, prevPos.lng, lat, lng);
+      if (jumpM > OUTLIER_THRESHOLD_M) {
+        logger.warn(
+          `[Socket] GPS outlier rejected for bus ${busId}: ` +
+            `${jumpM.toFixed(0)} m jump from (${prevPos.lat},${prevPos.lng}) ` +
+            `to (${lat},${lng}). Not broadcast.`,
+        );
+        return;
+      }
+    }
+    // Accept this fix — slide the window forward.
+    lastKnownPositions.set(busId, { lat, lng });
+
     const now = Date.now();
     let throttleState = throttledBroadcasts.get(busId);
     if (!throttleState) {
@@ -66,6 +117,10 @@ export const registerLocationHandlers = (io: Server, socket: Socket) => {
     throttleState.latestData = {
       ...data,
       location: { lat, lng },
+      // Explicitly forward etaMinutes so the field is always present in the
+      // broadcast payload. Without this, the key is missing entirely when the
+      // driver app does not include it, breaking BusLocationModel.fromMap consumers.
+      etaMinutes: typeof data.etaMinutes === 'number' ? data.etaMinutes : null,
     };
 
     const executeEmit = () => {
@@ -155,5 +210,44 @@ export const registerLocationHandlers = (io: Server, socket: Socket) => {
         logger.info(`Rate limit exceeded for socket ${socket.id}`);
       }
     }
+  });
+
+  // ── Stop Arrival ─────────────────────────────────────────────────────────
+  // The driver app emits 'stop_reached' when it detects the bus is within
+  // 50 m of a route stop point. The server broadcasts it to the college room
+  // so all students in that college receive it via their stopReachedStream.
+  //
+  // No DB write is performed — this is a transient real-time event.
+  // The driver app deduplicates per session (Set<String> _arrivedStopIds)
+  // so this fires at most once per stop per trip.
+  socket.on("stop_reached", (data: any) => {
+    if (!user || user.role !== "driver") {
+      logger.warn(
+        `[Socket] Non-driver tried to emit stop_reached: ${socket.id}`
+      );
+      return;
+    }
+
+    if (!data || !data.collegeId || !data.busId || !data.stopName) {
+      logger.warn(
+        `[Socket] Malformed stop_reached payload from ${socket.id}: ${JSON.stringify(data)}`
+      );
+      return;
+    }
+
+    logger.info(
+      `[Socket] stop_reached: Bus ${data.busId} arrived at "${data.stopName}" ` +
+        `(${data.distanceMeters ?? "?"}m). Broadcasting to college ${data.collegeId}`
+    );
+
+    // Broadcast to everyone in the college room (students, coordinators)
+    socket.to(data.collegeId).emit("stop_reached", {
+      busId: data.busId,
+      collegeId: data.collegeId,
+      stopId: data.stopId,
+      stopName: data.stopName,
+      distanceMeters: data.distanceMeters,
+      timestamp: data.timestamp ?? new Date().toISOString(),
+    });
   });
 };

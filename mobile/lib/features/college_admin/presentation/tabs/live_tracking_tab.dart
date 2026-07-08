@@ -42,6 +42,10 @@ class _LiveTrackingTabState extends ConsumerState<LiveTrackingTab> {
   final Map<int, BitmapDescriptor> _clusterIconCache = {};
   bool _isDisposed = false;
   String _lastStateKey = '';
+  /// Debounce timer for _rebuildMarkers. Prevents spawning one async rebuild
+  /// per socket tick when multiple buses update simultaneously (e.g. on initial
+  /// burst). Coalesces updates into a single rebuild every 200 ms.
+  Timer? _rebuildDebounce;
 
   @override
   void initState() {
@@ -52,6 +56,7 @@ class _LiveTrackingTabState extends ConsumerState<LiveTrackingTab> {
   @override
   void dispose() {
     _isDisposed = true;
+    _rebuildDebounce?.cancel();
     _mapController?.dispose();
     super.dispose();
   }
@@ -242,7 +247,9 @@ class _LiveTrackingTabState extends ConsumerState<LiveTrackingTab> {
             position: loc.currentLocation,
             rotation: loc.heading ?? 0.0,
             icon: _busIcon ?? BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueAzure),
-            anchor: const Offset(0.5, 0.5),
+            // (0.5, 0.2): bus_icon.png nose is at the top ~20% of the image.
+            // Placing the anchor here keeps the heading tip on the GPS coordinate.
+            anchor: const Offset(0.5, 0.2),
             infoWindow: InfoWindow(
               title: 'Bus ${bus.busNumber}',
               snippet: '${status['label']} • ${(loc.speed ?? 0).toStringAsFixed(1)} km/h',
@@ -328,8 +335,13 @@ class _LiveTrackingTabState extends ConsumerState<LiveTrackingTab> {
 
             if (stateKey != _lastStateKey) {
               _lastStateKey = stateKey;
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                _rebuildMarkers(filteredBuses, locations, stateKey);
+              // Debounce: coalesce rapid location ticks (e.g. 10 buses updating
+              // at once on startup) into a single async _rebuildMarkers call.
+              _rebuildDebounce?.cancel();
+              _rebuildDebounce = Timer(const Duration(milliseconds: 200), () {
+                if (!_isDisposed && mounted) {
+                  _rebuildMarkers(filteredBuses, locations, stateKey);
+                }
               });
             }
 

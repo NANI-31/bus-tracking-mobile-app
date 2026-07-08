@@ -2,8 +2,10 @@ import { Bus, IBus } from "@/models/Bus.model";
 import { BusAssignmentLog } from "@/models/BusAssignmentLog.model";
 import User, { UserRole } from "@/models/User.model";
 import { sendTemplatedNotificationHelper } from "@/controllers/features/notification.controller";
+import { sendNotificationToDevice } from "@/utils/firebase";
 import { logHistoryHelper } from "@/controllers/transport/history.controller";
 import { NOTIFICATION_TYPES } from "@/constants/notificationTypes";
+import { buildNotificationMessage } from "@/utils/buildNotification";
 import logger from "@/utils/logger";
 
 /**
@@ -154,12 +156,49 @@ export class BusAssignmentService {
       `${coordinatorName} assigned bus ${bus.busNumber} to driver ${driverName}`,
     );
 
-    // Send notification
+    // Send standard socket + DB notification (visible in notification centre)
     await sendTemplatedNotificationHelper(
       bus.driverId.toString(),
       NOTIFICATION_TYPES.DRIVER_ASSIGNED,
       { busNumber: bus.busNumber },
     );
+
+    // Send an enriched FCM push so the driver can deep-link directly to the
+    // assignment card even if the socket is offline at the moment of assignment.
+    // Data fields busId and routeId allow the Flutter app to navigate without
+    // needing an additional API call.
+    try {
+      const driver = await User.findById(bus.driverId);
+      if (driver?.fcmToken) {
+        const lang = (driver as any).language || "en";
+        const { title, message } = buildNotificationMessage(
+          NOTIFICATION_TYPES.DRIVER_ASSIGNED,
+          { busNumber: bus.busNumber },
+          lang,
+        );
+        await sendNotificationToDevice(
+          driver.fcmToken,
+          title,
+          message,
+          {
+            type: NOTIFICATION_TYPES.DRIVER_ASSIGNED,
+            busId: bus._id.toString(),
+            routeId: bus.routeId?.toString() ?? "",
+            busNumber: bus.busNumber,
+          },
+        );
+        logger.info(
+          `[BusAssignmentService] Enriched FCM sent to driver ${driver._id} ` +
+            `(busId: ${bus._id}, routeId: ${bus.routeId ?? "none"})`,
+        );
+      }
+    } catch (fcmErr) {
+      // Non-fatal: the socket notification already sent above.
+      // Log and continue so the assignment is not blocked by FCM failures.
+      logger.warn(
+        `[BusAssignmentService] Enriched FCM failed (non-fatal): ${fcmErr}`,
+      );
+    }
 
     // Create assignment log
     const newLog = new BusAssignmentLog({

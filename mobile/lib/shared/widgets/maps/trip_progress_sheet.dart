@@ -7,7 +7,6 @@ import 'package:collegebus/core/services/persistence_service.dart';
 import 'package:collegebus/core/constants/constants.dart';
 import 'package:collegebus/shared/widgets/navigation/curved_bottom_nav_bar.dart';
 
-
 /// Ola/Uber-style trip progress bottom sheet showing route stops,
 /// ETA, distance, and real-time bus progress along the route.
 class TripProgressSheet extends StatelessWidget {
@@ -46,215 +45,238 @@ class TripProgressSheet extends StatelessWidget {
         snap: true,
         snapSizes: const [0.18, 0.55],
         builder: (context, scrollController) {
-        return Container(
-          decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.surface,
-            borderRadius: const BorderRadius.vertical(
-              top: Radius.circular(24),
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.15),
-                blurRadius: 20,
-                offset: const Offset(0, -5),
+          return Container(
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.surface,
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(24),
               ),
-            ],
-          ),
-          child: ListView.builder(
-            controller: scrollController,
-            padding: EdgeInsets.zero,
-            itemCount: 5 + allStops.length,
-            itemBuilder: (context, index) {
-              if (index == 0) {
-                // Drag handle
-                return Center(
-                  child: Container(
-                    margin: const EdgeInsets.only(top: 12, bottom: 8),
-                    width: 36,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.4),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                  ),
-                );
-              } else if (index == 1) {
-                // Collapsed Header
-                return Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                  child: Row(
-                    children: [
-                      // Bus icon
-                      Container(
-                        padding: const EdgeInsets.all(10),
-                        decoration: BoxDecoration(
-                          color: AppColors.turkishBlue.withValues(alpha: 0.12),
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                        child: const Icon(
-                          Icons.directions_bus_filled_rounded,
-                          color: AppColors.turkishBlue,
-                          size: 24,
-                        ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.15),
+                  blurRadius: 20,
+                  offset: const Offset(0, -5),
+                ),
+              ],
+            ),
+            child: ListView.builder(
+              controller: scrollController,
+              padding: EdgeInsets.zero,
+              itemCount: 5 + allStops.length,
+              itemBuilder: (context, index) {
+                if (index == 0) {
+                  // Drag handle
+                  return Center(
+                    child: Container(
+                      margin: const EdgeInsets.only(top: 12, bottom: 8),
+                      width: 36,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.outline.withValues(alpha: 0.4),
+                        borderRadius: BorderRadius.circular(10),
                       ),
-                      const SizedBox(width: 14),
-                      // Bus info
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Bus $busNumber',
-                              style: const TextStyle(
-                                fontSize: 17,
-                                fontWeight: FontWeight.bold,
-                              ),
+                    ),
+                  );
+                } else if (index == 1) {
+                  // Collapsed Header
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 8,
+                    ),
+                    child: Row(
+                      children: [
+                        // Bus icon
+                        Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: AppColors.turkishBlue.withValues(
+                              alpha: 0.12,
                             ),
-                            const SizedBox(height: 2),
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          child: const Icon(
+                            Icons.directions_bus_filled_rounded,
+                            color: AppColors.turkishBlue,
+                            size: 24,
+                          ),
+                        ),
+                        const SizedBox(width: 14),
+                        // Bus info
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Bus $busNumber',
+                                style: const TextStyle(
+                                  fontSize: 17,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                completedIndex < allStops.length - 1
+                                    ? 'Heading to ${allStops[completedIndex + 1].name}'
+                                    : 'Trip Completed',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Theme.of(context).colorScheme.onSurface
+                                      .withValues(alpha: 0.6),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        // ETA & Distance
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            if (etaToPreferred != null)
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 10,
+                                  vertical: 4,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: AppColors.success.withValues(
+                                    alpha: 0.12,
+                                  ),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Text(
+                                  '${etaToPreferred}min',
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 14,
+                                    color: AppColors.success,
+                                  ),
+                                ),
+                              )
+                            else
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 10,
+                                  vertical: 4,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: AppColors.turkishBlue.withValues(
+                                    alpha: 0.12,
+                                  ),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Text(
+                                  '${directionsResult?.totalDurationMin ?? "—"}min',
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 14,
+                                    color: AppColors.turkishBlue,
+                                  ),
+                                ),
+                              ),
+                            const SizedBox(height: 4),
                             Text(
-                              completedIndex < allStops.length - 1
-                                  ? 'Heading to ${allStops[completedIndex + 1].name}'
-                                  : 'Trip Completed',
+                              '${totalDistance.toStringAsFixed(1)} km',
                               style: TextStyle(
-                                fontSize: 12,
-                                color: Theme.of(context)
-                                    .colorScheme
-                                    .onSurface
-                                    .withValues(alpha: 0.6),
+                                fontSize: 11,
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onSurface.withValues(alpha: 0.5),
                               ),
                             ),
                           ],
                         ),
-                      ),
-                      // ETA & Distance
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          if (etaToPreferred != null)
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 10,
-                                vertical: 4,
-                              ),
-                              decoration: BoxDecoration(
-                                color: AppColors.success.withValues(alpha: 0.12),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Text(
-                                '${etaToPreferred}min',
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 14,
-                                  color: AppColors.success,
-                                ),
-                              ),
-                            )
-                          else
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 10,
-                                vertical: 4,
-                              ),
-                              decoration: BoxDecoration(
-                                color: AppColors.turkishBlue.withValues(alpha: 0.12),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Text(
-                                '${directionsResult?.totalDurationMin ?? "—"}min',
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 14,
-                                  color: AppColors.turkishBlue,
-                                ),
-                              ),
-                            ),
-                          const SizedBox(height: 4),
-                          Text(
-                            '${totalDistance.toStringAsFixed(1)} km',
-                            style: TextStyle(
-                              fontSize: 11,
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .onSurface
-                                  .withValues(alpha: 0.5),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                );
-              } else if (index == 2) {
-                // Divider
-                return const Divider(height: 1);
-              } else if (index == 3) {
-                // Route: Name
-                return Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                  child: Row(
-                    children: [
-                      Icon(
-                        Icons.route_rounded,
-                        size: 16,
-                        color: Theme.of(context)
-                            .colorScheme
-                            .onSurface
-                            .withValues(alpha: 0.5),
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        'Route: ${route.routeName}',
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                          color: Theme.of(context)
-                              .colorScheme
-                              .onSurface
-                              .withValues(alpha: 0.6),
+                      ],
+                    ),
+                  );
+                } else if (index == 2) {
+                  // Divider
+                  return const Divider(height: 1);
+                } else if (index == 3) {
+                  // Route: Name
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 12,
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.route_rounded,
+                          size: 16,
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.onSurface.withValues(alpha: 0.5),
                         ),
-                      ),
-                    ],
-                  ),
-                );
-              } else if (index < 4 + allStops.length) {
-                final stopIndex = index - 4;
-                final stop = allStops[stopIndex];
-                final isCompleted = stopIndex <= completedIndex;
-                final isCurrent = stopIndex == completedIndex + 1;
-                final isPreferred = stop.name == preferredStop;
-                final isFirst = stopIndex == 0;
-                final isLast = stopIndex == allStops.length - 1;
+                        const SizedBox(width: 8),
+                        Text(
+                          'Route: ${route.routeName}',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurface.withValues(alpha: 0.6),
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                } else if (index < 4 + allStops.length) {
+                  final stopIndex = index - 4;
+                  final stop = allStops[stopIndex];
+                  final isCompleted = stopIndex <= completedIndex;
+                  final isCurrent = stopIndex == completedIndex + 1;
+                  final isPreferred = stop.name == preferredStop;
+                  final isFirst = stopIndex == 0;
+                  final isLast = stopIndex == allStops.length - 1;
 
-                return _buildTimelineItem(
-                  context: context,
-                  stopName: stop.name,
-                  isCompleted: isCompleted,
-                  isCurrent: isCurrent,
-                  isPreferred: isPreferred,
-                  isFirst: isFirst,
-                  isLast: isLast,
-                  legInfo: stopIndex < (directionsResult?.legs.length ?? 0)
-                      ? directionsResult!.legs[stopIndex]
-                      : null,
-                );
-              } else {
-                return const BottomNavSpacer();
-              }
-            },
-          ),
-        );
-      },
-    ),
-  );
-}
+                  return _buildTimelineItem(
+                    context: context,
+                    stopName: stop.name,
+                    isCompleted: isCompleted,
+                    isCurrent: isCurrent,
+                    isPreferred: isPreferred,
+                    isFirst: isFirst,
+                    isLast: isLast,
+                    legInfo: stopIndex < (directionsResult?.legs.length ?? 0)
+                        ? directionsResult!.legs[stopIndex]
+                        : null,
+                  );
+                } else {
+                  return const BottomNavSpacer();
+                }
+              },
+            ),
+          );
+        },
+      ),
+    );
+  }
 
   /// Build the ordered list of all stops (start + intermediates + end).
   List<RoutePoint> _buildStopList() {
-    return [
-      route.startPoint,
-      ...route.stopPoints,
-      route.endPoint,
-    ];
+    final startName = route.startPoint.name.trim().toLowerCase();
+    final endName = route.endPoint.name.trim().toLowerCase();
+
+    // Filter out intermediate stops that match start or end coordinates/name
+    final filteredStops = route.stopPoints.where((stop) {
+      final name = stop.name.trim().toLowerCase();
+      final isAtStart =
+          (stop.lat - route.startPoint.lat).abs() < 0.00001 &&
+          (stop.lng - route.startPoint.lng).abs() < 0.00001;
+      final isAtEnd =
+          (stop.lat - route.endPoint.lat).abs() < 0.00001 &&
+          (stop.lng - route.endPoint.lng).abs() < 0.00001;
+      final isSameNameStart = startName.isNotEmpty && name == startName;
+      final isSameNameEnd = endName.isNotEmpty && name == endName;
+
+      return !(isAtStart || isAtEnd || isSameNameStart || isSameNameEnd);
+    }).toList();
+
+    return [route.startPoint, ...filteredStops, route.endPoint];
   }
 
   /// Determine which stop the bus has most recently passed.
@@ -262,21 +284,82 @@ class TripProgressSheet extends StatelessWidget {
   int _getCompletedStopIndex(List<RoutePoint> stops) {
     if (busLocation == null) return -1;
 
-    int lastPassedIndex = -1;
-    const double proximityThresholdMeters = 200; // 200m = "passed"
+    final points = directionsResult?.polylinePoints ?? [];
+    if (points.isEmpty) {
+      // Fallback: standard proximity check if no polyline is loaded yet
+      int lastPassedIndex = -1;
+      const double proximityThresholdMeters = 25;
+      for (int i = 0; i < stops.length; i++) {
+        final stop = stops[i];
+        if (stop.lat == 0 && stop.lng == 0) continue;
+        final distance = Geolocator.distanceBetween(
+          busLocation!.latitude,
+          busLocation!.longitude,
+          stop.lat,
+          stop.lng,
+        );
+        if (distance < proximityThresholdMeters) {
+          lastPassedIndex = i;
+        }
+      }
+      return lastPassedIndex;
+    }
 
+    // 1. Check if the bus is on-route (within 300m of the polyline)
+    double minTrackDistance = double.infinity;
+    int closestPolylineIndex = -1;
+
+    for (int i = 0; i < points.length; i++) {
+      final dist = Geolocator.distanceBetween(
+        busLocation!.latitude,
+        busLocation!.longitude,
+        points[i].latitude,
+        points[i].longitude,
+      );
+      if (dist < minTrackDistance) {
+        minTrackDistance = dist;
+        closestPolylineIndex = i;
+      }
+    }
+
+    // If the bus is far from the route path (e.g. at the garage or driving to the start),
+    // do not mark any stops as completed.
+    if (minTrackDistance > 300) {
+      return -1;
+    }
+
+    // 2. Find the last stop passed based on polyline progression
+    int lastPassedIndex = -1;
     for (int i = 0; i < stops.length; i++) {
       final stop = stops[i];
       if (stop.lat == 0 && stop.lng == 0) continue;
 
-      final distance = Geolocator.distanceBetween(
+      // Find closest polyline point for this stop
+      double minStopDist = double.infinity;
+      int stopPolyIndex = -1;
+      for (int j = 0; j < points.length; j++) {
+        final dist = Geolocator.distanceBetween(
+          stop.lat,
+          stop.lng,
+          points[j].latitude,
+          points[j].longitude,
+        );
+        if (dist < minStopDist) {
+          minStopDist = dist;
+          stopPolyIndex = j;
+        }
+      }
+
+      // The stop is passed if the bus has progressed past the stop's polyline index
+      // OR if the bus is currently within 150m of the stop.
+      final distanceToStop = Geolocator.distanceBetween(
         busLocation!.latitude,
         busLocation!.longitude,
         stop.lat,
         stop.lng,
       );
 
-      if (distance < proximityThresholdMeters) {
+      if (closestPolylineIndex >= stopPolyIndex || distanceToStop < 150) {
         lastPassedIndex = i;
       }
     }
@@ -296,7 +379,10 @@ class TripProgressSheet extends StatelessWidget {
 
     // Sum durations from completed leg to preferred stop's leg
     int etaMin = 0;
-    final startLeg = (completedIndex + 1).clamp(0, directionsResult!.legs.length);
+    final startLeg = (completedIndex + 1).clamp(
+      0,
+      directionsResult!.legs.length,
+    );
     final endLeg = preferredIndex.clamp(0, directionsResult!.legs.length);
 
     for (int i = startLeg; i < endLeg; i++) {
@@ -350,12 +436,7 @@ class TripProgressSheet extends StatelessWidget {
               children: [
                 // Top line
                 if (!isFirst)
-                  Expanded(
-                    child: Container(
-                      width: 2.5,
-                      color: lineColor,
-                    ),
-                  ),
+                  Expanded(child: Container(width: 2.5, color: lineColor)),
                 // Dot
                 Container(
                   width: isCurrent || isPreferred ? 18 : 14,
@@ -365,10 +446,7 @@ class TripProgressSheet extends StatelessWidget {
                         ? dotColor
                         : dotColor.withValues(alpha: 0.3),
                     shape: BoxShape.circle,
-                    border: Border.all(
-                      color: dotColor,
-                      width: 2.5,
-                    ),
+                    border: Border.all(color: dotColor, width: 2.5),
                     boxShadow: isCurrent
                         ? [
                             BoxShadow(
@@ -450,10 +528,9 @@ class TripProgressSheet extends StatelessWidget {
                         '${legInfo.distanceKm.toStringAsFixed(1)} km · ${legInfo.durationMin} min',
                         style: TextStyle(
                           fontSize: 11,
-                          color: Theme.of(context)
-                              .colorScheme
-                              .onSurface
-                              .withValues(alpha: 0.45),
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.onSurface.withValues(alpha: 0.45),
                         ),
                       ),
                     ),

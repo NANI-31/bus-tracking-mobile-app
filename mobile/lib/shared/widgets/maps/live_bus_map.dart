@@ -66,6 +66,10 @@ class LiveBusMapState extends ConsumerState<LiveBusMap>
   final List<AnimationController> _controllersPendingDispose = [];
   final Map<String, LatLng> _animatedLocations = {};
   final Map<String, double> _animatedRotations = {};
+  // Mutable animation targets — updated in-place on each GPS tick so the
+  // existing listener closure always reads the current interpolation endpoints
+  // without needing to be recreated (fixes the stale-closure jump bug).
+  final Map<String, _MarkerAnimTarget> _markerTargets = {};
 
   LatLng? _centerLocation;
   GoogleMapController? _mapController;
@@ -80,6 +84,11 @@ class LiveBusMapState extends ConsumerState<LiveBusMap>
   final Map<String, Marker> _stopMarkers = {};
   DirectionsResult? _directionsResult;
   String? _loadedRouteId;
+
+  /// Cached SOS list kept up-to-date by _rebuildMarkers().
+  /// Used by _updateSingleMarkerPosition() so the animation listener
+  /// can update one marker per frame without a full provider read.
+  List<SosModel> _cachedActiveSosList = [];
 
   void resumeFollowing() {
     if (mounted) {
@@ -232,6 +241,7 @@ class LiveBusMapState extends ConsumerState<LiveBusMap>
       controller.dispose();
     }
     _animationControllers.clear();
+    _markerTargets.clear();
     for (var controller in _controllersPendingDispose) {
       controller.dispose();
     }
@@ -387,19 +397,40 @@ class LiveBusMapState extends ConsumerState<LiveBusMap>
     final busId = nextLoc.busId;
     final prevLoc = _liveLocations[busId];
 
-    // 1. Timestamp out-of-order check
-    if (prevLoc != null && nextLoc.timestamp.isBefore(prevLoc.timestamp)) {
-      debugPrint('Ignoring stale location update for bus $busId');
-      return;
+    // 2. GPS outlier guard — reject teleporting fixes
+    // Buses travelling at realistic urban speeds (≤ 80 km/h) move at most
+    // ~67 m per second. A socket tick fires every ~3 s, so the maximum
+    // legitimate displacement per update is ~200 m.
+    // We use 500 m as the rejection threshold to give a comfortable 2.5× margin
+    // even for highway segments, while catching GPS provider hiccups that can
+    // produce phantom fixes kilometres away.
+    if (prevLoc != null) {
+      final jumpMeters = Geolocator.distanceBetween(
+        prevLoc.currentLocation.latitude,
+        prevLoc.currentLocation.longitude,
+        nextLoc.currentLocation.latitude,
+        nextLoc.currentLocation.longitude,
+      );
+      if (jumpMeters > 500.0) {
+        debugPrint(
+          '[LiveBusMap] Outlier rejected for bus $busId: '
+          '${jumpMeters.toStringAsFixed(0)} m jump — likely GPS hiccup.',
+        );
+        return;
+      }
     }
 
     _liveLocations[busId] = nextLoc;
 
+    // Capture the exact current animated position as the animation start point.
+    // Using mutable holders lets us re-target without recreating the controller
+    // and avoids the stale-closure bug where startPos was frozen at the old
+    // controller's creation time.
     final startPos = _animatedLocations[busId] ?? nextLoc.currentLocation;
-    LatLng endPos = nextLoc.currentLocation;
+    final endPos   = nextLoc.currentLocation;
 
     final startRot = _animatedRotations[busId] ?? nextLoc.heading ?? 0.0;
-    
+
     // Determine target rotation
     double targetRot = nextLoc.heading ?? startRot;
 
@@ -411,7 +442,11 @@ class LiveBusMapState extends ConsumerState<LiveBusMap>
       endPos.longitude,
     );
 
-    if (distanceMeters > 3.0) {
+    // Bearing threshold: 10 m (raised from 3 m).
+    // GPS accuracy is typically ±5–25 m, so movement below 10 m is indistinguishable
+    // from noise. The old 3 m threshold caused random bearing jumps when the bus
+    // was stationary — the icon would spin on every GPS noise tick.
+    if (distanceMeters > 10.0) {
       targetRot = _calculateBearing(startPos, endPos);
     }
 
@@ -419,10 +454,27 @@ class LiveBusMapState extends ConsumerState<LiveBusMap>
     double diff = (targetRot - startRot + 180) % 360 - 180;
     if (diff < -180) diff += 360;
 
-    // Apply low-pass filter (moving average) on the angle change
-    final double smoothedDiff = diff * 0.5; // Smooth factor: 0.5
-    double endRot = startRot + smoothedDiff;
-    endRot = (endRot + 360) % 360;
+    // Apply low-pass filter: 0.7 gives crisper bearing snapping within 2 updates
+    // while still smoothing out GPS noise. The old value of 0.5 caused visible
+    // rotation lag and oscillation.
+    final double smoothedDiff = diff * 0.7;
+    // IMPORTANT: do NOT normalise endRot to [0,360) before lerping.
+    // If startRot=350 and targetRot=10, the shortest diff=-20, giving endRot=336.
+    // Normalising to 336%360=336 is fine here, but if it were endRot=350+20=370,
+    // normalising to 10 would make lerpDouble(350,10,t) go backwards 340° instead
+    // of the correct 20° forward arc. We normalise only after lerp in the listener.
+    final double endRot = startRot + smoothedDiff;
+
+    // Mutable targets shared by the listener closure so we can retarget
+    // the animation without rebuilding the entire controller.
+    final posHolder = _MarkerAnimTarget(
+      startLat: startPos.latitude,
+      startLng: startPos.longitude,
+      endLat: endPos.latitude,
+      endLng: endPos.longitude,
+      startRot: startRot,
+      endRot: endRot,
+    );
 
     // Calculate dynamic animation duration based on distance
     final int durationMs;
@@ -434,7 +486,10 @@ class LiveBusMapState extends ConsumerState<LiveBusMap>
     }
     final duration = Duration(milliseconds: durationMs);
 
-    // 2. Initialize or obtain AnimationController
+    // 2. Obtain or create AnimationController.
+    // We keep the controller alive across updates to prevent jank from
+    // dispose/create cycles mid-flight. We just stop it and forward again
+    // with the updated target held in posHolder.
     var controller = _animationControllers[busId];
     if (controller == null) {
       controller = AnimationController(
@@ -446,51 +501,75 @@ class LiveBusMapState extends ConsumerState<LiveBusMap>
       _animatedRotations[busId] = startRot;
 
       controller.addListener(() {
-        if (mounted) {
-          final t = controller!.value;
-          _animatedLocations[busId] = LatLng(
-            lerpDouble(startPos.latitude, endPos.latitude, t)!,
-            lerpDouble(startPos.longitude, endPos.longitude, t)!,
+        if (!mounted) return;
+        final t = controller!.value;
+        // Read from _markerTargets[busId] so that when a new GPS tick arrives
+        // mid-flight and calls copyInto(), this closure automatically uses the
+        // updated endpoints without being recreated.
+        final tgt = _markerTargets[busId];
+        if (tgt == null) return;
+        final currentPos = LatLng(
+          lerpDouble(tgt.startLat, tgt.endLat, t)!,
+          lerpDouble(tgt.startLng, tgt.endLng, t)!,
+        );
+        final double lerpedRot = lerpDouble(tgt.startRot, tgt.endRot, t)!;
+        _animatedLocations[busId] = currentPos;
+        // Normalise AFTER lerp so the full additive arc is used during
+        // interpolation. Normalising before lerp caused the 360° backwards spin
+        // when bearing crossed the 0°/360° North boundary.
+        _animatedRotations[busId] = lerpedRot % 360;
+        // Only update this one bus's marker each frame instead of recreating
+        // all markers. _rebuildMarkers() at 60fps re-creates every Marker object
+        // and does provider reads for all buses — causing visible frame stutter
+        // with 3+ buses active.
+        _updateSingleMarkerPosition(busId, currentPos, lerpedRot % 360);
+        // _updateSosOverlayPositions() intentionally removed from animation
+        // listener — it makes async platform-channel calls (getScreenCoordinate)
+        // at 60fps, flooding the method channel. It fires correctly from
+        // onCameraMove and onCameraIdle instead.
+
+        // Smoothly follow the selected bus during its animation
+        final isFollowing = ref.read(mapNavigationProvider).isFollowing;
+        if (isFollowing && widget.selectedBus?.id == busId && _mapController != null) {
+          _isProgrammaticMove = true;
+          _mapController!.moveCamera(
+            CameraUpdate.newLatLng(currentPos),
           );
-          _animatedRotations[busId] = lerpDouble(startRot, endRot, t)!;
-          _rebuildMarkers();
-          _updateSosOverlayPositions();
+          Future.delayed(const Duration(milliseconds: 100), () {
+            if (mounted) {
+              _isProgrammaticMove = false;
+            }
+          });
         }
       });
     } else {
-      // Re-target existing animation
+      // Re-target: stop mid-flight, update the target holder, restart.
+      // The listener closure already references posHolder by identity —
+      // updating its fields is enough; no need to recreate the controller.
       controller.stop();
-      // Simple way: Clear listener and recreate or just reset targets
-      // Since we use the local state startPos/endPos in the listener closure,
-      // we should recreate it or use a more dynamic closure.
-      controller.dispose();
-      controller = AnimationController(
-        vsync: this,
-        duration: duration,
-      );
-      _animationControllers[busId] = controller;
-
-      controller.addListener(() {
-        if (mounted) {
-          final t = controller!.value;
-          _animatedLocations[busId] = LatLng(
-            lerpDouble(startPos.latitude, endPos.latitude, t)!,
-            lerpDouble(startPos.longitude, endPos.longitude, t)!,
-          );
-          _animatedRotations[busId] = lerpDouble(startRot, endRot, t)!;
-          _rebuildMarkers();
-          _updateSosOverlayPositions();
-        }
-      });
+      controller.duration = duration;
+      posHolder.copyInto(_markerTargets[busId]!);
     }
+
+    // Store the mutable target so re-target path above can update it.
+    _markerTargets[busId] = posHolder;
 
     controller.forward(from: 0.0);
+  }
 
-    // Auto-center if following
-    final isFollowing = ref.read(mapNavigationProvider).isFollowing;
-    if (isFollowing && widget.selectedBus?.id == busId) {
-      _animateToBus(widget.selectedBus!);
-    }
+
+  /// Updates only a single bus marker in the notifier without touching other
+  /// markers. Called from the animation controller listener (60fps) to avoid
+  /// the O(n) cost of recreating all markers every frame.
+  ///
+  /// Uses [_cachedActiveSosList] (kept fresh by [_rebuildMarkers]) to decide
+  /// whether to apply SOS styling, without a new provider read per frame.
+  void _updateSingleMarkerPosition(String busId, LatLng pos, double rot) {
+    final busIdx = widget.buses.indexWhere((b) => b.id == busId);
+    if (busIdx == -1) return;
+    final bus = widget.buses[busIdx];
+    _markers[busId] = _createMarker(bus, pos, rot, _cachedActiveSosList);
+    _markersNotifier.value = {..._markers.values, ..._stopMarkers.values};
   }
 
   void _rebuildMarkers() {
@@ -499,10 +578,18 @@ class LiveBusMapState extends ConsumerState<LiveBusMap>
     final user = ref.read(currentUserProvider);
     final collegeId = user?.collegeId;
     final Set<String> liveBusIds = {};
+    bool providerLoaded = false;
     if (collegeId != null) {
       final locations = ref.read(collegeBusLocationsProvider(collegeId)).valueOrNull;
       if (locations != null) {
+        providerLoaded = true;
         liveBusIds.addAll(locations.map((l) => l.busId));
+      } else {
+        // Provider still loading (first render, tab switch, or stream not yet
+        // emitted). Fall back to any buses already in _liveLocations — these
+        // were seeded by _seedLocationsFromProvider() or the ref.listen callback
+        // so we don't evict them and hide the icon before the stream catches up.
+        liveBusIds.addAll(_liveLocations.keys);
       }
     }
 
@@ -514,6 +601,9 @@ class LiveBusMapState extends ConsumerState<LiveBusMap>
     final activeSosList = (collegeId != null && isAuthorizedForSos)
         ? (ref.read(activeSosProvider(collegeId)).value ?? [])
         : <SosModel>[];
+    // Keep the cache fresh so _updateSingleMarkerPosition can use it
+    // during animation frames without an extra provider read.
+    _cachedActiveSosList = activeSosList;
 
     // Seed locations for active SOS alerts if not present
     for (final sos in activeSosList) {
@@ -554,11 +644,20 @@ class LiveBusMapState extends ConsumerState<LiveBusMap>
       // assignment, not when the driver actually starts sending location data.
       final isLive = liveBusIds.contains(bus.id) || isSelectedBus || isSos;
       // Remove marker if bus has no live broadcast AND is not the selected bus.
+      // Guard with providerLoaded: if the StreamProvider hasn't emitted yet we
+      // already fell back to _liveLocations.keys in liveBusIds, so isLive should
+      // be true for any seeded bus. The explicit guard prevents evicting hand-
+      // seeded data during the loading window in case of unexpected code paths.
       if (!isLive || (bus.assignmentStatus != 'accepted' && !isSelectedBus && !isSos)) {
+        if (!providerLoaded && _liveLocations.containsKey(bus.id)) {
+          // Provider not yet loaded — preserve location data, skip eviction.
+          continue;
+        }
         // Preserve the selected bus's data even if temporarily unassigned —
         // clearing it would prevent the BusTrackerMarker from ever projecting.
         _liveLocations.remove(bus.id);
         _animatedLocations.remove(bus.id);
+        _markerTargets.remove(bus.id);
         final controller = _animationControllers.remove(bus.id);
         if (controller != null) {
           _controllersPendingDispose.add(controller);
@@ -586,6 +685,10 @@ class LiveBusMapState extends ConsumerState<LiveBusMap>
 
     _markers.clear();
     _markers.addAll(newMarkers);
+
+    // Dynamic polyline update: calculate and slice remaining points as the bus moves
+    _updateRoutePolyline(Theme.of(context));
+
     // Include BOTH bus markers AND stop markers so the Google Maps native layer
     // always shows bus pins (as a reliable fallback when the custom overlay
     // BusTrackerMarker cannot be projected yet).
@@ -602,7 +705,12 @@ class LiveBusMapState extends ConsumerState<LiveBusMap>
       icon: isSos
           ? BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed)
           : (_busIcon ?? BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueAzure)),
-      anchor: const Offset(0.5, 0.5),
+      // anchor (0.5, 0.2): the bus_icon.png is a top-down vehicle with the
+      // nose (front windshield) at the top ~20% of the image. Placing the
+      // anchor at the nose ensures the heading tip sits on the GPS coordinate
+      // rather than the geometric centre, which would appear offset when the
+      // bus is moving.
+      anchor: isSos ? const Offset(0.5, 0.5) : const Offset(0.5, 0.2),
       infoWindow: InfoWindow(
         title: isSos ? 'Bus ${bus.busNumber} [SOS ACTIVE]' : 'Bus ${bus.busNumber}',
         snippet: isSos ? 'EMERGENCY SOS ALERT' : bus.status,
@@ -698,26 +806,12 @@ class LiveBusMapState extends ConsumerState<LiveBusMap>
 
       if (!mounted) return;
 
-      final themeState = ref.read(themeServiceProvider);
-      final routeColor = _getRouteColor(themeState);
-
       if (result != null && result.hasRoute) {
         setState(() {
           _directionsResult = result;
           _loadedRouteId = route.id;
 
-          // Build a single solid route polyline
-          _routePolylines = {
-            Polyline(
-              polylineId: const PolylineId('active_route'),
-              points: result.polylinePoints,
-              color: routeColor,
-              width: 6,
-              startCap: Cap.roundCap,
-              endCap: Cap.roundCap,
-              geodesic: true,
-            ),
-          };
+          _updateRoutePolyline(Theme.of(context));
 
           // Build stop markers
           _stopMarkers.clear();
@@ -761,12 +855,17 @@ class LiveBusMapState extends ConsumerState<LiveBusMap>
       final stop = route.stopPoints[i];
       if (stop.lat == 0 && stop.lng == 0) continue;
 
-      // Filter out intermediate stops that are at the exact same location as start or end points
+      // Filter out intermediate stops that are at the exact same location or have the same name as start or end points
       final isAtStart = (stop.lat - route.startPoint.lat).abs() < 0.00001 &&
           (stop.lng - route.startPoint.lng).abs() < 0.00001;
       final isAtEnd = (stop.lat - route.endPoint.lat).abs() < 0.00001 &&
           (stop.lng - route.endPoint.lng).abs() < 0.00001;
-      if (isAtStart || isAtEnd) continue;
+      final isSameNameStart = route.startPoint.name.isNotEmpty &&
+          stop.name.trim().toLowerCase() == route.startPoint.name.trim().toLowerCase();
+      final isSameNameEnd = route.endPoint.name.isNotEmpty &&
+          stop.name.trim().toLowerCase() == route.endPoint.name.trim().toLowerCase();
+      
+      if (isAtStart || isAtEnd || isSameNameStart || isSameNameEnd) continue;
 
       _stopMarkers['stop_$i'] = Marker(
         markerId: MarkerId('stop_$i'),
@@ -886,49 +985,123 @@ class LiveBusMapState extends ConsumerState<LiveBusMap>
     }
   }
 
+  int _findClosestPointIndex(LatLng target, List<LatLng> points) {
+    if (points.isEmpty) return 0;
+    int closestIdx = 0;
+    double minDistance = double.infinity;
+    for (int i = 0; i < points.length; i++) {
+      final p = points[i];
+      final dist = Geolocator.distanceBetween(
+        target.latitude,
+        target.longitude,
+        p.latitude,
+        p.longitude,
+      );
+      if (dist < minDistance) {
+        minDistance = dist;
+        closestIdx = i;
+      }
+    }
+    return closestIdx;
+  }
+
+  void _updateRoutePolyline(ThemeData theme) {
+    if (_directionsResult == null || widget.activeRoute == null) return;
+
+    final themeState = ref.read(themeServiceProvider);
+    final mapTheme = theme.extension<MapThemeExtension>();
+
+    // Colour priority:
+    //  1. RouteModel.color (hex string set by coordinator, e.g. '#0097B2')
+    //  2. Map-theme extension routeColor (user theme preference)
+    //  3. Computed dark/light default from _getRouteColor()
+    Color resolvedColor = mapTheme?.routeColor ?? _getRouteColor(themeState);
+    final routeHex = widget.activeRoute!.color;
+    if (routeHex.isNotEmpty) {
+      try {
+        final hex = routeHex.startsWith('#') ? routeHex.substring(1) : routeHex;
+        if (hex.length == 6) {
+          resolvedColor = Color(int.parse('FF$hex', radix: 16));
+        }
+      } catch (_) {
+        debugPrint('[LiveBusMap] Could not parse route color "$routeHex", using default.');
+      }
+    }
+
+    List<LatLng> points = List<LatLng>.from(_directionsResult!.polylinePoints);
+
+    final selectedBusId = widget.selectedBus?.id;
+    if (selectedBusId != null && points.isNotEmpty) {
+      final busPos = _animatedLocations[selectedBusId] ?? _liveLocations[selectedBusId]?.currentLocation;
+      if (busPos != null) {
+        final closestIdx = _findClosestPointIndex(busPos, points);
+        // Clear all points prior to the closest point, starting the remaining route polyline
+        // directly at the bus's current position to show a seamless remaining path.
+        points = [busPos, ...points.sublist(closestIdx)];
+      }
+    }
+
+    _routePolylines = {
+      Polyline(
+        polylineId: const PolylineId('active_route'),
+        points: points,
+        color: resolvedColor,
+        width: 6,
+        startCap: Cap.roundCap,
+        endCap: Cap.roundCap,
+        geodesic: true,
+      ),
+    };
+  }
+
   @override
   Widget build(BuildContext context) {
     final user = ref.watch(currentUserProvider);
     final collegeId = user?.collegeId;
-    final themeState = ref.watch(themeServiceProvider);
-    final routeColor = _getRouteColor(themeState);
 
     final mapTheme = Theme.of(context).extension<MapThemeExtension>();
     final startColor = mapTheme?.startStopColor ?? const Color(0xFF4CAF50);
     final stopColor = mapTheme?.intermediateStopColor ?? const Color(0xFFFF9800);
     final endColor = mapTheme?.endStopColor ?? const Color(0xFFE53935);
-    final routeColorTheme = mapTheme?.routeColor ?? routeColor;
-
     _loadCustomStopMarkers(startColor, stopColor, endColor);
 
-    // Reactively update route polyline colors when map theme changes
-    if (_routePolylines.isNotEmpty && _directionsResult != null) {
-      _routePolylines = {
-        Polyline(
-          polylineId: const PolylineId('active_route'),
-          points: _directionsResult!.polylinePoints,
-          color: routeColorTheme,
-          width: 6,
-          startCap: Cap.roundCap,
-          endCap: Cap.roundCap,
-          geodesic: true,
-        ),
-      };
+    // Reactively update route polyline points and colors when map theme changes or location updates
+    if (_directionsResult != null) {
+      _updateRoutePolyline(Theme.of(context));
     }
 
     if (collegeId != null) {
-      // ref.watch ensures we process the CURRENT value on every build
-      // (not just future changes like ref.listen would).
-      ref.watch(collegeBusLocationsProvider(collegeId)).whenData((locations) {
-        // Process inside post-frame so we don't call setState during build.
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (mounted) {
+      // Use ref.listen (not ref.watch) so location updates are processed
+      // only when the data actually CHANGES — not on every build() call.
+      // The old ref.watch + postFrameCallback pattern caused a feedback loop:
+      // location → _handleLocationUpdate → _rebuildMarkers → setState →
+      // build() → ref.watch fires again → repeat, causing visible jitter.
+      ref.listen<AsyncValue<List<BusLocationModel>>>(
+        collegeBusLocationsProvider(collegeId),
+        (_, next) {
+          next.whenData((locations) {
+            if (!mounted) return;
+            bool hasNewBus = false;
             for (final loc in locations) {
               _handleLocationUpdate(loc);
+              // Check if this bus doesn't have a marker yet.
+              // _handleLocationUpdate starts the animation, but
+              // _updateSingleMarkerPosition can only UPDATE an existing
+              // _markers entry. For a brand-new bus the marker must first be
+              // INSERTED via _rebuildMarkers().
+              if (!_markers.containsKey(loc.busId)) {
+                hasNewBus = true;
+              }
             }
-          }
-        });
-      });
+            // Only pay the full _rebuildMarkers cost when a new bus appears.
+            // Subsequent updates are handled cheaply by _updateSingleMarkerPosition
+            // inside the animation listener (60fps, single-bus update).
+            if (hasNewBus) {
+              _rebuildMarkers();
+            }
+          });
+        },
+      );
     }
 
     if (collegeId != null) {
@@ -969,65 +1142,73 @@ class LiveBusMapState extends ConsumerState<LiveBusMap>
                     ValueListenableBuilder<Set<Marker>>(
                       valueListenable: _markersNotifier,
                       builder: (context, markers, child) {
-                        return CommonMapView(
-                          currentLocation: _centerLocation!,
-                          markers: markers,
-                          polylines: _routePolylines,
-                          onMapCreated: (controller) {
-                            _mapController = controller;
-                            widget.onMapCreated?.call(controller);
-                            // Seed any existing locations into _liveLocations
-                            _seedLocationsFromProvider();
-                            _rebuildMarkers();
-                            Future.delayed(const Duration(milliseconds: 300), () {
+                        return Listener(
+                          onPointerDown: (_) {
+                            final isFollowing = ref.read(mapNavigationProvider).isFollowing;
+                            if (isFollowing) {
+                              ref.read(mapNavigationProvider.notifier).setFollowing(false);
+                            }
+                          },
+                          child: CommonMapView(
+                            currentLocation: _centerLocation!,
+                            markers: markers,
+                            polylines: _routePolylines,
+                            onMapCreated: (controller) {
+                              _mapController = controller;
+                              widget.onMapCreated?.call(controller);
+                              // Seed any existing locations into _liveLocations
+                              _seedLocationsFromProvider();
+                              _rebuildMarkers();
+                              Future.delayed(const Duration(milliseconds: 300), () {
+                                _updateSosOverlayPositions();
+                              });
+                            },
+                            onCameraMove: (position) {
+                              ref.read(mapNavigationProvider.notifier).updateCamera(position.target, position.zoom);
                               _updateSosOverlayPositions();
-                            });
-                          },
-                          onCameraMove: (position) {
-                            ref.read(mapNavigationProvider.notifier).updateCamera(position.target, position.zoom);
-                            _updateSosOverlayPositions();
-                          },
-                          onCameraIdle: () async {
-                            if (_mapController != null && collegeId != null) {
-                              final user = ref.read(currentUserProvider);
-                              final isAuthorized = user != null &&
-                                  user.role != UserRole.student &&
-                                  user.role != UserRole.parent &&
-                                  user.role != UserRole.teacher;
-                              if (isAuthorized) {
-                                final bounds = await _mapController!.getVisibleRegion();
-                                try {
-                                  final repo = ref.read(busRepositoryProvider);
-                                  final locations = await repo.getCollegeBusLocations(
-                                    collegeId,
-                                    minLat: bounds.southwest.latitude,
-                                    maxLat: bounds.northeast.latitude,
-                                    minLng: bounds.southwest.longitude,
-                                    maxLng: bounds.northeast.longitude,
-                                  );
-                                  if (mounted) {
-                                    for (var loc in locations) {
-                                      _handleLocationUpdate(loc);
+                            },
+                            onCameraIdle: () async {
+                              if (_mapController != null && collegeId != null) {
+                                final user = ref.read(currentUserProvider);
+                                final isAuthorized = user != null &&
+                                    user.role != UserRole.student &&
+                                    user.role != UserRole.parent &&
+                                    user.role != UserRole.teacher;
+                                if (isAuthorized) {
+                                  final bounds = await _mapController!.getVisibleRegion();
+                                  try {
+                                    final repo = ref.read(busRepositoryProvider);
+                                    final locations = await repo.getCollegeBusLocations(
+                                      collegeId,
+                                      minLat: bounds.southwest.latitude,
+                                      maxLat: bounds.northeast.latitude,
+                                      minLng: bounds.southwest.longitude,
+                                      maxLng: bounds.northeast.longitude,
+                                    );
+                                    if (mounted) {
+                                      for (var loc in locations) {
+                                        _handleLocationUpdate(loc);
+                                      }
                                     }
+                                  } catch (e) {
+                                    debugPrint('Failed to fetch bounded buses: $e');
                                   }
-                                } catch (e) {
-                                  debugPrint('Failed to fetch bounded buses: $e');
                                 }
                               }
-                            }
-                          },
-                          onCameraMoveStarted: () {
-                            if (!_isProgrammaticMove) {
-                              final isFollowing = ref.read(mapNavigationProvider).isFollowing;
-                              if (isFollowing) {
-                                ref.read(mapNavigationProvider.notifier).setFollowing(false);
+                            },
+                            onCameraMoveStarted: () {
+                              if (!_isProgrammaticMove) {
+                                final isFollowing = ref.read(mapNavigationProvider).isFollowing;
+                                if (isFollowing) {
+                                  ref.read(mapNavigationProvider.notifier).setFollowing(false);
+                                }
                               }
-                            }
-                          },
-                          initialZoom: ref.read(mapNavigationProvider).zoom,
-                          myLocationEnabled: widget.showUserLocation,
-                          myLocationButtonEnabled: widget.showUserLocation,
-                          bottomPadding: widget.bottomPadding,
+                            },
+                            initialZoom: ref.read(mapNavigationProvider).zoom,
+                            myLocationEnabled: widget.showUserLocation,
+                            myLocationButtonEnabled: widget.showUserLocation,
+                            bottomPadding: widget.bottomPadding,
+                          ),
                         );
                       },
                     ),
@@ -1147,3 +1328,35 @@ class _RadarPulsePainter extends CustomPainter {
   }
 }
 
+/// Mutable container for a single bus marker's animation endpoints.
+///
+/// Stored in [LiveBusMapState._markerTargets] and updated in-place on every
+/// GPS tick so the listener closure on the [AnimationController] always reads
+/// the current start/end values without needing to be recreated.
+class _MarkerAnimTarget {
+  double startLat;
+  double startLng;
+  double endLat;
+  double endLng;
+  double startRot;
+  double endRot;
+
+  _MarkerAnimTarget({
+    required this.startLat,
+    required this.startLng,
+    required this.endLat,
+    required this.endLng,
+    required this.startRot,
+    required this.endRot,
+  });
+
+  /// Overwrite this instance's fields with the values from [other].
+  void copyInto(_MarkerAnimTarget other) {
+    other.startLat = startLat;
+    other.startLng = startLng;
+    other.endLat   = endLat;
+    other.endLng   = endLng;
+    other.startRot = startRot;
+    other.endRot   = endRot;
+  }
+}

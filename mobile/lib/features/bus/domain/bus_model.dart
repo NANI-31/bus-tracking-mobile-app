@@ -117,6 +117,9 @@ class BusLocationModel {
   final double? speed;
   final double? heading;
   final String? collegeId;
+  /// Driver-computed ETA to the nearest stop (whole minutes).
+  /// Populated only while the driver is actively sharing location.
+  final int? etaMinutes;
 
   BusLocationModel({
     required this.busId,
@@ -125,6 +128,7 @@ class BusLocationModel {
     this.speed,
     this.heading,
     this.collegeId,
+    this.etaMinutes,
   });
 
   factory BusLocationModel.fromMap(Map<String, dynamic> map, String busId) {
@@ -140,6 +144,7 @@ class BusLocationModel {
       speed: map['speed']?.toDouble(),
       heading: map['heading']?.toDouble(),
       collegeId: map['collegeId'],
+      etaMinutes: map['etaMinutes']?.toInt(),
     );
   }
 
@@ -153,6 +158,7 @@ class BusLocationModel {
       'speed': speed,
       'heading': heading,
       'collegeId': collegeId,
+      if (etaMinutes != null) 'etaMinutes': etaMinutes,
     };
   }
 }

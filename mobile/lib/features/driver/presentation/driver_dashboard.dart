@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart'; // defaultTargetPlatform
 import 'package:flutter/services.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:collegebus/l10n/driver/app_localizations.dart';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -14,6 +17,7 @@ import 'package:collegebus/features/route/application/route_provider.dart';
 import 'package:collegebus/core/providers/repository_providers.dart';
 import 'package:collegebus/core/providers/socket_provider.dart';
 import 'package:collegebus/features/bus/domain/bus_model.dart';
+import 'package:collegebus/features/notification/services/fcm_service.dart';
 import 'package:collegebus/features/route/domain/route_model.dart';
 import 'package:collegebus/core/constants/constants.dart';
 
@@ -25,7 +29,6 @@ import 'widgets/live_tracking_control_panel.dart';
 import 'package:collegebus/widgets/common/common_map_view.dart';
 import 'package:collegebus/shared/widgets/navigation/curved_bottom_nav_bar.dart';
 import 'dart:async';
-import 'package:collegebus/shared/widgets/success_modal.dart';
 import 'package:collegebus/shared/widgets/sos_button.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:collegebus/features/user/presentation/screens/profile_screen.dart';
@@ -38,6 +41,7 @@ import 'package:collegebus/features/driver/application/driver_ui_provider.dart';
 import 'package:collegebus/core/utils/map_marker_helper.dart';
 import 'package:collegebus/shared/widgets/shimmer_skeletons.dart';
 import 'package:collegebus/shared/widgets/api_error_modal.dart';
+import 'package:collegebus/shared/widgets/global_connectivity_banner.dart';
 
 
 class DriverDashboard extends ConsumerStatefulWidget {
@@ -53,6 +57,14 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
   bool _hasInitialized = false; // Prevent auto-resume during first build
 
   DateTime? _lastDeviationAlertTime;
+
+  /// Tracks which stop points have already fired a `stop_reached` event during
+  /// the current sharing session. Key = "${stop.name}_${stop.lat}_${stop.lng}".
+  /// Cleared when location sharing stops so stops can fire again next trip.
+  final Set<String> _arrivedStopIds = {};
+  /// Active overlay entry for the top toast notification.
+  OverlayEntry? _activeOverlayEntry;
+
   BitmapDescriptor? _busIcon;
   BitmapDescriptor? _startStopIcon;
   BitmapDescriptor? _intermediateStopIcon;
@@ -129,7 +141,7 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
     );
     _getCurrentLocation();
 
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
       debugPrint('[DriverDashboard] postFrameCallback - marking initialized');
       _hasInitialized = true;
       ref.read(driverLocationProvider.notifier).updateSharing(_isSharing);
@@ -138,12 +150,20 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
       if (user != null) {
         socketService.joinCollege(user.collegeId);
       }
+      
+      // Request permissions sequentially:
+      // First Notification and Foreground GPS, then Background GPS, Battery Opt, and Mic.
+      if (mounted) {
+        await _requestDriverPermissions();
+      }
     });
     debugPrint('[DriverDashboard] initState END');
   }
 
   @override
   void dispose() {
+    _activeOverlayEntry?.remove();
+    _activeOverlayEntry = null;
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
@@ -151,10 +171,43 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
-      AppLogger.i(
-        '[DriverDashboard] App resumed. Ensuring socket connection...',
-      );
-      ref.read(socketServiceProvider).ensureConnected();
+      AppLogger.i('[DriverDashboard] App resumed — reconnecting socket.');
+      // Suppress the red offline banner for 5 s — the socket typically
+      // reconnects within 1-3 s after screen wake. Without this, drivers
+      // see a misleading red flash every time they unlock their phone.
+      GlobalConnectivityBanner.suppress(const Duration(seconds: 5));
+      final socketService = ref.read(socketServiceProvider);
+      socketService.ensureConnected();
+      // Re-join college room in case the socket reconnected without it
+      final user = ref.read(currentUserProvider);
+      if (user != null) {
+        socketService.joinCollege(user.collegeId);
+      }
+      // If sharing was active, ensure the GPS stream is still live.
+      // On some devices the OS may have killed the stream subscription while
+      // the app was in the background; we recover silently here.
+      final isSharing = ref.read(driverLocationProvider).isSharing;
+      final locationService = ref.read(locationServiceProvider);
+      if (isSharing && !locationService.isTracking) {
+        AppLogger.w('[DriverDashboard] Location stream stopped in background — restarting.');
+        // Re-start the GPS stream silently using the already-loaded provider.
+        // driverBusProvider is keyed by userId, so we read it via currentUser.
+        WidgetsBinding.instance.addPostFrameCallback((_) async {
+          if (!mounted) return;
+          final userId = ref.read(currentUserProvider)?.id;
+          if (userId != null) {
+            final bus = ref.read(driverBusProvider(userId)).valueOrNull;
+            if (bus != null) {
+              await _startLocationSharing(bus, silent: true);
+            }
+          }
+        });
+      }
+    } else if (state == AppLifecycleState.paused) {
+      // The screen turned off or the app went to background.
+      // The foreground service notification keeps the GPS stream alive on
+      // Android — we intentionally do NOT stop tracking here.
+      AppLogger.i('[DriverDashboard] App paused (screen off / backgrounded). GPS stream continues via foreground service.');
     }
   }
 
@@ -188,6 +241,13 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
       }
     }
 
+    // Android 10+ requires a SEPARATE request for background location
+    // ('Allow all the time'). This is necessary so the foreground service
+    // can deliver GPS updates when the screen is off.
+    if (defaultTargetPlatform == TargetPlatform.android) {
+      await _requestBackgroundLocationPermission(silent: silent);
+    }
+
     // Update bus status to live
     repo.updateBus(myBus.id, {'status': 'on-time'}).catchError((e) {
       AppLogger.e('Failed to update bus status: $e');
@@ -195,14 +255,25 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
 
     locationService.startLocationTracking(
       onLocationUpdate: (position) {
+        // Compute ETA before emitting so it can be included in the payload.
+        // _checkRouteDeviation() calls _calculateETA() internally and returns
+        // Compute ETA to nearest stop. Prefer actual GPS speed when the bus is
+        // moving (> 1 m/s ≈ 3.6 km/h) to give students real-time accuracy.
+        // Falls back to 30 km/h (8.33 m/s) when stationary or speed is unreliable.
+        final etaMinutes = _computeEtaMinutes(
+          position,
+          speedMs: position.speed > 1.0 ? position.speed : null,
+        );
+
         socketService.updateLocation({
           'busId': myBus.id,
           'collegeId': user!.collegeId,
           'location': {'lat': position.latitude, 'lng': position.longitude},
           'speed': position.speed,
           'heading': position.heading,
+          if (etaMinutes != null) 'etaMinutes': etaMinutes,
         });
-        
+
         final latLng = LatLng(position.latitude, position.longitude);
         ref.read(driverLocationProvider.notifier).updateLocation(
           latLng,
@@ -210,6 +281,7 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
           speed: position.speed,
         );
         _checkRouteDeviation(position, myBus);
+        _checkStopArrival(position, myBus);
       },
     );
 
@@ -217,6 +289,175 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
     _saveSelections(myBus);
 
     if (!mounted) return;
+  }
+
+  /// Requests ACCESS_BACKGROUND_LOCATION on Android 10+.
+  ///
+  /// Android requires a two-step permission flow: the user must first grant
+  /// 'While in Use' (already done before this call), and then they can be asked
+  /// to upgrade to 'Allow all the time' via a separate system prompt. Without
+  /// 'Allow all the time', the foreground service still runs but GPS delivery
+  /// is throttled / blocked when the screen turns off on some OEM devices.
+  Future<void> _requestBackgroundLocationPermission({bool silent = false}) async {
+    // Only relevant on Android 10 (API 29)+
+    final status = await Permission.locationAlways.status;
+    if (status.isGranted) return; // Already has 'Allow all the time'
+
+    if (status.isPermanentlyDenied) {
+      // User tapped 'Don't allow' too many times — guide them to settings
+      if (!silent && mounted) {
+        final shouldOpen = await showDialog<bool>(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: const Text('Background Location Required'),
+            content: const Text(
+              'To share your location when the screen is off, please open app Settings '
+              'and set Location to "Allow all the time".',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: const Text('Not now'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, true),
+                child: const Text('Open Settings'),
+              ),
+            ],
+          ),
+        );
+        if (shouldOpen == true) openAppSettings();
+      }
+      return;
+    }
+
+    // Show rationale before requesting
+    if (!silent && mounted) {
+      final proceed = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Background Location'),
+          content: const Text(
+            'Select "Allow all the time" on the next screen so students '
+            'can track the bus even when your phone screen is off.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Skip'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('Continue'),
+            ),
+          ],
+        ),
+      );
+      if (proceed != true) return;
+    }
+
+    await Permission.locationAlways.request();
+  }
+
+  /// Sequential permission flow that requests basic permissions first,
+  /// followed by high-level background/battery/audio permissions.
+  Future<void> _requestDriverPermissions() async {
+    // 1. Request notification permission (FCM) first
+    try {
+      await FCMService().requestPermission();
+    } catch (_) {}
+
+    // 2. Request basic foreground GPS permission
+    final locationService = ref.read(locationServiceProvider);
+    final hasForegroundLoc = await locationService.checkLocationPermission();
+    if (!hasForegroundLoc) {
+      final granted = await locationService.requestLocationPermission();
+      // If foreground GPS is denied, stop requesting secondary permissions
+      if (!granted) return;
+    }
+
+    // 3. Request audio/microphone permission (for voice messages) right after basic GPS
+    try {
+      final micStatus = await Permission.microphone.status;
+      if (!micStatus.isGranted && !micStatus.isPermanentlyDenied) {
+        await Permission.microphone.request();
+      }
+    } catch (_) {}
+
+    // 4. Now request background location ("Allow all the time") on Android
+    if (defaultTargetPlatform == TargetPlatform.android) {
+      await _requestBackgroundLocationPermission(silent: false);
+    }
+
+    // 5. Request battery optimization exemption on Android
+    if (defaultTargetPlatform == TargetPlatform.android) {
+      await _requestBatteryOptimizationExemption();
+    }
+  }
+
+
+
+  /// Requests Android battery optimization exemption (one-time, on first launch).
+  ///
+  /// On OEM devices (Samsung/Xiaomi/Oppo/Vivo), the system's battery optimizer
+  /// can kill the GPS foreground service after 5–10 minutes of screen-off even
+  /// with a persistent notification. Setting the app to "Don't optimize" prevents
+  /// this and is required for reliable background location delivery.
+  Future<void> _requestBatteryOptimizationExemption() async {
+    // Check if already exempted
+    final status = await Permission.ignoreBatteryOptimizations.status;
+    if (status.isGranted) return;
+
+    // Check if we've already shown this prompt before (don't spam the driver)
+    final prefs = await SharedPreferences.getInstance();
+    final alreadyPrompted = prefs.getBool('battery_opt_prompted') ?? false;
+    if (alreadyPrompted) return;
+
+    await prefs.setBool('battery_opt_prompted', true);
+
+    if (!mounted) return;
+
+    final proceed = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Row(
+          children: [
+            Icon(Icons.battery_saver_rounded, color: Color(0xFF0097B2)),
+            SizedBox(width: 10),
+            Text('Keep GPS Running', style: TextStyle(fontSize: 17)),
+          ],
+        ),
+        content: const Text(
+          'To keep sending your location when the screen is off, '
+          'please tap "Don\'t optimize" on the next screen.\n\n'
+          'This prevents your phone\'s battery saver from stopping GPS tracking.',
+          style: TextStyle(fontSize: 14, height: 1.5),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Skip'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF0097B2),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Continue'),
+          ),
+        ],
+      ),
+    );
+
+    if (proceed == true) {
+      await Permission.ignoreBatteryOptimizations.request();
+    }
   }
 
   Future<void> _saveSelections(BusModel? myBus) async {
@@ -240,15 +481,71 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
     }
   }
 
-  LatLng _getMockCoordinateForLocation(String location) {
-    final currentLoc = ref.read(driverLocationProvider).currentLocation;
-    final base = currentLoc ?? const LatLng(17.385, 78.4867);
-    final hash = location.hashCode;
-    return LatLng(
-      base.latitude + (hash % 100) / 10000.0,
-      base.longitude + ((hash ~/ 100) % 100) / 10000.0,
+
+  void _showToast(String message, {bool isError = false}) {
+    if (!mounted) return;
+    
+    // Dismiss any active top toast immediately to prevent stacking/overlaps
+    _activeOverlayEntry?.remove();
+    _activeOverlayEntry = null;
+
+    final entry = OverlayEntry(
+      builder: (context) => Positioned(
+        top: MediaQuery.of(context).padding.top + 16,
+        left: 16,
+        right: 16,
+        child: Material(
+          color: Colors.transparent,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            decoration: BoxDecoration(
+              color: isError ? Colors.red.shade800 : const Color(0xFF0097B2),
+              borderRadius: BorderRadius.circular(14),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.2),
+                  blurRadius: 12,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  isError ? Icons.error_outline : Icons.check_circle_outline,
+                  color: Colors.white,
+                  size: 20,
+                ),
+                12.widthBox,
+                Expanded(
+                  child: Text(
+                    message,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 14,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
+
+    _activeOverlayEntry = entry;
+    Overlay.of(context).insert(entry);
+
+    // Auto-dismiss after 4 seconds
+    Future.delayed(const Duration(seconds: 4), () {
+      if (_activeOverlayEntry == entry) {
+        entry.remove();
+        _activeOverlayEntry = null;
+      }
+    });
   }
+
 
   Future<void> _toggleLocationSharing(BusModel? myBus) async {
     final isSharing = ref.read(driverLocationProvider).isSharing;
@@ -309,11 +606,47 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
   }
 
   void _calculateETA(Position position, BusModel? myBus) {
+    final etaMinutes = _computeEtaMinutes(position);
+    if (etaMinutes == null) return;
+
+    // Build the localised display string for the driver's own ETA card.
     final selectedRoute = ref.read(driverMapStateProvider).selectedRoute;
     if (selectedRoute == null) return;
 
+    // Find the nearest stop again for its name (already done inside _computeEtaMinutes)
     double minDistance = double.infinity;
     RoutePoint? nextStop;
+    for (final stop in selectedRoute.stopPoints) {
+      final dist = Geolocator.distanceBetween(
+        position.latitude, position.longitude, stop.lat, stop.lng,
+      );
+      if (dist < minDistance) {
+        minDistance = dist;
+        nextStop = stop;
+      }
+    }
+    if (nextStop == null) return;
+
+    final etaStr = DriverLocalizations.of(context)!.etaToNextStop(
+      etaMinutes,
+      nextStop.name,
+    );
+    ref.read(driverLocationProvider.notifier).updateETA(etaStr);
+  }
+
+  /// Computes ETA in whole minutes to the nearest stop.
+  /// Returns null if no route is selected or no stops exist.
+  /// This is the single source of truth used by both the driver's UI card
+  /// and the socket payload sent to students.
+  ///
+  /// [speedMs] — optional GPS speed in m/s from [Position.speed].
+  /// Used when speed > 1.0 m/s (> 3.6 km/h) to avoid GPS jitter on stationary
+  /// fixes. Falls back to 8.33 m/s (30 km/h) when null or too low.
+  int? _computeEtaMinutes(Position position, {double? speedMs}) {
+    final selectedRoute = ref.read(driverMapStateProvider).selectedRoute;
+    if (selectedRoute == null) return null;
+
+    double minDistance = double.infinity;
 
     for (final stop in selectedRoute.stopPoints) {
       final dist = Geolocator.distanceBetween(
@@ -322,23 +655,79 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
         stop.lat,
         stop.lng,
       );
-      if (dist < minDistance) {
-        minDistance = dist;
-        nextStop = stop;
+      if (dist < minDistance) minDistance = dist;
+    }
+
+    if (minDistance == double.infinity) return null;
+
+    // Use real GPS speed when reliable (> 1 m/s); otherwise default to 30 km/h.
+    // Threshold: 1 m/s ≈ 3.6 km/h — below this the reading is GPS noise.
+    final effectiveSpeedMs =
+        (speedMs != null && speedMs > 1.0) ? speedMs : 8.33;
+    final timeSeconds = minDistance / effectiveSpeedMs;
+    return (timeSeconds / 60).ceil();
+  }
+
+  /// Checks whether the driver is within 25 m of any RoutePoint (start, stops, or end)
+  /// that has not yet been announced this session, and emits `stop_reached` via the socket.
+  ///
+  /// Each stop is tracked with a composite key to avoid needing an `id` field
+  /// on [RoutePoint]. The set is cleared in [_stopLocationSharing] so that
+  /// stops fire again on the next trip.
+  void _checkStopArrival(Position position, BusModel myBus) {
+    final selectedRoute = ref.read(driverMapStateProvider).selectedRoute;
+    if (selectedRoute == null) return;
+
+    // Collect all RoutePoints: Start -> Stops -> End
+    final List<RoutePoint> allRoutePoints = [];
+    if (selectedRoute.startPoint.lat != 0 && selectedRoute.startPoint.lng != 0) {
+      allRoutePoints.add(selectedRoute.startPoint);
+    }
+    allRoutePoints.addAll(selectedRoute.stopPoints);
+    if (selectedRoute.endPoint.lat != 0 && selectedRoute.endPoint.lng != 0) {
+      allRoutePoints.add(selectedRoute.endPoint);
+    }
+
+    // Stop arrival threshold: 25 meters
+    const double arrivalThresholdMeters = 25.0;
+
+    for (final stop in allRoutePoints) {
+      final stopKey = '${stop.name}_${stop.lat}_${stop.lng}';
+
+      // Skip if this stop was already announced this session
+      if (_arrivedStopIds.contains(stopKey)) continue;
+
+      final dist = Geolocator.distanceBetween(
+        position.latitude,
+        position.longitude,
+        stop.lat,
+        stop.lng,
+      );
+
+      if (dist <= arrivalThresholdMeters) {
+        _arrivedStopIds.add(stopKey);
+
+        final socketService = ref.read(socketServiceProvider);
+        final user = ref.read(currentUserProvider);
+
+        socketService.emitStopReached({
+          'busId': myBus.id,
+          'collegeId': user?.collegeId ?? myBus.collegeId,
+          // Composite key so students can match to their own stop
+          'stopId': stopKey,
+          'stopName': stop.name,
+          'distanceMeters': dist.toStringAsFixed(1),
+          'timestamp': DateTime.now().toIso8601String(),
+        });
+
+        AppLogger.i(
+          '[DriverDashboard] stop_reached emitted for "${stop.name}" '
+          '(${dist.toStringAsFixed(0)} m)',
+        );
       }
     }
-
-    if (nextStop != null) {
-      // average speed 30km/h = ~8.33 m/s
-      final timeSeconds = minDistance / 8.33;
-      final timeMinutes = (timeSeconds / 60).ceil();
-
-      final etaStr = DriverLocalizations.of(
-        context,
-      )!.etaToNextStop(timeMinutes, nextStop.name);
-      ref.read(driverLocationProvider.notifier).updateETA(etaStr);
-    }
   }
+
 
   double _distanceToSegment(LatLng p, LatLng start, LatLng end) {
     final double x = p.latitude;
@@ -377,11 +766,14 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
     return Geolocator.distanceBetween(x, y, xx, yy);
   }
 
-  void _stopLocationSharing(BusModel? myBus) {
+  void _stopLocationSharing(BusModel? myBus, {bool showFeedback = true}) {
     final locationService = ref.read(locationServiceProvider);
     final repo = ref.read(busRepositoryProvider);
 
     locationService.stopLocationTracking();
+
+    // Reset arrived stops so they can fire again on the next trip.
+    _arrivedStopIds.clear();
 
     // Revert bus status to offline
     if (myBus != null) {
@@ -393,12 +785,9 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
     ref.read(driverLocationProvider.notifier).updateSharing(false);
     ref.read(driverLocationProvider.notifier).updateETA(null);
     _saveSelections(myBus);
-    SuccessModal.show(
-      context: context,
-      title: 'Location Sharing',
-      message: DriverLocalizations.of(context)!.locationSharingStopped,
-      primaryActionText: 'OK',
-    );
+    if (showFeedback) {
+      _showToast(DriverLocalizations.of(context)!.locationSharingStopped);
+    }
   }
 
   Future<void> _handleRemoveAssignment(BusModel myBus) async {
@@ -410,18 +799,10 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
       await PersistenceService.remove('driver_route_id');
       if (!mounted) return;
       ref.read(driverMapStateProvider.notifier).setSelectedRoute(null);
-      SuccessModal.show(
-        context: context,
-        title: 'Assignment Removed',
-        message: DriverLocalizations.of(context)!.busAssignmentRemoved,
-        primaryActionText: 'OK',
-      );
+      _showToast(DriverLocalizations.of(context)!.busAssignmentRemoved);
     } catch (e) {
       if (!mounted) return;
-      ApiErrorModal.show(
-        context: context,
-        error: DriverLocalizations.of(context)!.removeAssignmentError(e.toString()),
-      );
+      _showToast(DriverLocalizations.of(context)!.removeAssignmentError(e.toString()), isError: true);
     }
   }
 
@@ -430,12 +811,7 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
     try {
       await repo.updateBus(bus.id, {'assignmentStatus': 'accepted'});
       if (mounted) {
-        SuccessModal.show(
-          context: context,
-          title: 'Assignment Accepted',
-          message: DriverLocalizations.of(context)!.assignmentAccepted,
-          primaryActionText: 'OK',
-        );
+        _showToast(DriverLocalizations.of(context)!.assignmentAccepted);
         // Auto-start location sharing
         await _startLocationSharing(bus);
         // Switch to Live Tracking tab
@@ -443,10 +819,7 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
       }
     } catch (e) {
       if (mounted) {
-        ApiErrorModal.show(
-          context: context,
-          error: DriverLocalizations.of(context)!.acceptAssignmentError(e.toString()),
-        );
+        _showToast(DriverLocalizations.of(context)!.acceptAssignmentError(e.toString()), isError: true);
       }
     }
   }
@@ -460,19 +833,11 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
         'status': 'not-running',
       });
       if (mounted) {
-        SuccessModal.show(
-          context: context,
-          title: 'Assignment Declined',
-          message: DriverLocalizations.of(context)!.assignmentDeclined,
-          primaryActionText: 'OK',
-        );
+        _showToast(DriverLocalizations.of(context)!.assignmentDeclined);
       }
     } catch (e) {
       if (mounted) {
-        ApiErrorModal.show(
-          context: context,
-          error: DriverLocalizations.of(context)!.declineAssignmentError(e.toString()),
-        );
+        _showToast(DriverLocalizations.of(context)!.declineAssignmentError(e.toString()), isError: true);
       }
     }
   }
@@ -1010,7 +1375,7 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
     if (confirm == true) {
       final repo = ref.read(busRepositoryProvider);
       try {
-        _stopLocationSharing(myBus); // Stop tracking first
+        _stopLocationSharing(myBus, showFeedback: false); // Stop tracking first
         // unassignDriverFromBus logic: set driverId to null, etc.
         await repo.updateBus(myBus.id, {
           'driverId': null,
@@ -1026,19 +1391,11 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
         if (mounted) {
           ref.read(driverMapStateProvider.notifier).setSelectedRoute(null);
 
-          SuccessModal.show(
-            context: context,
-            title: 'Trip Completed',
-            message: 'Good job! You have been unassigned from the bus.',
-            primaryActionText: 'OK',
-          );
+          _showToast('Trip Completed: Good job! You have been unassigned from the bus.');
         }
       } catch (e) {
         if (mounted) {
-          ApiErrorModal.show(
-            context: context,
-            error: 'Error completing trip: $e',
-          );
+          _showToast('Error completing trip: $e', isError: true);
         }
       }
     }
@@ -1081,12 +1438,17 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
                     final stop = route.stopPoints[i];
                     if (stop.lat == 0 && stop.lng == 0) continue;
 
-                    // Filter out intermediate stops that are at the exact same location as start or end points
+                    // Filter out intermediate stops that are at the exact same location or have the same name as start or end points
                     final isAtStart = (stop.lat - route.startPoint.lat).abs() < 0.00001 &&
                         (stop.lng - route.startPoint.lng).abs() < 0.00001;
                     final isAtEnd = (stop.lat - route.endPoint.lat).abs() < 0.00001 &&
                         (stop.lng - route.endPoint.lng).abs() < 0.00001;
-                    if (isAtStart || isAtEnd) continue;
+                    final isSameNameStart = route.startPoint.name.isNotEmpty &&
+                        stop.name.trim().toLowerCase() == route.startPoint.name.trim().toLowerCase();
+                    final isSameNameEnd = route.endPoint.name.isNotEmpty &&
+                        stop.name.trim().toLowerCase() == route.endPoint.name.trim().toLowerCase();
+                    
+                    if (isAtStart || isAtEnd || isSameNameStart || isSameNameEnd) continue;
 
                     stopMarkers.add(Marker(
                       markerId: MarkerId('dstop_$i'),
@@ -1112,10 +1474,17 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
                 // 2. Build polylines dynamically
                 final polylines = <Polyline>{};
                 if (result != null && result.hasRoute) {
+                  List<LatLng> points = List<LatLng>.from(result.polylinePoints);
+                  if (currentLocation != null && points.isNotEmpty) {
+                    final closestIdx = _findClosestPointIndex(currentLocation, points);
+                    // Slice the polyline so it starts at the driver's current location, clearing the traveled portion
+                    points = [currentLocation, ...points.sublist(closestIdx)];
+                  }
+
                   polylines.addAll({
                     Polyline(
                       polylineId: const PolylineId('driver_route_glow'),
-                      points: result.polylinePoints,
+                      points: points,
                       color: routeColorTheme.withValues(alpha: 0.3),
                       width: 10,
                       startCap: Cap.roundCap,
@@ -1124,7 +1493,7 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
                     ),
                     Polyline(
                       polylineId: const PolylineId('driver_route'),
-                      points: result.polylinePoints,
+                      points: points,
                       color: routeColorTheme,
                       width: 6,
                       startCap: Cap.roundCap,
@@ -1135,50 +1504,13 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
                 }
 
                 final mapMarkers = {...stopMarkers};
-                if (mapMarkers.isEmpty && route != null) {
-                  // Fallback: draw basic markers if stopMarkers are empty
-                  final startCoord = route.startPoint.lat != 0
-                      ? LatLng(route.startPoint.lat, route.startPoint.lng)
-                      : _getMockCoordinateForLocation(route.startPoint.name);
-                  mapMarkers.add(Marker(
-                    markerId: const MarkerId('start'),
-                    position: startCoord,
-                    infoWindow: InfoWindow(
-                      title: DriverLocalizations.of(context)!.startPointMarker(route.startPoint.name),
-                    ),
-                    icon: _startStopIcon ?? BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen),
-                    anchor: const Offset(0.5, 0.5),
-                  ));
-                  
-                  final endCoord = route.endPoint.lat != 0
-                      ? LatLng(route.endPoint.lat, route.endPoint.lng)
-                      : _getMockCoordinateForLocation(route.endPoint.name);
-                  mapMarkers.add(Marker(
-                    markerId: const MarkerId('end'),
-                    position: endCoord,
-                    infoWindow: InfoWindow(
-                      title: DriverLocalizations.of(context)!.endPointMarker(route.endPoint.name),
-                    ),
-                    icon: _endStopIcon ?? BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
-                    anchor: const Offset(0.5, 0.5),
-                  ));
+                // NOTE: the old fallback block that placed markers via
+                // _getMockCoordinateForLocation() has been removed.
+                // If a stop has lat==0 it means coordinates were never set by
+                // the coordinator. Showing a fake position is worse than showing
+                // nothing — it misleads the driver. The primary block above
+                // (dstop_start / dstop_* / dstop_end) already skips zero-lat stops.
 
-                  for (var i = 0; i < route.stopPoints.length; i++) {
-                    final stop = route.stopPoints[i];
-                    final coord = stop.lat != 0
-                        ? LatLng(stop.lat, stop.lng)
-                        : _getMockCoordinateForLocation(stop.name);
-                    mapMarkers.add(Marker(
-                      markerId: MarkerId('stop_$i'),
-                      position: coord,
-                      infoWindow: InfoWindow(
-                        title: DriverLocalizations.of(context)!.stopPointMarker(i + 1, stop.name),
-                      ),
-                      icon: _intermediateStopIcon ?? BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueOrange),
-                      anchor: const Offset(0.5, 0.5),
-                    ));
-                  }
-                }
 
                 if (currentLocation != null) {
                   mapMarkers.add(
@@ -1187,7 +1519,9 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
                       position: currentLocation,
                       icon: _busIcon ?? BitmapDescriptor.defaultMarker,
                       rotation: heading,
-                      anchor: const Offset(0.5, 0.5),
+                      // (0.5, 0.2): bus_icon.png nose is at the top ~20% of
+                      // the image. This places the heading tip on the GPS coordinate.
+                      anchor: const Offset(0.5, 0.2),
                       flat: true,
                       zIndexInt: 2,
                     ),
@@ -1447,6 +1781,26 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
       default:
         return AppColors.turkishBlue;
     }
+  }
+
+  int _findClosestPointIndex(LatLng target, List<LatLng> points) {
+    if (points.isEmpty) return 0;
+    int closestIdx = 0;
+    double minDistance = double.infinity;
+    for (int i = 0; i < points.length; i++) {
+      final p = points[i];
+      final dist = Geolocator.distanceBetween(
+        target.latitude,
+        target.longitude,
+        p.latitude,
+        p.longitude,
+      );
+      if (dist < minDistance) {
+        minDistance = dist;
+        closestIdx = i;
+      }
+    }
+    return closestIdx;
   }
 }
 

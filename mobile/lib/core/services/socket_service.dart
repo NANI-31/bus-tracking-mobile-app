@@ -14,6 +14,11 @@ class SocketService extends ChangeNotifier {
   String? _lastJoinedCollegeId;
   String? _errorMessage;
   final List<Map<String, dynamic>> _eventQueue = [];
+  Timer? _heartbeatTimer;
+
+  /// Max number of location events kept in the offline queue.
+  /// Older entries are dropped to avoid replaying stale GPS positions.
+  static const int _maxLocationQueueSize = 30;
 
   /// Callback for REST fallback when socket is disconnected
   Future<void> Function(Map<String, dynamic>)? onFallbackUpdate;
@@ -46,6 +51,10 @@ class SocketService extends ChangeNotifier {
   Stream<String?> get errorStream => _errorController.stream;
   Stream<Map<String, dynamic>> get newAuditLogStream =>
       _newAuditLogController.stream;
+  /// Fired when the driver arrives within 50 m of a route stop point.
+  /// Payload: { busId, collegeId, stopId, stopName, timestamp }
+  Stream<Map<String, dynamic>> get stopReachedStream =>
+      _stopReachedController.stream;
 
   SocketService() {
     _locationUpdateController =
@@ -69,6 +78,8 @@ class SocketService extends ChangeNotifier {
     _errorController = StreamController<String?>.broadcast();
     _newAuditLogController =
         StreamController<Map<String, dynamic>>.broadcast();
+    _stopReachedController =
+        StreamController<Map<String, dynamic>>.broadcast();
   }
 
   late final StreamController<Map<String, dynamic>> _locationUpdateController;
@@ -87,6 +98,7 @@ class SocketService extends ChangeNotifier {
   _notificationReadAllController;
   late final StreamController<String?> _errorController;
   late final StreamController<Map<String, dynamic>> _newAuditLogController;
+  late final StreamController<Map<String, dynamic>> _stopReachedController;
 
   Future<void> init(String url, {String? token}) async {
     _currentUrl = url;
@@ -185,12 +197,17 @@ class SocketService extends ChangeNotifier {
         joinCollege(_lastJoinedCollegeId!);
       }
 
+      // Start heartbeat to keep WebSocket alive through Android Doze mode.
+      // Without this, the OS drops idle sockets in ~30-60s when screen is off.
+      _startHeartbeat();
+
       await _flushQueue();
     });
 
     _socket!.onDisconnect((_) {
       _isConnected = false;
       _isConnecting = false;
+      _stopHeartbeat();
       notifyListeners();
       AppLogger.w('[SocketService] Disconnected');
     });
@@ -330,6 +347,13 @@ class SocketService extends ChangeNotifier {
       AppLogger.i('[SocketService] Received new_audit_log: $data');
       _newAuditLogController.add(Map<String, dynamic>.from(data));
     });
+
+    // Stop arrival: server broadcasts this to all students in the college room
+    // when the driver emits 'stop_reached'.
+    _socket!.on('stop_reached', (data) {
+      AppLogger.i('[SocketService] Received stop_reached: $data');
+      _stopReachedController.add(Map<String, dynamic>.from(data));
+    });
   }
 
   void joinCollege(String collegeId) {
@@ -364,6 +388,17 @@ class SocketService extends ChangeNotifier {
         }
       }
 
+      // Cap location queue: only keep the most recent updates to avoid
+      // replaying a long trail of stale GPS positions when reconnecting.
+      final locationEvents = _eventQueue
+          .where((e) => e['event'] == 'update_location')
+          .length;
+      if (locationEvents >= _maxLocationQueueSize) {
+        // Remove the oldest location event to make room
+        final idx = _eventQueue.indexWhere((e) => e['event'] == 'update_location');
+        if (idx != -1) _eventQueue.removeAt(idx);
+      }
+
       await _queueEvent('update_location', data);
     }
   }
@@ -383,6 +418,20 @@ class SocketService extends ChangeNotifier {
       _socket?.emit('resolve_sos', {'sos_id': sosId});
     } else {
       _queueEvent('resolve_sos', {'sos_id': sosId});
+    }
+  }
+
+  /// Emits a stop_reached event to the server. The server should broadcast this
+  /// to students in the same college room so they receive a real-time
+  /// notification when the bus arrives at their stop.
+  ///
+  /// Not queued — stale stop-arrival events are meaningless once reconnected.
+  void emitStopReached(Map<String, dynamic> data) {
+    AppLogger.i('[SocketService] EMITTING stop_reached: $data');
+    if (_isConnected && _socket != null) {
+      _socket?.emit('stop_reached', data);
+    } else {
+      AppLogger.w('[SocketService] stop_reached not queued (stale on reconnect): $data');
     }
   }
 
@@ -411,6 +460,26 @@ class SocketService extends ChangeNotifier {
         AppLogger.e('Error loading queue: $e');
       }
     }
+  }
+
+  /// Starts a 25-second ping timer to keep the WebSocket connection alive
+  /// when the app is backgrounded (screen off). Android Doze mode drops idle
+  /// sockets after ~30-60 seconds without activity.
+  void _startHeartbeat() {
+    _stopHeartbeat();
+    _heartbeatTimer = Timer.periodic(const Duration(seconds: 25), (_) {
+      if (_isConnected && _socket != null) {
+        _socket!.emit('ping');
+        AppLogger.v('[SocketService] Heartbeat ping sent');
+      } else {
+        _stopHeartbeat();
+      }
+    });
+  }
+
+  void _stopHeartbeat() {
+    _heartbeatTimer?.cancel();
+    _heartbeatTimer = null;
   }
 
   Future<void> _flushQueue() async {
@@ -450,6 +519,7 @@ class SocketService extends ChangeNotifier {
 
   @override
   void dispose() {
+    _stopHeartbeat();
     _socket?.disconnect();
     _socket?.dispose();
     _locationUpdateController.close();
@@ -463,6 +533,7 @@ class SocketService extends ChangeNotifier {
     _notificationController.close();
     _errorController.close();
     _newAuditLogController.close();
+    _stopReachedController.close();
     super.dispose();
   }
 }

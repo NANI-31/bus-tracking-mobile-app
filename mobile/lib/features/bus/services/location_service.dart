@@ -92,6 +92,12 @@ class LocationService {
   Future<void> startLocationTracking({
     required Function(Position) onLocationUpdate,
     int intervalSeconds = 10,
+    /// Drop any GPS fix whose horizontal accuracy is worse than this threshold.
+    /// The Android FLP and iOS Core Location both populate `Position.accuracy`
+    /// with the 68%-confidence radius in meters. Rejecting high-error positions
+    /// prevents the bus marker from jumping around near buildings or tunnels.
+    /// Default: 25 m.  Set to double.infinity to disable the filter.
+    double accuracyThresholdMeters = 25.0,
   }) async {
     try {
       // Stop any existing tracking first
@@ -107,16 +113,21 @@ class LocationService {
       LocationSettings locationSettings;
 
       if (defaultTargetPlatform == TargetPlatform.android) {
+        // Note: forceLocationManager:true is intentionally NOT set because it
+        // bypasses the Fused Location Provider (FLP) which is what backs the
+        // foreground service. Without FLP, Android kills location delivery as
+        // soon as the screen turns off even with a persistent notification.
         locationSettings = AndroidSettings(
           accuracy: LocationAccuracy.high,
-          distanceFilter: 2,
-          forceLocationManager: true,
-          intervalDuration: const Duration(seconds: 2),
-          // Set foreground notification config to keep the service alive
+          distanceFilter: 5,
+          intervalDuration: const Duration(seconds: 3),
+          // The foreground service notification keeps the process alive in
+          // background and when the screen is off.
           foregroundNotificationConfig: const ForegroundNotificationConfig(
             notificationTitle: "Bus Tracking Active",
-            notificationText: "Your location is being shared in real-time.",
+            notificationText: "Your location is being shared with students.",
             enableWakeLock: true,
+            enableWifiLock: true,
           ),
         );
       } else if (defaultTargetPlatform == TargetPlatform.iOS ||
@@ -124,12 +135,18 @@ class LocationService {
         locationSettings = AppleSettings(
           accuracy: LocationAccuracy.high,
           activityType: ActivityType.automotiveNavigation,
-          distanceFilter: 2,
+          distanceFilter: 5,
+          // These two are REQUIRED for iOS background delivery.
+          // Without them, Core Location pauses updates when app is suspended.
+          // Note: pausesLocationUpdatesAutomatically is a native CoreLocation
+          // property but is not exposed by geolocator_apple 2.3.x.
+          allowBackgroundLocationUpdates: true,
+          showBackgroundLocationIndicator: true,
         );
       } else {
         locationSettings = const LocationSettings(
           accuracy: LocationAccuracy.high,
-          distanceFilter: 2,
+          distanceFilter: 5,
         );
       }
 
@@ -139,6 +156,19 @@ class LocationService {
           ).listen(
             (Position position) {
               final now = DateTime.now();
+
+              // ── Accuracy guard ───────────────────────────────────────────
+              // Reject positions whose horizontal accuracy is worse than the
+              // configured threshold. This prevents the bus icon from jumping
+              // around due to GPS noise near buildings, tunnels, or indoors.
+              if (position.accuracy > accuracyThresholdMeters) {
+                AppLogger.d(
+                  '[LocationService] Skipped low-accuracy fix: '
+                  '${position.accuracy.toStringAsFixed(1)} m '
+                  '(threshold ${accuracyThresholdMeters.toStringAsFixed(0)} m)',
+                );
+                return;
+              }
 
               // Time-based throttle: only emit if >= 3 seconds since last update
               if (_lastEmitTime != null) {
