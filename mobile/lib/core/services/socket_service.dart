@@ -15,6 +15,7 @@ class SocketService extends ChangeNotifier {
   String? _errorMessage;
   final List<Map<String, dynamic>> _eventQueue = [];
   Timer? _heartbeatTimer;
+  Timer? _reconnectTimer;
 
   /// Max number of location events kept in the offline queue.
   /// Older entries are dropped to avoid replaying stale GPS positions.
@@ -113,6 +114,7 @@ class SocketService extends ChangeNotifier {
 
     if (_token == null) {
       // User logged out, just disconnect
+      _stopReconnectTimer();
       _socket?.disconnect();
       _socket?.dispose();
       _socket = null;
@@ -134,6 +136,7 @@ class SocketService extends ChangeNotifier {
   }
 
   void _reconnect() {
+    _stopReconnectTimer();
     _socket?.disconnect();
     _socket?.dispose();
     _socket = null;
@@ -189,6 +192,7 @@ class SocketService extends ChangeNotifier {
       _isConnecting = false;
       _errorMessage = null;
       _errorController.add(null);
+      _stopReconnectTimer();
       notifyListeners();
       AppLogger.i('[SocketService] Connected successfully to $_currentUrl');
 
@@ -210,6 +214,7 @@ class SocketService extends ChangeNotifier {
       _stopHeartbeat();
       notifyListeners();
       AppLogger.w('[SocketService] Disconnected');
+      _startReconnectTimer();
     });
 
     // Handle reconnection (fired when socket reconnects after a disconnect)
@@ -218,6 +223,7 @@ class SocketService extends ChangeNotifier {
       _isConnecting = false;
       _errorMessage = null;
       _errorController.add(null);
+      _stopReconnectTimer();
       notifyListeners();
       AppLogger.i('[SocketService] Reconnected successfully');
 
@@ -238,6 +244,7 @@ class SocketService extends ChangeNotifier {
     _socket!.on('reconnecting', (_) {
       _isConnecting = true;
       _isConnected = false;
+      _stopReconnectTimer();
       _errorMessage = 'Reconnecting to server...';
       _errorController.add(_errorMessage);
       notifyListeners();
@@ -256,6 +263,7 @@ class SocketService extends ChangeNotifier {
       _errorController.add(_errorMessage);
       notifyListeners();
       AppLogger.e('[SocketService] Reconnection failed');
+      _startReconnectTimer();
     });
 
     _socket!.onConnectError((err) {
@@ -266,6 +274,7 @@ class SocketService extends ChangeNotifier {
       _errorController.add(_errorMessage);
       notifyListeners();
       AppLogger.e('[SocketService] Connection Error: $err');
+      _startReconnectTimer();
     });
 
     _socket!.onError((err) {
@@ -276,6 +285,7 @@ class SocketService extends ChangeNotifier {
       _errorController.add(_errorMessage);
       notifyListeners();
       AppLogger.e('[SocketService] Error: $err');
+      _startReconnectTimer();
     });
 
     // Location updates
@@ -354,6 +364,7 @@ class SocketService extends ChangeNotifier {
       AppLogger.i('[SocketService] Received stop_reached: $data');
       _stopReachedController.add(Map<String, dynamic>.from(data));
     });
+    _startReconnectTimer();
   }
 
   void joinCollege(String collegeId) {
@@ -517,9 +528,27 @@ class SocketService extends ChangeNotifier {
     _userListUpdateController.add(null);
   }
 
+  void _startReconnectTimer() {
+    _stopReconnectTimer();
+    _reconnectTimer = Timer.periodic(const Duration(seconds: 8), (_) {
+      if (_socket != null && !_isConnected && !_isConnecting) {
+        AppLogger.i('[SocketService] Reconnect timer: Socket not connected, attempting manual connect()...');
+        _isConnecting = true;
+        notifyListeners();
+        _socket!.connect();
+      }
+    });
+  }
+
+  void _stopReconnectTimer() {
+    _reconnectTimer?.cancel();
+    _reconnectTimer = null;
+  }
+
   @override
   void dispose() {
     _stopHeartbeat();
+    _stopReconnectTimer();
     _socket?.disconnect();
     _socket?.dispose();
     _locationUpdateController.close();
