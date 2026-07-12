@@ -4,6 +4,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:collegebus/core/utils/app_logger.dart';
+import 'package:collegebus/core/services/persistence_service.dart';
 
 class LocationService {
   StreamSubscription<Position>? _positionStreamSubscription;
@@ -20,6 +21,48 @@ class LocationService {
   Future<bool> checkLocationPermission() async {
     final permission = await Permission.location.status;
     return permission.isGranted;
+  }
+
+  Future<bool> requestBackgroundLocationPermission() async {
+    final permission = await Permission.locationAlways.request();
+    return permission.isGranted;
+  }
+
+  Future<bool> checkBackgroundLocationPermission() async {
+    final permission = await Permission.locationAlways.status;
+    return permission.isGranted;
+  }
+
+  Future<bool> requestIgnoreBatteryOptimizations() async {
+    final permission = await Permission.ignoreBatteryOptimizations.request();
+    return permission.isGranted;
+  }
+
+  Future<bool> checkIgnoreBatteryOptimizations() async {
+    final permission = await Permission.ignoreBatteryOptimizations.status;
+    return permission.isGranted;
+  }
+
+  Future<void> _requestBackgroundAndBatteryExemptions() async {
+    try {
+      final bgPrompted = PersistenceService.getBool('background_location_prompted') ?? false;
+      if (!bgPrompted) {
+        if (!await checkBackgroundLocationPermission()) {
+          await requestBackgroundLocationPermission();
+        }
+        await PersistenceService.setBool('background_location_prompted', true);
+      }
+      
+      final batteryPrompted = PersistenceService.getBool('battery_exempt_prompted') ?? false;
+      if (!batteryPrompted) {
+        if (!await checkIgnoreBatteryOptimizations()) {
+          await requestIgnoreBatteryOptimizations();
+        }
+        await PersistenceService.setBool('battery_exempt_prompted', true);
+      }
+    } catch (e) {
+      AppLogger.w('[LocationService] Failed to request background/battery exemptions: $e');
+    }
   }
 
   Future<LatLng?> getCurrentLocation() async {
@@ -47,14 +90,22 @@ class LocationService {
       }
 
       // Get current position
-      final position = await Geolocator.getCurrentPosition(
-        locationSettings: const LocationSettings(
-          accuracy: LocationAccuracy.high,
-          timeLimit: Duration(seconds: 10),
-        ),
-      );
-
-      return LatLng(position.latitude, position.longitude);
+      try {
+        final position = await Geolocator.getCurrentPosition(
+          locationSettings: const LocationSettings(
+            accuracy: LocationAccuracy.high,
+            timeLimit: Duration(seconds: 10),
+          ),
+        );
+        return LatLng(position.latitude, position.longitude);
+      } catch (innerError) {
+        AppLogger.w('Timeout or error getting current position, trying last known: $innerError');
+        final lastKnown = await Geolocator.getLastKnownPosition();
+        if (lastKnown != null) {
+          return LatLng(lastKnown.latitude, lastKnown.longitude);
+        }
+        rethrow;
+      }
     } catch (e) {
       AppLogger.e('Error getting location: $e');
       return null;
@@ -108,6 +159,9 @@ class LocationService {
         final granted = await requestLocationPermission();
         if (!granted) return;
       }
+
+      // Request background location and ignore battery optimizations exemptions
+      await _requestBackgroundAndBatteryExemptions();
 
       // Increased distanceFilter for battery efficiency
       LocationSettings locationSettings;

@@ -13,6 +13,7 @@ import 'package:collegebus/features/auth/presentation/screens/otp_verification_s
 import 'package:collegebus/features/auth/presentation/screens/reset_password_screen.dart';
 import 'package:collegebus/features/student/presentation/student_dashboard.dart';
 import 'package:collegebus/features/student/presentation/bus_schedule_screen.dart';
+import 'package:collegebus/features/teacher/presentation/teacher_dashboard.dart';
 import 'package:collegebus/features/driver/presentation/driver_dashboard.dart';
 import 'package:collegebus/features/coordinator/presentation/coordinator_dashboard.dart';
 import 'package:collegebus/features/coordinator/presentation/schedule_management_screen.dart';
@@ -104,8 +105,9 @@ final routerProvider = riverpod.Provider<GoRouter>((ref) {
         switch (userRole) {
           case UserRole.student:
           case UserRole.parent:
-          case UserRole.teacher:
             return '/student';
+          case UserRole.teacher:
+            return '/teacher';
           case UserRole.driver:
             return '/driver';
           case UserRole.busCoordinator:
@@ -218,6 +220,10 @@ final routerProvider = riverpod.Provider<GoRouter>((ref) {
             builder: (context, state) => const EditProfileScreen(),
           ),
         ],
+      ),
+      GoRoute(
+        path: '/teacher',
+        builder: (context, state) => const TeacherDashboard(),
       ),
 
       GoRoute(

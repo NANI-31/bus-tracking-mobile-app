@@ -9,7 +9,7 @@ import { Server } from "socket.io";
 import { createServer } from "http";
 import { router } from "@/routes";
 import { initializeSocket } from "@/socket/index";
-import logger from "@/utils/logger";
+import logger, { setSocketIOForLogger } from "@/utils/logger";
 import { errorHandler } from "@/middleware/errorMiddleware";
 import { requestIdMiddleware } from "@/middleware/requestIdMiddleware";
 
@@ -118,6 +118,7 @@ export const createApp = () => {
 
   app.use(errorHandler);
   initializeSocket(io);
+  setSocketIOForLogger(io);
 
   return { app, httpServer, io };
 };

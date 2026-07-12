@@ -17,7 +17,7 @@ export const registerTrackingHandlers = (io: Server, socket: Socket) => {
       }, Role: ${user ? user.role : "N/A"}`,
     );
 
-    // If user is a coordinator or admin, join the coordinators and logs room
+    // If user is a coordinator or admin, join the coordinators, logs, and terminal logs rooms
     if (
       user &&
       (user.role === "busCoordinator" ||
@@ -29,12 +29,14 @@ export const registerTrackingHandlers = (io: Server, socket: Socket) => {
       const logsRoom = `${collegeId}_audit_logs`;
       socket.join(coordRoom);
       socket.join(logsRoom);
+      socket.join("server_terminal_logs");
       logger.info(
-        `[Socket] User ${user.fullName} (${user.role}) joined SOS and Log rooms: ${coordRoom}, ${logsRoom}`,
+        `[Socket] User ${user.fullName} (${user.role}) joined SOS, Log, and Terminal rooms: ${coordRoom}, ${logsRoom}`,
       );
     } else if (user && user.role === "superAdmin") {
       socket.join("global_audit_logs");
-      logger.info(`[Socket] Super Admin ${user.fullName} joined global logs`);
+      socket.join("server_terminal_logs");
+      logger.info(`[Socket] Super Admin ${user.fullName} joined global and terminal logs`);
     } else {
       logger.info(
         `[Socket Debug] User ${
@@ -154,6 +156,7 @@ export const registerTrackingHandlers = (io: Server, socket: Socket) => {
       socket.join("global_tracking");
       socket.join("global_sos");
       socket.join("global_audit_logs");
+      socket.join("server_terminal_logs");
 
       try {
         const buses = await Bus.find({ isActive: true });
@@ -184,6 +187,20 @@ export const registerTrackingHandlers = (io: Server, socket: Socket) => {
       } catch (err) {
         logger.error(`[Socket] Error fetching global locations: ${err}`);
       }
+    }
+  });
+
+  socket.on("join_terminal_logs", () => {
+    if (user && (user.role === "superAdmin" || user.role === "collegeAdmin")) {
+      socket.join("server_terminal_logs");
+      logger.info(`[Socket] User ${user.fullName} (${user.role}) explicitly joined server_terminal_logs`);
+    }
+  });
+
+  socket.on("leave_terminal_logs", () => {
+    socket.leave("server_terminal_logs");
+    if (user) {
+      logger.info(`[Socket] User ${user.fullName} (${user.role}) left server_terminal_logs`);
     }
   });
 };

@@ -475,6 +475,24 @@ class _StudentDashboardState extends ConsumerState<StudentDashboard>
             });
           }
         }
+      } else if (savedBusId == null && selectedBus == null && busesAsync.hasValue && user != null && user.routeId != null) {
+        final matchingBuses = allBusesRaw.where((b) => b.routeId == user.routeId);
+        final assignedBus = matchingBuses.isNotEmpty ? matchingBuses.first : null;
+        if (assignedBus != null && assignedBus.assignmentStatus == 'accepted') {
+          _busRestoredFromPrefs = true; // prevent re-entry
+          final targetRouteId = assignedBus.routeId ?? assignedBus.defaultRouteId;
+          final restoredRoute = targetRouteId != null
+              ? routes.cast<RouteModel?>().firstWhere(
+                  (r) => r!.id == targetRouteId,
+                  orElse: () => null,
+                )
+              : null;
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            ref
+                .read(mapNavigationProvider.notifier)
+                .selectBus(assignedBus, restoredRoute);
+          });
+        }
       }
     }
 

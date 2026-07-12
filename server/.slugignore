@@ -1,6 +1,0 @@
-# Ignore test directories during deployment
-tests/
-coverage/
-jest.config.js
-logs/
-*.log

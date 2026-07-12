@@ -87,7 +87,7 @@ export const login = async (req: Request, res: Response) => {
         tokenVersion: user.tokenVersion,
       },
       JWT_SECRET,
-      { expiresIn: "15m" },
+      { expiresIn: "2h" },
     );
 
     // Refresh Token (Long-lived: 7 days)

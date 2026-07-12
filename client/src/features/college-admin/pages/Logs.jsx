@@ -45,6 +45,7 @@ import LogMetadataModal from "@/components/common/LogMetadataModal";
 import ActivityChart from "@/components/common/ActivityChart";
 import { getSocket, initiateSocketConnection } from "@/services/socket";
 import LogTable from "../components/Logs/LogTable";
+import LiveTerminalConsole from "@/components/common/LiveTerminalConsole";
 import { stringToColor, getInitials, getResourceIcon } from "@/utils/helpers";
 import DatePicker from "@/components/common/DatePicker";
 
@@ -536,6 +537,19 @@ const Logs = () => {
   const [selectedLog, setSelectedLog] = useState(null);
   const [isFilterDrawerOpen, setIsFilterDrawerOpen] = useState(false);
 
+  // Live Terminal Logs state
+  const [activeTab, setActiveTab] = useState("audit"); // "audit" or "terminal"
+  const [terminalLogs, setTerminalLogs] = useState([]);
+  const [isLiveLoggingPaused, setIsLiveLoggingPaused] = useState(false);
+  const [terminalSearch, setTerminalSearch] = useState("");
+  const [terminalLevels, setTerminalLevels] = useState({
+    info: true,
+    warn: true,
+    error: true,
+    http: true,
+    debug: false,
+  });
+
   // Preset filter quick-saves
   const [presets, setPresets] = useState(() => {
     const saved = localStorage.getItem("college_admin_log_presets");
@@ -627,6 +641,35 @@ const Logs = () => {
       }
     };
   }, [dispatch, filters, userToken, page]);
+
+  useEffect(() => {
+    let socket = getSocket();
+    if (!socket && userToken) {
+      socket = initiateSocketConnection(userToken);
+    }
+
+    if (socket) {
+      const handleServerLog = (log) => {
+        if (!isLiveLoggingPaused) {
+          setTerminalLogs((prev) => [...prev.slice(-499), log]);
+        }
+      };
+      socket.on("server_log", handleServerLog);
+      return () => {
+        socket.off("server_log", handleServerLog);
+      };
+    }
+  }, [userToken, isLiveLoggingPaused]);
+
+  useEffect(() => {
+    const socket = getSocket();
+    if (socket && activeTab === "terminal") {
+      socket.emit("join_terminal_logs");
+      return () => {
+        socket.emit("leave_terminal_logs");
+      };
+    }
+  }, [activeTab, userToken]);
 
   const handleFilterChange = (name, value) => {
     setFilters((prev) => ({ ...prev, [name]: value }));
@@ -885,78 +928,118 @@ const Logs = () => {
 
         {/* Logs Table and Charts */}
         <div className="lg:col-span-3 space-y-6">
-          {/* Active Filter Chips Banner */}
-          {hasActiveFilters && (
-            <div className="flex flex-wrap items-center gap-2 p-3 bg-background-paper border border-border-theme rounded-2xl shadow-xs">
-              <span className="text-[10px] font-black uppercase tracking-wider text-text-theme-secondary mr-1">
-                Active:
-              </span>
-              {getActiveChips().map((chip) => (
-                <span
-                  key={chip.id}
-                  className="inline-flex items-center gap-1 bg-[#1E90FF]/10 text-[#1E90FF] dark:text-[#00FFD1] text-[10px] font-bold px-2.5 py-1 rounded-lg border border-[#1E90FF]/20 shadow-xs"
-                >
-                  {chip.label}
+          {/* Tab Selector */}
+          <div className="flex gap-4 border-b border-border-theme mb-6">
+            <button
+              onClick={() => setActiveTab("audit")}
+              className={`pb-3 text-sm font-bold border-b-2 transition-all cursor-pointer ${
+                activeTab === "audit"
+                  ? "border-[#1E90FF] text-[#1E90FF]"
+                  : "border-transparent text-text-theme-secondary hover:text-text-theme-primary"
+              }`}
+            >
+              Audit Log History
+            </button>
+            <button
+              onClick={() => setActiveTab("terminal")}
+              className={`pb-3 text-sm font-bold border-b-2 transition-all cursor-pointer flex items-center gap-1.5 ${
+                activeTab === "terminal"
+                  ? "border-[#1E90FF] text-[#1E90FF]"
+                  : "border-transparent text-text-theme-secondary hover:text-text-theme-primary"
+              }`}
+            >
+              <span className="w-2 h-2 rounded-full bg-emerald-main animate-pulse"></span>
+              Live Server Console
+            </button>
+          </div>
+
+          {activeTab === "audit" ? (
+            <>
+              {/* Active Filter Chips Banner */}
+              {hasActiveFilters && (
+                <div className="flex flex-wrap items-center gap-2 p-3 bg-background-paper border border-border-theme rounded-2xl shadow-xs">
+                  <span className="text-[10px] font-black uppercase tracking-wider text-text-theme-secondary mr-1">
+                    Active:
+                  </span>
+                  {getActiveChips().map((chip) => (
+                    <span
+                      key={chip.id}
+                      className="inline-flex items-center gap-1 bg-[#1E90FF]/10 text-[#1E90FF] dark:text-[#00FFD1] text-[10px] font-bold px-2.5 py-1 rounded-lg border border-[#1E90FF]/20 shadow-xs"
+                    >
+                      {chip.label}
+                      <button
+                        onClick={chip.onClear}
+                        className="hover:text-rose-main p-0.5 rounded-sm transition-all cursor-pointer text-[#1E90FF] dark:text-[#00FFD1]"
+                      >
+                        <XCircleIcon className="w-3.5 h-3.5" />
+                      </button>
+                    </span>
+                  ))}
                   <button
-                    onClick={chip.onClear}
-                    className="hover:text-rose-main p-0.5 rounded-sm transition-all cursor-pointer text-[#1E90FF] dark:text-[#00FFD1]"
+                    onClick={clearFilters}
+                    className="text-[11px] font-bold text-rose-main hover:text-rose-main/80 transition-colors ml-auto px-2 py-1 hover:bg-rose-main/5 rounded-lg cursor-pointer"
                   >
-                    <XCircleIcon className="w-3.5 h-3.5" />
+                    Clear All
                   </button>
-                </span>
-              ))}
-              <button
-                onClick={clearFilters}
-                className="text-[11px] font-bold text-rose-main hover:text-rose-main/80 transition-colors ml-auto px-2 py-1 hover:bg-rose-main/5 rounded-lg cursor-pointer"
+                </div>
+              )}
+
+              <ActivityChart data={auditLogs} loading={loading} />
+
+              <LogSummaryWidget
+                summary={summary}
+                onToggleGroup={toggleActionFilterGroup}
+                isActive={isGroupActive}
+              />
+
+              <motion.div
+                key={JSON.stringify(filters) + loading}
+                initial={{ opacity: 0.85, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3, ease: "easeOut" }}
               >
-                Clear All
-              </button>
-            </div>
-          )}
+                <LogTable
+                  auditLogs={auditLogs}
+                  loading={loading}
+                  formatDate={formatDate}
+                  stringToColor={stringToColor}
+                  getInitials={getInitials}
+                  getResourceIcon={getResourceIcon}
+                  setSelectedLog={setSelectedLog}
+                />
+              </motion.div>
 
-          <ActivityChart data={auditLogs} loading={loading} />
-
-          <LogSummaryWidget
-            summary={summary}
-            onToggleGroup={toggleActionFilterGroup}
-            isActive={isGroupActive}
-          />
-
-          <motion.div
-            key={JSON.stringify(filters) + loading}
-            initial={{ opacity: 0.85, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3, ease: "easeOut" }}
-          >
-            <LogTable
-              auditLogs={auditLogs}
-              loading={loading}
-              formatDate={formatDate}
-              stringToColor={stringToColor}
-              getInitials={getInitials}
-              getResourceIcon={getResourceIcon}
-              setSelectedLog={setSelectedLog}
+              <TablePagination
+                rowsPerPageOptions={[25, 50, 100]}
+                component="div"
+                count={logsTotal}
+                rowsPerPage={rowsPerPage}
+                page={page}
+                onPageChange={handleChangePage}
+                onRowsPerPageChange={handleChangeRowsPerPage}
+                className="border border-border-theme border-t-0 bg-background-paper rounded-b-[20px]"
+                sx={{
+                  "& .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows":
+                    {
+                      fontWeight: 700,
+                      color: "#64748b",
+                      fontSize: "0.8rem",
+                    },
+                }}
+              />
+            </>
+          ) : (
+            <LiveTerminalConsole
+              terminalLogs={terminalLogs}
+              setTerminalLogs={setTerminalLogs}
+              isLiveLoggingPaused={isLiveLoggingPaused}
+              setIsLiveLoggingPaused={setIsLiveLoggingPaused}
+              terminalSearch={terminalSearch}
+              setTerminalSearch={setTerminalSearch}
+              terminalLevels={terminalLevels}
+              setTerminalLevels={setTerminalLevels}
             />
-          </motion.div>
-
-          <TablePagination
-            rowsPerPageOptions={[25, 50, 100]}
-            component="div"
-            count={logsTotal}
-            rowsPerPage={rowsPerPage}
-            page={page}
-            onPageChange={handleChangePage}
-            onRowsPerPageChange={handleChangeRowsPerPage}
-            className="border border-border-theme border-t-0 bg-background-paper rounded-b-[20px]"
-            sx={{
-              "& .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows":
-                {
-                  fontWeight: 700,
-                  color: "#64748b",
-                  fontSize: "0.8rem",
-                },
-            }}
-          />
+          )}
         </div>
       </div>
 

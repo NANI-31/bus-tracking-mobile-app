@@ -17,6 +17,8 @@ class BusModel {
   final DateTime createdAt;
   final DateTime? updatedAt;
 
+  final String? trackingTeacherId;
+
   BusModel({
     required this.id,
     required this.busNumber,
@@ -30,6 +32,7 @@ class BusModel {
     this.delay = 0,
     this.capacity,
     this.shiftId,
+    this.trackingTeacherId,
     required this.createdAt,
     this.updatedAt,
   });
@@ -50,6 +53,7 @@ class BusModel {
       delay: (map['delay'] as num?)?.toInt() ?? 0,
       capacity: map['capacity'],
       shiftId: map['shiftId'],
+      trackingTeacherId: map['trackingTeacherId'],
       createdAt: parseDateTime(map['createdAt']),
       updatedAt: map['updatedAt'] != null
           ? parseDateTime(map['updatedAt'])
@@ -70,6 +74,7 @@ class BusModel {
       'delay': delay,
       'capacity': capacity,
       'shiftId': shiftId,
+      'trackingTeacherId': trackingTeacherId,
       'createdAt': createdAt.toIso8601String(),
       'updatedAt': updatedAt?.toIso8601String(),
     };
@@ -88,6 +93,7 @@ class BusModel {
     int? delay,
     int? capacity,
     String? shiftId,
+    String? trackingTeacherId,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -104,6 +110,7 @@ class BusModel {
       delay: delay ?? this.delay,
       capacity: capacity ?? this.capacity,
       shiftId: shiftId ?? this.shiftId,
+      trackingTeacherId: trackingTeacherId ?? this.trackingTeacherId,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );

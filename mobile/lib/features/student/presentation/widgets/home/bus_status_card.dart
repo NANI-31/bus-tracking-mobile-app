@@ -48,13 +48,17 @@ class BusStatusCard extends ConsumerWidget {
     final colorScheme = Theme.of(context).colorScheme;
     final busNumber = bus?.busNumber ?? '---';
     final status = bus?.status ?? 'Not Running';
-    final isRunning = bus?.status == 'running';
 
     final busLocationAsync = bus != null
         ? ref.watch(busLocationProvider(bus!.id))
         : const AsyncValue<BusLocationModel?>.data(null);
 
     final liveLocation = busLocationAsync.valueOrNull;
+    final isRunning = bus?.status == 'running' ||
+        bus?.status == 'on-time' ||
+        bus?.status == 'delayed' ||
+        liveLocation != null;
+
     String arrivalText = "Not Started";
     String etaText = "---";
     bool isLiveEta = false;

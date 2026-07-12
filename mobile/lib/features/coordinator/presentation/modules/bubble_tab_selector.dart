@@ -2,7 +2,6 @@ import 'dart:math' as math;
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:velocity_x/velocity_x.dart';
 import 'package:collegebus/core/constants/constants.dart';
 
 class BubbleTabSelector extends StatefulWidget {
@@ -269,31 +268,49 @@ class _BubbleTabSelectorState extends State<BubbleTabSelector> with SingleTicker
                                 }
                               },
                               child: Center(
-                                child: FittedBox(
-                                  fit: BoxFit.scaleDown,
-                                  child: Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      Transform.scale(
-                                        scale: scale,
-                                        child: Transform.rotate(
-                                          angle: rotation,
-                                          child: Icon(
-                                            widget.icons[index],
-                                            size: 20,
-                                            color: contentColor,
+                                child: SizedBox(
+                                  width: basePillW,
+                                  height: basePillH,
+                                  child: Center(
+                                    child: FittedBox(
+                                      fit: BoxFit.scaleDown,
+                                      child: Row(
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        children: [
+                                          Transform.scale(
+                                            scale: scale,
+                                            child: Transform.rotate(
+                                              angle: rotation,
+                                              child: Icon(
+                                                widget.icons[index],
+                                                size: 20,
+                                                color: contentColor,
+                                              ),
+                                            ),
                                           ),
-                                        ),
+                                          ClipRect(
+                                            child: Align(
+                                              alignment: Alignment.centerLeft,
+                                              widthFactor: selectProgress,
+                                              child: Row(
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [
+                                                  const SizedBox(width: 6),
+                                                  Text(
+                                                    widget.labels[index],
+                                                    style: TextStyle(
+                                                      fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                                                      color: contentColor,
+                                                      fontSize: 12.5,
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                          ),
+                                        ],
                                       ),
-                                      6.widthBox,
-                                      Text(
-                                        widget.labels[index],
-                                        style: TextStyle(
-                                          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                                          color: contentColor,
-                                        ),
-                                      ),
-                                    ],
+                                    ),
                                   ),
                                 ),
                               ),

@@ -46,6 +46,7 @@ import LogMetadataModal from "@/components/common/LogMetadataModal";
 import DatePicker from "@/components/common/DatePicker";
 import ActivityChart from "@/components/common/ActivityChart";
 import { getSocket, initiateSocketConnection } from "@/services/socket";
+import LiveTerminalConsole from "@/components/common/LiveTerminalConsole";
 
 // Helper for consistency in colors based on string
 const stringToColor = (string) => {
@@ -646,6 +647,19 @@ const AuditLogs = () => {
   const [selectedLog, setSelectedLog] = useState(null);
   const [isFilterDrawerOpen, setIsFilterDrawerOpen] = useState(false);
 
+  // Live Terminal Logs state
+  const [activeTab, setActiveTab] = useState("audit"); // "audit" or "terminal"
+  const [terminalLogs, setTerminalLogs] = useState([]);
+  const [isLiveLoggingPaused, setIsLiveLoggingPaused] = useState(false);
+  const [terminalSearch, setTerminalSearch] = useState("");
+  const [terminalLevels, setTerminalLevels] = useState({
+    info: true,
+    warn: true,
+    error: true,
+    http: true,
+    debug: false,
+  });
+
   // Filter Presets State
   const [presets, setPresets] = useState(() => {
     try {
@@ -843,15 +857,33 @@ const AuditLogs = () => {
           );
         }
       });
-    }
 
-    return () => {
-      if (socket) {
-        console.log("REMOVING LIVE LOG LISTENER (GLOBAL)");
-        socket.off("new_audit_log");
-      }
-    };
-  }, [dispatch, filters, userToken, page]);
+      const handleServerLog = (log) => {
+        if (!isLiveLoggingPaused) {
+          setTerminalLogs((prev) => [...prev.slice(-499), log]);
+        }
+      };
+      socket.on("server_log", handleServerLog);
+
+      return () => {
+        if (socket) {
+          console.log("REMOVING LIVE LOG LISTENER (GLOBAL)");
+          socket.off("new_audit_log");
+          socket.off("server_log", handleServerLog);
+        }
+      };
+    }
+  }, [dispatch, filters, userToken, page, isLiveLoggingPaused]);
+
+  useEffect(() => {
+    const socket = getSocket();
+    if (socket && activeTab === "terminal") {
+      socket.emit("join_terminal_logs");
+      return () => {
+        socket.emit("leave_terminal_logs");
+      };
+    }
+  }, [activeTab, userToken]);
 
   const handleFilterChange = (name, value) => {
     setFilters((prev) => ({ ...prev, [name]: value }));
@@ -1003,6 +1035,33 @@ const AuditLogs = () => {
 
         {/* Logs Table and Charts */}
         <div className="lg:col-span-3 space-y-6">
+          {/* Tab Selector */}
+          <div className="flex gap-4 border-b border-border-theme mb-6">
+            <button
+              onClick={() => setActiveTab("audit")}
+              className={`pb-3 text-sm font-bold border-b-2 transition-all cursor-pointer ${
+                activeTab === "audit"
+                  ? "border-[#1E90FF] text-[#1E90FF]"
+                  : "border-transparent text-text-theme-secondary hover:text-text-theme-primary"
+              }`}
+            >
+              Audit Log History
+            </button>
+            <button
+              onClick={() => setActiveTab("terminal")}
+              className={`pb-3 text-sm font-bold border-b-2 transition-all cursor-pointer flex items-center gap-1.5 ${
+                activeTab === "terminal"
+                  ? "border-[#1E90FF] text-[#1E90FF]"
+                  : "border-transparent text-text-theme-secondary hover:text-text-theme-primary"
+              }`}
+            >
+              <span className="w-2 h-2 rounded-full bg-emerald-main animate-pulse"></span>
+              Live Server Console
+            </button>
+          </div>
+
+          {activeTab === "audit" ? (
+            <>
           {/* Active Filter Chips Banner */}
           {hasActiveFilters && (
             <div className="flex flex-wrap items-center gap-2 p-3 bg-background-paper border border-border-theme rounded-2xl shadow-xs">
@@ -1315,8 +1374,21 @@ const AuditLogs = () => {
                 },
             }}
           />
-        </div>
-      </div>
+        </>
+      ) : (
+        <LiveTerminalConsole
+          terminalLogs={terminalLogs}
+          setTerminalLogs={setTerminalLogs}
+          isLiveLoggingPaused={isLiveLoggingPaused}
+          setIsLiveLoggingPaused={setIsLiveLoggingPaused}
+          terminalSearch={terminalSearch}
+          setTerminalSearch={setTerminalSearch}
+          terminalLevels={terminalLevels}
+          setTerminalLevels={setTerminalLevels}
+        />
+      )}
+    </div>
+  </div>
 
       {/* Mobile Filters Drawer Overlay & Slide Panel */}
       <AnimatePresence>

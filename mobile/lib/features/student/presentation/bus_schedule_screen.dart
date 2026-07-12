@@ -74,6 +74,7 @@ class _BusScheduleScreenState extends ConsumerState<BusScheduleScreen> {
     }
 
     final busesAsync = ref.watch(collegeBusesStreamProvider(collegeId));
+    final liveBusIds = ref.watch(studentLiveBusIdsProvider(collegeId));
     final routesAsync = ref.watch(collegeRoutesProvider(collegeId));
     final schedulesAsync = ref.watch(collegeSchedulesProvider(collegeId));
     final collegesAsync = ref.watch(collegeServiceProvider);
@@ -206,6 +207,7 @@ class _BusScheduleScreenState extends ConsumerState<BusScheduleScreen> {
             routesAsync,
             schedulesAsync,
             hasMultipleShifts,
+            liveBusIds,
           ),
         ),
       ),
@@ -222,6 +224,7 @@ class _BusScheduleScreenState extends ConsumerState<BusScheduleScreen> {
     AsyncValue<List<RouteModel>> routesAsync,
     AsyncValue<List<ScheduleModel>> schedulesAsync,
     bool hasMultipleShifts,
+    Set<String> liveBusIds,
   ) {
     final buses = busesAsync.valueOrNull ?? [];
     final routes = routesAsync.valueOrNull ?? [];
@@ -350,6 +353,7 @@ class _BusScheduleScreenState extends ConsumerState<BusScheduleScreen> {
                         buses,
                         routes,
                         user,
+                        liveBusIds,
                       );
                     }).toList(),
                   ),
@@ -361,6 +365,7 @@ class _BusScheduleScreenState extends ConsumerState<BusScheduleScreen> {
                   buses,
                   routes,
                   user,
+                  liveBusIds,
                 );
               }
             },
@@ -1527,6 +1532,7 @@ class _BusScheduleScreenState extends ConsumerState<BusScheduleScreen> {
     List<BusModel> buses,
     List<RouteModel> routes,
     dynamic user,
+    Set<String> liveBusIds,
   ) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
@@ -1664,6 +1670,7 @@ class _BusScheduleScreenState extends ConsumerState<BusScheduleScreen> {
           route: route,
           user: user,
           isDark: isDark,
+          liveBusIds: liveBusIds,
         );
       },
     );
@@ -1676,6 +1683,7 @@ class _BusScheduleScreenState extends ConsumerState<BusScheduleScreen> {
     required RouteModel route,
     required dynamic user,
     required bool isDark,
+    required Set<String> liveBusIds,
   }) {
     final rawSchedules = route.id != schedule.routeId
         ? [
@@ -1849,7 +1857,10 @@ class _BusScheduleScreenState extends ConsumerState<BusScheduleScreen> {
                           ),
                         ),
                         const SizedBox(width: 8),
-                        _buildStatusBadge(bus.status, bus.delay),
+                        _buildStatusBadge(
+                          liveBusIds.contains(bus.id) ? 'live' : bus.status,
+                          bus.delay,
+                        ),
                       ],
                     ),
                     const SizedBox(height: 5),
@@ -1943,7 +1954,13 @@ class _BusScheduleScreenState extends ConsumerState<BusScheduleScreen> {
                       ],
                     ),
                     if (widget.onBusSelected != null)
-                      _buildTrackButton(context, bus, user, isDark),
+                      _buildTrackButton(
+                        context,
+                        bus,
+                        user,
+                        isDark,
+                        liveBusIds.contains(bus.id),
+                      ),
                   ],
                 ),
                 const SizedBox(height: 14),
@@ -2174,10 +2191,11 @@ class _BusScheduleScreenState extends ConsumerState<BusScheduleScreen> {
     BusModel bus,
     dynamic user,
     bool isDark,
+    bool isLive,
   ) {
     // Commented out premium checking logic for testing live tracking
     // final canTrack = user.isPremium && bus.assignmentStatus == 'accepted';
-    final canTrack = bus.assignmentStatus == 'accepted';
+    final canTrack = bus.assignmentStatus == 'accepted' && isLive;
     final color = canTrack ? const Color(0xFF00C6E6) : Colors.grey;
 
     return GestureDetector(
@@ -2201,6 +2219,18 @@ class _BusScheduleScreenState extends ConsumerState<BusScheduleScreen> {
                 'Bus ${bus.busNumber} is not active yet.',
               ),
               backgroundColor: Colors.redAccent,
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+          return;
+        }
+        if (!isLive) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'Bus ${bus.busNumber} is currently offline.',
+              ),
+              backgroundColor: Colors.grey.shade700,
               behavior: SnackBarBehavior.floating,
             ),
           );
@@ -2234,13 +2264,17 @@ class _BusScheduleScreenState extends ConsumerState<BusScheduleScreen> {
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(
-              canTrack ? Icons.my_location_rounded : Icons.lock_rounded,
+              canTrack
+                  ? Icons.my_location_rounded
+                  : (!isLive ? Icons.sensors_off_rounded : Icons.lock_rounded),
               size: 13,
               color: canTrack ? Colors.white : color,
             ),
             const SizedBox(width: 5),
             Text(
-              canTrack ? 'Track Live' : 'Premium',
+              canTrack
+                  ? 'Track Live'
+                  : (!isLive ? 'Offline' : 'Premium'),
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w700,
@@ -2262,6 +2296,11 @@ class _BusScheduleScreenState extends ConsumerState<BusScheduleScreen> {
     IconData icon;
 
     switch (status) {
+      case 'live':
+        color = const Color(0xFF00C6E6);
+        label = 'Live';
+        icon = Icons.sensors_rounded;
+        break;
       case 'on-time':
         color = const Color(0xFF10B981);
         label = 'On Time';

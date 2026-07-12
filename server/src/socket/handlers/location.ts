@@ -74,14 +74,24 @@ export const registerLocationHandlers = (io: Server, socket: Socket) => {
       return;
     }
 
-    if (!user || user.role !== "driver") {
+    if (!user || (user.role !== "driver" && user.role !== "teacher")) {
       logger.warn(
-        `[Socket] Non-driver ${user?.role || "unknown"} tried to update location: ${socket.id}`,
+        `[Socket] Non-driver/teacher ${user?.role || "unknown"} tried to update location: ${socket.id}`,
       );
       return;
     }
 
     const { collegeId, busId } = data;
+
+    if (user.role === "teacher") {
+      const bus = await Bus.findById(busId);
+      if (!bus || bus.trackingTeacherId !== user.id) {
+        logger.warn(
+          `[Socket] Teacher ${user.id} tried to update location for bus ${busId} without authorization`,
+        );
+        return;
+      }
+    }
 
     const lat = parseFloat(data.location.lat.toFixed(5));
     const lng = parseFloat(data.location.lng.toFixed(5));

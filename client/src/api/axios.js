@@ -28,7 +28,7 @@ axiosInstance.interceptors.response.use(
   (response) => {
     return response;
   },
-  (error) => {
+  async (error) => {
     if (!error.response) {
       // Network/Server connection error
       toast.error("Network error: Please check your internet connection or server status.", {
@@ -39,22 +39,53 @@ axiosInstance.interceptors.response.use(
 
     const { status, data } = error.response;
 
-    switch (status) {
-      case 401:
-        // Clear token/userInfo and redirect to login on token expiry
-        localStorage.removeItem("userToken");
-        localStorage.removeItem("userInfo");
-        
-        toast.error("Session expired. Please log in again.", {
-          id: "auth-error",
-        });
-        
-        // Redirect if not already on the login page to prevent redirect loops
-        if (window.location.pathname !== "/login") {
-          window.location.href = "/login";
-        }
-        break;
+    if (status === 401) {
+      const refreshToken = localStorage.getItem("userRefreshToken");
+      if (refreshToken && !error.config._retry) {
+        error.config._retry = true;
+        try {
+          const response = await axios.post(`${BASE_URL}/auth/refresh`, { refreshToken });
+          if (response.data && response.data.accessToken) {
+            const newAccessToken = response.data.accessToken;
+            localStorage.setItem("userToken", newAccessToken);
 
+            // Retry the original request
+            error.config.headers.Authorization = `Bearer ${newAccessToken}`;
+            return axiosInstance(error.config);
+          }
+        } catch (refreshError) {
+          // Refresh token expired or invalid -> log out
+          localStorage.removeItem("userToken");
+          localStorage.removeItem("userRefreshToken");
+          localStorage.removeItem("userInfo");
+
+          toast.error("Session expired. Please log in again.", {
+            id: "auth-error",
+          });
+
+          if (window.location.pathname !== "/login") {
+            window.location.href = "/login";
+          }
+          return Promise.reject(refreshError);
+        }
+      }
+
+      // No refresh token or retry already failed
+      localStorage.removeItem("userToken");
+      localStorage.removeItem("userRefreshToken");
+      localStorage.removeItem("userInfo");
+
+      toast.error("Session expired. Please log in again.", {
+        id: "auth-error",
+      });
+
+      if (window.location.pathname !== "/login") {
+        window.location.href = "/login";
+      }
+      return Promise.reject(error);
+    }
+
+    switch (status) {
       case 403:
         toast.error("Access denied: You do not have permission to perform this action.", {
           id: "forbidden-error",

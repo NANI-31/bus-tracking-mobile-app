@@ -210,192 +210,194 @@ class _DriverSelectionScreenState extends ConsumerState<DriverSelectionScreen>
                     width: 1.5,
                   ),
                 ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // Header Icon
-                    Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: context.colorScheme.primary.withValues(
-                          alpha: 0.1,
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Header Icon
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: context.colorScheme.primary.withValues(
+                            alpha: 0.1,
+                          ),
+                          shape: BoxShape.circle,
                         ),
-                        shape: BoxShape.circle,
+                        child: Icon(
+                          Icons.assignment_ind_rounded,
+                          color: context.colorScheme.primary,
+                          size: 36,
+                        ),
                       ),
-                      child: Icon(
-                        Icons.assignment_ind_rounded,
-                        color: context.colorScheme.primary,
-                        size: 36,
+                      const SizedBox(height: 16),
+                      Text(
+                        'Confirm Assignment',
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      'Confirm Assignment',
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-                    // Details Grid
-                    Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: isDark
-                            ? Colors.white.withValues(alpha: 0.04)
-                            : Colors.black.withValues(alpha: 0.02),
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(
+                      const SizedBox(height: 20),
+                      // Details Grid
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
                           color: isDark
-                              ? Colors.white.withValues(alpha: 0.08)
-                              : Colors.black.withValues(alpha: 0.06),
+                              ? Colors.white.withValues(alpha: 0.04)
+                              : Colors.black.withValues(alpha: 0.02),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: isDark
+                                ? Colors.white.withValues(alpha: 0.08)
+                                : Colors.black.withValues(alpha: 0.06),
+                          ),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            _buildConfirmDetailRow(
+                              context,
+                              'Driver',
+                              driver.fullName,
+                              Icons.person_rounded,
+                            ),
+                            const Divider(height: 24),
+                            _buildConfirmDetailRow(
+                              context,
+                              'Route',
+                              selectedRoute.routeName,
+                              Icons.route_rounded,
+                            ),
+                            const Divider(height: 24),
+                            _buildConfirmDetailRow(
+                              context,
+                              'Bus Number',
+                              widget.busNumber,
+                              Icons.directions_bus_rounded,
+                            ),
+                          ],
                         ),
                       ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                      const SizedBox(height: 24),
+                      Row(
                         children: [
-                          _buildConfirmDetailRow(
-                            context,
-                            'Driver',
-                            driver.fullName,
-                            Icons.person_rounded,
-                          ),
-                          const Divider(height: 24),
-                          _buildConfirmDetailRow(
-                            context,
-                            'Route',
-                            selectedRoute.routeName,
-                            Icons.route_rounded,
-                          ),
-                          const Divider(height: 24),
-                          _buildConfirmDetailRow(
-                            context,
-                            'Bus Number',
-                            widget.busNumber,
-                            Icons.directions_bus_rounded,
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: OutlinedButton(
-                            onPressed: () => Navigator.pop(dialogContext),
-                            style: OutlinedButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(vertical: 14),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
+                          Expanded(
+                            child: OutlinedButton(
+                              onPressed: () => Navigator.pop(dialogContext),
+                              style: OutlinedButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(vertical: 14),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                side: BorderSide(
+                                  color: isDark
+                                      ? Colors.white.withValues(alpha: 0.15)
+                                      : Colors.black.withValues(alpha: 0.15),
+                                ),
                               ),
-                              side: BorderSide(
-                                color: isDark
-                                    ? Colors.white.withValues(alpha: 0.15)
-                                    : Colors.black.withValues(alpha: 0.15),
-                              ),
-                            ),
-                            child: Text(
-                              'Cancel',
-                              style: TextStyle(
-                                color: isDark ? Colors.white70 : Colors.black87,
-                                fontWeight: FontWeight.bold,
+                              child: Text(
+                                'Cancel',
+                                style: TextStyle(
+                                  color: isDark ? Colors.white70 : Colors.black87,
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
                             ),
                           ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: ElevatedButton(
-                            onPressed: () async {
-                              try {
-                                final repo = ref.read(busRepositoryProvider);
-                                final currentUser = ref.read(
-                                  currentUserProvider,
-                                );
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: ElevatedButton(
+                              onPressed: () async {
+                                try {
+                                  final repo = ref.read(busRepositoryProvider);
+                                  final currentUser = ref.read(
+                                    currentUserProvider,
+                                  );
 
-                                if (currentUser == null ||
-                                    currentUser.collegeId.isEmpty) {
+                                  if (currentUser == null ||
+                                      currentUser.collegeId.isEmpty) {
+                                    if (dialogContext.mounted) {
+                                      Navigator.pop(dialogContext);
+                                    }
+                                    if (mounted) {
+                                      ApiErrorModal.show(
+                                        context: context,
+                                        error:
+                                            "Session Invalid. Please login again.",
+                                      );
+                                    }
+                                    return;
+                                  }
+
+                                  final bus = buses.firstWhere(
+                                    (b) =>
+                                        b.busNumber == widget.busNumber &&
+                                        b.collegeId == currentUser.collegeId,
+                                    orElse: () =>
+                                        throw Exception('Bus not found'),
+                                  );
+
+                                  await repo.assignDriverToBus(
+                                    busId: bus.id,
+                                    driverId: driver.id,
+                                    routeId: selectedRoute.id,
+                                  );
+
+                                  ref
+                                      .read(socketServiceProvider)
+                                      .sendBusListUpdate();
+
+                                  if (dialogContext.mounted) {
+                                    Navigator.pop(
+                                      dialogContext,
+                                    ); // Close Confirm Dialog
+                                  }
+
+                                  if (dialogContext.mounted && mounted) {
+                                    await SuccessModal.show(
+                                      context: context,
+                                      title: 'Success',
+                                      message:
+                                          'Successfully assigned ${driver.fullName} and route ${selectedRoute.routeName}',
+                                      primaryActionText: 'OK',
+                                    );
+
+                                    if (mounted) {
+                                      Navigator.pop(
+                                        context,
+                                      ); // Return to bus list
+                                    }
+                                  }
+                                } catch (e) {
                                   if (dialogContext.mounted) {
                                     Navigator.pop(dialogContext);
                                   }
                                   if (mounted) {
                                     ApiErrorModal.show(
                                       context: context,
-                                      error:
-                                          "Session Invalid. Please login again.",
+                                      error: e,
                                     );
                                   }
-                                  return;
                                 }
-
-                                final bus = buses.firstWhere(
-                                  (b) =>
-                                      b.busNumber == widget.busNumber &&
-                                      b.collegeId == currentUser.collegeId,
-                                  orElse: () =>
-                                      throw Exception('Bus not found'),
-                                );
-
-                                await repo.assignDriverToBus(
-                                  busId: bus.id,
-                                  driverId: driver.id,
-                                  routeId: selectedRoute.id,
-                                );
-
-                                ref
-                                    .read(socketServiceProvider)
-                                    .sendBusListUpdate();
-
-                                if (dialogContext.mounted) {
-                                  Navigator.pop(
-                                    dialogContext,
-                                  ); // Close Confirm Dialog
-                                }
-
-                                if (dialogContext.mounted && mounted) {
-                                  await SuccessModal.show(
-                                    context: context,
-                                    title: 'Success',
-                                    message:
-                                        'Successfully assigned ${driver.fullName} and route ${selectedRoute.routeName}',
-                                    primaryActionText: 'OK',
-                                  );
-
-                                  if (mounted) {
-                                    Navigator.pop(
-                                      context,
-                                    ); // Return to bus list
-                                  }
-                                }
-                              } catch (e) {
-                                if (dialogContext.mounted) {
-                                  Navigator.pop(dialogContext);
-                                }
-                                if (mounted) {
-                                  ApiErrorModal.show(
-                                    context: context,
-                                    error: e,
-                                  );
-                                }
-                              }
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: context.colorScheme.primary,
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(vertical: 14),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
+                              },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: context.colorScheme.primary,
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(vertical: 14),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                elevation: 0,
                               ),
-                              elevation: 0,
-                            ),
-                            child: const Text(
-                              'Assign',
-                              style: TextStyle(fontWeight: FontWeight.bold),
+                              child: const Text(
+                                'Assign',
+                                style: TextStyle(fontWeight: FontWeight.bold),
+                              ),
                             ),
                           ),
-                        ),
-                      ],
-                    ),
-                  ],
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),

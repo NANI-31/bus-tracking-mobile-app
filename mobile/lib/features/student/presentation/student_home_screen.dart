@@ -215,6 +215,7 @@ class StudentHomeScreen extends ConsumerWidget {
                   children: [
                     WelcomeSection(userName: userName, isPremium: user.hasActivePremium),
                     const SizedBox(height: 24),
+
                     if (!user.hasActivePremium) ...[
                       _buildPremiumUpsell(context),
                       const SizedBox(height: 24),

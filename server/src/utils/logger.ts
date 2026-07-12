@@ -1,4 +1,5 @@
 import winston from "winston";
+import Transport from "winston-transport";
 
 const levels = {
   error: 0,
@@ -62,6 +63,47 @@ const format = winston.format.combine(
   }),
 );
 
+// Global reference to Socket.io instance
+let globalSocketIO: any = null;
+
+export const setSocketIOForLogger = (io: any) => {
+  globalSocketIO = io;
+};
+
+class SocketIOTransport extends Transport {
+  constructor(opts?: any) {
+    super(opts);
+  }
+
+  log(info: any, callback: () => void) {
+    setImmediate(() => {
+      this.emit("logged", info);
+    });
+
+    if (globalSocketIO) {
+      try {
+        const SYMBOL_MESSAGE = Symbol.for("message");
+        const formattedMessage = info[SYMBOL_MESSAGE] || info.message;
+        // Strip ANSI escape codes to ensure clean text on client
+        const cleanMessage = typeof formattedMessage === "string"
+          ? formattedMessage.replace(/[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g, "")
+          : formattedMessage;
+
+        // Emit to the server_terminal_logs room
+        globalSocketIO.to("server_terminal_logs").emit("server_log", {
+          timestamp: info.timestamp || new Date().toISOString(),
+          level: info.level.replace(/[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g, ""),
+          message: cleanMessage,
+        });
+      } catch (err) {
+        // Prevent infinite loop if emitting logs throws an error
+      }
+    }
+
+    callback();
+  }
+}
+
 const logger = winston.createLogger({
   levels,
   level: "debug",
@@ -71,6 +113,7 @@ const logger = winston.createLogger({
     // File logging removed for containerization (logs should be captured by stdout/stderr)
     new winston.transports.File({ filename: "logs/error.log", level: "error" }),
     new winston.transports.File({ filename: "logs/all.log" }),
+    new SocketIOTransport(),
   ],
 });
 

@@ -193,4 +193,43 @@ class BusRepository extends BaseRepository {
       throw handleError(e);
     }
   }
+
+  // ============== Teacher Override Operations ==============
+
+  /// Request override for a bus (Teacher)
+  Future<void> requestTeacherOverride(String busId) async {
+    try {
+      await dio.post('/buses/teacher-override/request', data: {'busId': busId});
+    } catch (e) {
+      throw handleError(e);
+    }
+  }
+
+  /// Get teacher override requests (Coordinator/Admin)
+  Future<List<Map<String, dynamic>>> getTeacherOverrideRequests() async {
+    try {
+      final response = await dio.get('/buses/teacher-override/requests');
+      return List<Map<String, dynamic>>.from(response.data);
+    } catch (e) {
+      throw handleError(e);
+    }
+  }
+
+  /// Approve or reject a teacher override request (Coordinator)
+  Future<void> handleTeacherOverrideRequest(String requestId, String status) async {
+    try {
+      await dio.put('/buses/teacher-override/request/$requestId', data: {'status': status});
+    } catch (e) {
+      throw handleError(e);
+    }
+  }
+
+  /// Cancel/End teacher override (Teacher/Coordinator)
+  Future<void> cancelTeacherOverride(String busId) async {
+    try {
+      await dio.post('/buses/teacher-override/cancel', data: {'busId': busId});
+    } catch (e) {
+      throw handleError(e);
+    }
+  }
 }

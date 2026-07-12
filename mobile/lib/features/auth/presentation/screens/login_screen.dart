@@ -95,7 +95,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
             route = '/student';
             break;
           case UserRole.teacher:
-            route = '/student';
+            route = '/teacher';
             break;
           case UserRole.driver:
             route = '/driver';
@@ -376,6 +376,28 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                           color: const Color(0xFF00C6E6),
                           onTap: () {
                             _emailController.text = 's2@kkr.ac.in';
+                            _passwordController.text = 'a';
+                            _handleLogin();
+                          },
+                        ),
+                        _QuickLoginChip(
+                          label: 'Teacher 1',
+                          email: 't1@kkr.ac.in',
+                          icon: Icons.person_outline_rounded,
+                          color: Colors.green.shade600,
+                          onTap: () {
+                            _emailController.text = 't1@kkr.ac.in';
+                            _passwordController.text = 'a';
+                            _handleLogin();
+                          },
+                        ),
+                        _QuickLoginChip(
+                          label: 'Teacher 2',
+                          email: 't2@kkr.ac.in',
+                          icon: Icons.person_outline_rounded,
+                          color: Colors.green.shade600,
+                          onTap: () {
+                            _emailController.text = 't2@kkr.ac.in';
                             _passwordController.text = 'a';
                             _handleLogin();
                           },

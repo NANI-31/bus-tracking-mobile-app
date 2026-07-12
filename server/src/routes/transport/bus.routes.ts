@@ -12,8 +12,11 @@ import {
 } from "../../controllers/transport/bus.controller";
 
 import { protect, authorize } from "@/middleware/authMiddleware";
+import teacherOverrideRoutes from "./teacherOverride.routes";
 
 const router = express.Router();
+
+router.use("/teacher-override", teacherOverrideRoutes);
 
 router.post(
   "/",
@@ -28,7 +31,7 @@ router.get("/:id", protect, getBus);
 router.put(
   "/:id",
   protect,
-  authorize("superAdmin", "busCoordinator", "driver", "collegeAdmin"),
+  authorize("superAdmin", "busCoordinator", "driver", "collegeAdmin", "teacher"),
   updateBus,
 );
 router.delete(
@@ -40,7 +43,7 @@ router.delete(
 router.post(
   "/location",
   protect,
-  authorize("driver", "busCoordinator", "collegeAdmin"),
+  authorize("driver", "busCoordinator", "collegeAdmin", "teacher"),
   updateBusLocation,
 );
 router.get("/:busId/location", protect, getBusLocation);

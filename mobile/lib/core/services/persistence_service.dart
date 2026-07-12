@@ -87,5 +87,8 @@ class PersistenceService {
   static String? getString(String key) => _prefs?.getString(key);
   static Future<void> setString(String key, String value) =>
       _prefs!.setString(key, value);
+  static bool? getBool(String key) => _prefs?.getBool(key);
+  static Future<void> setBool(String key, bool value) =>
+      _prefs!.setBool(key, value);
   static Future<void> remove(String key) => _prefs!.remove(key);
 }

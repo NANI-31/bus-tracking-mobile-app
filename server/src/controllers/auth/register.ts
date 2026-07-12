@@ -140,7 +140,7 @@ export const register = async (req: Request, res: Response) => {
         tokenVersion: newUser.tokenVersion,
       },
       JWT_SECRET,
-      { expiresIn: "15m" },
+      { expiresIn: "2h" },
     );
 
     const refreshToken = jwt.sign(

@@ -11,6 +11,7 @@ import 'package:collegebus/features/route/application/route_provider.dart';
 import 'package:collegebus/features/sos/application/sos_provider.dart';
 import 'package:collegebus/features/user/application/user_provider.dart';
 import 'package:collegebus/features/coordinator/presentation/modules/overview_components/broadcast_modal.dart';
+import 'package:collegebus/features/coordinator/presentation/teacher_override_requests_screen.dart';
 import 'package:collegebus/shared/widgets/shimmer_skeletons.dart';
 import 'package:collegebus/shared/widgets/navigation/curved_bottom_nav_bar.dart';
 import 'package:flutter/cupertino.dart' show RefreshIndicatorMode;
@@ -40,6 +41,7 @@ class OverviewTab extends ConsumerWidget {
     final busesAsync = ref.watch(collegeBusesStreamProvider(collegeId));
     final pendingDriversAsync = ref.watch(pendingApprovalsProvider(collegeId));
     final busNumbersAsync = ref.watch(busNumbersProvider(collegeId));
+    final overrideRequestsAsync = ref.watch(teacherOverrideRequestsProvider);
 
     if (routesAsync.isLoading ||
         busesAsync.isLoading ||
@@ -52,6 +54,7 @@ class OverviewTab extends ConsumerWidget {
     final buses = busesAsync.valueOrNull ?? [];
     final pendingDrivers = pendingDriversAsync.valueOrNull ?? [];
     final busNumbers = busNumbersAsync.valueOrNull ?? [];
+    final pendingOverridesCount = overrideRequestsAsync.valueOrNull?.length ?? 0;
     final rawActiveSosCount = ref.watch(
       activeSosProvider(collegeId).select((v) => v.valueOrNull?.length ?? 0),
     );
@@ -65,6 +68,7 @@ class OverviewTab extends ConsumerWidget {
         ref.invalidate(pendingApprovalsProvider(collegeId));
         ref.invalidate(busNumbersProvider(collegeId));
         ref.invalidate(activeSosProvider(collegeId));
+        ref.invalidate(teacherOverrideRequestsProvider);
         await Future.delayed(const Duration(milliseconds: 1500));
       },
       child: CustomScrollView(
@@ -210,6 +214,97 @@ class OverviewTab extends ConsumerWidget {
                       VStack([
                         'Send Broadcast Message'.text.bold.lg.make(),
                         'Notify all students, teachers & parents'.text
+                            .color(
+                              context.colorScheme.onSurface.withValues(
+                                alpha: 0.6,
+                              ),
+                            )
+                            .size(12)
+                            .make(),
+                      ]).expand(),
+                      Icon(
+                        Icons.chevron_right,
+                        color: context.colorScheme.onSurface.withValues(
+                          alpha: 0.4,
+                        ),
+                      ),
+                    ]).p(16),
+                  ),
+                ),
+
+                AppSizes.paddingMedium.heightBox,
+
+                // Teacher Override Requests Card
+                GlassmorphicCard(
+                  staggerIndex: 5,
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const TeacherOverrideRequestsScreen(),
+                      ),
+                    );
+                  },
+                  accentColor: AppColors.warning,
+                  child: CustomPaint(
+                    painter: DotMatrixPainter(
+                      color: isDark
+                          ? Colors.white.withValues(alpha: 0.03)
+                          : Colors.black.withValues(alpha: 0.02),
+                    ),
+                    child: HStack([
+                      ShaderMask(
+                        shaderCallback: (bounds) => const LinearGradient(
+                          colors: [Color(0xFFFFB300), Color(0xFFFF8F00)],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ).createShader(bounds),
+                        child: Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.1),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Stack(
+                            clipBehavior: Clip.none,
+                            children: [
+                              const Icon(
+                                Icons.alt_route,
+                                color: Colors.white,
+                                size: 28,
+                              ),
+                              if (pendingOverridesCount > 0)
+                                Positioned(
+                                  right: -4,
+                                  top: -4,
+                                  child: Container(
+                                    padding: const EdgeInsets.all(4),
+                                    decoration: const BoxDecoration(
+                                      color: Colors.redAccent,
+                                      shape: BoxShape.circle,
+                                    ),
+                                    constraints: const BoxConstraints(
+                                      minWidth: 16,
+                                      minHeight: 16,
+                                    ),
+                                    child: Center(
+                                      child: '$pendingOverridesCount'
+                                          .text
+                                          .color(Colors.white)
+                                          .size(9)
+                                          .bold
+                                          .make(),
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      16.widthBox,
+                      VStack([
+                        'Teacher Override Requests'.text.bold.make(),
+                        'Review teacher tracking authorization requests'.text
                             .color(
                               context.colorScheme.onSurface.withValues(
                                 alpha: 0.6,

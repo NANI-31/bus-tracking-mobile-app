@@ -4,7 +4,6 @@ import 'package:collegebus/features/coordinator/domain/assignment_log_model.dart
 import 'package:collegebus/core/providers/repository_providers.dart';
 import 'package:collegebus/core/providers/socket_provider.dart';
 import 'package:collegebus/features/auth/application/auth_provider.dart';
-import 'package:collegebus/core/constants/constants.dart';
 
 /// Bus notifier for managing the list of buses
 class BusNotifier extends AsyncNotifier<List<BusModel>> {
@@ -65,8 +64,13 @@ final collegeBusesStreamProvider =
         }
 
         await fetch();
-        final subscription = socket.busListUpdateStream.listen((_) => fetch());
-        controller.onCancel = () => subscription.cancel();
+        final subscription1 = socket.busListUpdateStream.listen((_) => fetch());
+        final subscription2 = socket.busUpdateStream.listen((_) => fetch());
+        
+        controller.onCancel = () {
+          subscription1.cancel();
+          subscription2.cancel();
+        };
       });
     });
 
@@ -139,7 +143,7 @@ final collegeBusLocationsProvider =
           controller.add(List.from(currentLocations));
         }
 
-        final subscription = socket.locationUpdateStream.listen((data) {
+        final sub1 = socket.locationUpdateStream.listen((data) {
           if (data['collegeId'] == collegeId) {
             final busId = data['busId'];
             final newLoc = BusLocationModel.fromMap(data, busId);
@@ -159,13 +163,25 @@ final collegeBusLocationsProvider =
           }
         });
 
-        controller.onCancel = () => subscription.cancel();
+        final sub2 = socket.busUpdateStream.listen((data) {
+          final busId = data['id'] ?? data['busId'];
+          final status = data['status'];
+          if (status == 'not-running') {
+            _lastKnownLocations.remove(busId);
+            currentLocations.removeWhere((l) => l.busId == busId);
+            if (!controller.isClosed) {
+              controller.add(List.from(currentLocations));
+            }
+          }
+        });
+
+        controller.onCancel = () {
+          sub1.cancel();
+          sub2.cancel();
+        };
 
         final user = ref.read(currentUserProvider);
-        final isAuthorized = user != null &&
-            user.role != UserRole.student &&
-            user.role != UserRole.parent &&
-            user.role != UserRole.teacher;
+        final isAuthorized = user != null;
 
         if (isAuthorized) {
           try {
@@ -208,14 +224,27 @@ final busLocationProvider = StreamProvider.family<BusLocationModel?, String>((
       if (!controller.isClosed) controller.add(location);
     } catch (_) {}
 
-    final subscription = socket.locationUpdateStream.listen((data) {
+    final sub1 = socket.locationUpdateStream.listen((data) {
       if (data['busId'] == busId) {
         final newLoc = BusLocationModel.fromMap(data, busId);
         _lastKnownLocations[busId] = newLoc;
         if (!controller.isClosed) controller.add(newLoc);
       }
     });
-    controller.onCancel = () => subscription.cancel();
+
+    final sub2 = socket.busUpdateStream.listen((data) {
+      final id = data['id'] ?? data['busId'];
+      final status = data['status'];
+      if (id == busId && status == 'not-running') {
+        _lastKnownLocations.remove(busId);
+        if (!controller.isClosed) controller.add(null);
+      }
+    });
+
+    controller.onCancel = () {
+      sub1.cancel();
+      sub2.cancel();
+    };
   });
 });
 
@@ -277,7 +306,7 @@ final globalBusLocationsProvider =
           controller.add(List.from(currentLocations));
         }
 
-        final subscription = socket.locationUpdateStream.listen((data) {
+        final sub1 = socket.locationUpdateStream.listen((data) {
           final busId = data['busId'];
           final newLoc = BusLocationModel.fromMap(data, busId);
 
@@ -295,7 +324,22 @@ final globalBusLocationsProvider =
           }
         });
 
-        controller.onCancel = () => subscription.cancel();
+        final sub2 = socket.busUpdateStream.listen((data) {
+          final busId = data['id'] ?? data['busId'];
+          final status = data['status'];
+          if (status == 'not-running') {
+            _lastKnownLocations.remove(busId);
+            currentLocations.removeWhere((l) => l.busId == busId);
+            if (!controller.isClosed) {
+              controller.add(List.from(currentLocations));
+            }
+          }
+        });
+
+        controller.onCancel = () {
+          sub1.cancel();
+          sub2.cancel();
+        };
 
         try {
           // Fetch all buses first
@@ -343,5 +387,44 @@ final studentLiveBusIdsProvider =
     Provider.family<Set<String>, String>((ref, collegeId) {
       final liveLocations =
           ref.watch(collegeBusLocationsProvider(collegeId)).valueOrNull ?? [];
-      return liveLocations.map((loc) => loc.busId).toSet();
+      final buses =
+          ref.watch(collegeBusesStreamProvider(collegeId)).valueOrNull ?? [];
+
+      final activeBusIds = buses
+          .where((b) => b.status != 'not-running' && b.assignmentStatus == 'accepted')
+          .map((b) => b.id)
+          .toSet();
+
+      return liveLocations
+          .map((loc) => loc.busId)
+          .where((id) => activeBusIds.contains(id))
+          .toSet();
+    });
+
+/// Provider for active teacher override requests (for coordinators)
+final teacherOverrideRequestsProvider =
+    StreamProvider<List<Map<String, dynamic>>>((ref) {
+      final repo = ref.watch(busRepositoryProvider);
+      final socket = ref.watch(socketServiceProvider);
+
+      return Stream.multi((controller) async {
+        Future<void> fetch() async {
+          try {
+            final requests = await repo.getTeacherOverrideRequests();
+            if (!controller.isClosed) controller.add(requests);
+          } catch (e) {
+            if (!controller.isClosed) controller.addError(e);
+          }
+        }
+
+        await fetch();
+
+        final sub1 = socket.busListUpdateStream.listen((_) => fetch());
+        final sub2 = socket.busUpdateStream.listen((_) => fetch());
+
+        controller.onCancel = () {
+          sub1.cancel();
+          sub2.cancel();
+        };
+      });
     });

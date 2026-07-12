@@ -52,7 +52,7 @@ export const refreshToken = async (req: Request, res: Response) => {
         tokenVersion: user.tokenVersion,
       },
       JWT_SECRET,
-      { expiresIn: "15m" },
+      { expiresIn: "2h" },
     );
 
     res.json({
