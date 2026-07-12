@@ -2495,8 +2495,9 @@ class _TelemetryChartsCardState extends State<TelemetryChartsCard>
   }
 
   Widget _buildTooltipPositioned(double totalWidth, double totalHeight) {
-    if (_hoveredIndex == null || _hoverPos == null)
+    if (_hoveredIndex == null || _hoverPos == null) {
       return const SizedBox.shrink();
+    }
 
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final String title;

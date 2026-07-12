@@ -274,11 +274,11 @@ class _PlansManagementScreenState extends ConsumerState<PlansManagementScreen> {
                                   ),
                                   const SizedBox(width: 8),
                                 ],
-                                Switch.adaptive(
-                                  value: isActive,
-                                  activeColor: Colors.green,
-                                  onChanged: (val) => _togglePlanActiveStatus(plan, val),
-                                ),
+                                  Switch.adaptive(
+                                    value: isActive,
+                                    activeThumbColor: Colors.green,
+                                    onChanged: (val) => _togglePlanActiveStatus(plan, val),
+                                  ),
                               ],
                             ),
                           ],

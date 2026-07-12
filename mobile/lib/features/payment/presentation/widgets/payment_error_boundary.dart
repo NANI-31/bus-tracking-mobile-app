@@ -14,10 +14,10 @@ class PaymentErrorBoundary extends StatefulWidget {
   });
 
   @override
-  State<PaymentErrorBoundary> createState() => _PaymentErrorBoundaryState();
+  State<PaymentErrorBoundary> createState() => PaymentErrorBoundaryState();
 }
 
-class _PaymentErrorBoundaryState extends State<PaymentErrorBoundary> {
+class PaymentErrorBoundaryState extends State<PaymentErrorBoundary> {
   Object? _error;
   StackTrace? _stackTrace;
 
@@ -211,7 +211,7 @@ class _PaymentErrorBoundaryState extends State<PaymentErrorBoundary> {
 }
 
 class _InheritedPaymentErrorBoundary extends InheritedWidget {
-  final _PaymentErrorBoundaryState state;
+  final PaymentErrorBoundaryState state;
 
   const _InheritedPaymentErrorBoundary({
     required this.state,
@@ -224,7 +224,7 @@ class _InheritedPaymentErrorBoundary extends InheritedWidget {
 
 extension PaymentErrorBoundaryExtension on BuildContext {
   /// Access the PaymentErrorBoundary in the widget tree to manually throw caught transaction errors.
-  _PaymentErrorBoundaryState? get paymentErrorBoundary {
+  PaymentErrorBoundaryState? get paymentErrorBoundary {
     return dependOnInheritedWidgetOfExactType<_InheritedPaymentErrorBoundary>()?.state;
   }
 }

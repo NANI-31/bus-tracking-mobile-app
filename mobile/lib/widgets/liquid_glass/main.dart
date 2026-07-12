@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:liquid_glass/background_capture_widget.dart';
-import 'package:liquid_glass/liquid_glass_lens_shader.dart';
+import 'background_capture_widget.dart';
+import 'liquid_glass_lens_shader.dart';
 
 void main() {
   runApp(const MyApp());
@@ -69,7 +69,6 @@ class _BackgroundCaptureDemoState extends State<BackgroundCaptureDemo>
         BackgroundCaptureWidget(
           width: 160,
           height: 160,
-          initialPosition: Offset(0, 0),
           backgroundKey: backgroundKey,
           shader: liquidGlassLensShader,
           child: Center(

@@ -1523,7 +1523,7 @@ class _ParticlePainter extends CustomPainter {
       final double dy = math.sin(p.angle) * distance - (progress * 8.0);
       final double opacity = (1.0 - progress).clamp(0.0, 1.0);
 
-      paint.color = p.color.withValues(alpha: p.color.alpha * opacity);
+      paint.color = p.color.withValues(alpha: p.color.a * opacity);
 
       if (p.size > 3.5) {
         final path = Path()
