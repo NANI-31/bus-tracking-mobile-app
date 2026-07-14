@@ -43,7 +43,6 @@ import 'package:collegebus/shared/widgets/shimmer_skeletons.dart';
 import 'package:collegebus/shared/widgets/api_error_modal.dart';
 import 'package:collegebus/shared/widgets/global_connectivity_banner.dart';
 
-
 class DriverDashboard extends ConsumerStatefulWidget {
   const DriverDashboard({super.key});
 
@@ -62,8 +61,13 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
   /// the current sharing session. Key = "${stop.name}_${stop.lat}_${stop.lng}".
   /// Cleared when location sharing stops so stops can fire again next trip.
   final Set<String> _arrivedStopIds = {};
+
   /// Active overlay entry for the top toast notification.
   OverlayEntry? _activeOverlayEntry;
+
+  /// Persistent deviation toast — updates distance in-place, never stacks.
+  OverlayEntry? _deviationOverlayEntry;
+  final ValueNotifier<int> _deviationDistanceNotifier = ValueNotifier(0);
 
   BitmapDescriptor? _busIcon;
   BitmapDescriptor? _startStopIcon;
@@ -150,7 +154,7 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
       if (user != null) {
         socketService.joinCollege(user.collegeId);
       }
-      
+
       // Request permissions sequentially:
       // First Notification and Foreground GPS, then Background GPS, Battery Opt, and Mic.
       if (mounted) {
@@ -164,6 +168,9 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
   void dispose() {
     _activeOverlayEntry?.remove();
     _activeOverlayEntry = null;
+    _deviationOverlayEntry?.remove();
+    _deviationOverlayEntry = null;
+    _deviationDistanceNotifier.dispose();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
@@ -189,7 +196,9 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
       final isSharing = ref.read(driverLocationProvider).isSharing;
       final locationService = ref.read(locationServiceProvider);
       if (isSharing && !locationService.isTracking) {
-        AppLogger.w('[DriverDashboard] Location stream stopped in background — restarting.');
+        AppLogger.w(
+          '[DriverDashboard] Location stream stopped in background — restarting.',
+        );
         // Re-start the GPS stream silently using the already-loaded provider.
         // driverBusProvider is keyed by userId, so we read it via currentUser.
         WidgetsBinding.instance.addPostFrameCallback((_) async {
@@ -207,7 +216,9 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
       // The screen turned off or the app went to background.
       // The foreground service notification keeps the GPS stream alive on
       // Android — we intentionally do NOT stop tracking here.
-      AppLogger.i('[DriverDashboard] App paused (screen off / backgrounded). GPS stream continues via foreground service.');
+      AppLogger.i(
+        '[DriverDashboard] App paused (screen off / backgrounded). GPS stream continues via foreground service.',
+      );
     }
   }
 
@@ -275,11 +286,13 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
         });
 
         final latLng = LatLng(position.latitude, position.longitude);
-        ref.read(driverLocationProvider.notifier).updateLocation(
-          latLng,
-          heading: position.heading,
-          speed: position.speed,
-        );
+        ref
+            .read(driverLocationProvider.notifier)
+            .updateLocation(
+              latLng,
+              heading: position.heading,
+              speed: position.speed,
+            );
         _checkRouteDeviation(position, myBus);
         _checkStopArrival(position, myBus);
       },
@@ -298,7 +311,9 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
   /// to upgrade to 'Allow all the time' via a separate system prompt. Without
   /// 'Allow all the time', the foreground service still runs but GPS delivery
   /// is throttled / blocked when the screen turns off on some OEM devices.
-  Future<void> _requestBackgroundLocationPermission({bool silent = false}) async {
+  Future<void> _requestBackgroundLocationPermission({
+    bool silent = false,
+  }) async {
     // Only relevant on Android 10 (API 29)+
     final status = await Permission.locationAlways.status;
     if (status.isGranted) return; // Already has 'Allow all the time'
@@ -395,8 +410,6 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
     }
   }
 
-
-
   /// Requests Android battery optimization exemption (one-time, on first launch).
   ///
   /// On OEM devices (Samsung/Xiaomi/Oppo/Vivo), the system's battery optimizer
@@ -481,10 +494,9 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
     }
   }
 
-
   void _showToast(String message, {bool isError = false}) {
     if (!mounted) return;
-    
+
     // Dismiss any active top toast immediately to prevent stacking/overlaps
     _activeOverlayEntry?.remove();
     _activeOverlayEntry = null;
@@ -546,6 +558,66 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
     });
   }
 
+  /// Shows (or keeps) a persistent deviation toast, updating distance in-place.
+  void _showDeviationToast() {
+    if (!mounted) return;
+    // Already showing — just update the notifier value, no new entry needed
+    if (_deviationOverlayEntry != null) return;
+
+    final entry = OverlayEntry(
+      builder: (ctx) => Positioned(
+        top: MediaQuery.of(ctx).padding.top + 16,
+        left: 16,
+        right: 16,
+        child: Material(
+          color: Colors.transparent,
+          child: ValueListenableBuilder<int>(
+            valueListenable: _deviationDistanceNotifier,
+            builder: (_, dist, __) => Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              decoration: BoxDecoration(
+                color: Colors.orange.shade800,
+                borderRadius: BorderRadius.circular(14),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.25),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.warning_amber_rounded,
+                      color: Colors.white, size: 20),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      'Off route — ${dist}m from path',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    _deviationOverlayEntry = entry;
+    Overlay.of(context).insert(entry);
+  }
+
+  /// Dismisses the deviation toast when the driver is back on route.
+  void _hideDeviationToast() {
+    _deviationOverlayEntry?.remove();
+    _deviationOverlayEntry = null;
+  }
 
   Future<void> _toggleLocationSharing(BusModel? myBus) async {
     final isSharing = ref.read(driverLocationProvider).isSharing;
@@ -589,16 +661,17 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
 
     // Threshold: 200 meters
     if (minDistance > 200) {
+      // Rate-limit to once per minute, but update the distance live in the toast
       final now = DateTime.now();
       if (_lastDeviationAlertTime == null ||
           now.difference(_lastDeviationAlertTime!) >
               const Duration(minutes: 1)) {
         _lastDeviationAlertTime = now;
-        ApiErrorModal.show(
-          context: context,
-          error: DriverLocalizations.of(context)!.offRouteAlert(minDistance.toInt()),
-        );
       }
+      _deviationDistanceNotifier.value = minDistance.toInt();
+      _showDeviationToast();
+    } else {
+      _hideDeviationToast();
     }
 
     // ETA Calculation
@@ -618,7 +691,10 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
     RoutePoint? nextStop;
     for (final stop in selectedRoute.stopPoints) {
       final dist = Geolocator.distanceBetween(
-        position.latitude, position.longitude, stop.lat, stop.lng,
+        position.latitude,
+        position.longitude,
+        stop.lat,
+        stop.lng,
       );
       if (dist < minDistance) {
         minDistance = dist;
@@ -627,10 +703,9 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
     }
     if (nextStop == null) return;
 
-    final etaStr = DriverLocalizations.of(context)!.etaToNextStop(
-      etaMinutes,
-      nextStop.name,
-    );
+    final etaStr = DriverLocalizations.of(
+      context,
+    )!.etaToNextStop(etaMinutes, nextStop.name);
     ref.read(driverLocationProvider.notifier).updateETA(etaStr);
   }
 
@@ -662,8 +737,9 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
 
     // Use real GPS speed when reliable (> 1 m/s); otherwise default to 30 km/h.
     // Threshold: 1 m/s ≈ 3.6 km/h — below this the reading is GPS noise.
-    final effectiveSpeedMs =
-        (speedMs != null && speedMs > 1.0) ? speedMs : 8.33;
+    final effectiveSpeedMs = (speedMs != null && speedMs > 1.0)
+        ? speedMs
+        : 8.33;
     final timeSeconds = minDistance / effectiveSpeedMs;
     return (timeSeconds / 60).ceil();
   }
@@ -680,7 +756,8 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
 
     // Collect all RoutePoints: Start -> Stops -> End
     final List<RoutePoint> allRoutePoints = [];
-    if (selectedRoute.startPoint.lat != 0 && selectedRoute.startPoint.lng != 0) {
+    if (selectedRoute.startPoint.lat != 0 &&
+        selectedRoute.startPoint.lng != 0) {
       allRoutePoints.add(selectedRoute.startPoint);
     }
     allRoutePoints.addAll(selectedRoute.stopPoints);
@@ -727,7 +804,6 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
       }
     }
   }
-
 
   double _distanceToSegment(LatLng p, LatLng start, LatLng end) {
     final double x = p.latitude;
@@ -802,7 +878,10 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
       _showToast(DriverLocalizations.of(context)!.busAssignmentRemoved);
     } catch (e) {
       if (!mounted) return;
-      _showToast(DriverLocalizations.of(context)!.removeAssignmentError(e.toString()), isError: true);
+      _showToast(
+        DriverLocalizations.of(context)!.removeAssignmentError(e.toString()),
+        isError: true,
+      );
     }
   }
 
@@ -819,7 +898,10 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
       }
     } catch (e) {
       if (mounted) {
-        _showToast(DriverLocalizations.of(context)!.acceptAssignmentError(e.toString()), isError: true);
+        _showToast(
+          DriverLocalizations.of(context)!.acceptAssignmentError(e.toString()),
+          isError: true,
+        );
       }
     }
   }
@@ -837,13 +919,15 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
       }
     } catch (e) {
       if (mounted) {
-        _showToast(DriverLocalizations.of(context)!.declineAssignmentError(e.toString()), isError: true);
+        _showToast(
+          DriverLocalizations.of(context)!.declineAssignmentError(e.toString()),
+          isError: true,
+        );
       }
     }
   }
 
   // Global Connectivity Banner is now handled globally in MaterialApp.router builder
-
 
   @override
   Widget build(BuildContext context) {
@@ -853,16 +937,13 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
       currentUserProvider.select((u) => u?.collegeId),
     );
 
-
     final mapTheme = Theme.of(context).extension<MapThemeExtension>();
     final startColor = mapTheme?.startStopColor ?? const Color(0xFF4CAF50);
-    final stopColor = mapTheme?.intermediateStopColor ?? const Color(0xFFFF9800);
+    final stopColor =
+        mapTheme?.intermediateStopColor ?? const Color(0xFFFF9800);
     final endColor = mapTheme?.endStopColor ?? const Color(0xFFE53935);
 
     _loadCustomStopMarkers(startColor, stopColor, endColor);
-
-
-
 
     if (userId == null || collegeId == null) {
       debugPrint(
@@ -914,7 +995,9 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
           );
 
           // 2. Handle auto-resume location sharing (ONLY after init and status is accepted)
-          if (_isSharing && _hasInitialized && bus.assignmentStatus == 'accepted') {
+          if (_isSharing &&
+              _hasInitialized &&
+              bus.assignmentStatus == 'accepted') {
             final locationService = ref.read(locationServiceProvider);
             if (!locationService.isTracking) {
               debugPrint('[DriverDashboard] Auto-resuming location sharing...');
@@ -938,7 +1021,9 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
             if (routes != null) {
               try {
                 final route = routes.firstWhere((r) => r.id == bus.routeId);
-                ref.read(driverMapStateProvider.notifier).setSelectedRoute(route);
+                ref
+                    .read(driverMapStateProvider.notifier)
+                    .setSelectedRoute(route);
               } catch (e) {
                 AppLogger.e('Error matching route selection: $e');
               }
@@ -963,7 +1048,9 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
             next.whenData((routes) {
               try {
                 final route = routes.firstWhere((r) => r.id == bus.routeId);
-                ref.read(driverMapStateProvider.notifier).setSelectedRoute(route);
+                ref
+                    .read(driverMapStateProvider.notifier)
+                    .setSelectedRoute(route);
               } catch (e) {
                 AppLogger.e('Error matching route from route listener: $e');
               }
@@ -984,7 +1071,9 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
       '[DriverDashboard] myBus=${myBus?.busNumber}, assignmentStatus=${myBus?.assignmentStatus}',
     );
 
-    final bottomNavIndex = ref.watch(driverUiStateProvider.select((s) => s.bottomNavIndex));
+    final bottomNavIndex = ref.watch(
+      driverUiStateProvider.select((s) => s.bottomNavIndex),
+    );
     final isTabletOrDesktop = context.isTabletLayout || context.isDesktopLayout;
 
     if (isTabletOrDesktop) {
@@ -998,11 +1087,15 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
                 NavigationRail(
                   selectedIndex: bottomNavIndex,
                   onDestinationSelected: (index) {
-                    ref.read(driverUiStateProvider.notifier).setBottomNavIndex(index);
+                    ref
+                        .read(driverUiStateProvider.notifier)
+                        .setBottomNavIndex(index);
                   },
                   backgroundColor: Theme.of(context).cardColor,
                   labelType: NavigationRailLabelType.all,
-                  selectedIconTheme: IconThemeData(color: _getDriverActiveColor(context)),
+                  selectedIconTheme: IconThemeData(
+                    color: _getDriverActiveColor(context),
+                  ),
                   destinations: [
                     NavigationRailDestination(
                       icon: const Icon(Icons.settings_outlined),
@@ -1012,7 +1105,9 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
                     NavigationRailDestination(
                       icon: const Icon(Icons.map_outlined),
                       selectedIcon: const Icon(Icons.map),
-                      label: Text(DriverLocalizations.of(context)!.liveTrackingTab),
+                      label: Text(
+                        DriverLocalizations.of(context)!.liveTrackingTab,
+                      ),
                     ),
                     const NavigationRailDestination(
                       icon: Icon(Icons.person_outline),
@@ -1022,21 +1117,23 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
                   ],
                 ),
                 const VerticalDivider(width: 1, thickness: 1),
-                
+
                 // Content pane
                 if (bottomNavIndex == 0)
                   Expanded(
                     flex: 4,
                     child: SafeArea(
-                      child: _buildBusSetupTab(myBus, routesAsync, busNumbersAsync),
+                      child: _buildBusSetupTab(
+                        myBus,
+                        routesAsync,
+                        busNumbersAsync,
+                      ),
                     ),
                   )
                 else if (bottomNavIndex == 2)
                   const Expanded(
                     flex: 4,
-                    child: SafeArea(
-                      child: ProfileScreen(),
-                    ),
+                    child: SafeArea(child: ProfileScreen()),
                   )
                 else
                   Expanded(
@@ -1047,27 +1144,35 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
                           : Consumer(
                               builder: (context, ref, child) {
                                 final currentLocation = ref.watch(
-                                  driverLocationProvider.select((s) => s.currentLocation),
+                                  driverLocationProvider.select(
+                                    (s) => s.currentLocation,
+                                  ),
                                 );
                                 final isSharing = ref.watch(
-                                  driverLocationProvider.select((s) => s.isSharing),
+                                  driverLocationProvider.select(
+                                    (s) => s.isSharing,
+                                  ),
                                 );
                                 final selectedRoute = ref.watch(
-                                  driverMapStateProvider.select((s) => s.selectedRoute),
+                                  driverMapStateProvider.select(
+                                    (s) => s.selectedRoute,
+                                  ),
                                 );
                                 return LiveTrackingControlPanel(
                                   bus: myBus,
                                   route: selectedRoute,
                                   isSharing: isSharing,
                                   currentLocation: currentLocation,
-                                  onToggleSharing: () => _toggleLocationSharing(myBus),
-                                  onCompleteTrip: () => _handleTripComplete(myBus),
+                                  onToggleSharing: () =>
+                                      _toggleLocationSharing(myBus),
+                                  onCompleteTrip: () =>
+                                      _handleTripComplete(myBus),
                                 );
                               },
                             ),
                     ),
                   ),
-                
+
                 // Right Pane: Active Map View (always visible on tablet/desktop)
                 Expanded(
                   flex: 6,
@@ -1096,12 +1201,25 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
             child: ColoredBox(
               color: Theme.of(context).scaffoldBackgroundColor,
               child: (myBusAsync.isLoading && !myBusAsync.hasValue)
-                  ? const SafeArea(bottom: false, child: BusAssignmentSkeleton())
+                  ? const SafeArea(
+                      bottom: false,
+                      child: BusAssignmentSkeleton(),
+                    )
                   : IndexedStack(
                       index: bottomNavIndex,
                       children: [
-                        SafeArea(bottom: false, child: _buildBusSetupTab(myBus, routesAsync, busNumbersAsync)),
-                        SafeArea(bottom: false, child: _buildLiveTrackingTab(myBus)),
+                        SafeArea(
+                          bottom: false,
+                          child: _buildBusSetupTab(
+                            myBus,
+                            routesAsync,
+                            busNumbersAsync,
+                          ),
+                        ),
+                        SafeArea(
+                          bottom: false,
+                          child: _buildLiveTrackingTab(myBus),
+                        ),
                         const ProfileScreen(),
                       ],
                     ),
@@ -1116,7 +1234,9 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
             child: CurvedBottomNavBar(
               currentIndex: bottomNavIndex,
               onTap: (index) {
-                ref.read(driverUiStateProvider.notifier).setBottomNavIndex(index);
+                ref
+                    .read(driverUiStateProvider.notifier)
+                    .setBottomNavIndex(index);
               },
               activeColor: _getDriverActiveColor(context),
               activeColors: [
@@ -1156,15 +1276,14 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
       return SingleChildScrollView(
         padding: const EdgeInsets.all(AppSizes.paddingMedium),
         child: Column(
-          children: [
-            _buildPendingAssignmentUI(myBus),
-            const BottomNavSpacer(),
-          ],
+          children: [_buildPendingAssignmentUI(myBus), const BottomNavSpacer()],
         ),
       );
     }
 
-    final designTheme = Theme.of(context).extension<DesignSystemThemeExtension>();
+    final designTheme = Theme.of(
+      context,
+    ).extension<DesignSystemThemeExtension>();
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(AppSizes.paddingMedium),
@@ -1175,21 +1294,25 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(AppSizes.paddingLarge),
-              decoration: designTheme?.cardDecoration ?? BoxDecoration(
-                color: Theme.of(context).cardColor,
-                borderRadius: BorderRadius.circular(24),
-                border: Border.all(
-                  color: Theme.of(context).dividerColor.withValues(alpha: 0.08),
-                  width: 1.5,
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.02),
-                    blurRadius: 12,
-                    offset: const Offset(0, 6),
+              decoration:
+                  designTheme?.cardDecoration ??
+                  BoxDecoration(
+                    color: Theme.of(context).cardColor,
+                    borderRadius: BorderRadius.circular(24),
+                    border: Border.all(
+                      color: Theme.of(
+                        context,
+                      ).dividerColor.withValues(alpha: 0.08),
+                      width: 1.5,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.02),
+                        blurRadius: 12,
+                        offset: const Offset(0, 6),
+                      ),
+                    ],
                   ),
-                ],
-              ),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.center,
@@ -1198,33 +1321,43 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
                   Container(
                     padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
-                      color: Theme.of(context).disabledColor.withValues(alpha: 0.05),
+                      color: Theme.of(
+                        context,
+                      ).disabledColor.withValues(alpha: 0.05),
                       shape: BoxShape.circle,
                     ),
                     child: Icon(
                       Icons.assignment_ind_outlined,
                       size: 56,
-                      color: Theme.of(context).disabledColor.withValues(alpha: 0.6),
+                      color: Theme.of(
+                        context,
+                      ).disabledColor.withValues(alpha: 0.6),
                     ),
                   ),
                   const SizedBox(height: 24),
                   Text(
                     'No Assignments Yet',
-                    style: designTheme?.cardHeaderStyle ?? TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w800,
-                      color: Theme.of(context).colorScheme.onSurface,
-                    ),
+                    style:
+                        designTheme?.cardHeaderStyle ??
+                        TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w800,
+                          color: Theme.of(context).colorScheme.onSurface,
+                        ),
                   ),
                   const SizedBox(height: 12),
                   Text(
                     'You are not currently assigned to any bus or route. Please contact your administrator or bus coordinator to receive an assignment.',
                     textAlign: TextAlign.center,
-                    style: designTheme?.cardBodyStyle ?? TextStyle(
-                      fontSize: 14,
-                      height: 1.5,
-                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
-                    ),
+                    style:
+                        designTheme?.cardBodyStyle ??
+                        TextStyle(
+                          fontSize: 14,
+                          height: 1.5,
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.onSurface.withValues(alpha: 0.6),
+                        ),
                   ),
                   const SizedBox(height: 16),
                 ],
@@ -1233,7 +1366,9 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
           else
             BusAssignmentCard(
               bus: myBus,
-              route: ref.watch(driverMapStateProvider.select((s) => s.selectedRoute)),
+              route: ref.watch(
+                driverMapStateProvider.select((s) => s.selectedRoute),
+              ),
               onRemove: () => _handleRemoveAssignment(myBus),
             ),
           const BottomNavSpacer(),
@@ -1241,7 +1376,6 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
       ),
     );
   }
-
 
   Widget _buildPendingAssignmentUI(BusModel bus) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -1391,7 +1525,9 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
         if (mounted) {
           ref.read(driverMapStateProvider.notifier).setSelectedRoute(null);
 
-          _showToast('Trip Completed: Good job! You have been unassigned from the bus.');
+          _showToast(
+            'Trip Completed: Good job! You have been unassigned from the bus.',
+          );
         }
       } catch (e) {
         if (mounted) {
@@ -1418,67 +1554,116 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
                 final route = mapState.selectedRoute;
                 final result = mapState.directionsResult;
 
-                final mapTheme = Theme.of(context).extension<MapThemeExtension>();
-                final routeColorTheme = mapTheme?.routeColor ?? const Color(0xFF1565C0);
+                final mapTheme = Theme.of(
+                  context,
+                ).extension<MapThemeExtension>();
+                final routeColorTheme =
+                    mapTheme?.routeColor ?? const Color(0xFF1565C0);
 
                 // 1. Build stop markers dynamically
                 final stopMarkers = <Marker>{};
                 if (route != null) {
                   if (route.startPoint.lat != 0 && route.startPoint.lng != 0) {
-                    stopMarkers.add(Marker(
-                      markerId: const MarkerId('dstop_start'),
-                      position: LatLng(route.startPoint.lat, route.startPoint.lng),
-                      icon: _startStopIcon ?? BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen),
-                      infoWindow: InfoWindow(title: 'Start: ${route.startPoint.name}'),
-                      anchor: const Offset(0.5, 0.5),
-                      zIndexInt: 1,
-                    ));
+                    stopMarkers.add(
+                      Marker(
+                        markerId: const MarkerId('dstop_start'),
+                        position: LatLng(
+                          route.startPoint.lat,
+                          route.startPoint.lng,
+                        ),
+                        icon:
+                            _startStopIcon ??
+                            BitmapDescriptor.defaultMarkerWithHue(
+                              BitmapDescriptor.hueGreen,
+                            ),
+                        infoWindow: InfoWindow(
+                          title: 'Start: ${route.startPoint.name}',
+                        ),
+                        anchor: const Offset(0.5, 0.5),
+                        zIndexInt: 1,
+                      ),
+                    );
                   }
                   for (int i = 0; i < route.stopPoints.length; i++) {
                     final stop = route.stopPoints[i];
                     if (stop.lat == 0 && stop.lng == 0) continue;
 
                     // Filter out intermediate stops that are at the exact same location or have the same name as start or end points
-                    final isAtStart = (stop.lat - route.startPoint.lat).abs() < 0.00001 &&
+                    final isAtStart =
+                        (stop.lat - route.startPoint.lat).abs() < 0.00001 &&
                         (stop.lng - route.startPoint.lng).abs() < 0.00001;
-                    final isAtEnd = (stop.lat - route.endPoint.lat).abs() < 0.00001 &&
+                    final isAtEnd =
+                        (stop.lat - route.endPoint.lat).abs() < 0.00001 &&
                         (stop.lng - route.endPoint.lng).abs() < 0.00001;
-                    final isSameNameStart = route.startPoint.name.isNotEmpty &&
-                        stop.name.trim().toLowerCase() == route.startPoint.name.trim().toLowerCase();
-                    final isSameNameEnd = route.endPoint.name.isNotEmpty &&
-                        stop.name.trim().toLowerCase() == route.endPoint.name.trim().toLowerCase();
-                    
-                    if (isAtStart || isAtEnd || isSameNameStart || isSameNameEnd) continue;
+                    final isSameNameStart =
+                        route.startPoint.name.isNotEmpty &&
+                        stop.name.trim().toLowerCase() ==
+                            route.startPoint.name.trim().toLowerCase();
+                    final isSameNameEnd =
+                        route.endPoint.name.isNotEmpty &&
+                        stop.name.trim().toLowerCase() ==
+                            route.endPoint.name.trim().toLowerCase();
 
-                    stopMarkers.add(Marker(
-                      markerId: MarkerId('dstop_$i'),
-                      position: LatLng(stop.lat, stop.lng),
-                      icon: _intermediateStopIcon ?? BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueOrange),
-                      infoWindow: InfoWindow(title: 'Stop ${i + 1}: ${stop.name}'),
-                      anchor: const Offset(0.5, 0.5),
-                      zIndexInt: 1,
-                    ));
+                    if (isAtStart ||
+                        isAtEnd ||
+                        isSameNameStart ||
+                        isSameNameEnd) {
+                      continue;
+                    }
+
+                    stopMarkers.add(
+                      Marker(
+                        markerId: MarkerId('dstop_$i'),
+                        position: LatLng(stop.lat, stop.lng),
+                        icon:
+                            _intermediateStopIcon ??
+                            BitmapDescriptor.defaultMarkerWithHue(
+                              BitmapDescriptor.hueOrange,
+                            ),
+                        infoWindow: InfoWindow(
+                          title: 'Stop ${i + 1}: ${stop.name}',
+                        ),
+                        anchor: const Offset(0.5, 0.5),
+                        zIndexInt: 1,
+                      ),
+                    );
                   }
                   if (route.endPoint.lat != 0 && route.endPoint.lng != 0) {
-                    stopMarkers.add(Marker(
-                      markerId: const MarkerId('dstop_end'),
-                      position: LatLng(route.endPoint.lat, route.endPoint.lng),
-                      icon: _endStopIcon ?? BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
-                      infoWindow: InfoWindow(title: 'End: ${route.endPoint.name}'),
-                      anchor: const Offset(0.5, 0.5),
-                      zIndexInt: 1,
-                    ));
+                    stopMarkers.add(
+                      Marker(
+                        markerId: const MarkerId('dstop_end'),
+                        position: LatLng(
+                          route.endPoint.lat,
+                          route.endPoint.lng,
+                        ),
+                        icon:
+                            _endStopIcon ??
+                            BitmapDescriptor.defaultMarkerWithHue(
+                              BitmapDescriptor.hueRed,
+                            ),
+                        infoWindow: InfoWindow(
+                          title: 'End: ${route.endPoint.name}',
+                        ),
+                        anchor: const Offset(0.5, 0.5),
+                        zIndexInt: 1,
+                      ),
+                    );
                   }
                 }
 
                 // 2. Build polylines dynamically
                 final polylines = <Polyline>{};
                 if (result != null && result.hasRoute) {
-                  List<LatLng> points = List<LatLng>.from(result.polylinePoints);
+                  List<LatLng> points = List<LatLng>.from(
+                    result.polylinePoints,
+                  );
                   if (currentLocation != null && points.isNotEmpty) {
-                    final closestIdx = _findClosestPointIndex(currentLocation, points);
+                    final closestIdx = _findClosestPointIndex(
+                      currentLocation,
+                      points,
+                    );
                     // Slice the polyline so it starts at the driver's current location, clearing the traveled portion
-                    points = [currentLocation, ...points.sublist(closestIdx)];
+                    points = points.sublist(closestIdx);
                   }
 
                   polylines.addAll({
@@ -1510,7 +1695,6 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
                 // the coordinator. Showing a fake position is worse than showing
                 // nothing — it misleads the driver. The primary block above
                 // (dstop_start / dstop_* / dstop_end) already skips zero-lat stops.
-
 
                 if (currentLocation != null) {
                   mapMarkers.add(
@@ -1591,7 +1775,9 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
               );
             }
 
-            final displayETA = directionsETA ?? (nextStopETA != null ? 'ETA: $nextStopETA' : null);
+            final displayETA =
+                directionsETA ??
+                (nextStopETA != null ? 'ETA: $nextStopETA' : null);
             if (displayETA == null) {
               return const SizedBox.shrink();
             }
@@ -1601,7 +1787,10 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
               left: 16,
               right: 16,
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
                 decoration: BoxDecoration(
                   color: Colors.black87,
                   borderRadius: BorderRadius.circular(16),
@@ -1726,7 +1915,7 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
     for (int i = 0; i < allStops.length; i++) {
       final stop = allStops[i];
       if (stop.lat == 0 && stop.lng == 0) continue;
-      
+
       final stopIdx = findClosestIndex(LatLng(stop.lat, stop.lng));
       // Stop is ahead of the driver's path index
       if (stopIdx > driverIdx) {
@@ -1738,26 +1927,37 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
     if (nextStopIndex < 0) return null;
 
     final nextStop = allStops[nextStopIndex];
-    
+
     // Distance remaining to the next stop in kilometers
-    final remainingDistanceKm = Geolocator.distanceBetween(
-      currentLocation.latitude,
-      currentLocation.longitude,
-      nextStop.lat,
-      nextStop.lng,
-    ) / 1000.0;
+    final remainingDistanceKm =
+        Geolocator.distanceBetween(
+          currentLocation.latitude,
+          currentLocation.longitude,
+          nextStop.lat,
+          nextStop.lng,
+        ) /
+        1000.0;
 
     int etaMin = 1;
 
     if (directionsResult.legs.isNotEmpty) {
       // The leg leading to the next stop
-      final legIndex = (nextStopIndex - 1).clamp(0, directionsResult.legs.length - 1);
+      final legIndex = (nextStopIndex - 1).clamp(
+        0,
+        directionsResult.legs.length - 1,
+      );
       final leg = directionsResult.legs[legIndex];
-      
+
       if (leg.distanceKm > 0) {
         // Calculate proportion of the remaining leg
-        final proportion = (remainingDistanceKm / leg.distanceKm).clamp(0.0, 1.0);
-        etaMin = (proportion * leg.durationMin).round().clamp(1, leg.durationMin);
+        final proportion = (remainingDistanceKm / leg.distanceKm).clamp(
+          0.0,
+          1.0,
+        );
+        etaMin = (proportion * leg.durationMin).round().clamp(
+          1,
+          leg.durationMin,
+        );
       } else {
         etaMin = leg.durationMin;
       }

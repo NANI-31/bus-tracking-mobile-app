@@ -57,6 +57,10 @@ class _TeacherDashboardState extends ConsumerState<TeacherDashboard> {
   DateTime? _lastDeviationAlertTime;
   final Set<String> _arrivedStopIds = {};
 
+  /// Persistent deviation toast — updates distance in-place, never stacks.
+  OverlayEntry? _deviationOverlayEntry;
+  final ValueNotifier<int> _deviationDistanceNotifier = ValueNotifier(0);
+
   @override
   void initState() {
     super.initState();
@@ -75,6 +79,9 @@ class _TeacherDashboardState extends ConsumerState<TeacherDashboard> {
   @override
   void dispose() {
     _stopLocationTracking();
+    _deviationOverlayEntry?.remove();
+    _deviationOverlayEntry = null;
+    _deviationDistanceNotifier.dispose();
     super.dispose();
   }
 
@@ -440,14 +447,74 @@ class _TeacherDashboardState extends ConsumerState<TeacherDashboard> {
       if (_lastDeviationAlertTime == null ||
           now.difference(_lastDeviationAlertTime!) > const Duration(minutes: 1)) {
         _lastDeviationAlertTime = now;
-        ApiErrorModal.show(
-          context: context,
-          error: 'Route Deviation Alert! You are ${minDistance.toInt()} meters away from the active route path.',
-        );
       }
+      _deviationDistanceNotifier.value = minDistance.toInt();
+      _showDeviationToast();
+    } else {
+      _hideDeviationToast();
     }
 
     _calculateETA(position, selectedBus);
+  }
+
+  /// Shows (or keeps) a persistent deviation toast, updating distance in-place.
+  void _showDeviationToast() {
+    if (!mounted) return;
+    if (_deviationOverlayEntry != null) return;
+
+    final entry = OverlayEntry(
+      builder: (ctx) => Positioned(
+        top: MediaQuery.of(ctx).padding.top + 16,
+        left: 16,
+        right: 16,
+        child: Material(
+          color: Colors.transparent,
+          child: ValueListenableBuilder<int>(
+            valueListenable: _deviationDistanceNotifier,
+            builder: (_, dist, __) => Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              decoration: BoxDecoration(
+                color: Colors.orange.shade800,
+                borderRadius: BorderRadius.circular(14),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.25),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.warning_amber_rounded,
+                      color: Colors.white, size: 20),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      'Off route — ${dist}m from path',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    _deviationOverlayEntry = entry;
+    Overlay.of(context).insert(entry);
+  }
+
+  /// Dismisses the deviation toast when the teacher is back on route.
+  void _hideDeviationToast() {
+    _deviationOverlayEntry?.remove();
+    _deviationOverlayEntry = null;
   }
 
   void _calculateETA(Position position, BusModel selectedBus) {
