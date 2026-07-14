@@ -1,7 +1,6 @@
-import 'dart:async';
+﻿import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:velocity_x/velocity_x.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:collegebus/features/auth/application/auth_provider.dart';
@@ -18,18 +17,14 @@ import 'package:collegebus/core/providers/socket_provider.dart';
 import 'package:collegebus/core/providers/service_providers.dart';
 import 'package:collegebus/core/constants/constants.dart';
 import 'package:collegebus/core/utils/map_marker_helper.dart';
-import 'package:collegebus/widgets/common/common_map_view.dart';
-import 'package:collegebus/shared/widgets/sos_button.dart';
-import 'package:collegebus/features/driver/presentation/widgets/voice_message_button.dart';
 import 'package:collegebus/shared/widgets/success_modal.dart';
 import 'package:collegebus/shared/widgets/api_error_modal.dart';
 import 'package:collegebus/features/student/presentation/bus_schedule_screen.dart';
-import 'package:collegebus/features/student/presentation/tabs/student_map_tab.dart';
-import 'package:collegebus/shared/widgets/maps/map_skeleton_loader.dart';
 import 'package:collegebus/features/user/presentation/screens/profile_screen.dart';
 import 'package:collegebus/shared/widgets/navigation/curved_bottom_nav_bar.dart';
-import 'package:collegebus/features/driver/presentation/widgets/live_tracking_control_panel.dart';
-import 'package:collegebus/core/services/directions_result.dart';
+import 'tabs/teacher_override_tab.dart';
+import 'tabs/teacher_live_tracking_tab.dart';
+
 
 class TeacherDashboard extends ConsumerStatefulWidget {
   const TeacherDashboard({super.key});
@@ -57,7 +52,7 @@ class _TeacherDashboardState extends ConsumerState<TeacherDashboard> {
   DateTime? _lastDeviationAlertTime;
   final Set<String> _arrivedStopIds = {};
 
-  /// Persistent deviation toast — updates distance in-place, never stacks.
+  /// Persistent deviation toast Ã¢â‚¬â€ updates distance in-place, never stacks.
   OverlayEntry? _deviationOverlayEntry;
   final ValueNotifier<int> _deviationDistanceNotifier = ValueNotifier(0);
 
@@ -281,86 +276,7 @@ class _TeacherDashboardState extends ConsumerState<TeacherDashboard> {
     }
   }
 
-  Future<void> _handleTripComplete(BusModel? bus) async {
-    if (bus == null) return;
-    await _cancelOverride();
-  }
 
-  String? _computeNextStopETAFromDirections(
-    LatLng currentLocation,
-    RouteModel selectedRoute,
-    DirectionsResult directionsResult,
-  ) {
-    final polyline = directionsResult.polylinePoints;
-    if (polyline.isEmpty) return null;
-
-    final allStops = [
-      selectedRoute.startPoint,
-      ...selectedRoute.stopPoints,
-      selectedRoute.endPoint,
-    ];
-
-    int findClosestIndex(LatLng target) {
-      double minDistance = double.infinity;
-      int closestIndex = 0;
-      for (int i = 0; i < polyline.length; i++) {
-        final dist = Geolocator.distanceBetween(
-          target.latitude,
-          target.longitude,
-          polyline[i].latitude,
-          polyline[i].longitude,
-        );
-        if (dist < minDistance) {
-          minDistance = dist;
-          closestIndex = i;
-        }
-      }
-      return closestIndex;
-    }
-
-    final driverIdx = findClosestIndex(currentLocation);
-
-    int nextStopIndex = -1;
-    for (int i = 0; i < allStops.length; i++) {
-      final stop = allStops[i];
-      if (stop.lat == 0 && stop.lng == 0) continue;
-      
-      final stopIdx = findClosestIndex(LatLng(stop.lat, stop.lng));
-      if (stopIdx > driverIdx) {
-        nextStopIndex = i;
-        break;
-      }
-    }
-
-    if (nextStopIndex < 0) return null;
-
-    final nextStop = allStops[nextStopIndex];
-    
-    final remainingDistanceKm = Geolocator.distanceBetween(
-      currentLocation.latitude,
-      currentLocation.longitude,
-      nextStop.lat,
-      nextStop.lng,
-    ) / 1000.0;
-
-    int etaMin = 1;
-
-    if (directionsResult.legs.isNotEmpty) {
-      final legIndex = (nextStopIndex - 1).clamp(0, directionsResult.legs.length - 1);
-      final leg = directionsResult.legs[legIndex];
-      
-      if (leg.distanceKm > 0) {
-        final proportion = (remainingDistanceKm / leg.distanceKm).clamp(0.0, 1.0);
-        etaMin = (proportion * leg.durationMin).round().clamp(1, leg.durationMin);
-      } else {
-        etaMin = leg.durationMin;
-      }
-    } else {
-      etaMin = (remainingDistanceKm / 0.5).ceil().clamp(1, 120);
-    }
-
-    return 'Next: ${nextStop.name} · $etaMin min';
-  }
 
   Future<void> _cancelOverride() async {
     if (_selectedBusId == null) return;
@@ -491,7 +407,7 @@ class _TeacherDashboardState extends ConsumerState<TeacherDashboard> {
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
-                      'Off route — ${dist}m from path',
+                      'Off route Ã¢â‚¬â€ ${dist}m from path',
                       style: const TextStyle(
                         color: Colors.white,
                         fontWeight: FontWeight.w600,
@@ -540,7 +456,7 @@ class _TeacherDashboardState extends ConsumerState<TeacherDashboard> {
     }
     if (nextStop == null) return;
 
-    final etaStr = 'Next: ${nextStop.name} · $etaMinutes min';
+    final etaStr = 'Next: ${nextStop.name} Ã‚Â· $etaMinutes min';
     ref.read(driverLocationProvider.notifier).updateETA(etaStr);
   }
 
@@ -646,25 +562,6 @@ class _TeacherDashboardState extends ConsumerState<TeacherDashboard> {
     return Geolocator.distanceBetween(x, y, xx, yy);
   }
 
-  int _findClosestPointIndex(LatLng target, List<LatLng> points) {
-    if (points.isEmpty) return 0;
-    int closestIdx = 0;
-    double minDistance = double.infinity;
-    for (int i = 0; i < points.length; i++) {
-      final p = points[i];
-      final dist = Geolocator.distanceBetween(
-        target.latitude,
-        target.longitude,
-        p.latitude,
-        p.longitude,
-      );
-      if (dist < minDistance) {
-        minDistance = dist;
-        closestIdx = i;
-      }
-    }
-    return closestIdx;
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -761,581 +658,63 @@ class _TeacherDashboardState extends ConsumerState<TeacherDashboard> {
   }
 
   Widget _buildOverrideTab(UserModel user, bool isDark, Color glassColor) {
-    final busesAsync = ref.watch(collegeBusesStreamProvider(user.collegeId));
-    final pendingRequestsAsync = ref.watch(teacherOverrideRequestsProvider);
+    return TeacherOverrideTab(
+      user: user,
+      selectedBusId: _selectedBusId,
+      isTracking: _isTracking,
+      isRequesting: _isRequesting,
+      isDark: isDark,
+      onSelectBus: (busId) => setState(() => _selectedBusId = busId),
+      onStartTracking: _startLocationTracking,
+      onStopTracking: _stopLocationTracking,
+      onSubmitRequest: _submitRequest,
 
-    return Scaffold(
-      backgroundColor: Colors.transparent,
-      appBar: AppBar(
-        title: 'Driver Keypad Override'.text.bold.make(),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-      ),
-      body: busesAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (err, stack) =>
-            err.toString().text.color(AppColors.error).make().centered(),
-        data: (buses) {
-          BusModel? activeOverriddenBus;
-          for (final b in buses) {
-            if (b.trackingTeacherId == user.id) {
-              activeOverriddenBus = b;
-              break;
-            }
-          }
-
-          if (activeOverriddenBus != null && _selectedBusId == null) {
-            _selectedBusId = activeOverriddenBus.id;
-          }
-
-          BusModel? selectedBus;
-          if (_selectedBusId != null) {
-            for (final b in buses) {
-              if (b.id == _selectedBusId) {
-                selectedBus = b;
-                break;
-              }
-            }
-          }
-
-          final pendingRequests = pendingRequestsAsync.valueOrNull ?? [];
-          final hasPendingRequest = _selectedBusId != null &&
-              pendingRequests.any((r) =>
-                  r['busId'] == _selectedBusId ||
-                  (r['busId'] is Map && r['busId']['_id'] == _selectedBusId));
-
-          final isApproved =
-              selectedBus != null && selectedBus.trackingTeacherId == user.id;
-
-          return SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-            child: VStack([
-              'Select Bus to Override'.text.lg.bold.make().pOnly(bottom: 8),
-              DropdownButtonFormField<String>(
-                initialValue: _selectedBusId,
-                decoration: InputDecoration(
-                  filled: true,
-                  fillColor: isDark
-                      ? Colors.white.withValues(alpha: 0.05)
-                      : Colors.black.withValues(alpha: 0.03),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                hint: 'Choose a vehicle'.text.make(),
-                items: buses.map((bus) {
-                  return DropdownMenuItem<String>(
-                    value: bus.id,
-                    child: 'Bus ${bus.busNumber}'.text.make(),
-                  );
-                }).toList(),
-                onChanged: _isTracking
-                    ? null
-                    : (busId) {
-                        setState(() {
-                          _selectedBusId = busId;
-                        });
-                      },
-              ),
-              const SizedBox(height: 24),
-
-              if (selectedBus != null) ...[
-                Card(
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: VStack([
-                    HStack([
-                      const Icon(Icons.info_outline, color: Colors.blueGrey),
-                      const SizedBox(width: 12),
-                      'Status'.text.bold.lg.make(),
-                    ]).pOnly(bottom: 8),
-
-                    if (isApproved)
-                      'Approved & Authorized'.text.green600.bold.make()
-                    else if (hasPendingRequest)
-                      'Request Pending Coordinator Approval'
-                          .text
-                          .amber500
-                          .bold
-                          .make()
-                    else
-                      'No active override authorization'.text.gray500.make(),
-                  ]).p(16),
-                ),
-                const SizedBox(height: 24),
-
-                if (isApproved) ...[
-                  if (_isTracking) ...[
-                    ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.blue.shade600,
-                        foregroundColor: Colors.white,
-                        minimumSize: const Size(double.infinity, 50),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      onPressed: () => setState(() => _bottomNavIndex = 1),
-                      child: 'Open Live Tracking'.text.bold.make(),
-                    ),
-                    const SizedBox(height: 12),
-                    ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.orange.shade700,
-                        foregroundColor: Colors.white,
-                        minimumSize: const Size(double.infinity, 50),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      onPressed: _stopLocationTracking,
-                      child: 'Pause Tracking'.text.bold.make(),
-                    ),
-                  ] else ...[
-                    ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.green.shade600,
-                        foregroundColor: Colors.white,
-                        minimumSize: const Size(double.infinity, 50),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      onPressed: _startLocationTracking,
-                      child: 'Start Override Tracking'.text.bold.make(),
-                    ),
-                  ],
-                  const SizedBox(height: 12),
-                  OutlinedButton(
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: Colors.red,
-                      side: BorderSide(color: Colors.red.shade300),
-                      minimumSize: const Size(double.infinity, 50),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    onPressed: _isTracking ? null : _cancelOverride,
-                    child: 'End Override Session'.text.bold.make(),
-                  ),
-                ] else ...[
-                  ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary,
-                      foregroundColor: Colors.white,
-                      minimumSize: const Size(double.infinity, 50),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    onPressed: (_isRequesting || hasPendingRequest)
-                        ? null
-                        : _submitRequest,
-                    child: _isRequesting
-                        ? const CircularProgressIndicator(color: Colors.white)
-                            .centered()
-                        : 'Request Override Authorization'.text.bold.make(),
-                  ),
-                ],
-              ],
-
-              const SizedBox(height: 32),
-              'College Fleet Live Status'.text.lg.bold.make().pOnly(bottom: 12),
-              if (buses.isEmpty)
-                'No buses registered in this college.'.text.gray500.make().centered()
-              else
-                ListView.builder(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: buses.length,
-                  itemBuilder: (context, index) {
-                    final bus = buses[index];
-                    final isLive = ref.watch(studentLiveBusIdsProvider(user.collegeId)).contains(bus.id);
-                    final isAssigned = bus.driverId.isNotEmpty;
-                    final isCurrentOverride = bus.trackingTeacherId == user.id;
-
-                    Color statusColor = Colors.grey;
-                    String statusLabel = 'Offline';
-                    String statusSubtitle = 'Unassigned & Offline';
-
-                    if (isCurrentOverride) {
-                      statusColor = Colors.green;
-                      statusLabel = 'Override Active';
-                      statusSubtitle = 'You are broadcasting location';
-                    } else if (isLive) {
-                      statusColor = Colors.green;
-                      statusLabel = 'Live';
-                      statusSubtitle = 'Currently broadcasting live';
-                    } else if (isAssigned) {
-                      statusColor = Colors.amber.shade700;
-                      statusLabel = 'Assigned';
-                      statusSubtitle = 'Assigned (Driver Offline)';
-                    }
-
-                    return Card(
-                      margin: const EdgeInsets.only(bottom: 10),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        side: BorderSide(
-                          color: isCurrentOverride 
-                              ? Colors.green.shade400 
-                              : Colors.transparent,
-                          width: 1,
-                        ),
-                      ),
-                      child: ListTile(
-                        leading: Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: statusColor.withValues(alpha: 0.1),
-                            shape: BoxShape.circle,
-                          ),
-                          child: Icon(
-                            Icons.directions_bus,
-                            color: statusColor,
-                            size: 20,
-                          ),
-                        ),
-                        title: 'Bus ${bus.busNumber}'.text.bold.make(),
-                        subtitle: statusSubtitle.text.size(12).gray500.make(),
-                        trailing: HStack([
-                          Container(
-                            width: 8,
-                            height: 8,
-                            decoration: BoxDecoration(
-                              color: statusColor,
-                              shape: BoxShape.circle,
-                            ),
-                          ),
-                          const SizedBox(width: 6),
-                          statusLabel.text
-                              .color(statusColor)
-                              .bold
-                              .size(12)
-                              .make(),
-                        ]),
-                        onTap: _isTracking ? null : () {
-                          setState(() {
-                            _selectedBusId = bus.id;
-                          });
-                        },
-                      ),
-                    );
-                  },
-                ),
-              const SizedBox(height: 80), // spacer for bottom nav bar clearance
-            ]),
-          );
-        },
-      ),
-    );
-  }
-
-  Widget _buildLiveTrackingMapUI(UserModel user, bool isDark) {
-    final mapState = ref.watch(driverMapStateProvider);
-    final route = mapState.selectedRoute;
-    final result = mapState.directionsResult;
-
-    final locationState = ref.watch(driverLocationProvider);
-    final currentLocation = locationState.currentLocation ?? _currentLocation;
-    final heading = locationState.heading;
-    final nextStopETA = locationState.nextStopETA;
-    final isSharing = locationState.isSharing;
-
-    // 1. Build stop markers dynamically
-    final stopMarkers = <Marker>{};
-    if (route != null) {
-      if (route.startPoint.lat != 0 && route.startPoint.lng != 0) {
-        stopMarkers.add(Marker(
-          markerId: const MarkerId('tstop_start'),
-          position: LatLng(route.startPoint.lat, route.startPoint.lng),
-          icon: _startStopIcon ?? BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen),
-          infoWindow: InfoWindow(title: 'Start: ${route.startPoint.name}'),
-          anchor: const Offset(0.5, 0.5),
-          zIndexInt: 1,
-        ));
-      }
-      for (int i = 0; i < route.stopPoints.length; i++) {
-        final stop = route.stopPoints[i];
-        if (stop.lat == 0 && stop.lng == 0) continue;
-
-        final isAtStart = (stop.lat - route.startPoint.lat).abs() < 0.00001 &&
-            (stop.lng - route.startPoint.lng).abs() < 0.00001;
-        final isAtEnd = (stop.lat - route.endPoint.lat).abs() < 0.00001 &&
-            (stop.lng - route.endPoint.lng).abs() < 0.00001;
-        final isSameNameStart = route.startPoint.name.isNotEmpty &&
-            stop.name.trim().toLowerCase() == route.startPoint.name.trim().toLowerCase();
-        final isSameNameEnd = route.endPoint.name.isNotEmpty &&
-            stop.name.trim().toLowerCase() == route.endPoint.name.trim().toLowerCase();
-
-        if (isAtStart || isAtEnd || isSameNameStart || isSameNameEnd) continue;
-
-        stopMarkers.add(Marker(
-          markerId: MarkerId('tstop_$i'),
-          position: LatLng(stop.lat, stop.lng),
-          icon: _intermediateStopIcon ?? BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueOrange),
-          infoWindow: InfoWindow(title: 'Stop ${i + 1}: ${stop.name}'),
-          anchor: const Offset(0.5, 0.5),
-          zIndexInt: 1,
-        ));
-      }
-      if (route.endPoint.lat != 0 && route.endPoint.lng != 0) {
-        stopMarkers.add(Marker(
-          markerId: const MarkerId('tstop_end'),
-          position: LatLng(route.endPoint.lat, route.endPoint.lng),
-          icon: _endStopIcon ?? BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
-          infoWindow: InfoWindow(title: 'End: ${route.endPoint.name}'),
-          anchor: const Offset(0.5, 0.5),
-          zIndexInt: 1,
-        ));
-      }
-    }
-
-    // 2. Build route polylines dynamically
-    final polylines = <Polyline>{};
-    if (result != null && result.hasRoute) {
-      List<LatLng> points = List<LatLng>.from(result.polylinePoints);
-      if (currentLocation != null && points.isNotEmpty) {
-        final closestIdx = _findClosestPointIndex(currentLocation, points);
-        points = [currentLocation, ...points.sublist(closestIdx)];
-      }
-
-      final routeColor = route != null
-          ? Color(int.parse(route.color.replaceAll('#', '0xFF')))
-          : const Color(0xFF1565C0);
-
-      polylines.addAll({
-        Polyline(
-          polylineId: const PolylineId('teacher_route_glow'),
-          points: points,
-          color: routeColor.withValues(alpha: 0.3),
-          width: 10,
-          startCap: Cap.roundCap,
-          endCap: Cap.roundCap,
-          geodesic: true,
-        ),
-        Polyline(
-          polylineId: const PolylineId('teacher_route'),
-          points: points,
-          color: routeColor,
-          width: 6,
-          startCap: Cap.roundCap,
-          endCap: Cap.roundCap,
-          geodesic: true,
-        ),
-      });
-    }
-
-    final mapMarkers = {...stopMarkers};
-    if (currentLocation != null) {
-      mapMarkers.add(
-        Marker(
-          markerId: const MarkerId('teacher_bus'),
-          position: currentLocation,
-          icon: _busIcon ?? BitmapDescriptor.defaultMarker,
-          rotation: heading,
-          anchor: const Offset(0.5, 0.2),
-          flat: true,
-          zIndexInt: 2,
-        ),
-      );
-    }
-
-    final buses = ref.watch(collegeBusesStreamProvider(user.collegeId)).valueOrNull ?? [];
-    final matchingBuses = buses.where((b) => b.id == _selectedBusId);
-    final bus = matchingBuses.isNotEmpty ? matchingBuses.first : null;
-
-    // Compute next stop ETA from directions
-    String? directionsETA;
-    if (result != null && currentLocation != null && route != null) {
-      directionsETA = _computeNextStopETAFromDirections(
-        currentLocation,
-        route,
-        result,
-      );
-    }
-    final displayETA = directionsETA ?? (nextStopETA != null ? 'ETA: $nextStopETA' : null);
-
-    return Stack(
-      children: [
-        Column(
-          children: [
-            Expanded(
-              child: CommonMapView(
-                currentLocation: currentLocation,
-                markers: mapMarkers,
-                polylines: polylines,
-                onMapCreated: (controller) {},
-                initialZoom: 17.0,
-              ),
-            ),
-            LiveTrackingControlPanel(
-              bus: bus,
-              route: route,
-              isSharing: isSharing,
-              currentLocation: currentLocation,
-              onToggleSharing: () => _toggleLocationSharing(bus),
-              onCompleteTrip: () => _handleTripComplete(bus),
-            ),
-            SizedBox(height: CurvedBottomNavBar.clearance(context)),
-          ],
-        ),
-
-        // ETA Card (Top Positioned)
-        if (isSharing && route != null && displayETA != null)
-          Positioned(
-            top: MediaQuery.of(context).padding.top + 16,
-            left: 16,
-            right: 16,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              decoration: BoxDecoration(
-                color: Colors.black87,
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.3),
-                    blurRadius: 10,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-              ),
-              child: Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: AppColors.primary.withValues(alpha: 0.2),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: const Icon(
-                      Icons.navigation_rounded,
-                      color: AppColors.primary,
-                      size: 20,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      displayETA,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 15,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                  if (result != null)
-                    Text(
-                      '${result.totalDistanceKm.toStringAsFixed(1)} km',
-                      style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.6),
-                        fontSize: 12,
-                      ),
-                    ),
-                ],
-              ),
-            ),
-          ),
-
-        // SOS & Voice Message Buttons (Positioned Left)
-        Positioned(
-          top: MediaQuery.of(context).padding.top + (isSharing && route != null && displayETA != null ? 80 : 16),
-          left: 16,
-          child: Column(
-            children: [
-              SOSButton(
-                currentLocation: currentLocation,
-                busId: _selectedBusId,
-                routeId: route?.id,
-              ),
-              if (bus != null && bus.assignmentStatus == 'accepted') ...[
-                const SizedBox(height: 16),
-                const VoiceMessageButton(),
-              ],
-            ],
-          ),
-        ),
-      ],
+      onCancelOverride: _cancelOverride,
+      onOpenLiveTracking: () => setState(() => _bottomNavIndex = 1),
     );
   }
 
   Widget _buildLiveTrackingTab(UserModel user) {
-    if (_isTracking && _selectedBusId != null) {
-      final isDark = Theme.of(context).brightness == Brightness.dark;
-      return _buildLiveTrackingMapUI(user, isDark);
-    }
-
-    final mapNavState = ref.watch(mapNavigationProvider);
-    final selectedBus = mapNavState.selectedBus;
-    final activeRoute = mapNavState.activeRoute;
-    final selectedRouteType = mapNavState.selectedRouteType;
-
-    final busesAsync = ref.watch(collegeBusesStreamProvider(user.collegeId));
-    final liveBusIds = ref.watch(studentLiveBusIdsProvider(user.collegeId));
-    final routesAsync = ref.watch(collegeRoutesProvider(user.collegeId));
-
-    return busesAsync.when(
-      loading: () => const MapSkeletonLoader().p(16),
-      error: (err, stack) => Center(child: Text('Error loading fleet map: $err')),
-      data: (buses) {
-        final routes = routesAsync.valueOrNull ?? [];
-
-        return StudentMapTab(
-          currentLocation: _currentLocation,
-          buses: selectedBus != null &&
-                  selectedBus.assignmentStatus == 'accepted' &&
-                  liveBusIds.contains(selectedBus.id)
-              ? [selectedBus]
-              : const [],
-          selectedBus: selectedBus != null && selectedBus.assignmentStatus == 'accepted'
-              ? selectedBus
-              : null,
-          selectedRouteType: selectedRouteType,
-          allBuses: buses,
-          filteredBusesCount: selectedBus != null &&
-                  selectedBus.assignmentStatus == 'accepted' &&
-                  liveBusIds.contains(selectedBus.id)
-              ? 1
-              : 0,
-          onMapCreated: (controller) {},
-          onRouteTypeSelected: (type) {
-            ref.read(mapNavigationProvider.notifier).updateFilters(selectedRouteType: () => type);
-          },
-          onBusNumberSelected: (busNum) {
-            ref.read(mapNavigationProvider.notifier).updateFilters(selectedBusNumber: () => busNum);
-          },
-          onClearFilters: () {
-            ref.read(mapNavigationProvider.notifier).clearFilters();
-          },
-          onBusSelected: (bus) {
-            if (bus != null && bus.assignmentStatus != 'accepted') {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(
-                    'Bus ${bus.busNumber} is not active yet (pending driver acceptance).',
-                  ),
-                  backgroundColor: Colors.redAccent,
-                  behavior: SnackBarBehavior.floating,
-                ),
-              );
-              return;
+    return TeacherLiveTrackingTab(
+      user: user,
+      selectedBusId: _selectedBusId,
+      isTracking: _isTracking,
+      currentLocation: _currentLocation,
+      busIcon: _busIcon,
+      startStopIcon: _startStopIcon,
+      intermediateStopIcon: _intermediateStopIcon,
+      endStopIcon: _endStopIcon,
+      onToggleSharing: _toggleLocationSharing,
+      onCompleteTrip: _cancelOverride,
+      onBusSelected: (bus, route) {
+        ref.read(mapNavigationProvider.notifier).selectBus(bus, route);
+      },
+      onRouteTypeSelected: (_) {
+        // Route type filtering is handled internally by StudentMapTab.
+      },
+      onBusNumberSelected: (busNumber, buses, routes) {
+        if (busNumber == null || buses.isEmpty) return;
+        BusModel? bus;
+        for (final b in buses) {
+          if (b.busNumber == busNumber) {
+            bus = b;
+            break;
+          }
+        }
+        if (bus == null) return;
+        RouteModel? activeRoute;
+        if (bus.routeId != null) {
+          for (final r in routes) {
+            if (r.id == bus.routeId) {
+              activeRoute = r;
+              break;
             }
-            RouteModel? activeRoute;
-            if (bus != null) {
-              final targetRouteId = bus.routeId ?? bus.defaultRouteId;
-              activeRoute = routes.cast<RouteModel?>().firstWhere(
-                (r) => r!.id == targetRouteId,
-                orElse: () => null,
-              );
-            }
-            ref.read(mapNavigationProvider.notifier).selectBus(bus, activeRoute);
-          },
-          activeRoute: selectedBus != null && selectedBus.assignmentStatus == 'accepted'
-              ? activeRoute
-              : null,
-        );
+          }
+        }
+        ref.read(mapNavigationProvider.notifier).selectBus(bus, activeRoute);
+      },
+      onClearFilters: () {
+        ref.read(mapNavigationProvider.notifier).selectBus(null, null);
       },
     );
   }
