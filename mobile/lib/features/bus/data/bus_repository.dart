@@ -158,14 +158,16 @@ class BusRepository extends BaseRepository {
     required String busId,
     required String driverId,
     String? routeId,
+    String? tripType, // 'pickup' or 'drop'
   }) async {
     try {
-      final data = {
+      final data = <String, dynamic>{
         'driverId': driverId,
         'assignmentStatus': 'pending',
         'isActive': true,
       };
       if (routeId != null) data['routeId'] = routeId;
+      if (tripType != null) data['tripType'] = tripType;
       await updateBus(busId, data);
     } catch (e) {
       throw handleError(e);

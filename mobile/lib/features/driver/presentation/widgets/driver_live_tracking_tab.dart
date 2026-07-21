@@ -68,7 +68,8 @@ class DriverLiveTrackingTab extends ConsumerWidget {
                 final routeColorTheme =
                     mapTheme?.routeColor ?? const Color(0xFF1565C0);
 
-                final stopMarkers = _buildStopMarkers(route);
+                final stopMarkers = _buildStopMarkers(route, myBus?.tripType);
+
                 final polylines =
                     _buildPolylines(result, currentLocation, routeColorTheme);
 
@@ -244,50 +245,123 @@ class DriverLiveTrackingTab extends ConsumerWidget {
             ],
           ),
         ),
+
+        // ── Trip-type badge (top-right of map) ─────────────────────────
+        Consumer(
+          builder: (context, ref, child) {
+            final route = ref.watch(
+              driverMapStateProvider.select((s) => s.selectedRoute),
+            );
+            if (route == null) return const SizedBox.shrink();
+            final isPickup = (myBus?.tripType ?? 'pickup') != 'drop';
+            return Positioned(
+              top: MediaQuery.of(context).padding.top + 12,
+              right: 12,
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: isPickup
+                      ? AppColors.success.withValues(alpha: 0.92)
+                      : Colors.orange.withValues(alpha: 0.92),
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.25),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      isPickup
+                          ? Icons.school_rounded
+                          : Icons.home_rounded,
+                      color: Colors.white,
+                      size: 14,
+                    ),
+                    const SizedBox(width: 5),
+                    Text(
+                      isPickup ? 'PICKUP' : 'DROP',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 11,
+                        letterSpacing: 0.8,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        ),
       ],
     );
   }
 
-  Set<Marker> _buildStopMarkers(RouteModel? route) {
+  // ─────────────────────────────────────────────────────────────────────────
+  // Helpers
+  // ─────────────────────────────────────────────────────────────────────────
+
+  /// Returns the ordered list of waypoints for a trip.
+  /// - pickup : [startPoint, ...stopPoints, endPoint]   (A → B)
+  /// - drop   : [endPoint, ...stopPoints.reversed, startPoint]  (B → A)
+  List<RoutePoint> _orderedStops(RouteModel route, String? tripType) {
+    if (tripType == 'drop') {
+      return [
+        route.endPoint,
+        ...route.stopPoints.reversed,
+        route.startPoint,
+      ];
+    }
+    return [
+      route.startPoint,
+      ...route.stopPoints,
+      route.endPoint,
+    ];
+  }
+
+  Set<Marker> _buildStopMarkers(RouteModel? route, String? tripType) {
     final stopMarkers = <Marker>{};
     if (route == null) return stopMarkers;
 
-    if (route.startPoint.lat != 0 && route.startPoint.lng != 0) {
+    final isPickup = tripType != 'drop';
+    final ordered = _orderedStops(route, tripType);
+    if (ordered.isEmpty) return stopMarkers;
+
+    // First point in the ordered list gets the "start" (green) icon.
+    final firstPt = ordered.first;
+    // Last point gets the "end" (red) icon.
+    final lastPt = ordered.last;
+    // Middle points get the intermediate (orange) icon.
+
+    if (firstPt.lat != 0 || firstPt.lng != 0) {
       stopMarkers.add(
         Marker(
           markerId: const MarkerId('dstop_start'),
-          position: LatLng(route.startPoint.lat, route.startPoint.lng),
+          position: LatLng(firstPt.lat, firstPt.lng),
           icon:
               startStopIcon ??
               BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen),
-          infoWindow: InfoWindow(title: 'Start: ${route.startPoint.name}'),
+          infoWindow: InfoWindow(
+            title: isPickup
+                ? 'Start: ${firstPt.name}'
+                : 'Drop Start: ${firstPt.name}',
+          ),
           anchor: const Offset(0.5, 0.5),
           zIndexInt: 1,
         ),
       );
     }
 
-    for (int i = 0; i < route.stopPoints.length; i++) {
-      final stop = route.stopPoints[i];
+    // Intermediate stops (skip first and last)
+    for (int i = 1; i < ordered.length - 1; i++) {
+      final stop = ordered[i];
       if (stop.lat == 0 && stop.lng == 0) continue;
-
-      final isAtStart =
-          (stop.lat - route.startPoint.lat).abs() < 0.00001 &&
-          (stop.lng - route.startPoint.lng).abs() < 0.00001;
-      final isAtEnd =
-          (stop.lat - route.endPoint.lat).abs() < 0.00001 &&
-          (stop.lng - route.endPoint.lng).abs() < 0.00001;
-      final isSameNameStart =
-          route.startPoint.name.isNotEmpty &&
-          stop.name.trim().toLowerCase() ==
-              route.startPoint.name.trim().toLowerCase();
-      final isSameNameEnd =
-          route.endPoint.name.isNotEmpty &&
-          stop.name.trim().toLowerCase() ==
-              route.endPoint.name.trim().toLowerCase();
-
-      if (isAtStart || isAtEnd || isSameNameStart || isSameNameEnd) continue;
-
       stopMarkers.add(
         Marker(
           markerId: MarkerId('dstop_$i'),
@@ -297,22 +371,26 @@ class DriverLiveTrackingTab extends ConsumerWidget {
               BitmapDescriptor.defaultMarkerWithHue(
                 BitmapDescriptor.hueOrange,
               ),
-          infoWindow: InfoWindow(title: 'Stop ${i + 1}: ${stop.name}'),
+          infoWindow: InfoWindow(title: 'Stop $i: ${stop.name}'),
           anchor: const Offset(0.5, 0.5),
           zIndexInt: 1,
         ),
       );
     }
 
-    if (route.endPoint.lat != 0 && route.endPoint.lng != 0) {
+    if (ordered.length > 1 && (lastPt.lat != 0 || lastPt.lng != 0)) {
       stopMarkers.add(
         Marker(
           markerId: const MarkerId('dstop_end'),
-          position: LatLng(route.endPoint.lat, route.endPoint.lng),
+          position: LatLng(lastPt.lat, lastPt.lng),
           icon:
               endStopIcon ??
               BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
-          infoWindow: InfoWindow(title: 'End: ${route.endPoint.name}'),
+          infoWindow: InfoWindow(
+            title: isPickup
+                ? 'End: ${lastPt.name}'
+                : 'Drop End: ${lastPt.name}',
+          ),
           anchor: const Offset(0.5, 0.5),
           zIndexInt: 1,
         ),
@@ -372,11 +450,8 @@ class DriverLiveTrackingTab extends ConsumerWidget {
     final polyline = directionsResult.polylinePoints;
     if (polyline.isEmpty) return null;
 
-    final allStops = [
-      selectedRoute.startPoint,
-      ...selectedRoute.stopPoints,
-      selectedRoute.endPoint,
-    ];
+    final allStops = _orderedStops(selectedRoute, myBus?.tripType);
+
 
     int findClosestIdx(LatLng target) {
       double minDistance = double.infinity;

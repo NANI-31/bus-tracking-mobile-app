@@ -18,6 +18,11 @@ class BusModel {
   final DateTime? updatedAt;
 
   final String? trackingTeacherId;
+  /// Active trip direction chosen by the coordinator at assignment time.
+  /// 'pickup' = normal stop order (A → stops → B).
+  /// 'drop'   = reversed stop order (B → stops → A).
+  /// Null means unset — treated as 'pickup' everywhere.
+  final String? tripType;
 
   BusModel({
     required this.id,
@@ -33,6 +38,7 @@ class BusModel {
     this.capacity,
     this.shiftId,
     this.trackingTeacherId,
+    this.tripType,
     required this.createdAt,
     this.updatedAt,
   });
@@ -54,6 +60,7 @@ class BusModel {
       capacity: map['capacity'],
       shiftId: map['shiftId'],
       trackingTeacherId: map['trackingTeacherId'],
+      tripType: map['tripType'] as String?,
       createdAt: parseDateTime(map['createdAt']),
       updatedAt: map['updatedAt'] != null
           ? parseDateTime(map['updatedAt'])
@@ -75,6 +82,7 @@ class BusModel {
       'capacity': capacity,
       'shiftId': shiftId,
       'trackingTeacherId': trackingTeacherId,
+      if (tripType != null) 'tripType': tripType,
       'createdAt': createdAt.toIso8601String(),
       'updatedAt': updatedAt?.toIso8601String(),
     };
@@ -94,6 +102,7 @@ class BusModel {
     int? capacity,
     String? shiftId,
     String? trackingTeacherId,
+    String? tripType,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -111,6 +120,7 @@ class BusModel {
       capacity: capacity ?? this.capacity,
       shiftId: shiftId ?? this.shiftId,
       trackingTeacherId: trackingTeacherId ?? this.trackingTeacherId,
+      tripType: tripType ?? this.tripType,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );

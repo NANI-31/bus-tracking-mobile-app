@@ -76,21 +76,24 @@ class TeacherOverrideTab extends ConsumerWidget {
               : null;
 
           final pendingRequests = pendingRequestsAsync.valueOrNull ?? [];
-          final hasPendingRequest = effectiveSelectedId != null &&
-              pendingRequests.any((r) =>
-                  r['busId'] == effectiveSelectedId ||
-                  (r['busId'] is Map &&
-                      r['busId']['_id'] == effectiveSelectedId));
+          final hasPendingRequest =
+              effectiveSelectedId != null &&
+              pendingRequests.any(
+                (r) =>
+                    r['busId'] == effectiveSelectedId ||
+                    (r['busId'] is Map &&
+                        r['busId']['_id'] == effectiveSelectedId),
+              );
 
-          final isApproved = selectedBus != null &&
-              selectedBus.trackingTeacherId == user.id;
+          final isApproved =
+              selectedBus != null && selectedBus.trackingTeacherId == user.id;
 
           return SingleChildScrollView(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
             child: VStack([
               'Select Bus to Override'.text.lg.bold.make().pOnly(bottom: 8),
               DropdownButtonFormField<String>(
-                value: effectiveSelectedId,
+                initialValue: effectiveSelectedId,
                 decoration: InputDecoration(
                   filled: true,
                   fillColor: isDark
@@ -126,10 +129,7 @@ class TeacherOverrideTab extends ConsumerWidget {
                     if (isApproved)
                       'Approved & Authorized'.text.green600.bold.make()
                     else if (hasPendingRequest)
-                      'Request Pending Coordinator Approval'
-                          .text
-                          .amber500
-                          .bold
+                      'Request Pending Coordinator Approval'.text.amber500.bold
                           .make()
                     else
                       'No active override authorization'.text.gray500.make(),
@@ -205,8 +205,9 @@ class TeacherOverrideTab extends ConsumerWidget {
                         ? null
                         : onSubmitRequest,
                     child: isRequesting
-                        ? const CircularProgressIndicator(color: Colors.white)
-                            .centered()
+                        ? const CircularProgressIndicator(
+                            color: Colors.white,
+                          ).centered()
                         : 'Request Override Authorization'.text.bold.make(),
                   ),
                 ],
@@ -215,9 +216,7 @@ class TeacherOverrideTab extends ConsumerWidget {
               const SizedBox(height: 32),
               'College Fleet Live Status'.text.lg.bold.make().pOnly(bottom: 12),
               if (buses.isEmpty)
-                'No buses registered in this college.'
-                    .text
-                    .gray500
+                'No buses registered in this college.'.text.gray500
                     .make()
                     .centered()
               else
@@ -293,9 +292,7 @@ class TeacherOverrideTab extends ConsumerWidget {
                               .size(12)
                               .make(),
                         ]),
-                        onTap: isTracking
-                            ? null
-                            : () => onSelectBus(bus.id),
+                        onTap: isTracking ? null : () => onSelectBus(bus.id),
                       ),
                     );
                   },
@@ -308,4 +305,3 @@ class TeacherOverrideTab extends ConsumerWidget {
     );
   }
 }
-

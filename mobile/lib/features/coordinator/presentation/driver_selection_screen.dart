@@ -1,4 +1,4 @@
-import 'dart:ui' show ImageFilter;
+﻿import 'dart:ui' show ImageFilter;
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -166,10 +166,9 @@ class _DriverSelectionScreenState extends ConsumerState<DriverSelectionScreen>
 
     // If no route selected (cancelled), just return
     if (selectedRoute == null) return;
-
     if (!mounted) return;
 
-    // 2. Show Final Confirmation with Premium Styling
+    // 2. Show Final Confirmation with Trip-Type Toggle
     await showGeneralDialog<void>(
       context: context,
       barrierDismissible: true,
@@ -187,221 +186,287 @@ class _DriverSelectionScreenState extends ConsumerState<DriverSelectionScreen>
       },
       pageBuilder: (dialogContext, anim1, anim2) {
         final isDark = Theme.of(context).brightness == Brightness.dark;
-        return Dialog(
-          backgroundColor: Colors.transparent,
-          elevation: 0,
-          insetPadding: const EdgeInsets.symmetric(
-            horizontal: 20,
-            vertical: 24,
-          ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(24),
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
-              child: Container(
-                padding: const EdgeInsets.all(24),
-                decoration: BoxDecoration(
-                  color: isDark
-                      ? const Color(0xFF1E293B).withValues(alpha: 0.9)
-                      : Colors.white.withValues(alpha: 0.95),
-                  borderRadius: BorderRadius.circular(24),
-                  border: Border.all(
-                    color: context.colorScheme.primary.withValues(alpha: 0.2),
-                    width: 1.5,
-                  ),
-                ),
-                child: SingleChildScrollView(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      // Header Icon
-                      Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: context.colorScheme.primary.withValues(
-                            alpha: 0.1,
-                          ),
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(
-                          Icons.assignment_ind_rounded,
-                          color: context.colorScheme.primary,
-                          size: 36,
-                        ),
+        // Pre-fill trip type from route's own label as a sensible default.
+        String tripType =
+            selectedRoute.routeType == 'drop' ? 'drop' : 'pickup';
+
+        return StatefulBuilder(
+          builder: (sbContext, setDialogState) {
+            return Dialog(
+              backgroundColor: Colors.transparent,
+              elevation: 0,
+              insetPadding: const EdgeInsets.symmetric(
+                horizontal: 20,
+                vertical: 24,
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(24),
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+                  child: Container(
+                    padding: const EdgeInsets.all(24),
+                    decoration: BoxDecoration(
+                      color: isDark
+                          ? const Color(0xFF1E293B).withValues(alpha: 0.9)
+                          : Colors.white.withValues(alpha: 0.95),
+                      borderRadius: BorderRadius.circular(24),
+                      border: Border.all(
+                        color: sbContext.colorScheme.primary
+                            .withValues(alpha: 0.2),
+                        width: 1.5,
                       ),
-                      const SizedBox(height: 16),
-                      Text(
-                        'Confirm Assignment',
-                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-                      // Details Grid
-                      Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: isDark
-                              ? Colors.white.withValues(alpha: 0.04)
-                              : Colors.black.withValues(alpha: 0.02),
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(
-                            color: isDark
-                                ? Colors.white.withValues(alpha: 0.08)
-                                : Colors.black.withValues(alpha: 0.06),
-                          ),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            _buildConfirmDetailRow(
-                              context,
-                              'Driver',
-                              driver.fullName,
-                              Icons.person_rounded,
-                            ),
-                            const Divider(height: 24),
-                            _buildConfirmDetailRow(
-                              context,
-                              'Route',
-                              selectedRoute.routeName,
-                              Icons.route_rounded,
-                            ),
-                            const Divider(height: 24),
-                            _buildConfirmDetailRow(
-                              context,
-                              'Bus Number',
-                              widget.busNumber,
-                              Icons.directions_bus_rounded,
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 24),
-                      Row(
+                    ),
+                    child: SingleChildScrollView(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
                         children: [
-                          Expanded(
-                            child: OutlinedButton(
-                              onPressed: () => Navigator.pop(dialogContext),
-                              style: OutlinedButton.styleFrom(
-                                padding: const EdgeInsets.symmetric(vertical: 14),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                side: BorderSide(
-                                  color: isDark
-                                      ? Colors.white.withValues(alpha: 0.15)
-                                      : Colors.black.withValues(alpha: 0.15),
-                                ),
-                              ),
-                              child: Text(
-                                'Cancel',
-                                style: TextStyle(
-                                  color: isDark ? Colors.white70 : Colors.black87,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
+                          // Header Icon
+                          Container(
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: sbContext.colorScheme.primary
+                                  .withValues(alpha: 0.1),
+                              shape: BoxShape.circle,
+                            ),
+                            child: Icon(
+                              Icons.assignment_ind_rounded,
+                              color: sbContext.colorScheme.primary,
+                              size: 36,
                             ),
                           ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: ElevatedButton(
-                              onPressed: () async {
-                                try {
-                                  final repo = ref.read(busRepositoryProvider);
-                                  final currentUser = ref.read(
-                                    currentUserProvider,
-                                  );
+                          const SizedBox(height: 16),
+                          Text(
+                            'Confirm Assignment',
+                            style: Theme.of(sbContext)
+                                .textTheme
+                                .titleLarge
+                                ?.copyWith(fontWeight: FontWeight.bold),
+                          ),
+                          const SizedBox(height: 20),
 
-                                  if (currentUser == null ||
-                                      currentUser.collegeId.isEmpty) {
-                                    if (dialogContext.mounted) {
-                                      Navigator.pop(dialogContext);
-                                    }
-                                    if (mounted) {
-                                      ApiErrorModal.show(
-                                        context: context,
-                                        error:
-                                            "Session Invalid. Please login again.",
-                                      );
-                                    }
-                                    return;
-                                  }
-
-                                  final bus = buses.firstWhere(
-                                    (b) =>
-                                        b.busNumber == widget.busNumber &&
-                                        b.collegeId == currentUser.collegeId,
-                                    orElse: () =>
-                                        throw Exception('Bus not found'),
-                                  );
-
-                                  await repo.assignDriverToBus(
-                                    busId: bus.id,
-                                    driverId: driver.id,
-                                    routeId: selectedRoute.id,
-                                  );
-
-                                  ref
-                                      .read(socketServiceProvider)
-                                      .sendBusListUpdate();
-
-                                  if (dialogContext.mounted) {
-                                    Navigator.pop(
-                                      dialogContext,
-                                    ); // Close Confirm Dialog
-                                  }
-
-                                  if (dialogContext.mounted && mounted) {
-                                    await SuccessModal.show(
-                                      context: context,
-                                      title: 'Success',
-                                      message:
-                                          'Successfully assigned ${driver.fullName} and route ${selectedRoute.routeName}',
-                                      primaryActionText: 'OK',
-                                    );
-
-                                    if (mounted) {
-                                      Navigator.pop(
-                                        context,
-                                      ); // Return to bus list
-                                    }
-                                  }
-                                } catch (e) {
-                                  if (dialogContext.mounted) {
-                                    Navigator.pop(dialogContext);
-                                  }
-                                  if (mounted) {
-                                    ApiErrorModal.show(
-                                      context: context,
-                                      error: e,
-                                    );
-                                  }
-                                }
-                              },
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: context.colorScheme.primary,
-                                foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(vertical: 14),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                elevation: 0,
-                              ),
-                              child: const Text(
-                                'Assign',
-                                style: TextStyle(fontWeight: FontWeight.bold),
+                          // Details Grid
+                          Container(
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: isDark
+                                  ? Colors.white.withValues(alpha: 0.04)
+                                  : Colors.black.withValues(alpha: 0.02),
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(
+                                color: isDark
+                                    ? Colors.white.withValues(alpha: 0.08)
+                                    : Colors.black.withValues(alpha: 0.06),
                               ),
                             ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                _buildConfirmDetailRow(
+                                  sbContext,
+                                  'Driver',
+                                  driver.fullName,
+                                  Icons.person_rounded,
+                                ),
+                                const Divider(height: 24),
+                                _buildConfirmDetailRow(
+                                  sbContext,
+                                  'Route',
+                                  selectedRoute.routeName,
+                                  Icons.route_rounded,
+                                ),
+                                const Divider(height: 24),
+                                _buildConfirmDetailRow(
+                                  sbContext,
+                                  'Bus Number',
+                                  widget.busNumber,
+                                  Icons.directions_bus_rounded,
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 20),
+
+                          // ── Trip Direction Toggle ─────────────────────
+                          Align(
+                            alignment: Alignment.centerLeft,
+                            child: Text(
+                              'Trip Direction',
+                              style: Theme.of(sbContext)
+                                  .textTheme
+                                  .labelLarge
+                                  ?.copyWith(
+                                    fontWeight: FontWeight.w600,
+                                    color: isDark
+                                        ? Colors.white70
+                                        : Colors.black54,
+                                  ),
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: _TripTypeChip(
+                                  label: 'Pickup',
+                                  icon: Icons.school_rounded,
+                                  description: 'Stops → College',
+                                  isSelected: tripType == 'pickup',
+                                  isDark: isDark,
+                                  accentColor: AppColors.success,
+                                  onTap: () => setDialogState(
+                                    () => tripType = 'pickup',
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: _TripTypeChip(
+                                  label: 'Drop',
+                                  icon: Icons.home_rounded,
+                                  description: 'College → Stops',
+                                  isSelected: tripType == 'drop',
+                                  isDark: isDark,
+                                  accentColor: Colors.orange,
+                                  onTap: () => setDialogState(
+                                    () => tripType = 'drop',
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 24),
+
+                          // ── Action Buttons ────────────────────────────
+                          Row(
+                            children: [
+                              Expanded(
+                                child: OutlinedButton(
+                                  onPressed: () =>
+                                      Navigator.pop(dialogContext),
+                                  style: OutlinedButton.styleFrom(
+                                    padding: const EdgeInsets.symmetric(
+                                        vertical: 14),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    side: BorderSide(
+                                      color: isDark
+                                          ? Colors.white.withValues(alpha: 0.15)
+                                          : Colors.black
+                                              .withValues(alpha: 0.15),
+                                    ),
+                                  ),
+                                  child: Text(
+                                    'Cancel',
+                                    style: TextStyle(
+                                      color: isDark
+                                          ? Colors.white70
+                                          : Colors.black87,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: ElevatedButton(
+                                  onPressed: () async {
+                                    try {
+                                      final repo =
+                                          ref.read(busRepositoryProvider);
+                                      final currentUser =
+                                          ref.read(currentUserProvider);
+
+                                      if (currentUser == null ||
+                                          currentUser.collegeId.isEmpty) {
+                                        if (dialogContext.mounted) {
+                                          Navigator.pop(dialogContext);
+                                        }
+                                        if (mounted) {
+                                          ApiErrorModal.show(
+                                            context: context,
+                                            error:
+                                                'Session Invalid. Please login again.',
+                                          );
+                                        }
+                                        return;
+                                      }
+
+                                      final bus = buses.firstWhere(
+                                        (b) =>
+                                            b.busNumber ==
+                                                widget.busNumber &&
+                                            b.collegeId ==
+                                                currentUser.collegeId,
+                                        orElse: () =>
+                                            throw Exception('Bus not found'),
+                                      );
+
+                                      await repo.assignDriverToBus(
+                                        busId: bus.id,
+                                        driverId: driver.id,
+                                        routeId: selectedRoute.id,
+                                        tripType: tripType,
+                                      );
+
+                                      ref
+                                          .read(socketServiceProvider)
+                                          .sendBusListUpdate();
+
+                                      if (dialogContext.mounted) {
+                                        Navigator.pop(dialogContext);
+                                      }
+
+                                      if (dialogContext.mounted && mounted) {
+                                        final tripLabel =
+                                            tripType == 'drop' ? 'Drop' : 'Pickup';
+                                        await SuccessModal.show(
+                                          context: context,
+                                          title: 'Success',
+                                          message:
+                                              'Assigned ${driver.fullName} — '
+                                              '${selectedRoute.routeName} ($tripLabel)',
+                                          primaryActionText: 'OK',
+                                        );
+                                        if (mounted) Navigator.pop(context);
+                                      }
+                                    } catch (e) {
+                                      if (dialogContext.mounted) {
+                                        Navigator.pop(dialogContext);
+                                      }
+                                      if (mounted) {
+                                        ApiErrorModal.show(
+                                            context: context, error: e);
+                                      }
+                                    }
+                                  },
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor:
+                                        sbContext.colorScheme.primary,
+                                    foregroundColor: Colors.white,
+                                    padding: const EdgeInsets.symmetric(
+                                        vertical: 14),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    elevation: 0,
+                                  ),
+                                  child: const Text(
+                                    'Assign',
+                                    style: TextStyle(fontWeight: FontWeight.bold),
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                         ],
                       ),
-                    ],
+                    ),
                   ),
                 ),
               ),
-            ),
-          ),
+            );
+          },
         );
       },
     );
@@ -793,6 +858,91 @@ class _DriverSelectionScreenState extends ConsumerState<DriverSelectionScreen>
             },
           ).expand(),
       ]),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// _TripTypeChip — selectable chip for pickup/drop assignment toggle.
+// ─────────────────────────────────────────────────────────────────────────────
+class _TripTypeChip extends StatelessWidget {
+  final String label;
+  final IconData icon;
+  final String description;
+  final bool isSelected;
+  final bool isDark;
+  final Color accentColor;
+  final VoidCallback onTap;
+
+  const _TripTypeChip({
+    required this.label,
+    required this.icon,
+    required this.description,
+    required this.isSelected,
+    required this.isDark,
+    required this.accentColor,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 10),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? accentColor.withValues(alpha: isDark ? 0.25 : 0.12)
+              : (isDark
+                  ? Colors.white.withValues(alpha: 0.04)
+                  : Colors.black.withValues(alpha: 0.03)),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: isSelected
+                ? accentColor.withValues(alpha: 0.7)
+                : (isDark
+                    ? Colors.white.withValues(alpha: 0.12)
+                    : Colors.black.withValues(alpha: 0.1)),
+            width: isSelected ? 1.8 : 1.2,
+          ),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              icon,
+              color: isSelected
+                  ? accentColor
+                  : (isDark ? Colors.white54 : Colors.black38),
+              size: 18,
+            ),
+            const SizedBox(width: 6),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 13,
+                    color: isSelected
+                        ? accentColor
+                        : (isDark ? Colors.white70 : Colors.black54),
+                  ),
+                ),
+                Text(
+                  description,
+                  style: TextStyle(
+                    fontSize: 10,
+                    color: isDark ? Colors.white38 : Colors.black38,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
