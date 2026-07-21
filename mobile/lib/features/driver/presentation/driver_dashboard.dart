@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart'; // defaultTargetPlatform
 import 'package:flutter/services.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -18,6 +18,7 @@ import 'package:collegebus/core/providers/repository_providers.dart';
 import 'package:collegebus/core/providers/socket_provider.dart';
 import 'package:collegebus/features/bus/domain/bus_model.dart';
 import 'package:collegebus/features/notification/services/fcm_service.dart';
+import 'package:collegebus/features/notification/services/notification_service.dart';
 import 'package:collegebus/features/route/domain/route_model.dart';
 import 'package:collegebus/core/constants/constants.dart';
 
@@ -969,7 +970,28 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
           ref.read(driverUiStateProvider.notifier).setBottomNavIndex(0);
         }
       }
+
+      // ── Assignment notification ──────────────────────────────────
+      // Fire a local notification whenever the bus status transitions TO
+      // 'pending' (coordinator just made an assignment). This covers:
+      //   - First-time assignment (oldBus was null / unassigned)
+      //   - Reassignment to a different bus
+      // The stable notification ID (42) means the OS replaces the previous
+      // assignment notification rather than stacking them.
+      final wasAlreadyPending = oldBus?.assignmentStatus == 'pending';
+      if (!wasAlreadyPending &&
+          newBus != null &&
+          newBus.assignmentStatus == 'pending') {
+        final tripType = newBus.tripType ?? 'pickup';
+        NotificationService.showAssignmentAlert(
+          busNumber: newBus.busNumber,
+          tripType: tripType,
+        ).catchError((e) {
+          AppLogger.e('[DriverDashboard] Assignment notification failed: $e');
+        });
+      }
     });
+
 
     final myBusAsync = ref.watch(driverBusProvider(userId));
     debugPrint(

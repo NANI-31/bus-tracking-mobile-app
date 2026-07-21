@@ -199,6 +199,15 @@ class BusStatusCard extends ConsumerWidget {
           ),
 
           const SizedBox(height: 16),
+
+          // ── Trip-direction badge ──────────────────────────────────
+          if (bus != null &&
+              (bus!.tripType == 'pickup' || bus!.tripType == 'drop')) ...
+            [
+              _TripTypeBadge(tripType: bus!.tripType!),
+              const SizedBox(height: 16),
+            ],
+
           Divider(color: colorScheme.onSurface.withValues(alpha: 0.08)),
           const SizedBox(height: 16),
 
@@ -302,6 +311,68 @@ class BusStatusCard extends ConsumerWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// _TripTypeBadge — shows PICKUP or DROP direction for the active bus trip.
+// ─────────────────────────────────────────────────────────────────────────────
+class _TripTypeBadge extends StatelessWidget {
+  final String tripType; // 'pickup' or 'drop'
+
+  const _TripTypeBadge({required this.tripType});
+
+  @override
+  Widget build(BuildContext context) {
+    final isPickup = tripType != 'drop';
+    final color = isPickup ? AppColors.success : Colors.orange;
+    final icon = isPickup ? Icons.school_rounded : Icons.home_rounded;
+    final label = isPickup ? 'PICKUP' : 'DROP';
+    final desc = isPickup ? 'Collecting from stops → College' : 'College → Dropping at stops';
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: 0.12),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: color.withValues(alpha: 0.35), width: 1),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, color: color, size: 13),
+              const SizedBox(width: 5),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w900,
+                  color: color,
+                  letterSpacing: 0.8,
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(width: 8),
+        Flexible(
+          child: Text(
+            desc,
+            style: TextStyle(
+              fontSize: 11,
+              color: Theme.of(context)
+                  .colorScheme
+                  .onSurface
+                  .withValues(alpha: 0.5),
+            ),
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+      ],
     );
   }
 }

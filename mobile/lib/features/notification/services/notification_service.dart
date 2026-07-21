@@ -124,6 +124,48 @@ class NotificationService {
     );
   }
 
+  /// Fired when a coordinator assigns a bus to this driver.
+  /// Shows bus number and trip direction so the driver sees the type
+  /// even if the app is in the background.
+  static Future<void> showAssignmentAlert({
+    required String busNumber,
+    required String tripType, // 'pickup' or 'drop'
+  }) async {
+    final isPickup = tripType != 'drop';
+    final directionLabel = isPickup ? 'Pickup' : 'Drop';
+    final directionEmoji = isPickup ? '🎓' : '🏠';
+
+    const androidDetails = AndroidNotificationDetails(
+      'assignment_alerts',
+      'Trip Assignments',
+      channelDescription: 'Notifies the driver when a new assignment arrives',
+      importance: Importance.max,
+      priority: Priority.high,
+      playSound: true,
+      enableVibration: true,
+      color: Color(0xFF4285F4), // primary blue
+    );
+
+    const iosDetails = DarwinNotificationDetails(
+      presentSound: true,
+      presentAlert: true,
+      presentBadge: true,
+    );
+
+    const details = NotificationDetails(
+      android: androidDetails,
+      iOS: iosDetails,
+    );
+
+    await _localNotifications.show(
+      42, // Stable ID — overrides any previous assignment notification
+      '$directionEmoji Bus $busNumber assigned — $directionLabel',
+      'A coordinator has assigned you to Bus $busNumber for a $directionLabel trip. '
+          'Open the app to Accept or Decline.',
+      details,
+    );
+  }
+
   /// Cancel a specific local notification by ID
 
   static Future<void> cancel(int id) async {
