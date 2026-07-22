@@ -1,3 +1,6 @@
+import 'dart:convert';
+import 'package:flutter/foundation.dart';
+import 'package:collegebus/core/services/directions_result.dart';
 import 'package:collegebus/core/services/secure_storage_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -91,4 +94,42 @@ class PersistenceService {
   static Future<void> setBool(String key, bool value) =>
       _prefs!.setBool(key, value);
   static Future<void> remove(String key) => _prefs!.remove(key);
+
+
+  // Persistent Route Directions Cache (Offline Fallback)
+  static const String _keyRouteDirectionsPrefix = 'route_directions_';
+
+  static DirectionsResult? getRouteDirections(String key) {
+    try {
+      final jsonStr = _prefs?.getString('$_keyRouteDirectionsPrefix$key');
+      if (jsonStr != null && jsonStr.isNotEmpty) {
+        final map = jsonDecode(jsonStr) as Map<String, dynamic>;
+        return DirectionsResult.fromMap(map);
+      }
+    } catch (e) {
+      debugPrint('[PersistenceService] Error reading cached route directions: $e');
+    }
+    return null;
+  }
+
+  static Future<void> setRouteDirections(String key, DirectionsResult result) async {
+    try {
+      final jsonStr = jsonEncode(result.toMap());
+      await _prefs?.setString('$_keyRouteDirectionsPrefix$key', jsonStr);
+    } catch (e) {
+      debugPrint('[PersistenceService] Error saving route directions: $e');
+    }
+  }
+
+  static Future<void> clearRouteDirectionsCache() async {
+    try {
+      final keys = _prefs?.getKeys().where((k) => k.startsWith(_keyRouteDirectionsPrefix)).toList() ?? [];
+      for (final k in keys) {
+        await _prefs?.remove(k);
+      }
+    } catch (e) {
+      debugPrint('[PersistenceService] Error clearing route directions cache: $e');
+    }
+  }
 }
+
