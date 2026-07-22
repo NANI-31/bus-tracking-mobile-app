@@ -124,7 +124,7 @@ class DriverLiveTrackingTab extends ConsumerWidget {
           ],
         ),
 
-        // Next-stop ETA card (navigation style)
+        // Next-stop ETA card (navigation style — top of map above SOS button)
         Consumer(
           builder: (context, ref, child) {
             final currentLocation = ref.watch(
@@ -150,6 +150,7 @@ class DriverLiveTrackingTab extends ConsumerWidget {
                 currentLocation,
                 selectedRoute,
                 result,
+                myBus?.tripType,
               );
             }
 
@@ -159,7 +160,7 @@ class DriverLiveTrackingTab extends ConsumerWidget {
             if (displayETA == null) return const SizedBox.shrink();
 
             return Positioned(
-              bottom: 240,
+              top: MediaQuery.of(context).padding.top + 12,
               left: 16,
               right: 16,
               child: Container(
@@ -218,45 +219,101 @@ class DriverLiveTrackingTab extends ConsumerWidget {
           },
         ),
 
-        // SOS & Voice Message Buttons
-        Positioned(
-          top: 16,
-          left: 16,
-          child: Column(
-            children: [
-              Consumer(
-                builder: (context, ref, child) {
-                  final currentLocation = ref.watch(
-                    driverLocationProvider.select((s) => s.currentLocation),
-                  );
-                  final selectedRoute = ref.watch(
-                    driverMapStateProvider.select((s) => s.selectedRoute),
-                  );
-                  return SOSButton(
+        // SOS & Voice Message Buttons (positioned below ETA card if present)
+        Consumer(
+          builder: (context, ref, child) {
+            final isSharing = ref.watch(
+              driverLocationProvider.select((s) => s.isSharing),
+            );
+            final selectedRoute = ref.watch(
+              driverMapStateProvider.select((s) => s.selectedRoute),
+            );
+            final currentLocation = ref.watch(
+              driverLocationProvider.select((s) => s.currentLocation),
+            );
+            final result = ref.watch(
+              driverMapStateProvider.select((s) => s.directionsResult),
+            );
+            final nextStopETA = ref.watch(
+              driverLocationProvider.select((s) => s.nextStopETA),
+            );
+
+            bool hasETA = false;
+            if (isSharing && selectedRoute != null) {
+              String? directionsETA;
+              if (result != null && currentLocation != null) {
+                directionsETA = _computeNextStopETAFromDirections(
+                  currentLocation,
+                  selectedRoute,
+                  result,
+                  myBus?.tripType,
+                );
+              }
+              hasETA = (directionsETA ?? nextStopETA) != null;
+            }
+
+            final topOffset = MediaQuery.of(context).padding.top + (hasETA ? 80 : 16);
+
+            return Positioned(
+              top: topOffset,
+              left: 16,
+              child: Column(
+                children: [
+                  SOSButton(
                     currentLocation: currentLocation,
                     busId: myBus?.id,
                     routeId: selectedRoute?.id,
-                  );
-                },
+                  ),
+                  if (myBus != null && myBus!.assignmentStatus == 'accepted') ...[
+                    16.heightBox,
+                    const VoiceMessageButton(),
+                  ],
+                ],
               ),
-              if (myBus != null && myBus!.assignmentStatus == 'accepted') ...[
-                16.heightBox,
-                const VoiceMessageButton(),
-              ],
-            ],
-          ),
+            );
+          },
         ),
 
-        // ── Trip-type badge (top-right of map) ─────────────────────────
+        // ── Trip-type badge (top-right of map, offset if ETA is present) ─────
         Consumer(
           builder: (context, ref, child) {
             final route = ref.watch(
               driverMapStateProvider.select((s) => s.selectedRoute),
             );
             if (route == null) return const SizedBox.shrink();
+
+            final isSharing = ref.watch(
+              driverLocationProvider.select((s) => s.isSharing),
+            );
+            final currentLocation = ref.watch(
+              driverLocationProvider.select((s) => s.currentLocation),
+            );
+            final result = ref.watch(
+              driverMapStateProvider.select((s) => s.directionsResult),
+            );
+            final nextStopETA = ref.watch(
+              driverLocationProvider.select((s) => s.nextStopETA),
+            );
+
+            bool hasETA = false;
+            if (isSharing) {
+              String? directionsETA;
+              if (result != null && currentLocation != null) {
+                directionsETA = _computeNextStopETAFromDirections(
+                  currentLocation,
+                  route,
+                  result,
+                  myBus?.tripType,
+                );
+              }
+              hasETA = (directionsETA ?? nextStopETA) != null;
+            }
+
             final isPickup = (myBus?.tripType ?? 'pickup') != 'drop';
+            final topOffset = MediaQuery.of(context).padding.top + (hasETA ? 80 : 12);
+
             return Positioned(
-              top: MediaQuery.of(context).padding.top + 12,
+              top: topOffset,
               right: 12,
               child: Container(
                 padding: const EdgeInsets.symmetric(
@@ -278,20 +335,18 @@ class DriverLiveTrackingTab extends ConsumerWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Icon(
-                      isPickup
-                          ? Icons.school_rounded
-                          : Icons.home_rounded,
+                      isPickup ? Icons.school_rounded : Icons.home_rounded,
                       color: Colors.white,
-                      size: 14,
+                      size: 13,
                     ),
-                    const SizedBox(width: 5),
+                    const SizedBox(width: 4),
                     Text(
                       isPickup ? 'PICKUP' : 'DROP',
                       style: const TextStyle(
                         color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 11,
-                        letterSpacing: 0.8,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 0.6,
                       ),
                     ),
                   ],
@@ -452,8 +507,10 @@ class DriverLiveTrackingTab extends ConsumerWidget {
   String? _computeNextStopETAFromDirections(
     LatLng currentLocation,
     RouteModel selectedRoute,
-    DirectionsResult directionsResult,
-  ) {
+    DirectionsResult directionsResult, [
+    String? tripType,
+  ]) {
+
     final polyline = directionsResult.polylinePoints;
     if (polyline.isEmpty) return null;
 

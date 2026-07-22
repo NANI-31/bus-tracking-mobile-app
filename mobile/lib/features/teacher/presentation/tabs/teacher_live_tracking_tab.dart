@@ -26,8 +26,8 @@ import 'package:collegebus/features/student/presentation/tabs/student_map_tab.da
 import 'package:collegebus/features/user/domain/user_model.dart';
 import 'package:collegebus/shared/widgets/maps/map_skeleton_loader.dart';
 import 'package:collegebus/features/bus/domain/bus_model.dart';
-import 'package:collegebus/shared/widgets/navigation/curved_bottom_nav_bar.dart';
 import 'package:collegebus/shared/widgets/sos_button.dart';
+
 import 'package:collegebus/widgets/common/common_map_view.dart';
 
 
@@ -149,9 +149,8 @@ class TeacherLiveTrackingTab extends ConsumerWidget {
               currentLocation: effectiveLocation,
               onToggleSharing: () => onToggleSharing(bus),
               onCompleteTrip: onCompleteTrip,
-
             ),
-            SizedBox(height: CurvedBottomNavBar.clearance(context)),
+
           ],
         ),
 
