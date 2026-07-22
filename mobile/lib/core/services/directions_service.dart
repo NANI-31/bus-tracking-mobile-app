@@ -10,20 +10,37 @@ class DirectionsService extends BaseRepository {
   factory DirectionsService() => _instance;
   DirectionsService._internal();
 
-  /// In-memory session cache keyed by routeId.
+  /// In-memory session cache keyed by route fingerprint (id + stop coordinates).
   final Map<String, DirectionsResult> _cache = {};
 
   void clearCache() => _cache.clear();
-  bool isCached(String routeId) => _cache.containsKey(routeId);
-  DirectionsResult? getCached(String routeId) => _cache[routeId];
+
+  String _getCacheKey(RouteModel route) {
+    final buffer = StringBuffer(route.id);
+    buffer.write('|${route.startPoint.lat},${route.startPoint.lng}');
+    for (final s in route.stopPoints) {
+      buffer.write('|${s.lat},${s.lng}');
+    }
+    buffer.write('|${route.endPoint.lat},${route.endPoint.lng}');
+    return buffer.toString();
+  }
+
+  bool isCached(String routeId) => _cache.keys.any((k) => k.startsWith(routeId));
+  DirectionsResult? getCached(String routeId) {
+    for (final entry in _cache.entries) {
+      if (entry.key.startsWith(routeId)) return entry.value;
+    }
+    return null;
+  }
 
   // ── Display path (cached via backend) ─────────────────────────────────────
 
   /// Fetch directions for a [RouteModel] from our secure backend API.
   Future<DirectionsResult?> getDirectionsForRoute(RouteModel route) async {
-    if (_cache.containsKey(route.id)) {
-      debugPrint('[DirectionsService] Memory cache hit for route ${route.id}');
-      return _cache[route.id];
+    final key = _getCacheKey(route);
+    if (_cache.containsKey(key)) {
+      debugPrint('[DirectionsService] Memory cache hit for route $key');
+      return _cache[key];
     }
 
     try {
@@ -32,7 +49,7 @@ class DirectionsService extends BaseRepository {
       if (response.statusCode == 200 && response.data != null) {
         final result = DirectionsResult.fromMap(
             Map<String, dynamic>.from(response.data));
-        _cache[route.id] = result;
+        _cache[key] = result;
         return result;
       }
       return null;
@@ -41,4 +58,5 @@ class DirectionsService extends BaseRepository {
       return null;
     }
   }
+
 }

@@ -592,6 +592,16 @@ class _TeacherDashboardState extends ConsumerState<TeacherDashboard> {
   }
 
 
+  String _fingerprintRoute(RouteModel route) {
+    final buffer = StringBuffer(route.id);
+    buffer.write('|${route.startPoint.lat},${route.startPoint.lng}');
+    for (final s in route.stopPoints) {
+      buffer.write('|${s.lat},${s.lng}');
+    }
+    buffer.write('|${route.endPoint.lat},${route.endPoint.lng}');
+    return buffer.toString();
+  }
+
   @override
   Widget build(BuildContext context) {
     final user = ref.watch(currentUserProvider);
@@ -599,6 +609,52 @@ class _TeacherDashboardState extends ConsumerState<TeacherDashboard> {
       return const Scaffold(
         body: Center(child: CircularProgressIndicator()),
       );
+    }
+
+    final busesAsync = ref.watch(collegeBusesStreamProvider(user.collegeId));
+    final routesAsync = ref.watch(collegeRoutesProvider(user.collegeId));
+
+    // 1. Auto-select active override bus if not explicitly selected
+    final buses = busesAsync.valueOrNull ?? [];
+    if (_selectedBusId == null) {
+      for (final b in buses) {
+        if (b.trackingTeacherId == user.id) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) setState(() => _selectedBusId = b.id);
+          });
+          break;
+        }
+      }
+    }
+
+    // 2. Auto-load route overlay into driverMapStateProvider
+    if (_selectedBusId != null) {
+      final selectedBus = buses.cast<BusModel?>().firstWhere(
+            (b) => b?.id == _selectedBusId,
+            orElse: () => null,
+          );
+      if (selectedBus != null) {
+        final targetRouteId = selectedBus.routeId ?? selectedBus.defaultRouteId;
+        if (targetRouteId != null) {
+          final routes = routesAsync.valueOrNull ?? [];
+          final matchingRoute = routes.cast<RouteModel?>().firstWhere(
+                (r) => r?.id == targetRouteId,
+                orElse: () => null,
+              );
+          if (matchingRoute != null) {
+            final currentLoaded = ref.read(driverMapStateProvider).selectedRoute;
+            if (currentLoaded == null ||
+                currentLoaded.id != matchingRoute.id ||
+                _fingerprintRoute(currentLoaded) != _fingerprintRoute(matchingRoute)) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (mounted) {
+                  ref.read(driverMapStateProvider.notifier).setSelectedRoute(matchingRoute);
+                }
+              });
+            }
+          }
+        }
+      }
     }
 
     final isDark = Theme.of(context).brightness == Brightness.dark;

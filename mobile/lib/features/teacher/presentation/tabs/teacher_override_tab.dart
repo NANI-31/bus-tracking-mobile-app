@@ -66,6 +66,11 @@ class TeacherOverrideTab extends ConsumerWidget {
           }
 
           // If we just found an overridden bus but no selection yet, surface it
+          if (selectedBusId == null && activeOverrideId != null) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              onSelectBus(activeOverrideId);
+            });
+          }
           final effectiveSelectedId = selectedBusId ?? activeOverrideId;
 
           final selectedBus = effectiveSelectedId != null

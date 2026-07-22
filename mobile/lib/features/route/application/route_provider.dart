@@ -3,6 +3,7 @@ import 'package:collegebus/features/route/domain/route_model.dart';
 import 'package:collegebus/features/schedule/domain/schedule_model.dart';
 import 'package:collegebus/core/providers/repository_providers.dart';
 import 'package:collegebus/core/providers/socket_provider.dart';
+import 'package:collegebus/core/services/directions_service.dart';
 
 /// Notifier for managing the list of routes
 class RouteNotifier extends AsyncNotifier<List<RouteModel>> {
@@ -47,11 +48,13 @@ class CollegeRoutesNotifier extends FamilyAsyncNotifier<List<RouteModel>, String
     final socket = ref.watch(socketServiceProvider);
 
     final sub = socket.routeListUpdateStream.listen((_) async {
+      DirectionsService().clearCache();
       state = const AsyncValue.loading();
       state = await AsyncValue.guard(() async {
         return await repo.getRoutesByCollege(arg);
       });
     });
+
 
     ref.onDispose(() {
       sub.cancel();
