@@ -392,8 +392,9 @@ class TeacherLiveTrackingTab extends ConsumerWidget {
     List<LatLng> points = List<LatLng>.from(result.polylinePoints);
     if (currentLoc != null && points.isNotEmpty) {
       final closestIdx = findClosestPointIndex(currentLoc, points);
-      points = [currentLoc, ...points.sublist(closestIdx)];
+      points = points.sublist(closestIdx);
     }
+
 
     final routeColor = route != null
         ? Color(int.parse(route.color.replaceAll('#', '0xFF')))
@@ -436,8 +437,8 @@ class TeacherLiveTrackingTab extends ConsumerWidget {
 
     if (points.length < 2) return {};
 
-    // Prepend teacher's current location so the line starts from where they are
-    final allPoints = currentLoc != null ? [currentLoc, ...points] : points;
+    final allPoints = points;
+
 
     final routeColor =
         Color(int.parse(route.color.replaceAll('#', '0xFF')));

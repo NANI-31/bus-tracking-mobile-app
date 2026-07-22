@@ -1035,9 +1035,10 @@ class LiveBusMapState extends ConsumerState<LiveBusMap>
       final busPos = _animatedLocations[selectedBusId] ?? _liveLocations[selectedBusId]?.currentLocation;
       if (busPos != null) {
         final closestIdx = _findClosestPointIndex(busPos, points);
-        // Clear all points prior to the closest point, starting the remaining route polyline
-        // directly at the bus's current position to show a seamless remaining path.
-        points = [busPos, ...points.sublist(closestIdx)];
+        // Slice the polyline at the closest route point on the road —
+        // removes already-traveled portion without creating an off-road connecting line to the bus position.
+        points = points.sublist(closestIdx);
+
       }
     }
 
