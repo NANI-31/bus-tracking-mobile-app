@@ -74,9 +74,9 @@ class TeacherLiveTrackingTab extends ConsumerWidget {
     return _buildPassiveFleetMap(context, ref);
   }
 
-  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ─────────────────────────────────────────────────────────────────────────
   // Active override: teacher is broadcasting GPS
-  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ─────────────────────────────────────────────────────────────────────────
 
   Widget _buildActiveOverrideMap(BuildContext context, WidgetRef ref) {
     final mapState = ref.watch(driverMapStateProvider);
@@ -90,8 +90,16 @@ class TeacherLiveTrackingTab extends ConsumerWidget {
     final nextStopETA = locationState.nextStopETA;
     final isSharing = locationState.isSharing;
 
-    final stopMarkers = _buildStopMarkers(route);
-    final polylines = _buildPolylines(result, effectiveLocation, route);
+    final buses =
+        ref.watch(collegeBusesStreamProvider(user.collegeId)).valueOrNull ?? [];
+    final bus = buses.cast<BusModel?>().firstWhere(
+          (b) => b?.id == selectedBusId,
+          orElse: () => null,
+        );
+
+    final tripType = bus?.tripType;
+    final stopMarkers = _buildStopMarkers(route, tripType);
+    final polylines = _buildPolylines(result, effectiveLocation, route, tripType);
     final mapMarkers = {...stopMarkers};
 
     if (effectiveLocation != null) {
@@ -108,21 +116,16 @@ class TeacherLiveTrackingTab extends ConsumerWidget {
       );
     }
 
-    final buses =
-        ref.watch(collegeBusesStreamProvider(user.collegeId)).valueOrNull ?? [];
-    final bus = buses.cast<dynamic>().firstWhere(
-          (b) => b.id == selectedBusId,
-          orElse: () => null,
-        );
-
     String? directionsETA;
     if (result != null && effectiveLocation != null && route != null) {
       directionsETA = _computeNextStopETAFromDirections(
         effectiveLocation,
         route,
         result,
+        tripType,
       );
     }
+
     final displayETA =
         directionsETA ?? (nextStopETA != null ? 'ETA: $nextStopETA' : null);
 
@@ -232,9 +235,9 @@ class TeacherLiveTrackingTab extends ConsumerWidget {
     );
   }
 
-  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ─────────────────────────────────────────────────────────────────────────
   // Passive fleet view: teacher is watching buses via StudentMapTab
-  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ─────────────────────────────────────────────────────────────────────────
 
   Widget _buildPassiveFleetMap(BuildContext context, WidgetRef ref) {
     final mapNavState = ref.watch(mapNavigationProvider);
@@ -311,40 +314,49 @@ class TeacherLiveTrackingTab extends ConsumerWidget {
     );
   }
 
-  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ─────────────────────────────────────────────────────────────────────────
   // Helpers
-  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ─────────────────────────────────────────────────────────────────────────
 
-  Set<Marker> _buildStopMarkers(RouteModel? route) {
+  Set<Marker> _buildStopMarkers(RouteModel? route, String? tripType) {
     final stopMarkers = <Marker>{};
     if (route == null) return stopMarkers;
 
-    if (route.startPoint.lat != 0 && route.startPoint.lng != 0) {
+    final isPickup = tripType != 'drop';
+    final ordered = route.getOrderedStops(tripType);
+    if (ordered.isEmpty) return stopMarkers;
+
+    final firstPt = ordered.first;
+    final lastPt = ordered.last;
+
+    if (firstPt.lat != 0 || firstPt.lng != 0) {
       stopMarkers.add(Marker(
         markerId: const MarkerId('tstop_start'),
-        position: LatLng(route.startPoint.lat, route.startPoint.lng),
+        position: LatLng(firstPt.lat, firstPt.lng),
         icon: startStopIcon ??
             BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen),
-        infoWindow: InfoWindow(title: 'Start: ${route.startPoint.name}'),
+        infoWindow: InfoWindow(
+          title: isPickup ? 'Start: ${firstPt.name}' : 'Drop Start: ${firstPt.name}',
+        ),
         anchor: const Offset(0.5, 0.5),
         zIndexInt: 1,
       ));
     }
 
-    for (int i = 0; i < route.stopPoints.length; i++) {
-      final stop = route.stopPoints[i];
+    for (int i = 1; i < ordered.length - 1; i++) {
+      final stop = ordered[i];
       if (stop.lat == 0 && stop.lng == 0) continue;
 
-      final isAtStart = (stop.lat - route.startPoint.lat).abs() < 0.00001 &&
-          (stop.lng - route.startPoint.lng).abs() < 0.00001;
-      final isAtEnd = (stop.lat - route.endPoint.lat).abs() < 0.00001 &&
-          (stop.lng - route.endPoint.lng).abs() < 0.00001;
-      final isSameNameStart = route.startPoint.name.isNotEmpty &&
+      final isAtStart = (stop.lat - firstPt.lat).abs() < 0.00001 &&
+          (stop.lng - firstPt.lng).abs() < 0.00001;
+      final isAtEnd = (stop.lat - lastPt.lat).abs() < 0.00001 &&
+          (stop.lng - lastPt.lng).abs() < 0.00001;
+      final isSameNameStart = firstPt.name.isNotEmpty &&
           stop.name.trim().toLowerCase() ==
-              route.startPoint.name.trim().toLowerCase();
-      final isSameNameEnd = route.endPoint.name.isNotEmpty &&
+              firstPt.name.trim().toLowerCase();
+      final isSameNameEnd = lastPt.name.isNotEmpty &&
           stop.name.trim().toLowerCase() ==
-              route.endPoint.name.trim().toLowerCase();
+              lastPt.name.trim().toLowerCase();
 
       if (isAtStart || isAtEnd || isSameNameStart || isSameNameEnd) continue;
 
@@ -353,19 +365,21 @@ class TeacherLiveTrackingTab extends ConsumerWidget {
         position: LatLng(stop.lat, stop.lng),
         icon: intermediateStopIcon ??
             BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueOrange),
-        infoWindow: InfoWindow(title: 'Stop ${i + 1}: ${stop.name}'),
+        infoWindow: InfoWindow(title: 'Stop $i: ${stop.name}'),
         anchor: const Offset(0.5, 0.5),
         zIndexInt: 1,
       ));
     }
 
-    if (route.endPoint.lat != 0 && route.endPoint.lng != 0) {
+    if (lastPt.lat != 0 || lastPt.lng != 0) {
       stopMarkers.add(Marker(
         markerId: const MarkerId('tstop_end'),
-        position: LatLng(route.endPoint.lat, route.endPoint.lng),
+        position: LatLng(lastPt.lat, lastPt.lng),
         icon: endStopIcon ??
             BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
-        infoWindow: InfoWindow(title: 'End: ${route.endPoint.name}'),
+        infoWindow: InfoWindow(
+          title: isPickup ? 'End: ${lastPt.name}' : 'Drop End: ${lastPt.name}',
+        ),
         anchor: const Offset(0.5, 0.5),
         zIndexInt: 1,
       ));
@@ -378,23 +392,22 @@ class TeacherLiveTrackingTab extends ConsumerWidget {
     DirectionsResult? result,
     LatLng? currentLoc,
     RouteModel? route,
+    String? tripType,
   ) {
-    // ── Fallback: Directions API not ready yet but route is known ─────────
-    // Draw a dashed straight-line path between the ordered stop coordinates
-    // so the teacher sees *something* immediately on the map. The widget will
-    // rebuild automatically once loadRouteOverlay() finishes and stores the
-    // real DirectionsResult in driverMapStateProvider.
     if ((result == null || !result.hasRoute) && route != null) {
-      return _buildFallbackPolylines(currentLoc, route);
+      return _buildFallbackPolylines(currentLoc, route, tripType);
     }
     if (result == null || !result.hasRoute) return {};
 
     List<LatLng> points = List<LatLng>.from(result.polylinePoints);
+    if (tripType == 'drop') {
+      points = points.reversed.toList();
+    }
+
     if (currentLoc != null && points.isNotEmpty) {
       final closestIdx = findClosestPointIndex(currentLoc, points);
       points = points.sublist(closestIdx);
     }
-
 
     final routeColor = route != null
         ? Color(int.parse(route.color.replaceAll('#', '0xFF')))
@@ -425,15 +438,17 @@ class TeacherLiveTrackingTab extends ConsumerWidget {
   /// Straight-line fallback polyline drawn between ordered stop coordinates.
   /// Used while the Directions API is still loading. Rendered dashed to
   /// communicate to the teacher that this is an estimate, not a road-snapped route.
-  Set<Polyline> _buildFallbackPolylines(LatLng? currentLoc, RouteModel route) {
+  Set<Polyline> _buildFallbackPolylines(
+    LatLng? currentLoc,
+    RouteModel route,
+    String? tripType,
+  ) {
+    final ordered = route.getOrderedStops(tripType);
     final points = <LatLng>[
-      if (route.startPoint.lat != 0 || route.startPoint.lng != 0)
-        LatLng(route.startPoint.lat, route.startPoint.lng),
-      for (final s in route.stopPoints)
+      for (final s in ordered)
         if (s.lat != 0 || s.lng != 0) LatLng(s.lat, s.lng),
-      if (route.endPoint.lat != 0 || route.endPoint.lng != 0)
-        LatLng(route.endPoint.lat, route.endPoint.lng),
     ];
+
 
     if (points.length < 2) return {};
 
@@ -462,15 +477,13 @@ class TeacherLiveTrackingTab extends ConsumerWidget {
     LatLng currentLoc,
     RouteModel selectedRoute,
     DirectionsResult directionsResult,
+    String? tripType,
   ) {
     final polyline = directionsResult.polylinePoints;
     if (polyline.isEmpty) return null;
 
-    final allStops = [
-      selectedRoute.startPoint,
-      ...selectedRoute.stopPoints,
-      selectedRoute.endPoint,
-    ];
+    final allStops = selectedRoute.getOrderedStops(tripType);
+
 
     int findClosestIdx(LatLng target) {
       double minDistance = double.infinity;

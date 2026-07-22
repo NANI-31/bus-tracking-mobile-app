@@ -15,6 +15,7 @@ class TripProgressSheet extends StatelessWidget {
   final LatLng? busLocation;
   final String busNumber;
   final String? preferredStop;
+  final String? tripType;
 
   const TripProgressSheet({
     super.key,
@@ -23,10 +24,12 @@ class TripProgressSheet extends StatelessWidget {
     required this.busLocation,
     required this.busNumber,
     this.preferredStop,
+    this.tripType,
   });
 
   @override
   Widget build(BuildContext context) {
+
     final allStops = _buildStopList();
     final completedIndex = _getCompletedStopIndex(allStops);
     final etaToPreferred = _getETAToPreferredStop(allStops);
@@ -256,28 +259,37 @@ class TripProgressSheet extends StatelessWidget {
     );
   }
 
-  /// Build the ordered list of all stops (start + intermediates + end).
+  /// Build the ordered list of all stops (start + intermediates + end) based on trip direction.
   List<RoutePoint> _buildStopList() {
-    final startName = route.startPoint.name.trim().toLowerCase();
-    final endName = route.endPoint.name.trim().toLowerCase();
+    final ordered = route.getOrderedStops(tripType);
+    if (ordered.isEmpty) return [];
 
-    // Filter out intermediate stops that match start or end coordinates/name
-    final filteredStops = route.stopPoints.where((stop) {
+    final firstPt = ordered.first;
+    final lastPt = ordered.last;
+
+    final firstPtName = firstPt.name.trim().toLowerCase();
+    final lastPtName = lastPt.name.trim().toLowerCase();
+
+    final middleStops = ordered.sublist(1, ordered.length - 1);
+
+    // Filter out intermediate stops that match first or last coordinates/name
+    final filteredStops = middleStops.where((stop) {
       final name = stop.name.trim().toLowerCase();
       final isAtStart =
-          (stop.lat - route.startPoint.lat).abs() < 0.00001 &&
-          (stop.lng - route.startPoint.lng).abs() < 0.00001;
+          (stop.lat - firstPt.lat).abs() < 0.00001 &&
+          (stop.lng - firstPt.lng).abs() < 0.00001;
       final isAtEnd =
-          (stop.lat - route.endPoint.lat).abs() < 0.00001 &&
-          (stop.lng - route.endPoint.lng).abs() < 0.00001;
-      final isSameNameStart = startName.isNotEmpty && name == startName;
-      final isSameNameEnd = endName.isNotEmpty && name == endName;
+          (stop.lat - lastPt.lat).abs() < 0.00001 &&
+          (stop.lng - lastPt.lng).abs() < 0.00001;
+      final isSameNameStart = firstPtName.isNotEmpty && name == firstPtName;
+      final isSameNameEnd = lastPtName.isNotEmpty && name == lastPtName;
 
       return !(isAtStart || isAtEnd || isSameNameStart || isSameNameEnd);
     }).toList();
 
-    return [route.startPoint, ...filteredStops, route.endPoint];
+    return [firstPt, ...filteredStops, lastPt];
   }
+
 
   /// Determine which stop the bus has most recently passed.
   /// Returns -1 if the bus hasn't passed any stop yet.

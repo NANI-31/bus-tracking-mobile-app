@@ -434,6 +434,8 @@ class _StudentMapTabState extends ConsumerState<StudentMapTab>
       busLocation: liveBusLocation,
       busNumber: widget.selectedBus!.busNumber,
       preferredStop: user?.preferredStop,
+      tripType: widget.selectedBus?.tripType,
     );
+
   }
 }

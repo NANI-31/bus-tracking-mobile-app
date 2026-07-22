@@ -833,16 +833,24 @@ class LiveBusMapState extends ConsumerState<LiveBusMap>
     }
   }
 
-  /// Build markers for route stops (start, stops, end).
+  /// Build markers for route stops (start, stops, end) based on trip direction.
   void _buildStopMarkers(RouteModel route) {
-    // Start point marker
-    if (route.startPoint.lat != 0 && route.startPoint.lng != 0) {
+    final tripType = widget.selectedBus?.tripType;
+    final isPickup = tripType != 'drop';
+    final ordered = route.getOrderedStops(tripType);
+    if (ordered.isEmpty) return;
+
+    final firstPt = ordered.first;
+    final lastPt = ordered.last;
+
+    // Start point marker (Green)
+    if (firstPt.lat != 0 || firstPt.lng != 0) {
       _stopMarkers['stop_start'] = Marker(
         markerId: const MarkerId('stop_start'),
-        position: LatLng(route.startPoint.lat, route.startPoint.lng),
+        position: LatLng(firstPt.lat, firstPt.lng),
         icon: _startStopIcon ?? BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen),
         infoWindow: InfoWindow(
-          title: 'Start: ${route.startPoint.name}',
+          title: isPickup ? 'Start: ${firstPt.name}' : 'Drop Start: ${firstPt.name}',
           snippet: 'Route start point',
         ),
         anchor: const Offset(0.5, 0.5),
@@ -850,21 +858,20 @@ class LiveBusMapState extends ConsumerState<LiveBusMap>
       );
     }
 
-    // Intermediate stop markers
-    for (int i = 0; i < route.stopPoints.length; i++) {
-      final stop = route.stopPoints[i];
+    // Intermediate stop markers (Orange)
+    for (int i = 1; i < ordered.length - 1; i++) {
+      final stop = ordered[i];
       if (stop.lat == 0 && stop.lng == 0) continue;
 
-      // Filter out intermediate stops that are at the exact same location or have the same name as start or end points
-      final isAtStart = (stop.lat - route.startPoint.lat).abs() < 0.00001 &&
-          (stop.lng - route.startPoint.lng).abs() < 0.00001;
-      final isAtEnd = (stop.lat - route.endPoint.lat).abs() < 0.00001 &&
-          (stop.lng - route.endPoint.lng).abs() < 0.00001;
-      final isSameNameStart = route.startPoint.name.isNotEmpty &&
-          stop.name.trim().toLowerCase() == route.startPoint.name.trim().toLowerCase();
-      final isSameNameEnd = route.endPoint.name.isNotEmpty &&
-          stop.name.trim().toLowerCase() == route.endPoint.name.trim().toLowerCase();
-      
+      final isAtStart = (stop.lat - firstPt.lat).abs() < 0.00001 &&
+          (stop.lng - firstPt.lng).abs() < 0.00001;
+      final isAtEnd = (stop.lat - lastPt.lat).abs() < 0.00001 &&
+          (stop.lng - lastPt.lng).abs() < 0.00001;
+      final isSameNameStart = firstPt.name.isNotEmpty &&
+          stop.name.trim().toLowerCase() == firstPt.name.trim().toLowerCase();
+      final isSameNameEnd = lastPt.name.isNotEmpty &&
+          stop.name.trim().toLowerCase() == lastPt.name.trim().toLowerCase();
+
       if (isAtStart || isAtEnd || isSameNameStart || isSameNameEnd) continue;
 
       _stopMarkers['stop_$i'] = Marker(
@@ -872,21 +879,21 @@ class LiveBusMapState extends ConsumerState<LiveBusMap>
         position: LatLng(stop.lat, stop.lng),
         icon: _intermediateStopIcon ?? BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueOrange),
         infoWindow: InfoWindow(
-          title: 'Stop ${i + 1}: ${stop.name}',
+          title: 'Stop $i: ${stop.name}',
         ),
         anchor: const Offset(0.5, 0.5),
         zIndexInt: 1,
       );
     }
 
-    // End point marker
-    if (route.endPoint.lat != 0 && route.endPoint.lng != 0) {
+    // End point marker (Red)
+    if (lastPt.lat != 0 || lastPt.lng != 0) {
       _stopMarkers['stop_end'] = Marker(
         markerId: const MarkerId('stop_end'),
-        position: LatLng(route.endPoint.lat, route.endPoint.lng),
+        position: LatLng(lastPt.lat, lastPt.lng),
         icon: _endStopIcon ?? BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
         infoWindow: InfoWindow(
-          title: 'End: ${route.endPoint.name}',
+          title: isPickup ? 'End: ${lastPt.name}' : 'Drop End: ${lastPt.name}',
           snippet: 'Route end point',
         ),
         anchor: const Offset(0.5, 0.5),
@@ -894,6 +901,7 @@ class LiveBusMapState extends ConsumerState<LiveBusMap>
       );
     }
   }
+
 
   /// Fit the camera to show the entire route polyline.
   void _fitCameraToRoute(List<LatLng> points) {
@@ -1029,6 +1037,9 @@ class LiveBusMapState extends ConsumerState<LiveBusMap>
     }
 
     List<LatLng> points = List<LatLng>.from(_directionsResult!.polylinePoints);
+    if (widget.selectedBus?.tripType == 'drop') {
+      points = points.reversed.toList();
+    }
 
     final selectedBusId = widget.selectedBus?.id;
     if (selectedBusId != null && points.isNotEmpty) {

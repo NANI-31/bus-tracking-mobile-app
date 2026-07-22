@@ -71,7 +71,8 @@ class DriverLiveTrackingTab extends ConsumerWidget {
                 final stopMarkers = _buildStopMarkers(route, myBus?.tripType);
 
                 final polylines =
-                    _buildPolylines(result, currentLocation, routeColorTheme);
+                    _buildPolylines(result, currentLocation, routeColorTheme, myBus?.tripType);
+
 
                 final mapMarkers = {...stopMarkers};
                 if (currentLocation != null) {
@@ -404,17 +405,23 @@ class DriverLiveTrackingTab extends ConsumerWidget {
     DirectionsResult? result,
     LatLng? currentLocation,
     Color routeColor,
+    String? tripType,
   ) {
     final polylines = <Polyline>{};
     if (result == null || !result.hasRoute) return polylines;
 
     List<LatLng> points = List<LatLng>.from(result.polylinePoints);
+    if (tripType == 'drop') {
+      points = points.reversed.toList();
+    }
+
     if (currentLocation != null && points.isNotEmpty) {
       final closestIdx = findClosestPointIndex(currentLocation, points);
       // Slice the polyline at the driver's current position —
       // removes already-traveled portion. No connecting line to start.
       points = points.sublist(closestIdx);
     }
+
 
     polylines.addAll({
       Polyline(

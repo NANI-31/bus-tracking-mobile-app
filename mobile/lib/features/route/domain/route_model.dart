@@ -133,5 +133,25 @@ class RouteModel {
     );
   }
 
+  /// Returns the ordered list of waypoints based on active trip direction.
+  /// - pickup : [startPoint, ...stopPoints, endPoint]
+  /// - drop   : [endPoint, ...stopPoints.reversed, startPoint]
+  List<RoutePoint> getOrderedStops([String? tripType]) {
+    final effectiveType = tripType ?? routeType;
+    if (effectiveType == 'drop') {
+      return [
+        endPoint,
+        ...stopPoints.reversed,
+        startPoint,
+      ];
+    }
+    return [
+      startPoint,
+      ...stopPoints,
+      endPoint,
+    ];
+  }
+
   String get displayName => '$routeName (${routeType.toUpperCase()})';
 }
+
