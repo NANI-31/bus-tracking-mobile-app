@@ -1,4 +1,4 @@
-﻿// teacher_live_tracking_tab.dart
+// teacher_live_tracking_tab.dart
 //
 // Extracted from teacher_dashboard.dart.
 // Renders the "Live Tracking" tab content in two modes:
@@ -379,8 +379,15 @@ class TeacherLiveTrackingTab extends ConsumerWidget {
     LatLng? currentLoc,
     RouteModel? route,
   ) {
-    final polylines = <Polyline>{};
-    if (result == null || !result.hasRoute) return polylines;
+    // ── Fallback: Directions API not ready yet but route is known ─────────
+    // Draw a dashed straight-line path between the ordered stop coordinates
+    // so the teacher sees *something* immediately on the map. The widget will
+    // rebuild automatically once loadRouteOverlay() finishes and stores the
+    // real DirectionsResult in driverMapStateProvider.
+    if ((result == null || !result.hasRoute) && route != null) {
+      return _buildFallbackPolylines(currentLoc, route);
+    }
+    if (result == null || !result.hasRoute) return {};
 
     List<LatLng> points = List<LatLng>.from(result.polylinePoints);
     if (currentLoc != null && points.isNotEmpty) {
@@ -392,7 +399,7 @@ class TeacherLiveTrackingTab extends ConsumerWidget {
         ? Color(int.parse(route.color.replaceAll('#', '0xFF')))
         : const Color(0xFF1565C0);
 
-    polylines.addAll({
+    return {
       Polyline(
         polylineId: const PolylineId('teacher_route_glow'),
         points: points,
@@ -411,9 +418,42 @@ class TeacherLiveTrackingTab extends ConsumerWidget {
         endCap: Cap.roundCap,
         geodesic: true,
       ),
-    });
+    };
+  }
 
-    return polylines;
+  /// Straight-line fallback polyline drawn between ordered stop coordinates.
+  /// Used while the Directions API is still loading. Rendered dashed to
+  /// communicate to the teacher that this is an estimate, not a road-snapped route.
+  Set<Polyline> _buildFallbackPolylines(LatLng? currentLoc, RouteModel route) {
+    final points = <LatLng>[
+      if (route.startPoint.lat != 0 || route.startPoint.lng != 0)
+        LatLng(route.startPoint.lat, route.startPoint.lng),
+      for (final s in route.stopPoints)
+        if (s.lat != 0 || s.lng != 0) LatLng(s.lat, s.lng),
+      if (route.endPoint.lat != 0 || route.endPoint.lng != 0)
+        LatLng(route.endPoint.lat, route.endPoint.lng),
+    ];
+
+    if (points.length < 2) return {};
+
+    // Prepend teacher's current location so the line starts from where they are
+    final allPoints = currentLoc != null ? [currentLoc, ...points] : points;
+
+    final routeColor =
+        Color(int.parse(route.color.replaceAll('#', '0xFF')));
+
+    return {
+      Polyline(
+        polylineId: const PolylineId('teacher_route_fallback'),
+        points: allPoints,
+        color: routeColor.withValues(alpha: 0.6),
+        width: 5,
+        startCap: Cap.roundCap,
+        endCap: Cap.roundCap,
+        patterns: [PatternItem.dash(20), PatternItem.gap(10)],
+        geodesic: true,
+      ),
+    };
   }
 
   /// Computes a human-readable ETA string to the next upcoming stop.

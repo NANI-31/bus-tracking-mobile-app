@@ -1,4 +1,4 @@
-﻿import 'dart:async';
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
@@ -177,7 +177,9 @@ class _TeacherDashboardState extends ConsumerState<TeacherDashboard> {
       }
     }
 
-    // Fetch and cache the route for the map overlays
+    // Fetch and cache the route for the map overlays.
+    // Uses ref.read (sync) — if routes haven't loaded yet, we schedule a
+    // one-shot retry so the map overlay appears as soon as data arrives.
     RouteModel? assignedRoute;
     if (user != null) {
       final buses = ref.read(collegeBusesStreamProvider(user.collegeId)).valueOrNull ?? [];
@@ -190,6 +192,9 @@ class _TeacherDashboardState extends ConsumerState<TeacherDashboard> {
           final matchingRoutes = routes.where((r) => r.id == targetRouteId);
           if (matchingRoutes.isNotEmpty) {
             assignedRoute = matchingRoutes.first;
+          } else {
+            // Routes not ready yet — schedule a retry after the first frame.
+            _scheduleRouteLookup(targetRouteId, user.collegeId);
           }
         }
       }
@@ -260,6 +265,30 @@ class _TeacherDashboardState extends ConsumerState<TeacherDashboard> {
         debugPrint('Failed to update bus status: $e');
       });
     }
+  }
+
+  /// Called when routes provider returned empty at tracking-start time.
+  /// Retries every 500 ms (up to 5 attempts) and sets the route in
+  /// driverMapStateProvider as soon as it is available.
+  void _scheduleRouteLookup(String targetRouteId, String collegeId) {
+    var attempts = 0;
+    Timer.periodic(const Duration(milliseconds: 500), (timer) {
+      attempts++;
+      if (!mounted || attempts > 5) {
+        timer.cancel();
+        return;
+      }
+      final routes =
+          ref.read(collegeRoutesProvider(collegeId)).valueOrNull ?? [];
+      final match = routes.cast<RouteModel?>().firstWhere(
+            (r) => r!.id == targetRouteId,
+            orElse: () => null,
+          );
+      if (match != null) {
+        timer.cancel();
+        ref.read(driverMapStateProvider.notifier).setSelectedRoute(match);
+      }
+    });
   }
 
   Future<void> _toggleLocationSharing(BusModel? bus) async {

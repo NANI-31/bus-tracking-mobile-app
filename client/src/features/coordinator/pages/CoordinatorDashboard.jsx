@@ -389,7 +389,7 @@ const CoordinatorDashboard = () => {
                     key={`skeleton-${idx}`}
                     className="bg-background-paper border border-border-theme/40 rounded-3xl p-6 shadow-xs flex flex-col space-y-4 relative overflow-hidden"
                   >
-                    <div className="w-[48px] h-[48px] rounded-2xl shimmer" />
+                    <div className="w-12 h-12 rounded-2xl shimmer" />
                     <div className="h-5 rounded-lg w-1/2 shimmer" />
                     <div className="h-3 rounded-lg w-1/3 shimmer" />
                     <div className="border-t border-border-theme/45 pt-4 space-y-2">
