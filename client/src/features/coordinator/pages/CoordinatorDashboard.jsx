@@ -37,6 +37,7 @@ const CoordinatorDashboard = () => {
   // Assignment form states
   const [selectedDriverId, setSelectedDriverId] = useState("");
   const [selectedRouteId, setSelectedRouteId] = useState("");
+  const [selectedTripType, setSelectedTripType] = useState("pickup"); // 'pickup' | 'drop'
 
   // Override requests states
   const [activeTab, setActiveTab] = useState("assignments");
@@ -97,6 +98,7 @@ const CoordinatorDashboard = () => {
     setSelectedBus(bus);
     setSelectedDriverId(bus.driverId || "");
     setSelectedRouteId(bus.routeId || "");
+    setSelectedTripType(bus.tripType || "pickup"); // pre-fill from current assignment
     setIsAssignModalOpen(true);
   };
 
@@ -113,6 +115,7 @@ const CoordinatorDashboard = () => {
         busData: {
           driverId: selectedDriverId,
           routeId: selectedRouteId,
+          tripType: selectedTripType,
           assignmentStatus: "pending",
         },
       })
@@ -460,6 +463,26 @@ const CoordinatorDashboard = () => {
                               </p>
                             </div>
                           </div>
+                          {/* Trip Direction badge — shown when a direction has been set */}
+                          {bus.tripType && (
+                            <div className="flex items-start gap-2.5 pt-1">
+                              <span className="text-sm mt-0.5 shrink-0">
+                                {bus.tripType === "drop" ? "🏠" : "🎓"}
+                              </span>
+                              <div className="text-xs">
+                                <p className="font-semibold text-text-theme-secondary text-[10px] uppercase tracking-wider">Trip Direction</p>
+                                <span
+                                  className={`inline-flex items-center gap-1 mt-0.5 px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider border ${
+                                    bus.tripType === "drop"
+                                      ? "bg-orange-500/10 text-orange-500 border-orange-500/25"
+                                      : "bg-emerald-500/10 text-emerald-500 border-emerald-500/25"
+                                  }`}
+                                >
+                                  {bus.tripType === "drop" ? "Drop" : "Pickup"}
+                                </span>
+                              </div>
+                            </div>
+                          )}
                         </div>
                       </div>
                       {/* Actions Panel */}
@@ -723,6 +746,46 @@ const CoordinatorDashboard = () => {
                       </option>
                     ))}
                   </select>
+                </div>
+
+                {/* Trip Direction Toggle */}
+                <div className="space-y-2">
+                  <label className="block text-xs font-black uppercase tracking-wider text-text-theme-secondary">
+                    Trip Direction
+                  </label>
+                  <div className="grid grid-cols-2 gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedTripType("pickup")}
+                      className={`flex items-center gap-2.5 px-4 py-3 rounded-2xl border-2 transition-all duration-200 text-left cursor-pointer ${
+                        selectedTripType === "pickup"
+                          ? "bg-emerald-500/10 border-emerald-500 text-emerald-600 dark:text-emerald-400"
+                          : "bg-background-default border-border-theme text-text-theme-secondary hover:border-emerald-400"
+                      }`}
+                    >
+                      <span className="text-lg leading-none">🎓</span>
+                      <div>
+                        <p className="font-black text-xs uppercase tracking-wider">Pickup</p>
+                        <p className="text-[10px] font-medium opacity-70">Stops → College</p>
+                      </div>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setSelectedTripType("drop")}
+                      className={`flex items-center gap-2.5 px-4 py-3 rounded-2xl border-2 transition-all duration-200 text-left cursor-pointer ${
+                        selectedTripType === "drop"
+                          ? "bg-orange-500/10 border-orange-500 text-orange-600 dark:text-orange-400"
+                          : "bg-background-default border-border-theme text-text-theme-secondary hover:border-orange-400"
+                      }`}
+                    >
+                      <span className="text-lg leading-none">🏠</span>
+                      <div>
+                        <p className="font-black text-xs uppercase tracking-wider">Drop</p>
+                        <p className="text-[10px] font-medium opacity-70">College → Stops</p>
+                      </div>
+                    </button>
+                  </div>
                 </div>
 
                 <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end pt-4 border-t border-border-theme/40">
