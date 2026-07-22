@@ -54,8 +54,39 @@ class TeacherOverrideTab extends ConsumerWidget {
       ),
       body: busesAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (err, stack) =>
-            err.toString().text.color(AppColors.error).make().centered(),
+        error: (err, stack) {
+          final errStr = err.toString();
+          final isRateLimit = errStr.contains("Too many requests") || errStr.contains("429");
+          return Center(
+            child: Padding(
+              padding: const EdgeInsets.all(24.0),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    isRateLimit ? Icons.timer_outlined : Icons.error_outline,
+                    color: AppColors.error,
+                    size: 44,
+                  ),
+                  const SizedBox(height: 12),
+                  (isRateLimit
+                          ? "Server is busy updating permissions. Please tap retry in a moment."
+                          : "Error loading fleet: $errStr")
+                      .text
+                      .center
+                      .color(AppColors.error)
+                      .make(),
+                  const SizedBox(height: 16),
+                  ElevatedButton.icon(
+                    onPressed: () => ref.invalidate(collegeBusesStreamProvider(user.collegeId)),
+                    icon: const Icon(Icons.refresh),
+                    label: const Text("Retry"),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
         data: (buses) {
           String? activeOverrideId;
           for (final b in buses) {
@@ -65,13 +96,8 @@ class TeacherOverrideTab extends ConsumerWidget {
             }
           }
 
-          // If we just found an overridden bus but no selection yet, surface it
-          if (selectedBusId == null && activeOverrideId != null) {
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              onSelectBus(activeOverrideId);
-            });
-          }
           final effectiveSelectedId = selectedBusId ?? activeOverrideId;
+
 
           final selectedBus = effectiveSelectedId != null
               ? buses.cast<dynamic>().firstWhere(

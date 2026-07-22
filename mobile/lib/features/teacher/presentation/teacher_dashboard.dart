@@ -614,23 +614,20 @@ class _TeacherDashboardState extends ConsumerState<TeacherDashboard> {
     final busesAsync = ref.watch(collegeBusesStreamProvider(user.collegeId));
     final routesAsync = ref.watch(collegeRoutesProvider(user.collegeId));
 
-    // 1. Auto-select active override bus if not explicitly selected
     final buses = busesAsync.valueOrNull ?? [];
-    if (_selectedBusId == null) {
-      for (final b in buses) {
-        if (b.trackingTeacherId == user.id) {
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (mounted) setState(() => _selectedBusId = b.id);
-          });
-          break;
-        }
+    String? activeOverrideId;
+    for (final b in buses) {
+      if (b.trackingTeacherId == user.id) {
+        activeOverrideId = b.id;
+        break;
       }
     }
+    final effectiveBusId = _selectedBusId ?? activeOverrideId;
 
-    // 2. Auto-load route overlay into driverMapStateProvider
-    if (_selectedBusId != null) {
+    // 2. Auto-load route overlay into driverMapStateProvider (guarded)
+    if (effectiveBusId != null) {
       final selectedBus = buses.cast<BusModel?>().firstWhere(
-            (b) => b?.id == _selectedBusId,
+            (b) => b?.id == effectiveBusId,
             orElse: () => null,
           );
       if (selectedBus != null) {
@@ -642,10 +639,13 @@ class _TeacherDashboardState extends ConsumerState<TeacherDashboard> {
                 orElse: () => null,
               );
           if (matchingRoute != null) {
-            final currentLoaded = ref.read(driverMapStateProvider).selectedRoute;
-            if (currentLoaded == null ||
-                currentLoaded.id != matchingRoute.id ||
-                _fingerprintRoute(currentLoaded) != _fingerprintRoute(matchingRoute)) {
+            final mapState = ref.read(driverMapStateProvider);
+            final currentLoaded = mapState.selectedRoute;
+            final isSame = currentLoaded != null &&
+                currentLoaded.id == matchingRoute.id &&
+                _fingerprintRoute(currentLoaded) == _fingerprintRoute(matchingRoute);
+
+            if (!isSame && !mapState.isLoading) {
               WidgetsBinding.instance.addPostFrameCallback((_) {
                 if (mounted) {
                   ref.read(driverMapStateProvider.notifier).setSelectedRoute(matchingRoute);
@@ -656,6 +656,7 @@ class _TeacherDashboardState extends ConsumerState<TeacherDashboard> {
         }
       }
     }
+
 
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final glassColor = isDark

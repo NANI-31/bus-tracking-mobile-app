@@ -69,12 +69,13 @@ export const createApp = () => {
 
   const globalLimiter = rateLimit({
     windowMs: 60 * 1000,
-    max: 100,
+    max: 300,
     standardHeaders: true,
     legacyHeaders: false,
     message: { message: "Too many requests. Please try again later." },
   });
   app.use("/api/v1", globalLimiter);
+
 
   app.use((req, res, next) => {
     const sanitizedUrl = req.url.replace(/token=[^&]+/g, "token=***");

@@ -408,7 +408,13 @@ final teacherOverrideRequestsProvider =
       final socket = ref.watch(socketServiceProvider);
 
       return Stream.multi((controller) async {
+        DateTime? lastFetch;
         Future<void> fetch() async {
+          final now = DateTime.now();
+          if (lastFetch != null && now.difference(lastFetch!).inMilliseconds < 1500) {
+            return;
+          }
+          lastFetch = now;
           try {
             final requests = await repo.getTeacherOverrideRequests();
             if (!controller.isClosed) controller.add(requests);
@@ -427,4 +433,5 @@ final teacherOverrideRequestsProvider =
           sub2.cancel();
         };
       });
+
     });
