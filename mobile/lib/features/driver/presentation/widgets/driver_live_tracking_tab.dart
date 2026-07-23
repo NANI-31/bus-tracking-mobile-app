@@ -581,7 +581,8 @@ class DriverLiveTrackingTab extends ConsumerWidget {
       etaMin = (remainingDistanceKm / 0.5).ceil().clamp(1, 120);
     }
 
-    return 'Next: ${nextStop.name} · $etaMin min';
+    return 'Next: ${nextStop.name} \u00B7 $etaMin min';
+
   }
 }
 

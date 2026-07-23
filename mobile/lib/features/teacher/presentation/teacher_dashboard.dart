@@ -433,10 +433,9 @@ class _TeacherDashboardState extends ConsumerState<TeacherDashboard> {
                 children: [
                   const Icon(Icons.warning_amber_rounded,
                       color: Colors.white, size: 20),
-                  const SizedBox(width: 10),
                   Expanded(
                     child: Text(
-                      'Off route Ã¢â‚¬â€ ${dist}m from path',
+                      'Off route \u2022 ${dist}m from path',
                       style: const TextStyle(
                         color: Colors.white,
                         fontWeight: FontWeight.w600,
@@ -485,9 +484,10 @@ class _TeacherDashboardState extends ConsumerState<TeacherDashboard> {
     }
     if (nextStop == null) return;
 
-    final etaStr = 'Next: ${nextStop.name} Ã‚Â· $etaMinutes min';
+    final etaStr = 'Next: ${nextStop.name} \u00B7 $etaMinutes min';
     ref.read(driverLocationProvider.notifier).updateETA(etaStr);
   }
+
 
   int? _computeEtaMinutes(Position position, {double? speedMs}) {
     final selectedRoute = ref.read(driverMapStateProvider).selectedRoute;

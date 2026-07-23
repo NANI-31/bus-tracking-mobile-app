@@ -590,13 +590,14 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
-                      'Off route â€” ${dist}m from path',
+                      'Off route \u2022 ${dist}m from path',
                       style: const TextStyle(
                         color: Colors.white,
                         fontWeight: FontWeight.w600,
                         fontSize: 14,
                       ),
                     ),
+
                   ),
                 ],
               ),
