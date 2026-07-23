@@ -20,7 +20,49 @@ export const createApp = () => {
 
   // ===== SECURITY MIDDLEWARE =====
   app.use(requestIdMiddleware);
-  app.use(helmet());
+  app.use(
+    helmet({
+      contentSecurityPolicy: {
+        directives: {
+          defaultSrc: ["'self'"],
+          scriptSrc: [
+            "'self'",
+            "'unsafe-inline'",
+            "'unsafe-eval'",
+            "https://maps.googleapis.com",
+            "https://*.gstatic.com",
+          ],
+          styleSrc: [
+            "'self'",
+            "'unsafe-inline'",
+            "https://fonts.googleapis.com",
+          ],
+          fontSrc: ["'self'", "https://fonts.gstatic.com", "data:"],
+          imgSrc: [
+            "'self'",
+            "data:",
+            "blob:",
+            "https://*.googleapis.com",
+            "https://*.gstatic.com",
+            "https://*.google.com",
+          ],
+          connectSrc: [
+            "'self'",
+            "ws:",
+            "wss:",
+            "http:",
+            "https:",
+            "https://*.googleapis.com",
+          ],
+          frameSrc: ["'self'"],
+          objectSrc: ["'none'"],
+        },
+      },
+      crossOriginEmbedderPolicy: false,
+      crossOriginResourcePolicy: { policy: "cross-origin" },
+    })
+  );
+
 
   // for more production url's
 //   const allowedOrigins = [
