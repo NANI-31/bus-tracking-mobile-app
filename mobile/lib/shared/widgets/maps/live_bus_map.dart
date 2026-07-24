@@ -20,6 +20,7 @@ import 'package:collegebus/shared/widgets/maps/map_skeleton_loader.dart';
 import 'package:collegebus/shared/widgets/skeleton_transition.dart';
 import 'package:collegebus/core/services/theme_service.dart';
 import 'package:collegebus/core/constants/constants.dart';
+import 'package:collegebus/core/utils/route_math_utils.dart';
 import 'package:collegebus/features/sos/domain/sos_model.dart';
 import 'package:collegebus/features/sos/application/sos_provider.dart';
 
@@ -84,6 +85,11 @@ class LiveBusMapState extends ConsumerState<LiveBusMap>
   final Map<String, Marker> _stopMarkers = {};
   DirectionsResult? _directionsResult;
   String? _loadedRouteId;
+
+  // Throttle counter — update the route polyline every N animation frames
+  // so the line trims in real-time as the bus animates, without calling
+  // setState at 60fps (which causes visible stutter with many markers).
+  int _polylineFrameCount = 0;
 
   /// Cached SOS list kept up-to-date by _rebuildMarkers().
   /// Used by _updateSingleMarkerPosition() so the animation listener
@@ -527,6 +533,17 @@ class LiveBusMapState extends ConsumerState<LiveBusMap>
         // listener — it makes async platform-channel calls (getScreenCoordinate)
         // at 60fps, flooding the method channel. It fires correctly from
         // onCameraMove and onCameraIdle instead.
+
+        // Throttled polyline trim: update every 6th frame so the route line
+        // trims in real-time as the bus moves without calling setState 60fps.
+        if (widget.selectedBus?.id == busId && _directionsResult != null) {
+          _polylineFrameCount++;
+          if (_polylineFrameCount % 6 == 0) {
+            setState(() {
+              _updateRoutePolyline(Theme.of(context));
+            });
+          }
+        }
 
         // Smoothly follow the selected bus during its animation
         final isFollowing = ref.read(mapNavigationProvider).isFollowing;
@@ -993,26 +1010,6 @@ class LiveBusMapState extends ConsumerState<LiveBusMap>
     }
   }
 
-  int _findClosestPointIndex(LatLng target, List<LatLng> points) {
-    if (points.isEmpty) return 0;
-    int closestIdx = 0;
-    double minDistance = double.infinity;
-    for (int i = 0; i < points.length; i++) {
-      final p = points[i];
-      final dist = Geolocator.distanceBetween(
-        target.latitude,
-        target.longitude,
-        p.latitude,
-        p.longitude,
-      );
-      if (dist < minDistance) {
-        minDistance = dist;
-        closestIdx = i;
-      }
-    }
-    return closestIdx;
-  }
-
   void _updateRoutePolyline(ThemeData theme) {
     if (_directionsResult == null || widget.activeRoute == null) return;
 
@@ -1045,11 +1042,10 @@ class LiveBusMapState extends ConsumerState<LiveBusMap>
     if (selectedBusId != null && points.isNotEmpty) {
       final busPos = _animatedLocations[selectedBusId] ?? _liveLocations[selectedBusId]?.currentLocation;
       if (busPos != null) {
-        final closestIdx = _findClosestPointIndex(busPos, points);
-        // Slice the polyline at the closest route point on the road —
-        // removes already-traveled portion without creating an off-road connecting line to the bus position.
-        points = points.sublist(closestIdx);
-
+        // Project the bus onto the nearest segment and start the polyline
+        // exactly at that projected foot — eliminates the visual "line behind
+        // the bus" artifact caused by snapping to the nearest discrete point.
+        points = trimPolylineAtBus(busPos, points);
       }
     }
 

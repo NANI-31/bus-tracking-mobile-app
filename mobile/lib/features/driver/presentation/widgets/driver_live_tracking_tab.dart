@@ -471,10 +471,10 @@ class DriverLiveTrackingTab extends ConsumerWidget {
     }
 
     if (currentLocation != null && points.isNotEmpty) {
-      final closestIdx = findClosestPointIndex(currentLocation, points);
-      // Slice the polyline at the driver's current position —
-      // removes already-traveled portion. No connecting line to start.
-      points = points.sublist(closestIdx);
+      // Project the driver onto the nearest segment and start the polyline
+      // exactly at that projected foot — eliminates the line extending behind
+      // the bus marker when the driver is mid-segment.
+      points = trimPolylineAtBus(currentLocation, points);
     }
 
 

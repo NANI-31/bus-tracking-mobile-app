@@ -404,8 +404,10 @@ class TeacherLiveTrackingTab extends ConsumerWidget {
     }
 
     if (currentLoc != null && points.isNotEmpty) {
-      final closestIdx = findClosestPointIndex(currentLoc, points);
-      points = points.sublist(closestIdx);
+      // Project the bus onto the nearest segment and start the polyline
+      // exactly at that projected foot — eliminates the line extending behind
+      // the bus marker on the teacher override map.
+      points = trimPolylineAtBus(currentLoc, points);
     }
 
     final routeColor = route != null

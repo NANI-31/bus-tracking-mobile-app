@@ -65,3 +65,59 @@ int findClosestPointIndex(LatLng target, List<LatLng> points) {
   }
   return closestIdx;
 }
+
+/// Trims [points] so the polyline starts exactly at the bus position.
+///
+/// For each consecutive segment (i, i+1), computes the perpendicular
+/// projection of [busPos] onto the segment. Picks the segment with the
+/// smallest perpendicular distance, then returns:
+///   [projectedFoot, points[i+1], points[i+2], ..., points.last]
+///
+/// This guarantees the remaining-route line always starts precisely at the
+/// bus — not at the nearest discrete route point, which can be tens of
+/// metres ahead of or behind the actual position on a long segment.
+///
+/// Falls back to a simple [sublist] from the nearest-point index when there
+/// are fewer than 2 points.
+List<LatLng> trimPolylineAtBus(LatLng busPos, List<LatLng> points) {
+  if (points.length < 2) return points;
+
+  int bestSegmentIdx = 0;
+  double bestDist = double.infinity;
+
+  for (int i = 0; i < points.length - 1; i++) {
+    final d = distanceToSegment(busPos, points[i], points[i + 1]);
+    if (d < bestDist) {
+      bestDist = d;
+      bestSegmentIdx = i;
+    }
+  }
+
+  // Compute the perpendicular foot on the best segment.
+  final LatLng segStart = points[bestSegmentIdx];
+  final LatLng segEnd   = points[bestSegmentIdx + 1];
+
+  final double ax = busPos.latitude  - segStart.latitude;
+  final double ay = busPos.longitude - segStart.longitude;
+  final double bx = segEnd.latitude  - segStart.latitude;
+  final double by = segEnd.longitude - segStart.longitude;
+  final double lenSq = bx * bx + by * by;
+
+  final LatLng projectedFoot;
+  if (lenSq == 0) {
+    projectedFoot = segStart;
+  } else {
+    final double t = ((ax * bx + ay * by) / lenSq).clamp(0.0, 1.0);
+    projectedFoot = LatLng(
+      segStart.latitude  + t * bx,
+      segStart.longitude + t * by,
+    );
+  }
+
+  // Build the trimmed list: [foot, segEnd, rest...]
+  final trimmed = <LatLng>[projectedFoot];
+  for (int i = bestSegmentIdx + 1; i < points.length; i++) {
+    trimmed.add(points[i]);
+  }
+  return trimmed;
+}
