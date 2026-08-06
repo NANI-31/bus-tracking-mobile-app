@@ -17,6 +17,7 @@ import 'package:collegebus/core/providers/socket_provider.dart';
 import 'package:collegebus/core/providers/service_providers.dart';
 import 'package:collegebus/core/constants/constants.dart';
 import 'package:collegebus/core/utils/map_marker_helper.dart';
+
 import 'package:collegebus/shared/widgets/success_modal.dart';
 import 'package:collegebus/shared/widgets/api_error_modal.dart';
 import 'package:collegebus/features/student/presentation/bus_schedule_screen.dart';
@@ -59,7 +60,7 @@ class _TeacherDashboardState extends ConsumerState<TeacherDashboard> {
   @override
   void initState() {
     super.initState();
-    // Join socket room
+    // Join socket room and request permissions on first frame
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final user = ref.read(currentUserProvider);
       final collegeId = user?.collegeId;
@@ -67,8 +68,16 @@ class _TeacherDashboardState extends ConsumerState<TeacherDashboard> {
         ref.read(socketServiceProvider).joinCollege(collegeId);
       }
       _loadMapIcons();
-      _getCurrentLocation();
+      _checkPermissions(); // Request permissions before getting location
     });
+  }
+
+  /// Requests notification and location permissions, then fetches the current
+  /// location. Delegates to [AppPermissionsService] so all roles share a single
+  /// centralized permission flow.
+  Future<void> _checkPermissions() async {
+    await ref.read(appPermissionsServiceProvider).requestBasicPermissions();
+    await _getCurrentLocation();
   }
 
   @override
@@ -82,11 +91,35 @@ class _TeacherDashboardState extends ConsumerState<TeacherDashboard> {
 
   Future<void> _getCurrentLocation() async {
     final locationService = ref.read(locationServiceProvider);
-    final location = await locationService.getCurrentLocation();
-    if (location != null && mounted) {
-      setState(() => _currentLocation = location);
-      ref.read(mapNavigationProvider.notifier).updateUserLocation(location);
+
+    // 1. Try live GPS first
+    try {
+      final location = await locationService.getCurrentLocation();
+      if (location != null && mounted) {
+        debugPrint('[TeacherDashboard] ✅ GPS resolved: $location');
+        setState(() => _currentLocation = location);
+        ref.read(mapNavigationProvider.notifier).updateUserLocation(location);
+        return;
+      }
+    } catch (e) {
+      debugPrint('[TeacherDashboard] ❌ GPS threw: $e');
     }
+
+    if (!mounted) return;
+
+    // 2. Fall back to last known position from mapNavigationProvider
+    final cachedNav = ref.read(mapNavigationProvider).centerLocation;
+    if (cachedNav != null) {
+      debugPrint('[TeacherDashboard] ⚠️ GPS null — using cached nav center: $cachedNav');
+      setState(() => _currentLocation = cachedNav);
+      return;
+    }
+
+    // 3. Absolute fallback: college default coordinates so the map always renders
+    const fallback = LatLng(16.2345, 80.4567);
+    debugPrint('[TeacherDashboard] ❌ GPS + cache both null — using hardcoded fallback');
+    setState(() => _currentLocation = fallback);
+    ref.read(mapNavigationProvider.notifier).updateUserLocation(fallback);
   }
 
   Future<void> _loadMapIcons() async {

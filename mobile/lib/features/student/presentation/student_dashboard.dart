@@ -14,7 +14,7 @@ import 'package:collegebus/features/route/domain/route_model.dart';
 import 'package:collegebus/core/services/persistence_service.dart';
 import 'package:collegebus/features/notification/application/proximity_provider.dart';
 import 'package:collegebus/features/notification/application/notification_provider.dart';
-import 'package:collegebus/features/notification/services/fcm_service.dart';
+
 
 import 'package:collegebus/features/notification/services/notification_service.dart';
 
@@ -313,32 +313,42 @@ class _StudentDashboardState extends ConsumerState<StudentDashboard>
   }
 
   Future<void> _checkPermissions() async {
-    // 1. Request Notification Permission
-    await FCMService().requestPermission();
+    // Delegate to the centralized permission service so all roles use
+    // a single permission flow — avoids regression when new roles are added.
+    await ref.read(appPermissionsServiceProvider).requestBasicPermissions();
 
-    // 2. Request Location Permission
-    final locationService = ref.read(locationServiceProvider);
-    await locationService.requestLocationPermission();
-
-    // 3. Refresh location now that permission might be granted
+    // Refresh location now that permission might be granted
     await _getCurrentLocation();
-
-    // 4. Refresh FCM Token (in case it was waiting for permission)
-    final user = ref.read(currentUserProvider);
-    if (user != null) {
-      debugPrint('Refreshing FCM token after permissions...');
-      // We can trigger a token refresh by calling register again or logic in AuthProvider
-      // For now, let's just log it. The FCMService listener handles refresh.
-    }
   }
 
   Future<void> _getCurrentLocation() async {
     final locationService = ref.read(locationServiceProvider);
-    final location = await locationService.getCurrentLocation();
-    if (location != null && mounted) {
-      setState(() => _currentLocation = location);
-      ref.read(mapNavigationProvider.notifier).updateUserLocation(location);
+
+    // 1. Try live GPS first
+    try {
+      final location = await locationService.getCurrentLocation();
+      if (location != null && mounted) {
+        setState(() => _currentLocation = location);
+        ref.read(mapNavigationProvider.notifier).updateUserLocation(location);
+        return;
+      }
+    } catch (e) {
+      debugPrint('[StudentDashboard] ❌ GPS threw: $e');
     }
+
+    if (!mounted) return;
+
+    // 2. Fall back to last known cached center
+    final cachedNav = ref.read(mapNavigationProvider).centerLocation;
+    if (cachedNav != null) {
+      setState(() => _currentLocation = cachedNav);
+      return;
+    }
+
+    // 3. Absolute fallback so the map always renders
+    const fallback = LatLng(16.2345, 80.4567);
+    setState(() => _currentLocation = fallback);
+    ref.read(mapNavigationProvider.notifier).updateUserLocation(fallback);
   }
 
   void _selectBus(BusModel bus) {

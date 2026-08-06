@@ -46,6 +46,7 @@ class GlassMorphicContainer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final designTheme = context.designTheme;
 
     // Resolve spec based on variant
@@ -64,20 +65,33 @@ class GlassMorphicContainer extends StatelessWidget {
 
     final double effectiveBlur = blurSigma ?? spec.blurSigma;
     final Color effectiveBgColor = backgroundColor ?? spec.backgroundColor;
-    final Color effectiveBorderColor = borderColor ?? spec.borderColor;
+    final Color effectiveBorderColor = borderColor ??
+        (isDark
+            ? Colors.white.withValues(alpha: 0.15)
+            : Colors.white.withValues(alpha: 0.35));
 
     // Use default border radius from theme extension glassDecoration if not overridden
     final BorderRadius effectiveRadius = borderRadius ??
         (boxShape == BoxShape.circle
             ? BorderRadius.zero
-            : (designTheme.glassDecoration.borderRadius as BorderRadius? ?? BorderRadius.circular(24)));
+            : (designTheme.glassDecoration.borderRadius as BorderRadius? ??
+                BorderRadius.circular(24)));
 
-    Widget buildDecorationContainer() {
+    Widget buildBackgroundFill() {
       return Container(
         decoration: BoxDecoration(
           shape: boxShape,
           borderRadius: boxShape == BoxShape.circle ? null : effectiveRadius,
           color: effectiveBgColor,
+        ),
+      );
+    }
+
+    Widget buildBorderOverlay() {
+      return Container(
+        decoration: BoxDecoration(
+          shape: boxShape,
+          borderRadius: boxShape == BoxShape.circle ? null : effectiveRadius,
           border: Border.all(
             color: effectiveBorderColor,
             width: borderWidth,
@@ -86,9 +100,9 @@ class GlassMorphicContainer extends StatelessWidget {
       );
     }
 
-    Widget glassLayers;
+    Widget glassBlurAndFill;
     if (backgroundKey != null && shader != null) {
-      glassLayers = Stack(
+      glassBlurAndFill = Stack(
         children: [
           Positioned.fill(
             child: BackgroundCaptureWidget(
@@ -96,7 +110,9 @@ class GlassMorphicContainer extends StatelessWidget {
               height: height ?? double.infinity,
               backgroundKey: backgroundKey!,
               shader: shader!,
-              borderRadius: boxShape == BoxShape.circle ? BorderRadius.circular(9999) : effectiveRadius,
+              borderRadius: boxShape == BoxShape.circle
+                  ? BorderRadius.circular(9999)
+                  : effectiveRadius,
               child: const SizedBox.expand(),
             ),
           ),
@@ -104,33 +120,37 @@ class GlassMorphicContainer extends StatelessWidget {
             child: boxShape == BoxShape.circle
                 ? ClipOval(
                     child: BackdropFilter(
-                      filter: ui.ImageFilter.blur(sigmaX: effectiveBlur, sigmaY: effectiveBlur),
-                      child: buildDecorationContainer(),
+                      filter: ui.ImageFilter.blur(
+                          sigmaX: effectiveBlur, sigmaY: effectiveBlur),
+                      child: buildBackgroundFill(),
                     ),
                   )
                 : ClipRRect(
                     borderRadius: effectiveRadius,
                     child: BackdropFilter(
-                      filter: ui.ImageFilter.blur(sigmaX: effectiveBlur, sigmaY: effectiveBlur),
-                      child: buildDecorationContainer(),
+                      filter: ui.ImageFilter.blur(
+                          sigmaX: effectiveBlur, sigmaY: effectiveBlur),
+                      child: buildBackgroundFill(),
                     ),
                   ),
           ),
         ],
       );
     } else {
-      glassLayers = boxShape == BoxShape.circle
+      glassBlurAndFill = boxShape == BoxShape.circle
           ? ClipOval(
               child: BackdropFilter(
-                filter: ui.ImageFilter.blur(sigmaX: effectiveBlur, sigmaY: effectiveBlur),
-                child: buildDecorationContainer(),
+                filter: ui.ImageFilter.blur(
+                    sigmaX: effectiveBlur, sigmaY: effectiveBlur),
+                child: buildBackgroundFill(),
               ),
             )
           : ClipRRect(
               borderRadius: effectiveRadius,
               child: BackdropFilter(
-                filter: ui.ImageFilter.blur(sigmaX: effectiveBlur, sigmaY: effectiveBlur),
-                child: buildDecorationContainer(),
+                filter: ui.ImageFilter.blur(
+                    sigmaX: effectiveBlur, sigmaY: effectiveBlur),
+                child: buildBackgroundFill(),
               ),
             );
     }
@@ -140,8 +160,10 @@ class GlassMorphicContainer extends StatelessWidget {
       height: height,
       child: Stack(
         children: [
-          Positioned.fill(child: glassLayers),
-          if (child != null) Positioned.fill(child: child!),
+          Positioned.fill(child: glassBlurAndFill),
+          Positioned.fill(child: IgnorePointer(child: buildBorderOverlay())),
+          if (child != null)
+            height != null ? Positioned.fill(child: child!) : child!,
         ],
       ),
     );

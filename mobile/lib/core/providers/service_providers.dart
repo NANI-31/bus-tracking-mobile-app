@@ -11,9 +11,11 @@ import 'package:collegebus/core/services/data_service.dart';
 import 'package:collegebus/core/services/theme_service.dart';
 import 'package:collegebus/features/bus/services/location_service.dart';
 import 'package:collegebus/core/services/voice_recording_service.dart';
+import 'package:collegebus/core/services/app_permissions_service.dart';
 import 'package:collegebus/core/providers/repository_providers.dart';
 import 'socket_provider.dart';
 import 'package:collegebus/core/utils/map_style_helper.dart';
+
 
 /// VoiceRecordingService provider
 final voiceRecordingServiceProvider = Provider<VoiceRecordingService>((ref) {
@@ -130,6 +132,16 @@ final themeServiceProvider = NotifierProvider<ThemeNotifier, ThemeState>(
 final locationServiceProvider = Provider<LocationService>((ref) {
   return LocationService();
 });
+
+/// AppPermissionsService provider — centralized permission orchestrator.
+///
+/// All dashboards call [AppPermissionsService.requestBasicPermissions] or
+/// [AppPermissionsService.requestDriverPermissions] instead of duplicating
+/// FCMService + LocationService calls inline.
+final appPermissionsServiceProvider = Provider<AppPermissionsService>((ref) {
+  return AppPermissionsService(ref.read(locationServiceProvider));
+});
+
 
 /// Locale notifier
 class LocaleNotifier extends Notifier<Locale> {

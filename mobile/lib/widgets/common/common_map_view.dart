@@ -6,6 +6,8 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:collegebus/core/providers/service_providers.dart';
 import 'package:collegebus/core/services/map_tile_cache_service.dart';
+import 'package:collegebus/core/services/map_tile_prefetch_service.dart';
+import 'package:collegebus/shared/widgets/maps/map_permission_overlay.dart';
 import 'dart:io';
 
 class CommonMapView extends ConsumerStatefulWidget {
@@ -49,7 +51,22 @@ class _CommonMapViewState extends ConsumerState<CommonMapView> {
 
   @override
   Widget build(BuildContext context) {
+    final permissionsService = ref.read(appPermissionsServiceProvider);
+
+    // Wrap the entire map in the permission overlay so all callers get the
+    // graceful "Allow Location / Open Settings" UI for free.
+    return MapPermissionOverlay(
+      permissionsService: permissionsService,
+      child: _buildMap(context),
+    );
+  }
+
+  Widget _buildMap(BuildContext context) {
     if (widget.currentLocation == null) {
+      // ⚠️ DIAGNOSTIC: If this is always printed, location is never resolved.
+      // Likely causes: permission denied, GPS off, or getCurrentLocation() returning null.
+      debugPrint('[CommonMapView] ⚠️ currentLocation is NULL — showing spinner. '
+          'Check _initLocation() or _getCurrentLocation() in the parent dashboard.');
       return const CircularProgressIndicator().centered();
     }
 
@@ -69,8 +86,21 @@ class _CommonMapViewState extends ConsumerState<CommonMapView> {
           child: GoogleMap(
             onMapCreated: (controller) {
               _controller = controller;
+              // ✅ DIAGNOSTIC: If this never prints the map SDK failed to init.
+              // Possible causes: invalid API key, billing disabled, or
+              // myLocationEnabled=true without a granted permission.
+              debugPrint('[CommonMapView] ✅ onMapCreated fired — Google Maps SDK initialized. '
+                  'center=${widget.currentLocation!.latitude.toStringAsFixed(4)},'
+                  '${widget.currentLocation!.longitude.toStringAsFixed(4)}');
               if (widget.onMapCreated != null) {
                 widget.onMapCreated!(controller);
+              }
+              if (widget.currentLocation != null) {
+                MapTilePrefetchService.prefetchArea(
+                  widget.currentLocation!,
+                  zoomLevel: 15,
+                  gridRadius: 1,
+                );
               }
             },
             initialCameraPosition: CameraPosition(

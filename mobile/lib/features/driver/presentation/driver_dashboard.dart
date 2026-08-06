@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart'; // defaultTargetPlatform
 import 'package:flutter/services.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:collegebus/l10n/driver/app_localizations.dart';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -17,7 +16,6 @@ import 'package:collegebus/features/route/application/route_provider.dart';
 import 'package:collegebus/core/providers/repository_providers.dart';
 import 'package:collegebus/core/providers/socket_provider.dart';
 import 'package:collegebus/features/bus/domain/bus_model.dart';
-import 'package:collegebus/features/notification/services/fcm_service.dart';
 import 'package:collegebus/features/notification/services/notification_service.dart';
 import 'package:collegebus/features/route/domain/route_model.dart';
 import 'package:collegebus/core/constants/constants.dart';
@@ -373,101 +371,14 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
 
   /// Sequential permission flow that requests basic permissions first,
   /// followed by high-level background/battery/audio permissions.
-  Future<void> _requestDriverPermissions() async {
-    // 1. Request notification permission (FCM) first
-    try {
-      await FCMService().requestPermission();
-    } catch (_) {}
-
-    // 2. Request basic foreground GPS permission
-    final locationService = ref.read(locationServiceProvider);
-    final hasForegroundLoc = await locationService.checkLocationPermission();
-    if (!hasForegroundLoc) {
-      final granted = await locationService.requestLocationPermission();
-      // If foreground GPS is denied, stop requesting secondary permissions
-      if (!granted) return;
-    }
-
-    // 3. Request audio/microphone permission (for voice messages) right after basic GPS
-    try {
-      final micStatus = await Permission.microphone.status;
-      if (!micStatus.isGranted && !micStatus.isPermanentlyDenied) {
-        await Permission.microphone.request();
-      }
-    } catch (_) {}
-
-    // 4. Now request background location ("Allow all the time") on Android
-    if (defaultTargetPlatform == TargetPlatform.android) {
-      await _requestBackgroundLocationPermission(silent: false);
-    }
-
-    // 5. Request battery optimization exemption on Android
-    if (defaultTargetPlatform == TargetPlatform.android) {
-      await _requestBatteryOptimizationExemption();
-    }
-  }
-
-  /// Requests Android battery optimization exemption (one-time, on first launch).
   ///
-  /// On OEM devices (Samsung/Xiaomi/Oppo/Vivo), the system's battery optimizer
-  /// can kill the GPS foreground service after 5â€“10 minutes of screen-off even
-  /// with a persistent notification. Setting the app to "Don't optimize" prevents
-  /// this and is required for reliable background location delivery.
-  Future<void> _requestBatteryOptimizationExemption() async {
-    // Check if already exempted
-    final status = await Permission.ignoreBatteryOptimizations.status;
-    if (status.isGranted) return;
-
-    // Check if we've already shown this prompt before (don't spam the driver)
-    final prefs = await SharedPreferences.getInstance();
-    final alreadyPrompted = prefs.getBool('battery_opt_prompted') ?? false;
-    if (alreadyPrompted) return;
-
-    await prefs.setBool('battery_opt_prompted', true);
-
+  /// Delegates to [AppPermissionsService] so all roles share a centralized
+  /// permission orchestrator — avoids regression when new roles are added.
+  Future<void> _requestDriverPermissions() async {
     if (!mounted) return;
-
-    final proceed = await showDialog<bool>(
-      context: context,
-      barrierDismissible: false,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Row(
-          children: [
-            Icon(Icons.battery_saver_rounded, color: Color(0xFF0097B2)),
-            SizedBox(width: 10),
-            Text('Keep GPS Running', style: TextStyle(fontSize: 17)),
-          ],
-        ),
-        content: const Text(
-          'To keep sending your location when the screen is off, '
-          'please tap "Don\'t optimize" on the next screen.\n\n'
-          'This prevents your phone\'s battery saver from stopping GPS tracking.',
-          style: TextStyle(fontSize: 14, height: 1.5),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Skip'),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF0097B2),
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-            ),
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Continue'),
-          ),
-        ],
-      ),
-    );
-
-    if (proceed == true) {
-      await Permission.ignoreBatteryOptimizations.request();
-    }
+    await ref.read(appPermissionsServiceProvider).requestDriverPermissions(
+          context: context,
+        );
   }
 
   Future<void> _saveSelections(BusModel? myBus) async {
@@ -485,9 +396,13 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
 
   Future<void> _getCurrentLocation() async {
     final locationService = ref.read(locationServiceProvider);
-    final location = await locationService.getCurrentLocation();
-    if (location != null) {
-      ref.read(driverLocationProvider.notifier).updateLocation(location);
+    try {
+      final location = await locationService.getCurrentLocation();
+      if (location != null) {
+        ref.read(driverLocationProvider.notifier).updateLocation(location);
+      }
+    } catch (e) {
+      debugPrint('[DriverDashboard] ❌ GPS threw: $e');
     }
   }
 

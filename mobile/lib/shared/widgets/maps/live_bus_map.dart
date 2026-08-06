@@ -274,37 +274,44 @@ class LiveBusMapState extends ConsumerState<LiveBusMap>
           _centerLocation = navState.centerLocation;
         });
       }
+      debugPrint('[LiveBusMap] 📍 Using cached nav center (following bus): ${navState.centerLocation}');
       return;
     }
 
     // No bus selected (or no cached center): always resolve to the
     // student's own GPS position so we don't show a stale bus location.
     final locationService = ref.read(locationServiceProvider);
+    debugPrint('[LiveBusMap] 📡 Calling getCurrentLocation()...');
     try {
       final pos = await locationService.getCurrentLocation();
       if (pos != null && mounted) {
+        debugPrint('[LiveBusMap] ✅ GPS resolved: $pos');
         setState(() {
           _centerLocation = pos;
         });
         ref.read(mapNavigationProvider.notifier).updateUserLocation(pos);
       } else if (hasCachedCenter && mounted) {
         // GPS failed — fall back to cached position as last resort
+        debugPrint('[LiveBusMap] ⚠️ GPS returned null — falling back to cached center: ${navState.centerLocation}');
         setState(() {
           _centerLocation = navState.centerLocation;
         });
       } else if (mounted) {
         // Absolute fallback: use college default
         const fallback = LatLng(16.2345, 80.4567);
+        debugPrint('[LiveBusMap] ❌ GPS null AND no cache — using hardcoded fallback: $fallback');
         setState(() {
           _centerLocation = fallback;
         });
         ref.read(mapNavigationProvider.notifier).updateUserLocation(fallback);
       }
     } catch (e) {
+      debugPrint('[LiveBusMap] ❌ getCurrentLocation() threw: $e');
       if (_centerLocation == null && mounted) {
         final fallback = hasCachedCenter
             ? navState.centerLocation!
             : const LatLng(16.2345, 80.4567);
+        debugPrint('[LiveBusMap] 🔄 Using error fallback: $fallback');
         setState(() {
           _centerLocation = fallback;
         });
@@ -312,6 +319,7 @@ class LiveBusMapState extends ConsumerState<LiveBusMap>
       }
     }
   }
+
 
   /// Reads all current locations from the provider and seeds them into
   /// _liveLocations so that markers can be built even if ref.listen has not

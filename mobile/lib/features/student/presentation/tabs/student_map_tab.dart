@@ -175,6 +175,8 @@ class _StudentMapTabState extends ConsumerState<StudentMapTab>
                           )
                         : null,
                     border: InputBorder.none,
+                    enabledBorder: InputBorder.none,
+                    focusedBorder: InputBorder.none,
                     filled: true,
                     fillColor: Colors.transparent,
                     contentPadding: const EdgeInsets.symmetric(
