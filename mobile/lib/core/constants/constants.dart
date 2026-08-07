@@ -6,7 +6,26 @@ extension ThemeContext on BuildContext {
   TextTheme get textTheme => Theme.of(this).textTheme;
   ThemeData get theme => Theme.of(this);
   bool get isDarkMode => Theme.of(this).brightness == Brightness.dark;
+
+  MapThemeExtension get mapTheme =>
+      Theme.of(this).extension<MapThemeExtension>() ??
+      const MapThemeExtension(
+        routeColor: Color(0xFF00E5FF),
+        startStopColor: Color(0xFF00E676),
+        intermediateStopColor: Color(0xFFFF9100),
+        endStopColor: Color(0xFFFF1744),
+      );
+
+  DesignSystemThemeExtension? get designSystem =>
+      Theme.of(this).extension<DesignSystemThemeExtension>();
+
+  /// Centralized status-color tokens. Falls back to light-mode defaults
+  /// when the extension is not registered (e.g. in tests).
+  AppStatusThemeExtension get appStatus =>
+      Theme.of(this).extension<AppStatusThemeExtension>() ??
+      AppStatusThemeExtension.light;
 }
+
 
 // ... (AppColors, AppTheme, AppSizes, AppStrings classes remain unchanged)
 
@@ -177,6 +196,7 @@ class AppTheme {
         intermediateStopColor: Color(0xFFFF9800), // Orange (Warning)
         endStopColor: Color(0xFFE53935), // Red (Danger)
       ),
+      AppStatusThemeExtension.light,
       DesignSystemThemeExtension(
         mobileBreakpoint: 600.0,
         tabletBreakpoint: 1024.0,
@@ -366,6 +386,7 @@ class AppTheme {
         intermediateStopColor: Color(0xFFFF9100), // Bright Orange
         endStopColor: Color(0xFFFF1744), // Bright Red
       ),
+      AppStatusThemeExtension.dark,
       DesignSystemThemeExtension(
         mobileBreakpoint: 600.0,
         tabletBreakpoint: 1024.0,
@@ -581,6 +602,146 @@ class MapThemeExtension extends ThemeExtension<MapThemeExtension> {
   }
 }
 
+// ---------------------------------------------------------------------------
+// AppStatusThemeExtension — centralized semantic status-color tokens
+// ---------------------------------------------------------------------------
+
+/// Named semantic status colors used across driver, student, and coordinator
+/// views. Register in ThemeData.extensions and access via
+/// `context.appStatus.pickupColor`.
+class AppStatusThemeExtension
+    extends ThemeExtension<AppStatusThemeExtension> {
+  /// Badge color for PICKUP trips (Teal light / Indigo dark).
+  final Color pickupColor;
+
+  /// Badge foreground text color on top of [pickupColor].
+  final Color pickupForeground;
+
+  /// Badge color for DROP trips (Emerald light / Orange-Amber dark).
+  final Color dropColor;
+
+  /// Badge foreground text color on top of [dropColor].
+  final Color dropForeground;
+
+  /// SOS / emergency alert color (Crimson).
+  final Color sosColor;
+
+  /// Delay / warning badge color (Amber).
+  final Color delayColor;
+
+  /// Online / live status dot color (Green).
+  final Color onlineColor;
+
+  /// Offline / inactive status dot color (Slate).
+  final Color offlineColor;
+
+  /// Off-route notification banner background (Orange-Red).
+  final Color offRouteColor;
+
+  /// Connectivity-restored banner background (Emerald).
+  final Color reconnectedColor;
+
+  /// Connectivity-lost banner background (Orange-Red).
+  final Color disconnectedColor;
+
+  const AppStatusThemeExtension({
+    required this.pickupColor,
+    required this.pickupForeground,
+    required this.dropColor,
+    required this.dropForeground,
+    required this.sosColor,
+    required this.delayColor,
+    required this.onlineColor,
+    required this.offlineColor,
+    required this.offRouteColor,
+    required this.reconnectedColor,
+    required this.disconnectedColor,
+  });
+
+  /// Light-theme preset.
+  static const AppStatusThemeExtension light = AppStatusThemeExtension(
+    pickupColor: Color(0xFF0097B2),       // Deep Teal
+    pickupForeground: Colors.white,
+    dropColor: Color(0xFF059669),         // Emerald
+    dropForeground: Colors.white,
+    sosColor: Color(0xFFDC2626),          // Crimson
+    delayColor: Color(0xFFF59E0B),        // Amber
+    onlineColor: Color(0xFF16A34A),       // Forest Green
+    offlineColor: Color(0xFF64748B),      // Slate
+    offRouteColor: Color(0xFFEA580C),     // Orange-Red
+    reconnectedColor: Color(0xFF059669),  // Emerald
+    disconnectedColor: Color(0xFFEA580C), // Orange-Red
+  );
+
+  /// Dark-theme preset.
+  static const AppStatusThemeExtension dark = AppStatusThemeExtension(
+    pickupColor: Color(0xFF00C6E6),       // Turkish Blue
+    pickupForeground: Color(0xFF00363D),
+    dropColor: Color(0xFF10B981),         // Bright Emerald
+    dropForeground: Colors.white,
+    sosColor: Color(0xFFEF4444),          // Bright Red
+    delayColor: Color(0xFFFBBF24),        // Bright Amber
+    onlineColor: Color(0xFF4ADE80),       // Bright Green
+    offlineColor: Color(0xFF94A3B8),      // Light Slate
+    offRouteColor: Color(0xFFF97316),     // Bright Orange
+    reconnectedColor: Color(0xFF10B981),  // Bright Emerald
+    disconnectedColor: Color(0xFFF97316), // Bright Orange
+  );
+
+  @override
+  AppStatusThemeExtension copyWith({
+    Color? pickupColor,
+    Color? pickupForeground,
+    Color? dropColor,
+    Color? dropForeground,
+    Color? sosColor,
+    Color? delayColor,
+    Color? onlineColor,
+    Color? offlineColor,
+    Color? offRouteColor,
+    Color? reconnectedColor,
+    Color? disconnectedColor,
+  }) {
+    return AppStatusThemeExtension(
+      pickupColor: pickupColor ?? this.pickupColor,
+      pickupForeground: pickupForeground ?? this.pickupForeground,
+      dropColor: dropColor ?? this.dropColor,
+      dropForeground: dropForeground ?? this.dropForeground,
+      sosColor: sosColor ?? this.sosColor,
+      delayColor: delayColor ?? this.delayColor,
+      onlineColor: onlineColor ?? this.onlineColor,
+      offlineColor: offlineColor ?? this.offlineColor,
+      offRouteColor: offRouteColor ?? this.offRouteColor,
+      reconnectedColor: reconnectedColor ?? this.reconnectedColor,
+      disconnectedColor: disconnectedColor ?? this.disconnectedColor,
+    );
+  }
+
+  @override
+  AppStatusThemeExtension lerp(
+    ThemeExtension<AppStatusThemeExtension>? other,
+    double t,
+  ) {
+    if (other is! AppStatusThemeExtension) return this;
+    return AppStatusThemeExtension(
+      pickupColor: Color.lerp(pickupColor, other.pickupColor, t)!,
+      pickupForeground:
+          Color.lerp(pickupForeground, other.pickupForeground, t)!,
+      dropColor: Color.lerp(dropColor, other.dropColor, t)!,
+      dropForeground: Color.lerp(dropForeground, other.dropForeground, t)!,
+      sosColor: Color.lerp(sosColor, other.sosColor, t)!,
+      delayColor: Color.lerp(delayColor, other.delayColor, t)!,
+      onlineColor: Color.lerp(onlineColor, other.onlineColor, t)!,
+      offlineColor: Color.lerp(offlineColor, other.offlineColor, t)!,
+      offRouteColor: Color.lerp(offRouteColor, other.offRouteColor, t)!,
+      reconnectedColor:
+          Color.lerp(reconnectedColor, other.reconnectedColor, t)!,
+      disconnectedColor:
+          Color.lerp(disconnectedColor, other.disconnectedColor, t)!,
+    );
+  }
+}
+
 class GlassThemeSpec {
   final Color backgroundColor;
   final Color borderColor;
@@ -740,11 +901,23 @@ class DesignSystemThemeExtension
 extension DesignSystemThemeExtensionContext on BuildContext {
   DesignSystemThemeExtension get designTheme =>
       Theme.of(this).extension<DesignSystemThemeExtension>()!;
+
+  /// True when width is in the tablet range [mobileBreakpoint, tabletBreakpoint).
   bool get isTabletLayout =>
       MediaQuery.of(this).size.width >= designTheme.mobileBreakpoint &&
       MediaQuery.of(this).size.width < designTheme.tabletBreakpoint;
+
+  /// True when width is at or above the desktop/tablet breakpoint (>= 1024).
+  /// Use this to enable persistent master-detail split-pane navigation.
   bool get isDesktopLayout =>
       MediaQuery.of(this).size.width >= designTheme.tabletBreakpoint;
+
   bool get isMobileLayout =>
       MediaQuery.of(this).size.width < designTheme.mobileBreakpoint;
+
+  /// Convenience alias: true when a persistent side-panel (split-pane) layout
+  /// should be rendered alongside the primary content area.
+  /// Delegates to [designTheme.tabletBreakpoint] (1024 dp) so the threshold
+  /// is always in sync with the design system — never a magic number.
+  bool get isSplitPaneLayout => isDesktopLayout;
 }

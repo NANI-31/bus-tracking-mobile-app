@@ -4,7 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:collegebus/core/services/socket_service.dart';
 import 'package:collegebus/core/providers/socket_provider.dart';
 import 'package:collegebus/features/auth/application/auth_provider.dart';
-
+import 'package:collegebus/core/constants/constants.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 
 class GlobalConnectivityBanner extends ConsumerStatefulWidget {
@@ -157,20 +158,22 @@ class _GlobalConnectivityBannerState extends ConsumerState<GlobalConnectivityBan
     final double statusBarHeight = MediaQuery.of(context).padding.top;
     final double bannerHeight = statusBarHeight + 28;
 
-    // Setup style/text
+    // Setup style/text using AppStatusThemeExtension tokens so banner colors
+    // respect light/dark mode without hardcoded hex literals.
+    final statusTokens = context.appStatus;
     final Color startColor;
     final Color endColor;
     final String statusText;
     final Widget icon;
 
     if (_isReconnectedState) {
-      startColor = const Color(0xFF059669); // Emerald Dark
-      endColor = const Color(0xFF10B981);   // Emerald Light
+      startColor = statusTokens.reconnectedColor;
+      endColor = statusTokens.reconnectedColor.withValues(alpha: 0.85);
       statusText = "Back Online";
       icon = const Icon(Icons.check_circle_outline_rounded, color: Colors.white, size: 14);
     } else {
-      startColor = const Color(0xFFEA580C); // Orange-Red
-      endColor = const Color(0xFFDC2626);   // Red
+      startColor = statusTokens.disconnectedColor;
+      endColor = statusTokens.disconnectedColor.withValues(alpha: 0.85);
       statusText = isConnecting ? "Connecting to server..." : "Offline. Retrying...";
       icon = const SizedBox(
         width: 10,
@@ -241,3 +244,135 @@ class _GlobalConnectivityBannerState extends ConsumerState<GlobalConnectivityBan
     );
   }
 }
+
+// ---------------------------------------------------------------------------
+// CachedPositionBanner
+// ---------------------------------------------------------------------------
+
+/// A subtle glassmorphic pill displayed at the bottom of a map `Stack` when
+/// the socket is offline but a last-known bus position is available.
+///
+/// Mount this inside any map-tab `Stack` and pass the last-received [LatLng]
+/// and [lastUpdateTime]. It hides itself automatically when the socket
+/// reconnects.
+///
+/// Example:
+/// ```dart
+/// Stack(
+///   children: [
+///     LiveBusMap(...),
+///     CachedPositionBanner(
+///       lastKnownPosition: _liveBusLocation,
+///       lastUpdateTime: _lastSocketUpdate,
+///       bottomOffset: 80.0,
+///     ),
+///   ],
+/// )
+/// ```
+class CachedPositionBanner extends ConsumerWidget {
+  final LatLng? lastKnownPosition;
+  final DateTime? lastUpdateTime;
+
+  /// Distance from the bottom of the `Stack` to the banner (used to sit
+  /// above bottom navigation bars or control panels).
+  final double bottomOffset;
+
+  const CachedPositionBanner({
+    super.key,
+    required this.lastKnownPosition,
+    this.lastUpdateTime,
+    this.bottomOffset = 80.0,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    // Granular select: only rebuild when isConnected changes.
+    final isConnected = ref.watch(
+      socketServiceProvider.select((s) => s.isConnected),
+    );
+
+    // Hide when online or when we have no cached position to show.
+    if (isConnected || lastKnownPosition == null) return const SizedBox.shrink();
+
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final statusTokens = context.appStatus;
+
+    final String ageLabel;
+    if (lastUpdateTime != null) {
+      final diff = DateTime.now().difference(lastUpdateTime!);
+      if (diff.inSeconds < 60) {
+        ageLabel = '${diff.inSeconds}s ago';
+      } else if (diff.inMinutes < 60) {
+        ageLabel = '${diff.inMinutes} min ago';
+      } else {
+        ageLabel = '${diff.inHours}h ago';
+      }
+    } else {
+      ageLabel = 'last known';
+    }
+
+    return Positioned(
+      left: 16,
+      right: 16,
+      bottom: bottomOffset,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        decoration: BoxDecoration(
+          // Glassmorphic tint with amber accent border to signal stale state
+          color: isDark
+              ? Colors.black.withValues(alpha: 0.65)
+              : Colors.white.withValues(alpha: 0.80),
+          borderRadius: BorderRadius.circular(28),
+          border: Border.all(
+            color: statusTokens.delayColor.withValues(alpha: 0.60),
+            width: 1.5,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.10),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.location_on_rounded,
+              size: 16,
+              color: statusTokens.delayColor,
+            ),
+            const SizedBox(width: 8),
+            Flexible(
+              child: Text(
+                'Cached position \u00B7 $ageLabel',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: isDark
+                      ? Colors.white.withValues(alpha: 0.90)
+                      : Colors.black.withValues(alpha: 0.75),
+                ),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            const SizedBox(width: 8),
+            SizedBox(
+              width: 10,
+              height: 10,
+              child: CircularProgressIndicator(
+                strokeWidth: 1.5,
+                valueColor: AlwaysStoppedAnimation<Color>(
+                  statusTokens.delayColor,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+

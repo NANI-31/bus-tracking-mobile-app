@@ -144,7 +144,10 @@ class StudentHomeScreen extends ConsumerWidget {
     }
 
 
-    final isWide = context.isTabletLayout || context.isDesktopLayout;
+    // isSplitPaneLayout delegates to designTheme.tabletBreakpoint (1024 dp)
+    // from DesignSystemThemeExtensionContext — a single source of truth for
+    // the adaptive split-view threshold across all screens.
+    final isWide = context.isSplitPaneLayout;
 
     return SafeArea(
       bottom: false,

@@ -15,6 +15,7 @@ import 'package:collegebus/shared/widgets/maps/map_skeleton_loader.dart';
 import 'package:collegebus/shared/widgets/maps/map_error_boundary.dart';
 import 'package:collegebus/shared/widgets/glass_card.dart';
 import 'package:collegebus/shared/widgets/navigation/curved_bottom_nav_bar.dart';
+import 'package:collegebus/shared/widgets/global_connectivity_banner.dart';
 
 class StudentMapTab extends ConsumerStatefulWidget {
   final LatLng? currentLocation;
@@ -62,6 +63,10 @@ class _StudentMapTabState extends ConsumerState<StudentMapTab>
   bool _isSearchExpanded = false;
   String _searchQuery = '';
   DirectionsResult? _directionsResult;
+
+  /// Last time a live bus location was received from the socket.
+  /// Passed to [CachedPositionBanner] to display the staleness age label.
+  DateTime? _lastSocketUpdate;
 
   @override
   void dispose() {
@@ -353,6 +358,11 @@ class _StudentMapTabState extends ConsumerState<StudentMapTab>
         if (widget.selectedBus != null && widget.activeRoute != null)
           _buildTripProgressSheet(),
 
+        // Cached-position offline overlay — shown when socket drops but a
+        // last-known bus position is available. Sits above the progress sheet.
+        _buildCachedPositionBanner(),
+
+
         // Simple close button if bus selected but no route
         if (widget.selectedBus != null && widget.activeRoute == null)
           Positioned(
@@ -426,6 +436,8 @@ class _StudentMapTabState extends ConsumerState<StudentMapTab>
             .toList();
         if (busLoc.isNotEmpty) {
           liveBusLocation = busLoc.first.currentLocation;
+          // Track last time a live position was received.
+          _lastSocketUpdate = DateTime.now();
         }
       });
     }
@@ -438,6 +450,31 @@ class _StudentMapTabState extends ConsumerState<StudentMapTab>
       preferredStop: user?.preferredStop,
       tripType: widget.selectedBus?.tripType,
     );
+  }
 
+  /// Builds the CachedPositionBanner for the selected bus when offline.
+  Widget _buildCachedPositionBanner() {
+    final user = ref.watch(currentUserProvider);
+    final collegeId = user?.collegeId;
+    LatLng? lastKnownPosition;
+
+    if (collegeId != null && widget.selectedBus != null) {
+      final locationsAsync = ref.watch(collegeBusLocationsProvider(collegeId));
+      locationsAsync.whenData((locations) {
+        final busLoc = locations
+            .where((l) => l.busId == widget.selectedBus!.id)
+            .toList();
+        if (busLoc.isNotEmpty) {
+          lastKnownPosition = busLoc.first.currentLocation;
+        }
+      });
+    }
+
+    return CachedPositionBanner(
+      lastKnownPosition: lastKnownPosition,
+      lastUpdateTime: _lastSocketUpdate,
+      bottomOffset: widget.selectedBus != null ? 240.0 : 80.0,
+    );
   }
 }
+

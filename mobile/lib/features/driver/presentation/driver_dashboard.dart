@@ -31,7 +31,7 @@ import 'package:collegebus/features/user/presentation/screens/profile_screen.dar
 import 'package:collegebus/features/driver/application/driver_location_provider.dart';
 import 'package:collegebus/features/driver/application/driver_map_provider.dart';
 import 'package:collegebus/features/driver/application/driver_ui_provider.dart';
-import 'package:collegebus/core/utils/map_marker_helper.dart';
+import 'package:collegebus/core/utils/map_marker_cache.dart';
 import 'package:collegebus/shared/widgets/shimmer_skeletons.dart';
 import 'package:collegebus/shared/widgets/api_error_modal.dart';
 import 'package:collegebus/shared/widgets/global_connectivity_banner.dart';
@@ -62,10 +62,6 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
   /// Active overlay entry for the top toast notification.
   OverlayEntry? _activeOverlayEntry;
 
-  /// Persistent deviation toast â€” updates distance in-place, never stacks.
-  OverlayEntry? _deviationOverlayEntry;
-  final ValueNotifier<int> _deviationDistanceNotifier = ValueNotifier(0);
-
   BitmapDescriptor? _busIcon;
   BitmapDescriptor? _startStopIcon;
   BitmapDescriptor? _intermediateStopIcon;
@@ -81,7 +77,9 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
 
   Future<void> _loadBusIcon() async {
     try {
-      final icon = await MapMarkerHelper.createBusMarker();
+      // MapMarkerCache deduplicates the async canvas-draw so subsequent calls
+      // during active tracking sessions return instantly from memory.
+      final icon = await MapMarkerCache.getBusMarker();
       if (mounted) {
         setState(() {
           _busIcon = icon;
@@ -97,6 +95,7 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
     Color stopColor,
     Color endColor,
   ) async {
+    // Color-change guard: skip the async work when nothing changed.
     if (_lastStartColor == startColor &&
         _lastStopColor == stopColor &&
         _lastEndColor == endColor) {
@@ -107,9 +106,11 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
     _lastEndColor = endColor;
 
     try {
-      final startIcon = await MapMarkerHelper.getStartMarker(color: startColor);
-      final stopIcon = await MapMarkerHelper.getStopMarker(color: stopColor);
-      final endIcon = await MapMarkerHelper.getEndMarker(color: endColor);
+      // MapMarkerCache returns cached descriptors on repeated calls so the
+      // canvas-draw / image-decode path is only hit once per unique color.
+      final startIcon = await MapMarkerCache.getStartMarker(color: startColor);
+      final stopIcon  = await MapMarkerCache.getStopMarker(color: stopColor);
+      final endIcon   = await MapMarkerCache.getEndMarker(color: endColor);
       if (mounted) {
         setState(() {
           _startStopIcon = startIcon;
@@ -167,12 +168,10 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
   void dispose() {
     _activeOverlayEntry?.remove();
     _activeOverlayEntry = null;
-    _deviationOverlayEntry?.remove();
-    _deviationOverlayEntry = null;
-    _deviationDistanceNotifier.dispose();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
+
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
@@ -489,67 +488,8 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
     });
   }
 
-  /// Shows (or keeps) a persistent deviation toast, updating distance in-place.
-  void _showDeviationToast() {
-    if (!mounted) return;
-    // Already showing â€” just update the notifier value, no new entry needed
-    if (_deviationOverlayEntry != null) return;
 
-    final entry = OverlayEntry(
-      builder: (ctx) => Positioned(
-        top: MediaQuery.of(ctx).padding.top + 16,
-        left: 16,
-        right: 16,
-        child: Material(
-          color: Colors.transparent,
-          child: ValueListenableBuilder<int>(
-            valueListenable: _deviationDistanceNotifier,
-            builder: (_, dist, __) => Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              decoration: BoxDecoration(
-                color: Colors.orange.shade800,
-                borderRadius: BorderRadius.circular(14),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.25),
-                    blurRadius: 12,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-              ),
-              child: Row(
-                children: [
-                  const Icon(Icons.warning_amber_rounded,
-                      color: Colors.white, size: 20),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Text(
-                      'Off route \u2022 ${dist}m from path',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w600,
-                        fontSize: 14,
-                      ),
-                    ),
 
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-
-    _deviationOverlayEntry = entry;
-    Overlay.of(context).insert(entry);
-  }
-
-  /// Dismisses the deviation toast when the driver is back on route.
-  void _hideDeviationToast() {
-    _deviationOverlayEntry?.remove();
-    _deviationOverlayEntry = null;
-  }
 
   Future<void> _toggleLocationSharing(BusModel? myBus) async {
     final isSharing = ref.read(driverLocationProvider).isSharing;
@@ -594,17 +534,19 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
 
     // Threshold: 200 meters
     if (minDistance > 200) {
-      // Rate-limit to once per minute, but update the distance live in the toast
       final now = DateTime.now();
       if (_lastDeviationAlertTime == null ||
           now.difference(_lastDeviationAlertTime!) >
               const Duration(minutes: 1)) {
         _lastDeviationAlertTime = now;
       }
-      _deviationDistanceNotifier.value = minDistance.toInt();
-      _showDeviationToast();
+      ref
+          .read(driverLocationProvider.notifier)
+          .updateOffRouteDistance(minDistance.toInt());
     } else {
-      _hideDeviationToast();
+      ref
+          .read(driverLocationProvider.notifier)
+          .updateOffRouteDistance(null);
     }
 
     // ETA Calculation

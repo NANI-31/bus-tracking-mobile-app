@@ -22,6 +22,7 @@ import 'package:collegebus/features/route/domain/route_model.dart';
 import 'package:collegebus/core/utils/route_math_utils.dart';
 import 'package:collegebus/shared/widgets/sos_button.dart';
 import 'package:collegebus/widgets/common/common_map_view.dart';
+import 'package:collegebus/shared/widgets/global_connectivity_banner.dart';
 import 'live_tracking_control_panel.dart';
 import 'voice_message_button.dart';
 
@@ -219,7 +220,84 @@ class DriverLiveTrackingTab extends ConsumerWidget {
           },
         ),
 
+        // Off-Route Notification Banner — scoped strictly to Map Tab view only
+        Consumer(
+          builder: (context, ref, child) {
+            final offRouteDistance = ref.watch(
+              driverLocationProvider.select((s) => s.offRouteDistance),
+            );
+            final isSharing = ref.watch(
+              driverLocationProvider.select((s) => s.isSharing),
+            );
+            if (!isSharing || offRouteDistance == null) {
+              return const SizedBox.shrink();
+            }
+
+            final currentLocation = ref.watch(
+              driverLocationProvider.select((s) => s.currentLocation),
+            );
+            final nextStopETA = ref.watch(
+              driverLocationProvider.select((s) => s.nextStopETA),
+            );
+            final mapState = ref.watch(driverMapStateProvider);
+            final selectedRoute = mapState.selectedRoute;
+            final result = mapState.directionsResult;
+
+            String? directionsETA;
+            if (result != null && currentLocation != null && selectedRoute != null) {
+              directionsETA = _computeNextStopETAFromDirections(
+                currentLocation,
+                selectedRoute,
+                result,
+                myBus?.tripType,
+              );
+            }
+            final hasETA = (directionsETA ?? (nextStopETA != null ? 'ETA: $nextStopETA' : null)) != null;
+            final topOffset = MediaQuery.of(context).padding.top + (hasETA ? 80 : 12);
+
+            // Use appStatus token for off-route banner color so it respects
+            // dark / light mode theming instead of hardcoded orange shade.
+            return Positioned(
+              top: topOffset,
+              left: 16,
+              right: 16,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                decoration: BoxDecoration(
+                  color: context.appStatus.offRouteColor,
+                  borderRadius: BorderRadius.circular(14),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.25),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.warning_amber_rounded,
+                        color: Colors.white, size: 20),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        'Off route • ${offRouteDistance}m from path',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        ),
+
         // SOS & Voice Message Buttons (positioned below ETA card if present)
+
         Consumer(
           builder: (context, ref, child) {
             final isSharing = ref.watch(
@@ -312,6 +390,14 @@ class DriverLiveTrackingTab extends ConsumerWidget {
             final isPickup = (myBus?.tripType ?? 'pickup') != 'drop';
             final topOffset = MediaQuery.of(context).padding.top + (hasETA ? 80 : 12);
 
+            // Use AppStatusThemeExtension tokens for pickup/drop badge colors.
+            final badgeColor = isPickup
+                ? context.appStatus.pickupColor
+                : context.appStatus.dropColor;
+            final badgeForeground = isPickup
+                ? context.appStatus.pickupForeground
+                : context.appStatus.dropForeground;
+
             return Positioned(
               top: topOffset,
               right: 12,
@@ -319,9 +405,7 @@ class DriverLiveTrackingTab extends ConsumerWidget {
                 padding: const EdgeInsets.symmetric(
                     horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
-                  color: isPickup
-                      ? AppColors.success.withValues(alpha: 0.92)
-                      : Colors.orange.withValues(alpha: 0.92),
+                  color: badgeColor.withValues(alpha: 0.92),
                   borderRadius: BorderRadius.circular(20),
                   boxShadow: [
                     BoxShadow(
@@ -336,14 +420,14 @@ class DriverLiveTrackingTab extends ConsumerWidget {
                   children: [
                     Icon(
                       isPickup ? Icons.school_rounded : Icons.home_rounded,
-                      color: Colors.white,
+                      color: badgeForeground,
                       size: 13,
                     ),
                     const SizedBox(width: 4),
                     Text(
                       isPickup ? 'PICKUP' : 'DROP',
-                      style: const TextStyle(
-                        color: Colors.white,
+                      style: TextStyle(
+                        color: badgeForeground,
                         fontSize: 10,
                         fontWeight: FontWeight.w900,
                         letterSpacing: 0.6,
@@ -352,6 +436,23 @@ class DriverLiveTrackingTab extends ConsumerWidget {
                   ],
                 ),
               ),
+            );
+          },
+        ),
+
+        // Cached-position offline banner — visible when sharing and socket drops.
+        Consumer(
+          builder: (context, ref, child) {
+            final isSharing = ref.watch(
+              driverLocationProvider.select((s) => s.isSharing),
+            );
+            final currentLocation = ref.watch(
+              driverLocationProvider.select((s) => s.currentLocation),
+            );
+            if (!isSharing) return const SizedBox.shrink();
+            return CachedPositionBanner(
+              lastKnownPosition: currentLocation,
+              bottomOffset: 120.0,
             );
           },
         ),
