@@ -13,6 +13,8 @@ import 'package:collegebus/core/data/base_repository.dart';
 import 'package:collegebus/features/auth/data/auth_service.dart';
 import 'package:collegebus/core/providers/repository_providers.dart';
 import 'package:collegebus/features/student/application/map_navigation_provider.dart';
+import 'package:collegebus/shared/widgets/session_expiry_dialog.dart';
+
 
 // Repository providers (moved to repository_providers.dart)
 
@@ -41,15 +43,24 @@ class AuthState {
 
 /// Auth notifier - manages authentication state as AsyncNotifier
 class AuthNotifier extends AsyncNotifier<AuthState> {
+  static bool isExplicitLoggingOut = false;
+
   @override
   Future<AuthState> build() async {
     debugPrint('AUTH NOTIFIER: build() started');
 
     // Hook global 401 handler
     BaseRepository.onUnauthorized = () {
-      debugPrint('AUTH NOTIFIER: Unauthorized signal received, signing out...');
-      signOut();
+      if (isExplicitLoggingOut) return;
+      debugPrint('AUTH NOTIFIER: Unauthorized signal received, showing session expiry dialog...');
+      SessionExpiryDialog.show(
+        onConfirm: () {
+          signOut();
+        },
+      );
     };
+
+
 
     // Standard initialization: check storage
     await PersistenceService.init();
@@ -188,6 +199,7 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
   }
 
   Future<void> signOut() async {
+    isExplicitLoggingOut = true;
     final currentUser = state.value?.currentUser;
     try {
       if (currentUser != null) {
@@ -229,8 +241,14 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
 
       _premiumExpiryTimer?.cancel();
       state = AsyncValue.data(const AuthState());
+
+      // Reset explicit logout flag after navigation completes
+      Future.microtask(() {
+        isExplicitLoggingOut = false;
+      });
     }
   }
+
 
   void updateCurrentUser(UserModel user) {
     if (state.hasValue) {

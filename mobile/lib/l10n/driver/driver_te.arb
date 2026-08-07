@@ -11,7 +11,7 @@
   "assignBusButton": "బస్ కేటాయించండి",
   "busLabel": "బస్సు: {busNumber}",
   "routeLabel": "రూట్: {routeName}",
-  "routeTypeDetails": "రకం: {routeType} | {start} -> {end}",
+  "routeTypeDetails": "రకం: {tripDirection} | {fromStop} -> {toStop}",
   "removeAssignmentButton": "అసైన్‌మెంట్ తొలగించండి",
   "newTripAssignment": "కొత్త ట్రిప్ అసైన్‌మెంట్",
   "busNumberLabel": "బస్ నంబర్",
@@ -39,5 +39,11 @@
   "currentLocationStats": "ప్రస్తుత: {lat}, {lng}",
   "yourLocationLabel": "మీ లొకేషన్: {lat}, {lng}",
   "locationNotAvailable": "లొకేషన్ అందుబాటులో లేదు. దయచేసి లొకేషన్ సేవలను ప్రారంభించండి.",
+  "locationPermissionRequired": "ట్రిప్ ప్రారంభించడానికి లొకేషన్ అనుమతి అవసరం. దయచేసి సెట్టింగ్‌లలో దీన్ని ప్రారంభించండి.",
+  "tripCompletedTitle": "ట్రిప్ పూర్తయింది",
+  "tripCompletedMessage": "మీరు ఖచ్చితంగా ఈ ట్రిప్‌ను పూర్తి చేయాలనుకుంటున్నారా?",
+  "confirmComplete": "పూర్తి చేయి",
+  "cancel": "రద్దు చేయి",
   "busHeader": "బస్సు {busNumber}"
 }
+

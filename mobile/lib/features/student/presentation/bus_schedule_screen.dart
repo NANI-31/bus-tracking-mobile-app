@@ -1685,19 +1685,31 @@ class _BusScheduleScreenState extends ConsumerState<BusScheduleScreen> {
     required bool isDark,
     required Set<String> liveBusIds,
   }) {
-    final rawSchedules = route.id != schedule.routeId
+    final isDrop = (bus.tripType ?? 'pickup') == 'drop';
+    final rawStopsPickupOrder = route.id != schedule.routeId
         ? [
             StopSchedule(stopName: route.startPoint.name, arrivalTime: '--:--', departureTime: '--:--'),
             ...route.stopPoints.map((s) => StopSchedule(stopName: s.name, arrivalTime: '--:--', departureTime: '--:--')),
             StopSchedule(stopName: route.endPoint.name, arrivalTime: '--:--', departureTime: '--:--'),
           ].where((s) => s.stopName.isNotEmpty).toList()
         : schedule.stopSchedules;
+    // For drop trips, reverse the stop order so the first dot (green) is the
+    // trip origin (college/end point) and the last dot (red) is the outer stop.
+    final rawSchedules = isDrop
+        ? rawStopsPickupOrder.reversed.toList()
+        : rawStopsPickupOrder;
 
-    // Filter out intermediate duplicates matching start or end name/coordinates
+    // Filter out intermediate duplicates matching start or end name/coordinates.
+    // For drop trips rawSchedules is reversed, so the 'effective' first stop is
+    // route.endPoint and the 'effective' last stop is route.startPoint.
     final List<StopSchedule> displayStopSchedules = [];
     if (rawSchedules.isNotEmpty) {
-      final startName = route.startPoint.name.trim().toLowerCase();
-      final endName = route.endPoint.name.trim().toLowerCase();
+      final effectiveStartName = isDrop
+          ? route.endPoint.name.trim().toLowerCase()
+          : route.startPoint.name.trim().toLowerCase();
+      final effectiveEndName = isDrop
+          ? route.startPoint.name.trim().toLowerCase()
+          : route.endPoint.name.trim().toLowerCase();
 
       for (int i = 0; i < rawSchedules.length; i++) {
         final stop = rawSchedules[i];
@@ -1708,8 +1720,9 @@ class _BusScheduleScreenState extends ConsumerState<BusScheduleScreen> {
         final isLast = i == rawSchedules.length - 1;
 
         if (!isFirst && !isLast) {
-          final duplicatesStart = startName.isNotEmpty && name == startName;
-          final duplicatesEnd = endName.isNotEmpty && name == endName;
+          final duplicatesStart = effectiveStartName.isNotEmpty && name == effectiveStartName;
+          final duplicatesEnd = effectiveEndName.isNotEmpty && name == effectiveEndName;
+
           
           // Also check coordinates from route stopPoints if we can match by name
           bool isCoordinateMatch = false;
@@ -1734,7 +1747,9 @@ class _BusScheduleScreenState extends ConsumerState<BusScheduleScreen> {
     }
 
     final stopCount = displayStopSchedules.length;
-    final routeTypeIsPickup = route.routeType.toLowerCase() == 'pickup';
+    // Use bus.tripType (coordinator-assigned direction) not route.routeType
+    // (which is always 'pickup' as a static route property).
+    final routeTypeIsPickup = (bus.tripType ?? 'pickup') != 'drop';
 
     // P0.1 + P1.2 fix: Removed BackdropFilter from every card in the list.
     // BackdropFilter inside ListView forces GPU to readback+blur per visible
@@ -1843,7 +1858,9 @@ class _BusScheduleScreenState extends ConsumerState<BusScheduleScreen> {
                         Expanded(
                           child: Text(
                             route.startPoint.name.isNotEmpty
-                                ? '${route.startPoint.name} → ${route.endPoint.name}'
+                                ? isDrop
+                                    ? '${route.endPoint.name} → ${route.startPoint.name}'
+                                    : '${route.startPoint.name} → ${route.endPoint.name}'
                                 : 'Route not assigned',
                             style: TextStyle(
                               fontSize: 12,

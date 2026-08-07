@@ -295,10 +295,10 @@ class _EditBusScreenState extends ConsumerState<EditBusScreen> {
         ? (ref.watch(allCollegeBusesStreamProvider(collegeId)).value ?? [])
         : <BusModel>[];
 
-    // Build a map: driverId -> busNumber
+    // Build a map: driverId -> busNumber (only for active/pending assignments)
     final Map<String, String> driverToBusMap = {};
     for (final bus in buses) {
-      if (bus.driverId.isNotEmpty) {
+      if (bus.driverId.isNotEmpty && bus.assignmentStatus != 'unassigned') {
         driverToBusMap[bus.driverId] = bus.busNumber;
       }
     }

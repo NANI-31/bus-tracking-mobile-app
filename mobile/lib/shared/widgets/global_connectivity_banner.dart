@@ -1,8 +1,10 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:collegebus/core/services/socket_service.dart';
 import 'package:collegebus/core/providers/socket_provider.dart';
 import 'package:collegebus/features/auth/application/auth_provider.dart';
+
 
 
 class GlobalConnectivityBanner extends ConsumerStatefulWidget {
@@ -72,36 +74,13 @@ class _GlobalConnectivityBannerState extends ConsumerState<GlobalConnectivityBan
     });
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final isLoggedIn = ref.watch(isLoggedInProvider);
-    if (!isLoggedIn) {
-      _wasConnected = true;
-      _gracePeriodTimer?.cancel();
-      _hideTimer?.cancel();
-      if (_showBanner) {
-        _showBanner = false;
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (mounted) {
-            _slideController.reset();
-          }
-        });
-      }
-      return widget.child ?? const SizedBox.shrink();
-    }
-
-    final socketService = ref.watch(socketServiceProvider);
-    final isConnected = socketService.isConnected;
-    final isConnecting = socketService.isConnecting;
-
-    // We add a tiny listener check inside build or didUpdateWidget.
-    // To be perfectly safe, we trigger side effects post-frame or inside build.
+  void _handleConnectionStateChange(bool isConnected) {
     if (isConnected) {
       if (!_wasConnected) {
         _wasConnected = true;
         _gracePeriodTimer?.cancel();
         _hideTimer?.cancel();
-        
+
         setState(() {
           _isReconnectedState = true;
         });
@@ -121,17 +100,22 @@ class _GlobalConnectivityBannerState extends ConsumerState<GlobalConnectivityBan
         _hideTimer?.cancel();
 
         // Add a grace period before showing the offline banner.
-        // On resume from background, we extend the grace period to 5 s to
+        // On resume from background, we extend the grace period to 6 s to
         // cover the normal socket reconnect window (avoids misleading flash).
         _gracePeriodTimer?.cancel();
         final isSuppressed = GlobalConnectivityBanner._suppressUntil != null &&
             DateTime.now().isBefore(GlobalConnectivityBanner._suppressUntil!);
         final graceDuration = isSuppressed
-            ? const Duration(seconds: 5)
+            ? const Duration(seconds: 6)
             : const Duration(seconds: 2);
 
         _gracePeriodTimer = Timer(graceDuration, () {
-          if (mounted && !ref.read(socketServiceProvider).isConnected) {
+          final svc = ref.read(socketServiceProvider);
+          debugPrint(
+            '[Banner] 🚨 Grace period expired — showing banner. '
+            'isConnected=${svc.isConnected} isConnecting=${svc.isConnecting}',
+          );
+          if (mounted && !svc.isConnected) {
             setState(() {
               _isReconnectedState = false;
             });
@@ -140,6 +124,35 @@ class _GlobalConnectivityBannerState extends ConsumerState<GlobalConnectivityBan
         });
       }
     }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isLoggedIn = ref.watch(isLoggedInProvider);
+    if (!isLoggedIn) {
+      _wasConnected = true;
+      _gracePeriodTimer?.cancel();
+      _hideTimer?.cancel();
+      if (_showBanner) {
+        _showBanner = false;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) {
+            _slideController.reset();
+          }
+        });
+      }
+      return widget.child ?? const SizedBox.shrink();
+    }
+
+    // Safely listen for socket connection state transitions without side-effects in build()
+    ref.listen<SocketService>(socketServiceProvider, (previous, next) {
+      _handleConnectionStateChange(next.isConnected);
+    });
+
+    final socketService = ref.watch(socketServiceProvider);
+    final isConnecting = socketService.isConnecting;
+
+
 
     final double statusBarHeight = MediaQuery.of(context).padding.top;
     final double bannerHeight = statusBarHeight + 28;

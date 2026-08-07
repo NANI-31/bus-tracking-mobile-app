@@ -11,7 +11,7 @@
   "assignBusButton": "Assign Bus",
   "busLabel": "Bus: {busNumber}",
   "routeLabel": "Route: {routeName}",
-  "routeTypeDetails": "Type: {routeType} | {start} -> {end}",
+  "routeTypeDetails": "Type: {tripDirection} | {fromStop} -> {toStop}",
   "removeAssignmentButton": "Remove Assignment",
   "newTripAssignment": "New Trip Assignment",
   "busNumberLabel": "Bus Number",

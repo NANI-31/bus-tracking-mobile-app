@@ -136,9 +136,14 @@ class TeacherOverrideTab extends ConsumerWidget {
                 ),
                 hint: 'Choose a vehicle'.text.make(),
                 items: buses.map((bus) {
+                  final statusSuffix = bus.assignmentStatus == 'accepted'
+                      ? ' (Active)'
+                      : bus.assignmentStatus == 'pending'
+                          ? ' (Pending)'
+                          : ' (Available)';
                   return DropdownMenuItem<String>(
                     value: bus.id,
-                    child: 'Bus ${bus.busNumber}'.text.make(),
+                    child: 'Bus ${bus.busNumber}$statusSuffix'.text.make(),
                   );
                 }).toList(),
                 onChanged: isTracking ? null : (busId) => onSelectBus(busId),
@@ -267,18 +272,24 @@ class TeacherOverrideTab extends ConsumerWidget {
                     String statusLabel = 'Offline';
                     String statusSubtitle = 'Unassigned & Offline';
 
+                    // Show trip direction if the bus has an active assignment.
+                    final tripType = bus.tripType;
+                    final directionTag = tripType != null
+                        ? ' \u2014 ${tripType.toUpperCase()}'
+                        : '';
+
                     if (isCurrentOverride) {
                       statusColor = Colors.green;
                       statusLabel = 'Override Active';
-                      statusSubtitle = 'You are broadcasting location';
+                      statusSubtitle = 'You are broadcasting location$directionTag';
                     } else if (isLive) {
                       statusColor = Colors.green;
                       statusLabel = 'Live';
-                      statusSubtitle = 'Currently broadcasting live';
+                      statusSubtitle = 'Currently broadcasting live$directionTag';
                     } else if (isAssigned) {
                       statusColor = Colors.amber.shade700;
                       statusLabel = 'Assigned';
-                      statusSubtitle = 'Assigned (Driver Offline)';
+                      statusSubtitle = 'Assigned (Driver Offline)$directionTag';
                     }
 
                     return Card(

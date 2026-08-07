@@ -132,6 +132,7 @@ class DataService extends ChangeNotifier {
     required String driverId,
     required String collegeId,
     String? routeId,
+    String? tripType,
   }) async {
     final buses = await _ref.read(busListProvider.future);
     final existingBus = buses.firstWhere(
@@ -146,9 +147,13 @@ class DataService extends ChangeNotifier {
     if (routeId != null) {
       updateData['routeId'] = routeId;
     }
+    if (tripType != null) {
+      updateData['tripType'] = tripType;
+    }
 
     await updateBus(existingBus.id, updateData);
   }
+
 
   Future<void> acceptBusAssignment(String busId) =>
       _busService.updateBus(busId, {'assignmentStatus': 'accepted'});

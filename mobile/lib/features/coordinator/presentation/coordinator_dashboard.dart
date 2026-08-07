@@ -232,7 +232,9 @@ class _CoordinatorDashboardState extends ConsumerState<CoordinatorDashboard>
         ref.read(allCollegeBusesStreamProvider(collegeId)).value ?? [];
 
     try {
-      final bus = buses.firstWhere((b) => b.driverId == driver.id);
+      final bus = buses.firstWhere(
+        (b) => b.driverId == driver.id && b.assignmentStatus != 'unassigned',
+      );
       context.push(
         '/coordinator/edit-bus/${bus.busNumber}?editable=false',
         extra: bus,

@@ -11,6 +11,10 @@ class BusCard extends StatelessWidget {
   final VoidCallback? onTap;
   final bool isSelected;
   final bool showLiveStatus;
+  /// Active trip direction from bus.tripType ('pickup' | 'drop').
+  /// When 'drop', the route label shows endPoint → startPoint.
+  /// Defaults to null which is treated as 'pickup'.
+  final String? tripType;
 
   const BusCard({
     super.key,
@@ -20,6 +24,7 @@ class BusCard extends StatelessWidget {
     this.onTap,
     this.isSelected = false,
     this.showLiveStatus = true,
+    this.tripType,
   });
 
   @override
@@ -55,24 +60,39 @@ class BusCard extends StatelessWidget {
                         : Theme.of(context).colorScheme.onSurface,
                   )
                   .make(),
-              if (route != null)
+                if (route != null)
                 VStack([
-                  '${route!.startPoint.name} → ${route!.endPoint.name}'.text
-                      .size(14)
-                      .color(
-                        context.colorScheme.onSurface.withValues(alpha: 0.6),
-                      )
-                      .make(),
-                  if (route!.stopPoints.isNotEmpty)
-                    'Stops: ${route!.stopPoints.map((s) => s.name).join(', ')}'
-                        .text
-                        .size(12)
+                  Builder(builder: (_) {
+                    final isDrop = (tripType ?? bus.tripType) == 'drop';
+                    final from = isDrop
+                        ? route!.endPoint.name
+                        : route!.startPoint.name;
+                    final to = isDrop
+                        ? route!.startPoint.name
+                        : route!.endPoint.name;
+                    return '$from → $to'.text
+                        .size(14)
                         .color(
                           context.colorScheme.onSurface.withValues(alpha: 0.6),
                         )
-                        .maxLines(2)
-                        .ellipsis
-                        .make(),
+                        .make();
+                  }),
+                  if (route!.stopPoints.isNotEmpty)
+                    Builder(builder: (_) {
+                      final isDrop = (tripType ?? bus.tripType) == 'drop';
+                      final stops = isDrop
+                          ? route!.stopPoints.reversed.map((s) => s.name)
+                          : route!.stopPoints.map((s) => s.name);
+                      return 'Stops: ${stops.join(', ')}'
+                          .text
+                          .size(12)
+                          .color(
+                            context.colorScheme.onSurface.withValues(alpha: 0.6),
+                          )
+                          .maxLines(2)
+                          .ellipsis
+                          .make();
+                    }),
                 ]),
             ]).expand(),
             if (showLiveStatus)

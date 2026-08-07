@@ -28,9 +28,20 @@ export class BusService {
       throw new Error("Bus not found");
     }
 
-    const updatedBus = await Bus.findByIdAndUpdate(busId, updateData, {
+    // Clean empty strings for ObjectId fields so Mongoose doesn't fail BSON casting
+    const cleanData: Record<string, any> = { ...updateData };
+    ["driverId", "routeId", "defaultRouteId", "trackingTeacherId", "collegeId"].forEach(
+      (key) => {
+        if (cleanData[key] === "") {
+          cleanData[key] = null;
+        }
+      },
+    );
+
+    const updatedBus = await Bus.findByIdAndUpdate(busId, cleanData, {
       returnDocument: 'after',
     });
+
 
     if (!updatedBus) {
       throw new Error("Failed to update bus");

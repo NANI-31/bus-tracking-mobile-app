@@ -49,8 +49,10 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
     with SingleTickerProviderStateMixin, WidgetsBindingObserver {
   bool _isSharing = false;
   bool _hasInitialized = false; // Prevent auto-resume during first build
+  String? _storedTripType;
 
   DateTime? _lastDeviationAlertTime;
+
 
   /// Tracks which stop points have already fired a `stop_reached` event during
   /// the current sharing session. Key = "${stop.name}_${stop.lat}_${stop.lng}".
@@ -132,7 +134,9 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
     WidgetsBinding.instance.addObserver(this);
     _isSharing = PersistenceService.getIsSharingLocation();
     debugPrint('[DriverDashboard] _isSharing from persistence: $_isSharing');
+    _loadStoredTripType();
     _loadBusIcon();
+
     _loadCustomStopMarkers(
       const Color(0xFF4CAF50),
       const Color(0xFFFF9800),
@@ -277,8 +281,10 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
           'location': {'lat': position.latitude, 'lng': position.longitude},
           'speed': position.speed,
           'heading': position.heading,
+          if (myBus.tripType != null) 'tripType': myBus.tripType,
           if (etaMinutes != null) 'etaMinutes': etaMinutes,
         });
+
 
         final latLng = LatLng(position.latitude, position.longitude);
         ref
@@ -381,10 +387,22 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
         );
   }
 
+  Future<void> _loadStoredTripType() async {
+    final stored = await SecureStorageService.getDriverTripType();
+    if (mounted && stored != null) {
+      setState(() {
+        _storedTripType = stored;
+      });
+    }
+  }
+
   Future<void> _saveSelections(BusModel? myBus) async {
     if (myBus != null) {
       await SecureStorageService.setDriverBusId(myBus.id);
       await SecureStorageService.setDriverBusNumber(myBus.busNumber);
+      if (myBus.tripType != null) {
+        await SecureStorageService.setDriverTripType(myBus.tripType!);
+      }
       final selectedRoute = ref.read(driverMapStateProvider).selectedRoute;
       if (selectedRoute != null) {
         await SecureStorageService.setDriverRouteId(selectedRoute.id);
@@ -393,6 +411,7 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
     final isSharing = ref.read(driverLocationProvider).isSharing;
     await PersistenceService.setIsSharingLocation(isSharing);
   }
+
 
   Future<void> _getCurrentLocation() async {
     final locationService = ref.read(locationServiceProvider);
@@ -552,12 +571,13 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
     final selectedRoute = ref.read(driverMapStateProvider).selectedRoute;
     if (selectedRoute == null) return;
 
-    // Build ordered list of points: Start -> Stops -> End
-    final points = [
-      LatLng(selectedRoute.startPoint.lat, selectedRoute.startPoint.lng),
-      ...selectedRoute.stopPoints.map((s) => LatLng(s.lat, s.lng)),
-      LatLng(selectedRoute.endPoint.lat, selectedRoute.endPoint.lng),
-    ];
+    // Build ordered waypoints respecting tripType:
+    // - pickup : [startPoint, ...stopPoints, endPoint]
+    // - drop   : [endPoint, ...stopPoints.reversed, startPoint]
+    // Using getOrderedStops() ensures drop trips are checked against the
+    // reversed path, preventing false off-route alerts.
+    final orderedStops = selectedRoute.getOrderedStops(myBus?.tripType);
+    final points = orderedStops.map((s) => LatLng(s.lat, s.lng)).toList();
 
     double minDistance = double.infinity;
 
@@ -801,7 +821,14 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
   Future<void> _handleAcceptAssignment(BusModel bus) async {
     final repo = ref.read(busRepositoryProvider);
     try {
-      await repo.updateBus(bus.id, {'assignmentStatus': 'accepted'});
+      final updateData = <String, dynamic>{
+        'assignmentStatus': 'accepted',
+      };
+      if (bus.tripType != null) {
+        updateData['tripType'] = bus.tripType;
+        await SecureStorageService.setDriverTripType(bus.tripType!);
+      }
+      await repo.updateBus(bus.id, updateData);
       if (mounted) {
         _showToast(DriverLocalizations.of(context)!.assignmentAccepted);
         // Auto-start location sharing
@@ -810,6 +837,7 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
         ref.read(driverUiStateProvider.notifier).setBottomNavIndex(1);
       }
     } catch (e) {
+
       if (mounted) {
         _showToast(
           DriverLocalizations.of(context)!.acceptAssignmentError(e.toString()),
@@ -924,9 +952,14 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
       try {
         final bus = next.value;
         if (bus != null) {
+          if (bus.tripType != null && bus.tripType != _storedTripType) {
+            _storedTripType = bus.tripType;
+            SecureStorageService.setDriverTripType(bus.tripType!);
+          }
           debugPrint(
-            '[DriverDashboard] Bus data received: ${bus.busNumber}, assignmentStatus=${bus.assignmentStatus}',
+            '[DriverDashboard] Bus data received: ${bus.busNumber}, assignmentStatus=${bus.assignmentStatus}, tripType=${bus.tripType}',
           );
+
 
           // 2. Handle auto-resume location sharing (ONLY after init and status is accepted)
           if (_isSharing &&
@@ -1000,10 +1033,14 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
     final routesAsync = ref.watch(collegeRoutesProvider(collegeId));
     final busNumbersAsync = ref.watch(busNumbersProvider(collegeId));
 
-    final myBus = myBusAsync.valueOrNull;
+    final rawBus = myBusAsync.valueOrNull;
+    final myBus = (rawBus != null && rawBus.tripType == null && _storedTripType != null)
+        ? rawBus.copyWith(tripType: _storedTripType)
+        : rawBus;
     debugPrint(
-      '[DriverDashboard] myBus=${myBus?.busNumber}, assignmentStatus=${myBus?.assignmentStatus}',
+      '[DriverDashboard] myBus=${myBus?.busNumber}, assignmentStatus=${myBus?.assignmentStatus}, tripType=${myBus?.tripType}',
     );
+
 
     final bottomNavIndex = ref.watch(
       driverUiStateProvider.select((s) => s.bottomNavIndex),

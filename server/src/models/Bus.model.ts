@@ -11,7 +11,9 @@ export interface IBus extends Document {
   status: "on-time" | "delayed" | "not-running";
   shiftId?: string; // Associated shift ID from College
   assignmentStatus: "unassigned" | "pending" | "accepted";
+  tripType?: "pickup" | "drop";
   delay?: number;
+
   trackingTeacherId?: string;
   createdAt: Date;
   updatedAt?: Date;
@@ -36,7 +38,13 @@ const BusSchema: Schema = new Schema({
     enum: ["unassigned", "pending", "accepted"],
     default: "unassigned",
   },
+  tripType: {
+    type: String,
+    enum: ["pickup", "drop"],
+    default: "pickup",
+  },
   delay: { type: Number, default: 0 },
+
   trackingTeacherId: { type: String, ref: "User", required: false },
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date },

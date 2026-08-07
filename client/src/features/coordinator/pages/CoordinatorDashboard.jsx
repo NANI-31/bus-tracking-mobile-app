@@ -142,13 +142,14 @@ const CoordinatorDashboard = () => {
       modifyBus({
         busId: selectedBus._id,
         busData: {
-          driverId: "",
-          routeId: "",
+          driverId: null,
+          routeId: null,
           assignmentStatus: "unassigned",
           status: "not-running",
         },
       })
     )
+
       .unwrap()
       .then(() => {
         toast.success(`Assignment revoked for Bus ${selectedBus.busNumber}`);

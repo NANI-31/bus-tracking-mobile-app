@@ -23,7 +23,9 @@ class BusService {
   Future<BusModel?> getBusByDriver(String driverId) async {
     try {
       final buses = await _busRepo.getAllBuses();
-      return buses.firstWhere((b) => b.driverId == driverId && b.isActive);
+      return buses.firstWhere(
+        (b) => b.driverId == driverId && b.isActive && b.assignmentStatus != 'unassigned',
+      );
     } catch (e) {
       return null;
     }

@@ -1,7 +1,8 @@
+import 'package:flutter/material.dart';
 import 'package:collegebus/features/student/presentation/student_bus_stop_screen.dart';
 import 'package:collegebus/features/student/presentation/student_home_screen.dart';
 import 'package:collegebus/shared/screens/splash_screen.dart';
-import 'package:flutter/foundation.dart';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart' as riverpod;
 import 'package:go_router/go_router.dart';
 import 'package:collegebus/features/auth/application/auth_provider.dart';
@@ -37,6 +38,8 @@ import 'package:collegebus/features/bus/domain/bus_model.dart';
 import 'package:collegebus/features/user/domain/user_model.dart';
 import 'package:collegebus/features/college/domain/college_model.dart';
 
+final rootNavigatorKey = GlobalKey<NavigatorState>();
+
 final routerProvider = riverpod.Provider<GoRouter>((ref) {
   // Simple notifier to trigger router refresh on auth state changes
   final notifier = SimpleNotifier();
@@ -50,8 +53,10 @@ final routerProvider = riverpod.Provider<GoRouter>((ref) {
   });
 
   return GoRouter(
+    navigatorKey: rootNavigatorKey,
     refreshListenable: notifier,
     initialLocation: '/',
+
     redirect: (context, state) {
       // Read the current auth state directly
       final authState = ref.read(authProvider);

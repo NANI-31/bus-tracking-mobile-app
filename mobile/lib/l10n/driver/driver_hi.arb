@@ -11,7 +11,7 @@
   "assignBusButton": "बस असाइन करें",
   "busLabel": "बस: {busNumber}",
   "routeLabel": "रूट: {routeName}",
-  "routeTypeDetails": "प्रकार: {routeType} | {start} -> {end}",
+  "routeTypeDetails": "प्रकार: {tripDirection} | {fromStop} -> {toStop}",
   "removeAssignmentButton": "असाइनमेंट हटाएं",
   "newTripAssignment": "नई ट्रिप असाइनमेंट",
   "busNumberLabel": "बस नंबर",
@@ -39,5 +39,11 @@
   "currentLocationStats": "वर्तमान: {lat}, {lng}",
   "yourLocationLabel": "आपकी लोकेशन: {lat}, {lng}",
   "locationNotAvailable": "लोकेशन उपलब्ध नहीं है। कृपया लोकेशन सेवाएं सक्षम करें।",
+  "locationPermissionRequired": "ट्रिप शुरू करने के लिए लोकेशन की अनुमति आवश्यक है। कृपया इसे सेटिंग्स में सक्षम करें।",
+  "tripCompletedTitle": "ट्रिप पूरी हुई",
+  "tripCompletedMessage": "क्या आप वाकई इस ट्रिप को पूरा करना चाहते हैं?",
+  "confirmComplete": "पूरा करें",
+  "cancel": "रद्द करें",
   "busHeader": "बस {busNumber}"
 }
+

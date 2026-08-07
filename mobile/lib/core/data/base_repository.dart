@@ -83,9 +83,10 @@ abstract class BaseRepository {
             }
 
             // Fallback for unauthorized without refresh capability
-            if (!isLogoutRequest) {
+            if (!isLogoutRequest && PersistenceService.getAuthToken() != null) {
               onUnauthorized?.call();
             }
+
           }
           return handler.next(e);
         },

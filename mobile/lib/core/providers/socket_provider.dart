@@ -4,11 +4,24 @@ import 'package:collegebus/core/constants/constants.dart';
 import 'package:collegebus/core/providers/repository_providers.dart';
 import 'package:collegebus/features/auth/application/auth_provider.dart';
 import 'package:collegebus/features/notification/application/notification_provider.dart';
+import 'package:collegebus/shared/widgets/global_connectivity_banner.dart';
+import 'package:collegebus/shared/widgets/session_expiry_dialog.dart';
 import 'package:collegebus/core/utils/app_logger.dart';
+
 
 /// SocketService provider - depends on auth token for initialization
 final socketServiceProvider = ChangeNotifierProvider<SocketService>((ref) {
+  SocketService.onSuppressBanner = GlobalConnectivityBanner.suppress;
+  SocketService.onSessionExpired = () {
+    SessionExpiryDialog.show(
+      onConfirm: () {
+        ref.read(authProvider.notifier).signOut();
+      },
+    );
+  };
   final socketService = SocketService();
+
+
 
   // Initial setup: read current token without watching
   final token = ref.read(authProvider).value?.token;

@@ -270,14 +270,17 @@ class _TeacherDashboardState extends ConsumerState<TeacherDashboard> {
         }
 
         // 3. Emit position and path-aware ETA payload via socket stream
+        final selectedBus = matchingBuses.isNotEmpty ? matchingBuses.first : null;
         socketService.updateLocation({
           'busId': _selectedBusId!,
           'collegeId': user.collegeId,
           'location': {'lat': position.latitude, 'lng': position.longitude},
           'speed': position.speed,
           'heading': position.heading,
+          if (selectedBus?.tripType != null) 'tripType': selectedBus!.tripType,
           'etaMinutes': _computeEtaMinutes(position, speedMs: position.speed),
         });
+
       },
     );
   }
@@ -404,11 +407,12 @@ class _TeacherDashboardState extends ConsumerState<TeacherDashboard> {
     final selectedRoute = ref.read(driverMapStateProvider).selectedRoute;
     if (selectedRoute == null) return;
 
-    final points = [
-      LatLng(selectedRoute.startPoint.lat, selectedRoute.startPoint.lng),
-      ...selectedRoute.stopPoints.map((s) => LatLng(s.lat, s.lng)),
-      LatLng(selectedRoute.endPoint.lat, selectedRoute.endPoint.lng),
-    ];
+    // Build ordered waypoints respecting tripType:
+    // - pickup : [startPoint, ...stopPoints, endPoint]
+    // - drop   : [endPoint, ...stopPoints.reversed, startPoint]
+    // Using getOrderedStops() prevents false off-route alerts on drop trips.
+    final orderedStops = selectedRoute.getOrderedStops(selectedBus.tripType);
+    final points = orderedStops.map((s) => LatLng(s.lat, s.lng)).toList();
 
     double minDistance = double.infinity;
     for (int i = 0; i < points.length - 1; i++) {

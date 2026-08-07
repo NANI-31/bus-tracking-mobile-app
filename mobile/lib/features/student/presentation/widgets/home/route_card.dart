@@ -8,7 +8,10 @@ class RouteCard extends StatelessWidget {
   final RouteModel? route;
   final String? userStop;
 
-  const RouteCard({super.key, this.route, this.userStop});
+  /// 'pickup' or 'drop' — controls stop display order and start/end dot colors.
+  final String? tripType;
+
+  const RouteCard({super.key, this.route, this.userStop, this.tripType});
 
   @override
   Widget build(BuildContext context) {
@@ -37,7 +40,8 @@ class RouteCard extends StatelessWidget {
                 ),
               ],
         border: Border.all(
-          color: colorScheme.onSurface.withValues(alpha: context.isDarkMode ? 0.08 : 0.05),
+          color: colorScheme.onSurface
+              .withValues(alpha: context.isDarkMode ? 0.08 : 0.05),
           width: 1.0,
         ),
       ),
@@ -85,7 +89,8 @@ class RouteCard extends StatelessWidget {
                   ),
                   style: TextButton.styleFrom(
                     foregroundColor: AppColors.primary,
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 8),
                     backgroundColor: AppColors.primary.withValues(alpha: 0.08),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
@@ -109,41 +114,9 @@ class RouteCard extends StatelessWidget {
 
           const SizedBox(height: 24),
 
-          // Vertical Timeline
+          // Vertical Timeline — order and colors respect tripType
           if (route != null)
-            Column(
-              children: [
-                // Start
-                TimelineItem(
-                  title: "START",
-                  location: route!.startPoint.name,
-                  subtext: null,
-                  isActive: route!.startPoint.name == userStop,
-                  isLast: false,
-                ),
-
-                // User Stop (if intermediate)
-                if (userStop != null &&
-                    userStop != route!.startPoint.name &&
-                    userStop != route!.endPoint.name)
-                  TimelineItem(
-                    title: "YOUR STOP",
-                    location: userStop!,
-                    subtext: "Assigned Boarding Stop",
-                    isActive: true,
-                    isLast: false,
-                  ),
-
-                // End
-                TimelineItem(
-                  title: "DESTINATION",
-                  location: route!.endPoint.name,
-                  subtext: null,
-                  isActive: route!.endPoint.name == userStop,
-                  isLast: true,
-                ),
-              ],
-            )
+            _buildTimeline(context)
           else
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 16),
@@ -174,17 +147,63 @@ class RouteCard extends StatelessWidget {
     );
   }
 
+  Widget _buildTimeline(BuildContext context) {
+    final isPickup = tripType != 'drop';
+    final ordered = route!.getOrderedStops(tripType);
+    if (ordered.isEmpty) return const SizedBox.shrink();
+
+    final firstPt = ordered.first;
+    final lastPt = ordered.last;
+
+    return Column(
+      children: [
+        // First stop — green dot
+        TimelineItem(
+          title: isPickup ? 'START' : 'DROP START',
+          location: firstPt.name,
+          isActive: firstPt.name == userStop,
+          isLast: false,
+          dotColor: AppColors.success,
+        ),
+
+        // User's preferred stop (if it's not the first or last)
+        if (userStop != null &&
+            userStop != firstPt.name &&
+            userStop != lastPt.name)
+          TimelineItem(
+            title: 'YOUR STOP',
+            location: userStop!,
+            subtext: 'Assigned Boarding Stop',
+            isActive: true,
+            isLast: false,
+          ),
+
+        // Last stop — red dot
+        TimelineItem(
+          title: isPickup ? 'DESTINATION' : 'DROP END',
+          location: lastPt.name,
+          isActive: lastPt.name == userStop,
+          isLast: true,
+          dotColor: AppColors.danger,
+        ),
+      ],
+    );
+  }
+
   void _showFullRouteSheet(BuildContext context) {
     if (route == null) return;
+
+    final isPickup = tripType != 'drop';
+    final ordered = route!.getOrderedStops(tripType);
 
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        height: MediaQuery.of(context).size.height * 0.8,
+      builder: (ctx) => Container(
+        height: MediaQuery.of(ctx).size.height * 0.8,
         decoration: BoxDecoration(
-          color: Theme.of(context).scaffoldBackgroundColor,
+          color: Theme.of(ctx).scaffoldBackgroundColor,
           borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
         ),
         padding: const EdgeInsets.all(24),
@@ -192,15 +211,44 @@ class RouteCard extends StatelessWidget {
           children: [
             Row(
               children: [
-                const Expanded(
-                  child: Text(
-                    "Full Route Details",
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        "Full Route Details",
+                        style: TextStyle(
+                            fontSize: 20, fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 4),
+                      // Trip direction badge
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: (isPickup ? AppColors.success : Colors.orange)
+                              .withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          isPickup
+                              ? 'PICKUP — Stops → College'
+                              : 'DROP — College → Stops',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                            color:
+                                isPickup ? AppColors.success : Colors.orange,
+                            letterSpacing: 0.4,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
                 IconButton(
                   icon: const Icon(Icons.close_rounded),
-                  onPressed: () => Navigator.pop(context),
+                  onPressed: () => Navigator.pop(ctx),
                 ),
               ],
             ),
@@ -208,31 +256,33 @@ class RouteCard extends StatelessWidget {
             Expanded(
               child: ListView.builder(
                 padding: EdgeInsets.zero,
-                itemCount: route!.stopPoints.length + 2,
-                itemBuilder: (context, index) {
-                  if (index == 0) {
-                    return TimelineItem(
-                      title: "START",
-                      location: route!.startPoint.name,
-                      isActive: route!.startPoint.name == userStop,
-                      isLast: false,
-                    );
-                  } else if (index == route!.stopPoints.length + 1) {
-                    return TimelineItem(
-                      title: "DESTINATION",
-                      location: route!.endPoint.name,
-                      isActive: route!.endPoint.name == userStop,
-                      isLast: true,
-                    );
+                itemCount: ordered.length,
+                itemBuilder: (ctx2, index) {
+                  final stop = ordered[index];
+                  final isFirst = index == 0;
+                  final isLast = index == ordered.length - 1;
+
+                  final String title;
+                  final Color? dotColor;
+
+                  if (isFirst) {
+                    title = isPickup ? 'START' : 'DROP START';
+                    dotColor = AppColors.success;
+                  } else if (isLast) {
+                    title = isPickup ? 'DESTINATION' : 'DROP END';
+                    dotColor = AppColors.danger;
                   } else {
-                    final stop = route!.stopPoints[index - 1];
-                    return TimelineItem(
-                      title: "STOP",
-                      location: stop.name,
-                      isActive: stop.name == userStop,
-                      isLast: false,
-                    );
+                    title = 'STOP $index';
+                    dotColor = Colors.orange;
                   }
+
+                  return TimelineItem(
+                    title: title,
+                    location: stop.name,
+                    isActive: stop.name == userStop,
+                    isLast: isLast,
+                    dotColor: dotColor,
+                  );
                 },
               ),
             ),

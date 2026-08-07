@@ -15,6 +15,7 @@ class SecureStorageService {
   static const String _keyDriverBusId = 'secure_driver_bus_id';
   static const String _keyDriverBusNumber = 'secure_driver_bus_number';
   static const String _keyDriverRouteId = 'secure_driver_route_id';
+  static const String _keyDriverTripType = 'secure_driver_trip_type';
   static const String _keyAuthToken = 'secure_auth_token';
   static const String _keyRefreshToken = 'secure_refresh_token';
 
@@ -77,17 +78,38 @@ class SecureStorageService {
     }
   }
 
+  /// Save driver's trip type (encrypted)
+  static Future<void> setDriverTripType(String tripType) async {
+    try {
+      await _storage.write(key: _keyDriverTripType, value: tripType);
+    } catch (e) {
+      AppLogger.e('[SecureStorage] Failed to save trip type: $e');
+    }
+  }
+
+  /// Get driver's trip type
+  static Future<String?> getDriverTripType() async {
+    try {
+      return await _storage.read(key: _keyDriverTripType);
+    } catch (e) {
+      AppLogger.e('[SecureStorage] Failed to read trip type: $e');
+      return null;
+    }
+  }
+
   /// Clear all driver data (on logout or assignment removal)
   static Future<void> clearDriverData() async {
     try {
       await _storage.delete(key: _keyDriverBusId);
       await _storage.delete(key: _keyDriverBusNumber);
       await _storage.delete(key: _keyDriverRouteId);
+      await _storage.delete(key: _keyDriverTripType);
       AppLogger.i('[SecureStorage] Driver data cleared');
     } catch (e) {
       AppLogger.e('[SecureStorage] Failed to clear driver data: $e');
     }
   }
+
 
   // ============== Auth Token ==============
 

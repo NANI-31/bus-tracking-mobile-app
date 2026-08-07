@@ -112,14 +112,67 @@ class TripProgressSheet extends StatelessWidget {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(
-                                'Bus $busNumber',
-                                style: const TextStyle(
-                                  fontSize: 17,
-                                  fontWeight: FontWeight.bold,
+                                Row(
+                                  children: [
+                                    Text(
+                                      'Bus $busNumber',
+                                      style: const TextStyle(
+                                        fontSize: 17,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    if (tripType == 'pickup' || tripType == 'drop') ...[
+                                      const SizedBox(width: 8),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 8,
+                                          vertical: 3,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: (tripType == 'drop'
+                                                  ? const Color(0xFF10B981)
+                                                  : const Color(0xFF6366F1))
+                                              .withValues(alpha: 0.12),
+                                          borderRadius: BorderRadius.circular(8),
+                                          border: Border.all(
+                                            color: (tripType == 'drop'
+                                                    ? const Color(0xFF10B981)
+                                                    : const Color(0xFF6366F1))
+                                                .withValues(alpha: 0.3),
+                                          ),
+                                        ),
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Icon(
+                                              tripType == 'drop'
+                                                  ? Icons.arrow_downward_rounded
+                                                  : Icons.arrow_upward_rounded,
+                                              size: 11,
+                                              color: tripType == 'drop'
+                                                  ? const Color(0xFF10B981)
+                                                  : const Color(0xFF6366F1),
+                                            ),
+                                            const SizedBox(width: 3),
+                                            Text(
+                                              tripType == 'drop' ? 'DROP' : 'PICKUP',
+                                              style: TextStyle(
+                                                fontSize: 10,
+                                                fontWeight: FontWeight.w800,
+                                                letterSpacing: 0.5,
+                                                color: tripType == 'drop'
+                                                    ? const Color(0xFF10B981)
+                                                    : const Color(0xFF6366F1),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                  ],
                                 ),
-                              ),
-                              const SizedBox(height: 2),
+                                const SizedBox(height: 2),
+
                               Text(
                                 completedIndex < allStops.length - 1
                                     ? 'Heading to ${allStops[completedIndex + 1].name}'
@@ -296,12 +349,20 @@ class TripProgressSheet extends StatelessWidget {
   int _getCompletedStopIndex(List<RoutePoint> stops) {
     if (busLocation == null) return -1;
 
-    final points = directionsResult?.polylinePoints ?? [];
-    if (points.isEmpty) {
-      // Fallback: standard proximity check if no polyline is loaded yet
+    final rawPoints = directionsResult?.polylinePoints ?? [];
+    if (rawPoints.isEmpty) {
+      // Fallback: simple proximity check when no polyline is available.
+      // Only mark consecutive stops in order — if stop[i] is within threshold
+      // AND stop[i-1] was already passed, mark stop[i] as passed.
+      // This prevents the bus being near stop[2] from marking stop[1] as done
+      // before the bus ever reaches stop[1].
       int lastPassedIndex = -1;
-      const double proximityThresholdMeters = 25;
+      const double proximityThresholdMeters = 30;
       for (int i = 0; i < stops.length; i++) {
+        // Only consider this stop if the previous stop was already passed
+        // (or this is the first stop, which has no predecessor).
+        if (i > 0 && lastPassedIndex < i - 1) break;
+
         final stop = stops[i];
         if (stop.lat == 0 && stop.lng == 0) continue;
         final distance = Geolocator.distanceBetween(
@@ -316,6 +377,14 @@ class TripProgressSheet extends StatelessWidget {
       }
       return lastPassedIndex;
     }
+
+    // For drop trips, the polyline from DirectionsService is always in
+    // pickup order (stops→college). Since getOrderedStops('drop') returns
+    // college first (index 0 in ordered stops), we reverse the polyline so
+    // that polyline indices and stop ordering are aligned in the same direction.
+    final points = tripType == 'drop'
+        ? rawPoints.reversed.toList()
+        : rawPoints;
 
     // 1. Check if the bus is on-route (within 300m of the polyline)
     double minTrackDistance = double.infinity;
@@ -340,13 +409,28 @@ class TripProgressSheet extends StatelessWidget {
       return -1;
     }
 
-    // 2. Find the last stop passed based on polyline progression
+    // 2. Find the last stop passed based on polyline progression.
+    //
+    // A stop is considered "passed" ONLY when the bus's current closest
+    // polyline index is STRICTLY GREATER than the stop's mapped polyline
+    // index by a meaningful margin (kPassedBuffer points).
+    //
+    // Why a buffer?
+    //   - When the bus is at exactly the same polyline index as the stop it
+    //     is *approaching*, not yet past it.
+    //   - A small buffer (3 points ≈ ~15–30 m on a typical Google Maps
+    //     polyline) prevents premature completion while remaining responsive.
+    //
+    // Proximity alone (distanceToStop < N) is intentionally NOT used here
+    // because it caused stops to be marked "passed" before the bus arrived.
+    const int kPassedBuffer = 3;
+
     int lastPassedIndex = -1;
     for (int i = 0; i < stops.length; i++) {
       final stop = stops[i];
       if (stop.lat == 0 && stop.lng == 0) continue;
 
-      // Find closest polyline point for this stop
+      // Find the polyline point closest to this stop.
       double minStopDist = double.infinity;
       int stopPolyIndex = -1;
       for (int j = 0; j < points.length; j++) {
@@ -362,16 +446,9 @@ class TripProgressSheet extends StatelessWidget {
         }
       }
 
-      // The stop is passed if the bus has progressed past the stop's polyline index
-      // OR if the bus is currently within 150m of the stop.
-      final distanceToStop = Geolocator.distanceBetween(
-        busLocation!.latitude,
-        busLocation!.longitude,
-        stop.lat,
-        stop.lng,
-      );
-
-      if (closestPolylineIndex >= stopPolyIndex || distanceToStop < 150) {
+      // The bus must have moved kPassedBuffer or more polyline indices past
+      // the stop before we consider it completed.
+      if (closestPolylineIndex > stopPolyIndex + kPassedBuffer) {
         lastPassedIndex = i;
       }
     }
@@ -380,8 +457,13 @@ class TripProgressSheet extends StatelessWidget {
   }
 
   /// Get ETA to the user's preferred stop (if set and in route).
+
   int? _getETAToPreferredStop(List<RoutePoint> stops) {
-    if (preferredStop == null || directionsResult == null) return null;
+    if (preferredStop == null ||
+        directionsResult == null ||
+        directionsResult!.legs.isEmpty) {
+      return null;
+    }
 
     final preferredIndex = stops.indexWhere((s) => s.name == preferredStop);
     if (preferredIndex < 0) return null;
@@ -389,20 +471,45 @@ class TripProgressSheet extends StatelessWidget {
     final completedIndex = _getCompletedStopIndex(stops);
     if (completedIndex >= preferredIndex) return 0; // Already passed
 
-    // Sum durations from completed leg to preferred stop's leg
+    final isDrop = tripType == 'drop';
     int etaMin = 0;
-    final startLeg = (completedIndex + 1).clamp(
-      0,
-      directionsResult!.legs.length,
-    );
-    final endLeg = preferredIndex.clamp(0, directionsResult!.legs.length);
 
-    for (int i = startLeg; i < endLeg; i++) {
-      etaMin += directionsResult!.legs[i].durationMin;
+    if (!isDrop) {
+      // Pickup trip: legs[i] corresponds to leg from stops[i] to stops[i+1]
+      final startLeg = (completedIndex + 1).clamp(
+        0,
+        directionsResult!.legs.length,
+      );
+      final endLeg = preferredIndex.clamp(0, directionsResult!.legs.length);
+
+      for (int i = startLeg; i < endLeg; i++) {
+        etaMin += directionsResult!.legs[i].durationMin;
+      }
+    } else {
+      // Drop trip: stops array is reversed [endPoint, ..., startPoint].
+      // Pickup legs array goes [startPoint -> ... -> endPoint].
+      // Map reversed stop indices to pickup legs indices.
+      final n = stops.length;
+      final pickupCompletedIdx = n - 1 - completedIndex;
+      final pickupPreferredIdx = n - 1 - preferredIndex;
+
+      final startLeg = pickupPreferredIdx.clamp(
+        0,
+        directionsResult!.legs.length,
+      );
+      final endLeg = pickupCompletedIdx.clamp(
+        0,
+        directionsResult!.legs.length,
+      );
+
+      for (int i = startLeg; i < endLeg; i++) {
+        etaMin += directionsResult!.legs[i].durationMin;
+      }
     }
 
     return etaMin > 0 ? etaMin : null;
   }
+
 
   Widget _buildTimelineItem({
     required BuildContext context,

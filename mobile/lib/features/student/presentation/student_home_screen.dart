@@ -133,12 +133,16 @@ class StudentHomeScreen extends ConsumerWidget {
     BusModel? assignedBus;
 
     if (user.routeId != null) {
-      final matchingRoutes = routes.where((r) => r.id == user.routeId);
-      assignedRoute = matchingRoutes.isNotEmpty ? matchingRoutes.first : null;
-
       final matchingBuses = buses.where((b) => b.routeId == user.routeId);
       assignedBus = matchingBuses.isNotEmpty ? matchingBuses.first : null;
     }
+
+    final activeRouteId = assignedBus?.routeId ?? user.routeId;
+    if (activeRouteId != null) {
+      final matchingRoutes = routes.where((r) => r.id == activeRouteId);
+      assignedRoute = matchingRoutes.isNotEmpty ? matchingRoutes.first : null;
+    }
+
 
     final isWide = context.isTabletLayout || context.isDesktopLayout;
 
@@ -202,7 +206,9 @@ class StudentHomeScreen extends ConsumerWidget {
                           RouteCard(
                             route: assignedRoute,
                             userStop: user.preferredStop ?? user.stopName,
+                            tripType: assignedBus?.tripType,
                           ),
+
                         ],
                       ),
                     ),
@@ -229,7 +235,9 @@ class StudentHomeScreen extends ConsumerWidget {
                     RouteCard(
                       route: assignedRoute,
                       userStop: user.preferredStop ?? user.stopName,
+                      tripType: assignedBus?.tripType,
                     ),
+
                     const SizedBox(height: 24),
                     _buildPremiumInsights(context, user.hasActivePremium),
                     const SizedBox(height: 28),

@@ -51,9 +51,10 @@ class DriverLocalizationsEn extends DriverLocalizations {
   }
 
   @override
-  String routeTypeDetails(Object end, Object routeType, Object start) {
-    return 'Type: $routeType | $start -> $end';
+  String routeTypeDetails(Object toStop, Object tripDirection, Object fromStop) {
+    return 'Type: $tripDirection | $fromStop -> $toStop';
   }
+
 
   @override
   String get removeAssignmentButton => 'Remove Assignment';
@@ -159,10 +160,26 @@ class DriverLocalizationsEn extends DriverLocalizations {
   String get locationNotAvailable => 'Location not available. Please enable location services.';
 
   @override
+  String get locationPermissionRequired => 'Location permission is required to start the trip. Please enable it in settings.';
+
+  @override
+  String get tripCompletedTitle => 'Trip Completed';
+
+  @override
+  String get tripCompletedMessage => 'Are you sure you want to complete this trip?';
+
+  @override
+  String get confirmComplete => 'Complete';
+
+  @override
+  String get cancel => 'Cancel';
+
+  @override
   String busHeader(Object busNumber) {
     return 'Bus $busNumber';
   }
 }
+
 
 
 

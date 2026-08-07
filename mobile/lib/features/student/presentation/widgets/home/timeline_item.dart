@@ -7,6 +7,8 @@ class TimelineItem extends StatelessWidget {
   final String? subtext;
   final bool isActive;
   final bool isLast;
+  /// Explicit dot color override — when set, overrides the title-based color logic.
+  final Color? dotColor;
 
   const TimelineItem({
     super.key,
@@ -15,6 +17,7 @@ class TimelineItem extends StatelessWidget {
     this.subtext,
     this.isActive = false,
     this.isLast = false,
+    this.dotColor,
   });
 
   IconData _getIconData() {
@@ -32,10 +35,12 @@ class TimelineItem extends StatelessWidget {
   }
 
   Color _getIconColor(ColorScheme colorScheme) {
+    // Explicit override takes highest priority
+    if (dotColor != null) return dotColor!;
     if (isActive) {
       final t = title.toUpperCase();
-      if (t == "START") return Colors.green;
-      if (t == "DESTINATION") return AppColors.primary;
+      if (t == 'START' || t.startsWith('DROP START')) return Colors.green;
+      if (t == 'DESTINATION' || t.startsWith('DROP END')) return AppColors.danger;
       return AppColors.amberAccent;
     }
     return colorScheme.onSurface.withValues(alpha: 0.35);

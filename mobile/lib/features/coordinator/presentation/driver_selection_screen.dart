@@ -1,4 +1,4 @@
-﻿import 'dart:ui' show ImageFilter;
+import 'dart:ui' show ImageFilter;
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -527,7 +527,7 @@ class _DriverSelectionScreenState extends ConsumerState<DriverSelectionScreen>
     final routes = routesAsync.value ?? [];
 
     final assignedDriverIds = buses
-        .where((b) => b.driverId.isNotEmpty)
+        .where((b) => b.driverId.isNotEmpty && b.assignmentStatus != 'unassigned')
         .map((b) => b.driverId)
         .toSet();
 

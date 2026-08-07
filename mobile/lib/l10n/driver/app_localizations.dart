@@ -172,8 +172,9 @@ abstract class DriverLocalizations {
   /// No description provided for @routeTypeDetails.
   ///
   /// In en, this message translates to:
-  /// **'Type: {routeType} | {start} -> {end}'**
-  String routeTypeDetails(Object end, Object routeType, Object start);
+  /// **'Type: {tripDirection} | {fromStop} -> {toStop}'**
+  String routeTypeDetails(Object toStop, Object tripDirection, Object fromStop);
+
 
   /// No description provided for @removeAssignmentButton.
   ///
@@ -337,12 +338,43 @@ abstract class DriverLocalizations {
   /// **'Location not available. Please enable location services.'**
   String get locationNotAvailable;
 
+  /// No description provided for @locationPermissionRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Location permission is required to start the trip. Please enable it in settings.'**
+  String get locationPermissionRequired;
+
+  /// No description provided for @tripCompletedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Trip Completed'**
+  String get tripCompletedTitle;
+
+  /// No description provided for @tripCompletedMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to complete this trip?'**
+  String get tripCompletedMessage;
+
+  /// No description provided for @confirmComplete.
+  ///
+  /// In en, this message translates to:
+  /// **'Complete'**
+  String get confirmComplete;
+
+  /// No description provided for @cancel.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get cancel;
+
   /// No description provided for @busHeader.
   ///
   /// In en, this message translates to:
   /// **'Bus {busNumber}'**
   String busHeader(Object busNumber);
 }
+
 
 class _DriverLocalizationsDelegate extends LocalizationsDelegate<DriverLocalizations> {
   const _DriverLocalizationsDelegate();

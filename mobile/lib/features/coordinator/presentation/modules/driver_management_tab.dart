@@ -198,7 +198,9 @@ class _DriverStatusListState extends ConsumerState<DriverStatusList>
       itemBuilder: (context, driver, itemIndex) {
         BusModel? bus;
         try {
-          bus = widget.buses.firstWhere((b) => b.driverId == driver.id);
+          bus = widget.buses.firstWhere(
+            (b) => b.driverId == driver.id && b.assignmentStatus != 'unassigned',
+          );
         } catch (_) {
           bus = null;
         }

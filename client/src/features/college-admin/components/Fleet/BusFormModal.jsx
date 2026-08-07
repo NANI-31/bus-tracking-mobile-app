@@ -36,7 +36,11 @@ const BusFormModal = ({ isOpen, onClose, onSubmit }) => {
     setErrors(newErrors);
     if (hasError) return;
 
-    onSubmit(formData);
+    onSubmit({
+      ...formData,
+      driverId: formData.driverId ? formData.driverId : null,
+    });
+
     setFormData({ busNumber: "", capacity: "", driverId: "" });
     setErrors({ busNumber: "", capacity: "" });
     onClose();

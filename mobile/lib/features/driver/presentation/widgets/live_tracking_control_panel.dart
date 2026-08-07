@@ -50,20 +50,34 @@ class LiveTrackingControlPanel extends StatelessWidget {
                         context.colorScheme.onSurface.withValues(alpha: 0.6),
                       )
                       .make(),
-                  DriverLocalizations.of(context)!
-                      .routeTypeDetails(
-                        route!.routeType.toUpperCase(),
-                        route!.startPoint.name,
-                        route!.endPoint.name,
-                      )
-                      .text
-                      .size(14)
-                      .color(
-                        context.colorScheme.onSurface.withValues(alpha: 0.6),
-                      )
-                      .maxLines(2)
-                      .ellipsis
-                      .make(),
+                  // Use bus.tripType for the active direction — route.routeType
+                  // is always 'pickup' (it describes the physical route), while
+                  // tripType is the direction the coordinator assigned for today.
+                  Builder(builder: (ctx) {
+                    final activeTripType =
+                        (bus?.tripType ?? route!.routeType).toUpperCase();
+                    final isDrop = (bus?.tripType ?? route!.routeType) == 'drop';
+                    final fromStop = isDrop
+                        ? route!.endPoint.name   // Drop: College → outer stop
+                        : route!.startPoint.name; // Pickup: outer stop → College
+                    final toStop = isDrop
+                        ? route!.startPoint.name
+                        : route!.endPoint.name;
+                    return DriverLocalizations.of(ctx)!
+                        .routeTypeDetails(
+                          toStop,        // toStop (destination stop name)
+                          activeTripType, // tripDirection label
+                          fromStop,      // fromStop (origin stop name)
+                        )
+                        .text
+                        .size(14)
+                        .color(
+                          ctx.colorScheme.onSurface.withValues(alpha: 0.6),
+                        )
+                        .maxLines(2)
+                        .ellipsis
+                        .make();
+                  }),
                 ]),
               AppSizes.paddingMedium.heightBox,
             ]),

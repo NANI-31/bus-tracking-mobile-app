@@ -24,6 +24,14 @@ class SocketService extends ChangeNotifier {
   /// Callback for REST fallback when socket is disconnected
   Future<void> Function(Map<String, dynamic>)? onFallbackUpdate;
 
+  /// Static callback to suppress connectivity banner on app resume
+  static void Function(Duration)? onSuppressBanner;
+
+  /// Static callback triggered when session expires via socket authentication failure
+  static void Function()? onSessionExpired;
+
+
+
   bool get isConnected => _isConnected;
   bool get isConnecting => _isConnecting;
   String? get token => _token;
@@ -146,6 +154,7 @@ class SocketService extends ChangeNotifier {
   /// Proactively ensures the socket is connected and in the correct room.
   /// Called when app resumes from background.
   void ensureConnected() {
+    onSuppressBanner?.call(const Duration(seconds: 6));
     if (_socket == null || !_socket!.connected) {
       AppLogger.i(
         '[SocketService] ensureConnected: Socket is null or disconnected, recreating socket...',
@@ -159,6 +168,7 @@ class SocketService extends ChangeNotifier {
       }
     }
   }
+
 
   void _connect() {
     AppLogger.d(
@@ -213,9 +223,10 @@ class SocketService extends ChangeNotifier {
       _isConnecting = false;
       _stopHeartbeat();
       notifyListeners();
-      AppLogger.w('[SocketService] Disconnected');
+      AppLogger.w('[SocketService] 🔴 DISCONNECTED — banner will show in 2s unless reconnected');
       _startReconnectTimer();
     });
+
 
     // Handle reconnection (fired when socket reconnects after a disconnect)
     _socket!.on('reconnect', (_) async {
@@ -241,21 +252,23 @@ class SocketService extends ChangeNotifier {
     });
 
     // Handle reconnecting state
-    _socket!.on('reconnecting', (_) {
+    _socket!.on('reconnecting', (attempt) {
       _isConnecting = true;
       _isConnected = false;
       _stopReconnectTimer();
       _errorMessage = 'Reconnecting to server...';
       _errorController.add(_errorMessage);
       notifyListeners();
-      AppLogger.i('[SocketService] Reconnecting...');
+      AppLogger.d('[SocketService] 🔄 Transport reconnecting (attempt: $attempt)...');
     });
 
     _socket!.on('reconnect_attempt', (attempt) {
       _errorMessage = 'Connection lost. Reconnecting (Attempt $attempt)...';
       _errorController.add(_errorMessage);
       notifyListeners();
+      AppLogger.d('[SocketService] 🔄 Socket.IO reconnect_attempt #$attempt');
     });
+
 
     _socket!.on('reconnect_failed', (_) {
       _isConnecting = false;
@@ -270,12 +283,28 @@ class SocketService extends ChangeNotifier {
       if (_isConnecting) {
         _isConnecting = false;
       }
+      final errString = err?.toString().toLowerCase() ?? '';
+      if (errString.contains('authentication') ||
+          errString.contains('unauthorized') ||
+          errString.contains('jwt') ||
+          errString.contains('token')) {
+        AppLogger.e('[SocketService] 🔒 Authentication error on connect: $err. Clearing auth token...');
+        _errorMessage = 'Session expired. Please log in again.';
+        _errorController.add(_errorMessage);
+        updateAuth(null);
+        onSessionExpired?.call();
+        return;
+      }
+
+
       _errorMessage = 'Unable to connect to server.';
       _errorController.add(_errorMessage);
       notifyListeners();
-      AppLogger.e('[SocketService] Connection Error: $err');
+      AppLogger.e('[SocketService] ❌ CONNECTION ERROR (triggers banner): $err');
       _startReconnectTimer();
     });
+
+
 
     _socket!.onError((err) {
       if (_isConnecting) {
@@ -284,9 +313,10 @@ class SocketService extends ChangeNotifier {
       _errorMessage = 'Socket communication error.';
       _errorController.add(_errorMessage);
       notifyListeners();
-      AppLogger.e('[SocketService] Error: $err');
+      AppLogger.e('[SocketService] ⚠️ SOCKET ERROR (triggers banner): $err');
       _startReconnectTimer();
     });
+
 
     // Location updates
     _socket!.on('location_updated', (data) {
@@ -364,8 +394,9 @@ class SocketService extends ChangeNotifier {
       AppLogger.i('[SocketService] Received stop_reached: $data');
       _stopReachedController.add(Map<String, dynamic>.from(data));
     });
-    _startReconnectTimer();
   }
+
+
 
   void joinCollege(String collegeId) {
     _lastJoinedCollegeId = collegeId;
@@ -532,13 +563,16 @@ class SocketService extends ChangeNotifier {
     _stopReconnectTimer();
     _reconnectTimer = Timer.periodic(const Duration(seconds: 8), (_) {
       if (_socket != null && !_isConnected && !_isConnecting) {
-        AppLogger.i('[SocketService] Reconnect timer: Socket not connected, attempting manual connect()...');
+        AppLogger.w('[SocketService] ⏰ RECONNECT TIMER FIRED — socket not connected, calling connect(). This sets _isConnecting=true → banner will show!');
         _isConnecting = true;
         notifyListeners();
         _socket!.connect();
+      } else {
+        AppLogger.d('[SocketService] ⏰ reconnect timer tick — isConnected=$_isConnected isConnecting=$_isConnecting (no action needed)');
       }
     });
   }
+
 
   void _stopReconnectTimer() {
     _reconnectTimer?.cancel();
