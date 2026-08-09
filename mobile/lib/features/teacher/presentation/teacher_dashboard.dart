@@ -340,9 +340,41 @@ class _TeacherDashboardState extends ConsumerState<TeacherDashboard> {
 
   Future<void> _cancelOverride() async {
     if (_selectedBusId == null) return;
+
+    // Confirm before ending — this unassigns the driver from the bus
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Complete Trip?'),
+        content: const Text(
+          'This will stop location broadcasting and fully unassign the driver from this bus. The coordinator will need to assign a new driver for the next trip.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.green.shade600,
+            ),
+            child: const Text(
+              'Complete Trip',
+              style: TextStyle(color: Colors.white),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
     _stopLocationTracking();
     try {
       final repo = ref.read(busRepositoryProvider);
+
+      // Step 1: Clear the teacher override field (trackingTeacherId → null)
       await repo.cancelTeacherOverride(_selectedBusId!);
 
       // Emit socket event immediately so the driver dashboard receives the
@@ -350,6 +382,18 @@ class _TeacherDashboardState extends ConsumerState<TeacherDashboard> {
       // roundtrip to propagate through driverBusProvider.
       ref.read(socketServiceProvider).emitLocationOverrideEnded({
         'busId': _selectedBusId!,
+      });
+
+      // Step 2: Fully unassign the driver from the bus — same as when the
+      // driver taps "TRIP COMPLETE" from their own dashboard.
+      // This clears driverId, resets assignmentStatus to 'unassigned',
+      // sets status to 'not-running', and removes the active routeId.
+      await repo.updateBus(_selectedBusId!, {
+        'driverId': null,
+        'assignmentStatus': 'unassigned',
+        'status': 'not-running',
+        'routeId': null,
+        'trackingTeacherId': null,
       });
 
       ref.invalidate(busListProvider);
@@ -361,8 +405,8 @@ class _TeacherDashboardState extends ConsumerState<TeacherDashboard> {
       if (mounted) {
         SuccessModal.show(
           context: context,
-          title: 'Override Ended',
-          message: 'You have stopped broadcasting coordinates for this bus.',
+          title: 'Trip Completed',
+          message: 'Location sharing stopped and the driver has been unassigned from the bus.',
           primaryActionText: 'OK',
         );
       }
@@ -370,7 +414,7 @@ class _TeacherDashboardState extends ConsumerState<TeacherDashboard> {
       if (mounted) {
         ApiErrorModal.show(
           context: context,
-          error: 'Failed to end override: $e',
+          error: 'Failed to complete trip: $e',
         );
       }
     }
