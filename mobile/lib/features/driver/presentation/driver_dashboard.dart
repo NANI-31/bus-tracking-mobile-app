@@ -62,6 +62,10 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
   /// Active overlay entry for the top toast notification.
   OverlayEntry? _activeOverlayEntry;
 
+  /// Subscription to socket override events for cleanup in dispose().
+  StreamSubscription<Map<String, dynamic>>? _overrideApprovedSubscription;
+  StreamSubscription<Map<String, dynamic>>? _overrideEndedSubscription;
+
   BitmapDescriptor? _busIcon;
   BitmapDescriptor? _startStopIcon;
   BitmapDescriptor? _intermediateStopIcon;
@@ -155,6 +159,10 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
         socketService.joinCollege(user.collegeId);
       }
 
+      // Wire socket-level override streams as a redundant fast path alongside
+      // the bus_updated → driverBusProvider ref.listen in build().
+      _setupOverrideListeners();
+
       // Request permissions sequentially:
       // First Notification and Foreground GPS, then Background GPS, Battery Opt, and Mic.
       if (mounted) {
@@ -168,6 +176,8 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
   void dispose() {
     _activeOverlayEntry?.remove();
     _activeOverlayEntry = null;
+    _overrideApprovedSubscription?.cancel();
+    _overrideEndedSubscription?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
@@ -220,7 +230,82 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
     }
   }
 
-  // ... existing code ...
+  // ---------------------------------------------------------------------------
+  // Teacher override — pause / resume GPS emission
+  // ---------------------------------------------------------------------------
+
+  /// Subscribes to socket-level override events as a redundant fast path.
+  /// The primary detection is via [driverBusProvider] ref.listen below, which
+  /// detects [trackingTeacherId] changes even when the dedicated socket events
+  /// are not yet emitted by the server.
+  void _setupOverrideListeners() {
+    final socketService = ref.read(socketServiceProvider);
+
+    _overrideApprovedSubscription?.cancel();
+    _overrideApprovedSubscription = socketService.locationOverrideApprovedStream.listen(
+      (data) {
+        final busId = data['busId'] as String?;
+        final userId = ref.read(currentUserProvider)?.id;
+        final myBus = userId != null
+            ? ref.read(driverBusProvider(userId)).valueOrNull
+            : null;
+        // Only react if this event is for our bus
+        if (myBus != null && busId == myBus.id) {
+          AppLogger.i('[DriverDashboard] location_override_approved received — pausing GPS');
+          _handleOverrideActivated();
+        }
+      },
+    );
+
+    _overrideEndedSubscription?.cancel();
+    _overrideEndedSubscription = socketService.locationOverrideEndedStream.listen(
+      (data) {
+        final busId = data['busId'] as String?;
+        final userId = ref.read(currentUserProvider)?.id;
+        final myBus = userId != null
+            ? ref.read(driverBusProvider(userId)).valueOrNull
+            : null;
+        if (myBus != null && busId == myBus.id) {
+          AppLogger.i('[DriverDashboard] location_override_ended received — resuming GPS');
+          _handleOverrideEnded(myBus);
+        }
+      },
+    );
+  }
+
+  /// Called when the coordinator approves a teacher override request while
+  /// the driver is actively sharing GPS. Pauses emission without ending the
+  /// session ([isSharing] stays true so auto-resume works).
+  void _handleOverrideActivated() {
+    // Guard: only react if we were actually sharing
+    if (!ref.read(driverLocationProvider).isSharing) return;
+    // Stop GPS emission loop (does NOT clear bus state or stop socket)
+    ref.read(locationServiceProvider).stopLocationTracking();
+    ref.read(driverLocationProvider.notifier).updateOverridePaused(true);
+    _showToast(
+      '⚠️ Location sharing paused — teacher override is active.',
+      isError: false,
+    );
+    AppLogger.i('[DriverDashboard] GPS emission paused due to teacher override.');
+  }
+
+  /// Called when the teacher override ends (teacher cancelled OR the bus
+  /// provider detects [trackingTeacherId] cleared). Auto-resumes GPS sharing
+  /// if the driver was sharing before the override.
+  void _handleOverrideEnded(BusModel bus) {
+    final state = ref.read(driverLocationProvider);
+    // Only resume if we were sharing before the override
+    if (!state.isSharing) return;
+    ref.read(driverLocationProvider.notifier).updateOverridePaused(false);
+    // Auto-resume GPS emission silently (no confirmation dialog needed)
+    if (!ref.read(locationServiceProvider).isTracking) {
+      _startLocationSharing(bus, silent: true);
+    }
+    _showToast('✅ Location sharing resumed.');
+    AppLogger.i('[DriverDashboard] GPS emission resumed after teacher override ended.');
+  }
+
+  // ---------------------------------------------------------------------------
 
   Future<void> _startLocationSharing(
     BusModel myBus, {
@@ -836,7 +921,7 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
     }
 
     debugPrint('[DriverDashboard] userId=$userId, collegeId=$collegeId');
-    // Listen for bus changes to handle unassignment or reassignment
+    // Listen for bus changes to handle unassignment, reassignment, and teacher override
     ref.listen<AsyncValue<BusModel?>>(driverBusProvider(userId), (
       previous,
       next,
@@ -854,6 +939,25 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
         // 2. If new bus is pending or unassigned, force back to setup tab
         if (newBus == null || newBus.assignmentStatus == 'pending') {
           ref.read(driverUiStateProvider.notifier).setBottomNavIndex(0);
+        }
+      }
+
+      // ── Teacher override detection (bus_updated fallback) ─────────────────
+      // When the server emits 'bus_updated', driverBusProvider fires with the
+      // updated BusModel. We compare trackingTeacherId to detect override
+      // activation/deactivation even if the dedicated socket events are absent.
+      final oldTeacherId = oldBus?.trackingTeacherId;
+      final newTeacherId = newBus?.trackingTeacherId;
+
+      if (oldTeacherId != newTeacherId) {
+        if (newTeacherId != null && oldTeacherId == null) {
+          // Override just activated
+          _handleOverrideActivated();
+        } else if (newTeacherId == null && oldTeacherId != null) {
+          // Override just ended
+          if (newBus != null) {
+            _handleOverrideEnded(newBus);
+          }
         }
       }
 

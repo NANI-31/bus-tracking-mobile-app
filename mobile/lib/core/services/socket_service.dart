@@ -65,6 +65,18 @@ class SocketService extends ChangeNotifier {
   Stream<Map<String, dynamic>> get stopReachedStream =>
       _stopReachedController.stream;
 
+  /// Fired when the coordinator approves a teacher's override request.
+  /// Payload: { busId, teacherId, teacherName? }
+  /// Driver dashboard listens to this to pause GPS emission.
+  Stream<Map<String, dynamic>> get locationOverrideApprovedStream =>
+      _locationOverrideApprovedController.stream;
+
+  /// Fired when the teacher cancels the override or coordinator revokes it.
+  /// Payload: { busId }
+  /// Driver dashboard listens to auto-resume GPS emission.
+  Stream<Map<String, dynamic>> get locationOverrideEndedStream =>
+      _locationOverrideEndedController.stream;
+
   SocketService() {
     _locationUpdateController =
         StreamController<Map<String, dynamic>>.broadcast();
@@ -89,6 +101,10 @@ class SocketService extends ChangeNotifier {
         StreamController<Map<String, dynamic>>.broadcast();
     _stopReachedController =
         StreamController<Map<String, dynamic>>.broadcast();
+    _locationOverrideApprovedController =
+        StreamController<Map<String, dynamic>>.broadcast();
+    _locationOverrideEndedController =
+        StreamController<Map<String, dynamic>>.broadcast();
   }
 
   late final StreamController<Map<String, dynamic>> _locationUpdateController;
@@ -108,6 +124,8 @@ class SocketService extends ChangeNotifier {
   late final StreamController<String?> _errorController;
   late final StreamController<Map<String, dynamic>> _newAuditLogController;
   late final StreamController<Map<String, dynamic>> _stopReachedController;
+  late final StreamController<Map<String, dynamic>> _locationOverrideApprovedController;
+  late final StreamController<Map<String, dynamic>> _locationOverrideEndedController;
 
   Future<void> init(String url, {String? token}) async {
     _currentUrl = url;
@@ -394,6 +412,21 @@ class SocketService extends ChangeNotifier {
       AppLogger.i('[SocketService] Received stop_reached: $data');
       _stopReachedController.add(Map<String, dynamic>.from(data));
     });
+
+    // Teacher location override events.
+    // 'location_override_approved' — server fires when coordinator approves a
+    // teacher override request. Driver pauses GPS emission on receipt.
+    _socket!.on('location_override_approved', (data) {
+      AppLogger.i('[SocketService] Received location_override_approved: $data');
+      _locationOverrideApprovedController.add(Map<String, dynamic>.from(data));
+    });
+
+    // 'location_override_ended' — server fires when the teacher or coordinator
+    // cancels the override. Driver auto-resumes GPS emission on receipt.
+    _socket!.on('location_override_ended', (data) {
+      AppLogger.i('[SocketService] Received location_override_ended: $data');
+      _locationOverrideEndedController.add(Map<String, dynamic>.from(data));
+    });
   }
 
 
@@ -474,6 +507,21 @@ class SocketService extends ChangeNotifier {
       _socket?.emit('stop_reached', data);
     } else {
       AppLogger.w('[SocketService] stop_reached not queued (stale on reconnect): $data');
+    }
+  }
+
+  /// Notifies the server that the teacher is ending their location override.
+  /// The server should clear [bus.trackingTeacherId] and broadcast
+  /// 'location_override_ended' to the college room.
+  ///
+  /// Not queued — stale override-end events could cause unintended state
+  /// transitions if replayed after a reconnect.
+  void emitLocationOverrideEnded(Map<String, dynamic> data) {
+    AppLogger.i('[SocketService] EMITTING location_override_ended: $data');
+    if (_isConnected && _socket != null) {
+      _socket?.emit('end_location_override', data);
+    } else {
+      AppLogger.w('[SocketService] location_override_ended not queued (stale on reconnect)');
     }
   }
 
@@ -597,6 +645,8 @@ class SocketService extends ChangeNotifier {
     _errorController.close();
     _newAuditLogController.close();
     _stopReachedController.close();
+    _locationOverrideApprovedController.close();
+    _locationOverrideEndedController.close();
     super.dispose();
   }
 }

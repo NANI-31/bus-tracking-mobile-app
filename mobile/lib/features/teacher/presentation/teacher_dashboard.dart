@@ -53,12 +53,9 @@ class _TeacherDashboardState extends ConsumerState<TeacherDashboard> {
   DateTime? _lastDeviationAlertTime;
   final Set<String> _arrivedStopIds = {};
 
-  /// Persistent deviation toast Ã¢â‚¬â€ updates distance in-place, never stacks.
-  OverlayEntry? _deviationOverlayEntry;
-  final ValueNotifier<int> _deviationDistanceNotifier = ValueNotifier(0);
-
   @override
   void initState() {
+
     super.initState();
     // Join socket room and request permissions on first frame
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -83,11 +80,9 @@ class _TeacherDashboardState extends ConsumerState<TeacherDashboard> {
   @override
   void dispose() {
     _stopLocationTracking();
-    _deviationOverlayEntry?.remove();
-    _deviationOverlayEntry = null;
-    _deviationDistanceNotifier.dispose();
     super.dispose();
   }
+
 
   Future<void> _getCurrentLocation() async {
     final locationService = ref.read(locationServiceProvider);
@@ -349,6 +344,14 @@ class _TeacherDashboardState extends ConsumerState<TeacherDashboard> {
     try {
       final repo = ref.read(busRepositoryProvider);
       await repo.cancelTeacherOverride(_selectedBusId!);
+
+      // Emit socket event immediately so the driver dashboard receives the
+      // override-ended signal without waiting for the bus_updated REST
+      // roundtrip to propagate through driverBusProvider.
+      ref.read(socketServiceProvider).emitLocationOverrideEnded({
+        'busId': _selectedBusId!,
+      });
+
       ref.invalidate(busListProvider);
       ref.invalidate(teacherOverrideRequestsProvider);
       final user = ref.read(currentUserProvider);
@@ -430,73 +433,16 @@ class _TeacherDashboardState extends ConsumerState<TeacherDashboard> {
           now.difference(_lastDeviationAlertTime!) > const Duration(minutes: 1)) {
         _lastDeviationAlertTime = now;
       }
-      _deviationDistanceNotifier.value = minDistance.toInt();
-      _showDeviationToast();
+      ref.read(driverLocationProvider.notifier).updateOffRouteDistance(minDistance.toInt());
     } else {
-      _hideDeviationToast();
+      ref.read(driverLocationProvider.notifier).updateOffRouteDistance(null);
     }
 
     _calculateETA(position, selectedBus);
   }
 
-  /// Shows (or keeps) a persistent deviation toast, updating distance in-place.
-  void _showDeviationToast() {
-    if (!mounted) return;
-    if (_deviationOverlayEntry != null) return;
 
-    final entry = OverlayEntry(
-      builder: (ctx) => Positioned(
-        top: MediaQuery.of(ctx).padding.top + 16,
-        left: 16,
-        right: 16,
-        child: Material(
-          color: Colors.transparent,
-          child: ValueListenableBuilder<int>(
-            valueListenable: _deviationDistanceNotifier,
-            builder: (_, dist, __) => Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              decoration: BoxDecoration(
-                color: Colors.orange.shade800,
-                borderRadius: BorderRadius.circular(14),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.25),
-                    blurRadius: 12,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-              ),
-              child: Row(
-                children: [
-                  const Icon(Icons.warning_amber_rounded,
-                      color: Colors.white, size: 20),
-                  Expanded(
-                    child: Text(
-                      'Off route \u2022 ${dist}m from path',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w600,
-                        fontSize: 14,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
 
-    _deviationOverlayEntry = entry;
-    Overlay.of(context).insert(entry);
-  }
-
-  /// Dismisses the deviation toast when the teacher is back on route.
-  void _hideDeviationToast() {
-    _deviationOverlayEntry?.remove();
-    _deviationOverlayEntry = null;
-  }
 
   void _calculateETA(Position position, BusModel selectedBus) {
     final etaMinutes = _computeEtaMinutes(position, speedMs: position.speed);

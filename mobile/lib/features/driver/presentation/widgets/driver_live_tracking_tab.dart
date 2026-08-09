@@ -220,6 +220,97 @@ class DriverLiveTrackingTab extends ConsumerWidget {
           },
         ),
 
+        // ── Teacher Override Active Banner ────────────────────────────────
+        // Shown when coordinator has approved a teacher override and the
+        // driver's GPS emission is paused. Sits above the control panel
+        // so it is always visible without covering the map.
+        Consumer(
+          builder: (context, ref, child) {
+            final isOverridePaused = ref.watch(
+              driverLocationProvider.select((s) => s.isOverridePaused),
+            );
+            if (!isOverridePaused) return const SizedBox.shrink();
+
+            final isDark = Theme.of(context).brightness == Brightness.dark;
+            final statusTokens = context.appStatus;
+
+            return Positioned(
+              left: 16,
+              right: 16,
+              bottom: 140,
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 14,
+                ),
+                decoration: BoxDecoration(
+                  color: isDark
+                      ? Colors.black.withValues(alpha: 0.75)
+                      : Colors.white.withValues(alpha: 0.92),
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(
+                    color: statusTokens.delayColor.withValues(alpha: 0.70),
+                    width: 1.5,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: statusTokens.delayColor.withValues(alpha: 0.18),
+                      blurRadius: 16,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: statusTokens.delayColor.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Icon(
+                        Icons.pause_circle_filled_rounded,
+                        color: statusTokens.delayColor,
+                        size: 22,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            'Location Sharing Paused',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w800,
+                              color: isDark
+                                  ? Colors.white
+                                  : const Color(0xFF1A1A2E),
+                              letterSpacing: 0.2,
+                            ),
+                          ),
+                          const SizedBox(height: 3),
+                          Text(
+                            'Teacher override is active. Contact coordinator to resume.',
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: isDark
+                                  ? Colors.white.withValues(alpha: 0.65)
+                                  : Colors.black.withValues(alpha: 0.55),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        ),
+
         // Off-Route Notification Banner — scoped strictly to Map Tab view only
         Consumer(
           builder: (context, ref, child) {
@@ -229,7 +320,11 @@ class DriverLiveTrackingTab extends ConsumerWidget {
             final isSharing = ref.watch(
               driverLocationProvider.select((s) => s.isSharing),
             );
-            if (!isSharing || offRouteDistance == null) {
+            final isOverridePaused = ref.watch(
+              driverLocationProvider.select((s) => s.isOverridePaused),
+            );
+            // Hide off-route banner during override — driver is not emitting GPS
+            if (!isSharing || offRouteDistance == null || isOverridePaused) {
               return const SizedBox.shrink();
             }
 
