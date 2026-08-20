@@ -393,7 +393,7 @@ const GlobalUsers = () => {
                                   setInlineEdit({ userId: null, field: null });
                                 }}
                               />
-                              <div className="absolute top-full left-0 mt-1 bg-background-paper border border-border-theme shadow-xl rounded-xl p-1 z-40 min-w-[120px] flex flex-col gap-0.5">
+                              <div className="absolute top-full left-0 mt-1 bg-background-paper border border-border-theme shadow-xl rounded-xl p-1 z-40 min-w-30 flex flex-col gap-0.5">
                                 {["student", "driver", "coordinator", "collegeAdmin", "superAdmin"].map((r) => (
                                   <button
                                     key={r}
@@ -437,7 +437,7 @@ const GlobalUsers = () => {
                                   setInlineEdit({ userId: null, field: null });
                                 }}
                               />
-                              <div className="absolute top-full left-0 mt-1 bg-background-paper border border-border-theme shadow-xl rounded-xl p-1 z-40 min-w-[120px] flex flex-col gap-0.5">
+                              <div className="absolute top-full left-0 mt-1 bg-background-paper border border-border-theme shadow-xl rounded-xl p-1 z-40 min-w-30 flex flex-col gap-0.5">
                                 {[
                                   { label: "Approved", value: true },
                                   { label: "Pending", value: false },
@@ -488,7 +488,7 @@ const GlobalUsers = () => {
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: 100, opacity: 0 }}
             transition={{ type: "spring", stiffness: 260, damping: 20 }}
-            className="fixed bottom-6 left-6 right-6 lg:left-[270px] z-50 bg-background-paper/85 dark:bg-slate-900/85 backdrop-blur-lg border border-border-theme shadow-2xl rounded-2xl p-4 flex flex-col md:flex-row items-center justify-between gap-4 max-w-4xl mx-auto"
+            className="fixed bottom-6 left-6 right-6 lg:left-67.5 z-50 bg-background-paper/85 dark:bg-slate-900/85 backdrop-blur-lg border border-border-theme shadow-2xl rounded-2xl p-4 flex flex-col md:flex-row items-center justify-between gap-4 max-w-4xl mx-auto"
           >
             <div className="flex items-center space-x-3">
               <div className="bg-primary-main/10 text-primary-main p-2 rounded-xl border border-primary-main/20 flex items-center justify-center">

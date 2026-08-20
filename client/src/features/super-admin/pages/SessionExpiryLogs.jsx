@@ -525,8 +525,8 @@ const SessionExpiryLogs = () => {
                       </TableCell>
                       <TableCell sx={{ borderBottom: "1px solid var(--border-theme)", padding: "8px 12px" }}>
                         <div className="flex flex-col">
-                          <span className="text-[11px] text-text-theme-primary font-bold truncate max-w-[160px]">{log.userEmail ?? <span className="italic text-text-theme-secondary">anonymous</span>}</span>
-                          {log.userId && <span className="text-[9px] text-text-theme-secondary font-mono truncate max-w-[160px]">{log.userId}</span>}
+                          <span className="text-[11px] text-text-theme-primary font-bold truncate max-w-40">{log.userEmail ?? <span className="italic text-text-theme-secondary">anonymous</span>}</span>
+                          {log.userId && <span className="text-[9px] text-text-theme-secondary font-mono truncate max-w-40">{log.userId}</span>}
                         </div>
                       </TableCell>
                       <TD>{log.userRole ?? "—"}</TD>
