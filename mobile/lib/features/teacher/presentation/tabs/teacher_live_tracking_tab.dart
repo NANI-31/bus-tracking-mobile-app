@@ -8,7 +8,6 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 import 'package:collegebus/core/constants/constants.dart';
@@ -129,6 +128,21 @@ class TeacherLiveTrackingTab extends ConsumerWidget {
     final displayETA =
         directionsETA ?? (nextStopETA != null ? 'ETA: $nextStopETA' : null);
 
+    // Compute remaining road distance for the distance label in the ETA card.
+    String distLabel = '';
+    if (result != null && effectiveLocation != null) {
+      final poly = result.polylinePoints;
+      final driverIdx = findClosestPointIndex(effectiveLocation, poly);
+      final remainKm = polylineRoadDistanceKm(poly, driverIdx, poly.length);
+      final totalKm = result.totalDistanceKm;
+      if (remainKm > 0) {
+        distLabel =
+            '${remainKm.toStringAsFixed(1)} / ${totalKm.toStringAsFixed(1)} km';
+      } else if (totalKm > 0) {
+        distLabel = '${totalKm.toStringAsFixed(1)} km';
+      }
+    }
+
     return Stack(
       children: [
         Column(
@@ -198,12 +212,13 @@ class TeacherLiveTrackingTab extends ConsumerWidget {
                       ),
                     ),
                   ),
-                  if (result != null)
+                  if (distLabel.isNotEmpty)
                     Text(
-                      '${result.totalDistanceKm.toStringAsFixed(1)} km',
+                      distLabel,
                       style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.6),
+                        color: Colors.white.withValues(alpha: 0.7),
                         fontSize: 12,
+                        fontWeight: FontWeight.w500,
                       ),
                     ),
                 ],
@@ -211,7 +226,60 @@ class TeacherLiveTrackingTab extends ConsumerWidget {
             ),
           ),
 
+        // Off-Route Notification Banner — scoped strictly to Map Tab view only
+        Consumer(
+          builder: (context, ref, child) {
+            final offRouteDistance = ref.watch(
+              driverLocationProvider.select((s) => s.offRouteDistance),
+            );
+            if (!isSharing || offRouteDistance == null) {
+              return const SizedBox.shrink();
+            }
+
+            final topOffset = MediaQuery.of(context).padding.top +
+                (displayETA != null ? 80 : 12);
+
+            return Positioned(
+              top: topOffset,
+              left: 16,
+              right: 16,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                decoration: BoxDecoration(
+                  color: Colors.orange.shade800,
+                  borderRadius: BorderRadius.circular(14),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.25),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.warning_amber_rounded,
+                        color: Colors.white, size: 20),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        'Off route • ${offRouteDistance}m from path',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        ),
+
         // SOS & Voice Message Buttons
+
         Positioned(
           top: MediaQuery.of(context).padding.top +
               (isSharing && route != null && displayETA != null ? 80 : 16),
@@ -474,6 +542,9 @@ class TeacherLiveTrackingTab extends ConsumerWidget {
   }
 
   /// Computes a human-readable ETA string to the next upcoming stop.
+  ///
+  /// Uses road distance (walking polyline segments via findClosestPointIndex +
+  /// polylineRoadDistanceKm) instead of crow-fly, matching the driver tab logic.
   String? _computeNextStopETAFromDirections(
     LatLng currentLoc,
     RouteModel selectedRoute,
@@ -485,68 +556,56 @@ class TeacherLiveTrackingTab extends ConsumerWidget {
 
     final allStops = selectedRoute.getOrderedStops(tripType);
 
+    // Find the polyline index closest to the teacher's current position.
+    final driverIdx = findClosestPointIndex(currentLoc, polyline);
 
-    int findClosestIdx(LatLng target) {
-      double minDistance = double.infinity;
-      int closestIndex = 0;
-      for (int i = 0; i < polyline.length; i++) {
-        final dist = Geolocator.distanceBetween(
-          target.latitude,
-          target.longitude,
-          polyline[i].latitude,
-          polyline[i].longitude,
-        );
-        if (dist < minDistance) {
-          minDistance = dist;
-          closestIndex = i;
-        }
-      }
-      return closestIndex;
-    }
-
-    final driverIdx = findClosestIdx(currentLoc);
-
+    // Find the next upcoming stop ahead of the current position.
+    int nextStopPolyIdx = -1;
     int nextStopIndex = -1;
     for (int i = 0; i < allStops.length; i++) {
       final stop = allStops[i];
       if (stop.lat == 0 && stop.lng == 0) continue;
-      final stopIdx = findClosestIdx(LatLng(stop.lat, stop.lng));
-      if (stopIdx > driverIdx) {
+      final stopPolyIdx = findClosestPointIndex(
+        LatLng(stop.lat, stop.lng),
+        polyline,
+      );
+      if (stopPolyIdx > driverIdx) {
         nextStopIndex = i;
+        nextStopPolyIdx = stopPolyIdx;
         break;
       }
     }
 
-    if (nextStopIndex < 0) return null;
+    if (nextStopIndex < 0 || nextStopPolyIdx < 0) return null;
 
-    final nextStop = allStops[nextStopIndex];
-    final remainingDistanceKm = Geolocator.distanceBetween(
-          currentLoc.latitude,
-          currentLoc.longitude,
-          nextStop.lat,
-          nextStop.lng,
-        ) /
-        1000.0;
+    // Road distance by walking polyline segments — avoids 30-50% crow-fly
+    // underestimation on winding Indian bus routes.
+    final remainingRoadKm = polylineRoadDistanceKm(
+      polyline,
+      driverIdx,
+      nextStopPolyIdx,
+    );
 
     int etaMin = 1;
     if (directionsResult.legs.isNotEmpty) {
-      final legIndex = (nextStopIndex - 1)
-          .clamp(0, directionsResult.legs.length - 1);
+      final legIndex =
+          (nextStopIndex - 1).clamp(0, directionsResult.legs.length - 1);
       final leg = directionsResult.legs[legIndex];
-      if (leg.distanceKm > 0) {
+      if (leg.distanceKm > 0 && remainingRoadKm > 0) {
         final proportion =
-            (remainingDistanceKm / leg.distanceKm).clamp(0.0, 1.0);
+            (remainingRoadKm / leg.distanceKm).clamp(0.0, 1.0);
         etaMin =
             (proportion * leg.durationMin).round().clamp(1, leg.durationMin);
       } else {
         etaMin = leg.durationMin;
       }
     } else {
-      etaMin = (remainingDistanceKm / 0.5).ceil().clamp(1, 120);
+      // No leg data — fall back to 30 km/h speed estimate.
+      etaMin = (remainingRoadKm / 0.5).ceil().clamp(1, 120);
     }
 
+    final nextStop = allStops[nextStopIndex];
     return 'Next: ${nextStop.name} \u00B7 $etaMin min';
-
   }
 }
 

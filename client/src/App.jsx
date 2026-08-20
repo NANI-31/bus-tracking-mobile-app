@@ -40,6 +40,7 @@ const AdvancedAnalytics = lazy(() => import("@/features/super-admin/pages/Advanc
 const GlobalTracking = lazy(() => import("@/features/super-admin/pages/GlobalTracking"));
 const SystemAnalysis = lazy(() => import("@/features/super-admin/pages/SystemAnalysis"));
 const SubscriptionPlans = lazy(() => import("@/features/super-admin/pages/SubscriptionPlans"));
+const SessionExpiryLogs = lazy(() => import("@/features/super-admin/pages/SessionExpiryLogs"));
 
 
 // Auth & Other Pages
@@ -101,6 +102,7 @@ function App() {
                   <Route path="colleges/:id" element={<CollegeDetails />} />
                   <Route path="users" element={<GlobalUsers />} />
                   <Route path="audit" element={<AuditLogs />} />
+                  <Route path="session-logs" element={<SessionExpiryLogs />} />
                   <Route path="payments" element={<GlobalPayments />} />
                   <Route path="analytics" element={<AdvancedAnalytics />} />
                   <Route path="tracking" element={<GlobalTracking />} />

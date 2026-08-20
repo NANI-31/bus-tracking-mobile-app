@@ -62,13 +62,15 @@ class TripProgressSheet extends StatelessWidget {
                 ),
               ],
             ),
-            child: ListView.builder(
+            child: CustomScrollView(
               controller: scrollController,
-              padding: EdgeInsets.zero,
-              itemCount: 5 + allStops.length,
-              itemBuilder: (context, index) {
-                if (index == 0) {
-                  // Drag handle
+              slivers: [
+                SliverList(
+                  delegate: SliverChildBuilderDelegate(
+                    (context, index) {
+                      if (index == 0) {
+                        // Drag handle
+
                   return Center(
                     child: Container(
                       margin: const EdgeInsets.only(top: 12, bottom: 8),
@@ -305,8 +307,13 @@ class TripProgressSheet extends StatelessWidget {
                   return const BottomNavSpacer();
                 }
               },
+              childCount: 5 + allStops.length,
             ),
-          );
+          ),
+        ],
+      ),
+    );
+
         },
       ),
     );

@@ -9,7 +9,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:geolocator/geolocator.dart';
+
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:velocity_x/velocity_x.dart';
 
@@ -160,6 +160,28 @@ class DriverLiveTrackingTab extends ConsumerWidget {
                 (nextStopETA != null ? 'ETA: $nextStopETA' : null);
             if (displayETA == null) return const SizedBox.shrink();
 
+            // Compute remaining road distance by walking polyline from
+            // driver's nearest point index to the end.
+            String distLabel = '';
+            if (result != null && currentLocation != null) {
+              final poly = result.polylinePoints;
+              final driverIdx = findClosestPointIndex(currentLocation, poly);
+              final remainKm = polylineRoadDistanceKm(
+                poly,
+                driverIdx,
+                poly.length,
+              );
+              final totalKm = result.totalDistanceKm;
+              if (remainKm > 0) {
+                distLabel =
+                    '${remainKm.toStringAsFixed(1)} / ${totalKm.toStringAsFixed(1)} km';
+              } else {
+                distLabel = '${totalKm.toStringAsFixed(1)} km';
+              }
+            } else if (result != null) {
+              distLabel = '${result.totalDistanceKm.toStringAsFixed(1)} km';
+            }
+
             return Positioned(
               top: MediaQuery.of(context).padding.top + 12,
               left: 16,
@@ -205,12 +227,13 @@ class DriverLiveTrackingTab extends ConsumerWidget {
                         ),
                       ),
                     ),
-                    if (result != null)
+                    if (distLabel.isNotEmpty)
                       Text(
-                        '${result.totalDistanceKm.toStringAsFixed(1)} km',
+                        distLabel,
                         style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.6),
+                          color: Colors.white.withValues(alpha: 0.7),
                           fontSize: 12,
+                          fontWeight: FontWeight.w500,
                         ),
                       ),
                   ],
@@ -700,85 +723,73 @@ class DriverLiveTrackingTab extends ConsumerWidget {
 
   /// Computes a human-readable ETA string to the next upcoming stop using
   /// the Directions API leg data and the driver's progress along the polyline.
+  ///
+  /// Uses road distance (walking polyline segments) instead of crow-fly to
+  /// avoid the 30-50% underestimation that occurs on winding routes.
   String? _computeNextStopETAFromDirections(
     LatLng currentLocation,
     RouteModel selectedRoute,
     DirectionsResult directionsResult, [
     String? tripType,
   ]) {
-
     final polyline = directionsResult.polylinePoints;
     if (polyline.isEmpty) return null;
 
     final allStops = _orderedStops(selectedRoute, myBus?.tripType);
 
+    // Find the polyline index closest to the driver's current position.
+    final driverIdx = findClosestPointIndex(currentLocation, polyline);
 
-    int findClosestIdx(LatLng target) {
-      double minDistance = double.infinity;
-      int closestIndex = 0;
-      for (int i = 0; i < polyline.length; i++) {
-        final dist = Geolocator.distanceBetween(
-          target.latitude,
-          target.longitude,
-          polyline[i].latitude,
-          polyline[i].longitude,
-        );
-        if (dist < minDistance) {
-          minDistance = dist;
-          closestIndex = i;
-        }
-      }
-      return closestIndex;
-    }
-
-    final driverIdx = findClosestIdx(currentLocation);
-
+    // Find the next upcoming stop (the first stop whose nearest polyline index
+    // is strictly ahead of the driver's current index).
+    int nextStopPolyIdx = -1;
     int nextStopIndex = -1;
     for (int i = 0; i < allStops.length; i++) {
       final stop = allStops[i];
       if (stop.lat == 0 && stop.lng == 0) continue;
-      final stopIdx = findClosestIdx(LatLng(stop.lat, stop.lng));
-      if (stopIdx > driverIdx) {
+      final stopPolyIdx = findClosestPointIndex(
+        LatLng(stop.lat, stop.lng),
+        polyline,
+      );
+      if (stopPolyIdx > driverIdx) {
         nextStopIndex = i;
+        nextStopPolyIdx = stopPolyIdx;
         break;
       }
     }
 
-    if (nextStopIndex < 0) return null;
+    if (nextStopIndex < 0 || nextStopPolyIdx < 0) return null;
 
-    final nextStop = allStops[nextStopIndex];
-    final remainingDistanceKm =
-        Geolocator.distanceBetween(
-          currentLocation.latitude,
-          currentLocation.longitude,
-          nextStop.lat,
-          nextStop.lng,
-        ) /
-        1000.0;
+    // Road distance from driver to the next stop by walking polyline segments.
+    // This is much more accurate than crow-fly on winding Indian bus routes.
+    final remainingRoadKm = polylineRoadDistanceKm(
+      polyline,
+      driverIdx,
+      nextStopPolyIdx,
+    );
 
     int etaMin = 1;
     if (directionsResult.legs.isNotEmpty) {
+      // Pick the leg that covers the next stop.
       final legIndex = (nextStopIndex - 1).clamp(
         0,
         directionsResult.legs.length - 1,
       );
       final leg = directionsResult.legs[legIndex];
-      if (leg.distanceKm > 0) {
-        final proportion = (remainingDistanceKm / leg.distanceKm).clamp(
-          0.0,
-          1.0,
-        );
+      if (leg.distanceKm > 0 && remainingRoadKm > 0) {
+        // Scale leg duration by the proportion of road distance remaining.
+        final proportion = (remainingRoadKm / leg.distanceKm).clamp(0.0, 1.0);
         etaMin =
             (proportion * leg.durationMin).round().clamp(1, leg.durationMin);
       } else {
         etaMin = leg.durationMin;
       }
     } else {
-      etaMin = (remainingDistanceKm / 0.5).ceil().clamp(1, 120);
+      // No leg data — fall back to 30 km/h speed estimate.
+      etaMin = (remainingRoadKm / 0.5).ceil().clamp(1, 120);
     }
 
+    final nextStop = allStops[nextStopIndex];
     return 'Next: ${nextStop.name} \u00B7 $etaMin min';
-
   }
 }
-

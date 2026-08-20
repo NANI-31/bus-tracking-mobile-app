@@ -18,6 +18,7 @@ import {
   PresentationChartLineIcon,
   SunIcon,
   MoonIcon,
+  ShieldExclamationIcon,
 } from "@heroicons/react/24/outline";
 import {
   getActiveSos,
@@ -102,28 +103,17 @@ const SuperAdminLayout = () => {
   };
 
   const menuItems = [
-    { name: "Overview", path: "/super-admin", icon: ChartBarIcon },
-    { name: "Colleges", path: "/super-admin/colleges", icon: AcademicCapIcon },
-    { name: "Global Users", path: "/super-admin/users", icon: UserGroupIcon },
-    {
-      name: "Logs",
-      path: "/super-admin/audit",
-      icon: ClipboardDocumentListIcon,
-    },
-    { name: "Payments", path: "/super-admin/payments", icon: CreditCardIcon },
-    { name: "Plans", path: "/super-admin/plans", icon: TicketIcon },
-    { name: "Coupons", path: "/super-admin/coupons", icon: TicketIcon },
-    {
-      name: "Analytics",
-      path: "/super-admin/analytics",
-      icon: PresentationChartLineIcon,
-    },
-    { name: "Live Map", path: "/super-admin/tracking", icon: MapPinIcon },
-    {
-      name: "System Analysis",
-      path: "/super-admin/analysis",
-      icon: ServerIcon,
-    },
+    { name: "Overview",        path: "/super-admin",           icon: ChartBarIcon },
+    { name: "Colleges",        path: "/super-admin/colleges",  icon: AcademicCapIcon },
+    { name: "Global Users",    path: "/super-admin/users",     icon: UserGroupIcon },
+    { name: "Logs",            path: "/super-admin/audit",     icon: ClipboardDocumentListIcon },
+    { name: "Session Logs",    path: "/super-admin/session-logs", icon: ShieldExclamationIcon },
+    { name: "Payments",        path: "/super-admin/payments",  icon: CreditCardIcon },
+    { name: "Plans",           path: "/super-admin/plans",     icon: TicketIcon },
+    { name: "Coupons",         path: "/super-admin/coupons",   icon: TicketIcon },
+    { name: "Analytics",       path: "/super-admin/analytics", icon: PresentationChartLineIcon },
+    { name: "Live Map",        path: "/super-admin/tracking",  icon: MapPinIcon },
+    { name: "System Analysis", path: "/super-admin/analysis",  icon: ServerIcon },
   ];
 
   const sidebarContent = (isMobile = false) => (

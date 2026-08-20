@@ -254,38 +254,44 @@ class RouteCard extends StatelessWidget {
             ),
             const SizedBox(height: 20),
             Expanded(
-              child: ListView.builder(
-                padding: EdgeInsets.zero,
-                itemCount: ordered.length,
-                itemBuilder: (ctx2, index) {
-                  final stop = ordered[index];
-                  final isFirst = index == 0;
-                  final isLast = index == ordered.length - 1;
+              child: CustomScrollView(
+                slivers: [
+                  SliverList(
+                    delegate: SliverChildBuilderDelegate(
+                      (ctx2, index) {
+                        final stop = ordered[index];
+                        final isFirst = index == 0;
+                        final isLast = index == ordered.length - 1;
 
-                  final String title;
-                  final Color? dotColor;
+                        final String title;
+                        final Color? dotColor;
 
-                  if (isFirst) {
-                    title = isPickup ? 'START' : 'DROP START';
-                    dotColor = AppColors.success;
-                  } else if (isLast) {
-                    title = isPickup ? 'DESTINATION' : 'DROP END';
-                    dotColor = AppColors.danger;
-                  } else {
-                    title = 'STOP $index';
-                    dotColor = Colors.orange;
-                  }
+                        if (isFirst) {
+                          title = isPickup ? 'START' : 'DROP START';
+                          dotColor = AppColors.success;
+                        } else if (isLast) {
+                          title = isPickup ? 'DESTINATION' : 'DROP END';
+                          dotColor = AppColors.danger;
+                        } else {
+                          title = 'STOP $index';
+                          dotColor = Colors.orange;
+                        }
 
-                  return TimelineItem(
-                    title: title,
-                    location: stop.name,
-                    isActive: stop.name == userStop,
-                    isLast: isLast,
-                    dotColor: dotColor,
-                  );
-                },
+                        return TimelineItem(
+                          title: title,
+                          location: stop.name,
+                          isActive: stop.name == userStop,
+                          isLast: isLast,
+                          dotColor: dotColor,
+                        );
+                      },
+                      childCount: ordered.length,
+                    ),
+                  ),
+                ],
               ),
             ),
+
           ],
         ),
       ),

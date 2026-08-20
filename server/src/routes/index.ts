@@ -18,6 +18,7 @@ import collegeAdminRoutes from "@/routes/admin/collegeAdmin.routes";
 import superAdminRoutes from "@/routes/admin/superAdmin.routes";
 import auditRoutes from "@/routes/admin/audit.routes";
 import systemConfigRoutes from "@/routes/admin/systemConfig.routes";
+import sessionExpiryLogRoutes from "@/routes/admin/sessionExpiryLog.routes";
 
 const router = Router();
 
@@ -42,5 +43,6 @@ router.use("/admin/college", collegeAdminRoutes);
 router.use("/admin/super", superAdminRoutes);
 router.use("/admin/audit-logs", auditRoutes);
 router.use("/admin/system-config", systemConfigRoutes);
+router.use("/admin/session-expiry-logs", sessionExpiryLogRoutes);
 
 export { router };

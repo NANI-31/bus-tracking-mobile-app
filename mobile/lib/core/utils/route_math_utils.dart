@@ -95,11 +95,11 @@ List<LatLng> trimPolylineAtBus(LatLng busPos, List<LatLng> points) {
 
   // Compute the perpendicular foot on the best segment.
   final LatLng segStart = points[bestSegmentIdx];
-  final LatLng segEnd   = points[bestSegmentIdx + 1];
+  final LatLng segEnd = points[bestSegmentIdx + 1];
 
-  final double ax = busPos.latitude  - segStart.latitude;
+  final double ax = busPos.latitude - segStart.latitude;
   final double ay = busPos.longitude - segStart.longitude;
-  final double bx = segEnd.latitude  - segStart.latitude;
+  final double bx = segEnd.latitude - segStart.latitude;
   final double by = segEnd.longitude - segStart.longitude;
   final double lenSq = bx * bx + by * by;
 
@@ -109,7 +109,7 @@ List<LatLng> trimPolylineAtBus(LatLng busPos, List<LatLng> points) {
   } else {
     final double t = ((ax * bx + ay * by) / lenSq).clamp(0.0, 1.0);
     projectedFoot = LatLng(
-      segStart.latitude  + t * bx,
+      segStart.latitude + t * bx,
       segStart.longitude + t * by,
     );
   }
@@ -120,4 +120,58 @@ List<LatLng> trimPolylineAtBus(LatLng busPos, List<LatLng> points) {
     trimmed.add(points[i]);
   }
   return trimmed;
+}
+
+/// Computes the road distance in kilometres by summing individual segment
+/// lengths between polyline indices [fromIdx] (inclusive) and [toIdx]
+/// (exclusive). If [fromIdx] >= [toIdx] or the list is too short, returns 0.
+///
+/// Use this for accurate remaining-distance computation instead of
+/// Geolocator.distanceBetween() (crow-fly), which underestimates on winding
+/// roads by 30–50 % on typical Indian bus routes.
+double polylineRoadDistanceKm(
+  List<LatLng> polyline,
+  int fromIdx,
+  int toIdx,
+) {
+  if (polyline.length < 2) return 0.0;
+  final start = fromIdx.clamp(0, polyline.length - 1);
+  final end = toIdx.clamp(0, polyline.length);
+  if (start >= end - 1) return 0.0;
+
+  double totalMetres = 0.0;
+  for (int i = start; i < end - 1; i++) {
+    totalMetres += Geolocator.distanceBetween(
+      polyline[i].latitude,
+      polyline[i].longitude,
+      polyline[i + 1].latitude,
+      polyline[i + 1].longitude,
+    );
+  }
+  return totalMetres / 1000.0;
+}
+
+/// Finds the minimum perpendicular distance (metres) from [point] to any
+/// segment of the full dense [polyline].
+///
+/// Used by off-route detection: checking against the full polyline (hundreds
+/// of points) rather than just the sparse stop waypoints (3–8 points)
+/// prevents false off-route alerts on winding roads where the straight-line
+/// between two stops passes far from the actual road path.
+double minDistanceToPolyline(LatLng point, List<LatLng> polyline) {
+  if (polyline.isEmpty) return double.infinity;
+  if (polyline.length == 1) {
+    return Geolocator.distanceBetween(
+      point.latitude,
+      point.longitude,
+      polyline[0].latitude,
+      polyline[0].longitude,
+    );
+  }
+  double minDist = double.infinity;
+  for (int i = 0; i < polyline.length - 1; i++) {
+    final d = distanceToSegment(point, polyline[i], polyline[i + 1]);
+    if (d < minDist) minDist = d;
+  }
+  return minDist;
 }

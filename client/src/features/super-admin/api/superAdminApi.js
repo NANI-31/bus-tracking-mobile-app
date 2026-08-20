@@ -176,6 +176,45 @@ export const fetchAuditLogs = async (params) => {
     throw error.response ? error.response.data : error.message;
   }
 };
+
+// Session Expiry Logs
+export const fetchSessionExpiryLogs = async (params) => {
+  try {
+    const response = await axios.get("/admin/session-expiry-logs", { params });
+    return response.data;
+  } catch (error) {
+    throw error.response ? error.response.data : error.message;
+  }
+};
+
+export const fetchSessionExpiryLogsSummary = async (params) => {
+  try {
+    const response = await axios.get("/admin/session-expiry-logs/summary", { params });
+    return response.data;
+  } catch (error) {
+    throw error.response ? error.response.data : error.message;
+  }
+};
+
+export const fetchSessionExpiryLogDetail = async (id) => {
+  try {
+    const response = await axios.get(`/admin/session-expiry-logs/${id}`);
+    return response.data;
+  } catch (error) {
+    throw error.response ? error.response.data : error.message;
+  }
+};
+
+export const purgeSessionExpiryLogs = async (olderThanDays = 90) => {
+  try {
+    const response = await axios.delete("/admin/session-expiry-logs", {
+      data: { olderThanDays },
+    });
+    return response.data;
+  } catch (error) {
+    throw error.response ? error.response.data : error.message;
+  }
+};
 // Global Bus Management
 export const fetchGlobalBuses = async () => {
   try {

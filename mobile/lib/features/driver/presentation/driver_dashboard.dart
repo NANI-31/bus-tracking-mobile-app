@@ -593,31 +593,36 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
   }
 
   void _checkRouteDeviation(Position position, BusModel? myBus) {
-    final selectedRoute = ref.read(driverMapStateProvider).selectedRoute;
+    final mapState = ref.read(driverMapStateProvider);
+    final selectedRoute = mapState.selectedRoute;
     if (selectedRoute == null) return;
 
-    // Build ordered waypoints respecting tripType:
-    // - pickup : [startPoint, ...stopPoints, endPoint]
-    // - drop   : [endPoint, ...stopPoints.reversed, startPoint]
-    // Using getOrderedStops() ensures drop trips are checked against the
-    // reversed path, preventing false off-route alerts.
-    final orderedStops = selectedRoute.getOrderedStops(myBus?.tripType);
-    final points = orderedStops.map((s) => LatLng(s.lat, s.lng)).toList();
+    final busPoint = LatLng(position.latitude, position.longitude);
+    double minDistance;
 
-    double minDistance = double.infinity;
-
-    for (int i = 0; i < points.length - 1; i++) {
-      final p1 = points[i];
-      final p2 = points[i + 1];
-      final dist = _distanceToSegment(
-        LatLng(position.latitude, position.longitude),
-        p1,
-        p2,
-      );
-      if (dist < minDistance) minDistance = dist;
+    // Prefer the dense Google Directions polyline for off-route checks.
+    // This prevents false alerts on winding roads where the straight-line
+    // between two sparse stop waypoints diverges far from the actual road.
+    final directionsPolyline = mapState.directionsResult?.polylinePoints;
+    if (directionsPolyline != null && directionsPolyline.length >= 2) {
+      // For 'drop' trips the bus travels the reverse of the encoded polyline.
+      final polyline = myBus?.tripType == 'drop'
+          ? directionsPolyline.reversed.toList()
+          : directionsPolyline;
+      minDistance = _minDistanceToPolyline(busPoint, polyline);
+    } else {
+      // Fallback: check against segments between ordered stop waypoints.
+      // Used before directionsResult arrives or when the fetch failed.
+      final orderedStops = selectedRoute.getOrderedStops(myBus?.tripType);
+      final points = orderedStops.map((s) => LatLng(s.lat, s.lng)).toList();
+      minDistance = double.infinity;
+      for (int i = 0; i < points.length - 1; i++) {
+        final dist = _distanceToSegment(busPoint, points[i], points[i + 1]);
+        if (dist < minDistance) minDistance = dist;
+      }
     }
 
-    // Threshold: 200 meters
+    // Threshold: 200 meters from nearest road segment
     if (minDistance > 200) {
       final now = DateTime.now();
       if (_lastDeviationAlertTime == null ||
@@ -636,6 +641,19 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
 
     // ETA Calculation
     _calculateETA(position, myBus);
+  }
+
+  /// Finds the minimum perpendicular distance (metres) from [point] to any
+  /// segment of [polyline]. Delegates to the shared route_math_utils helper
+  /// via a private wrapper to avoid re-importing in this file.
+  double _minDistanceToPolyline(LatLng point, List<LatLng> polyline) {
+    if (polyline.isEmpty) return double.infinity;
+    double minDist = double.infinity;
+    for (int i = 0; i < polyline.length - 1; i++) {
+      final d = _distanceToSegment(point, polyline[i], polyline[i + 1]);
+      if (d < minDist) minDist = d;
+    }
+    return minDist;
   }
 
   void _calculateETA(Position position, BusModel? myBus) {

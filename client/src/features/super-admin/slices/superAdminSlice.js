@@ -22,6 +22,10 @@ import {
   createPlan,
   updatePlan,
   deletePlan,
+  fetchSessionExpiryLogs,
+  fetchSessionExpiryLogsSummary,
+  fetchSessionExpiryLogDetail,
+  purgeSessionExpiryLogs,
 } from "../api/superAdminApi";
 
 // Thunks
@@ -249,6 +253,55 @@ export const deletePlanAction = createAsyncThunk(
   },
 );
 
+// Session Expiry Logs
+export const getSessionExpiryLogs = createAsyncThunk(
+  "superAdmin/getSessionExpiryLogs",
+  async (params, { rejectWithValue }) => {
+    try {
+      const response = await fetchSessionExpiryLogs(params);
+      return response;
+    } catch (error) {
+      return rejectWithValue(error);
+    }
+  },
+);
+
+export const getSessionExpiryLogsSummary = createAsyncThunk(
+  "superAdmin/getSessionExpiryLogsSummary",
+  async (params, { rejectWithValue }) => {
+    try {
+      const response = await fetchSessionExpiryLogsSummary(params);
+      return response;
+    } catch (error) {
+      return rejectWithValue(error);
+    }
+  },
+);
+
+export const getSessionExpiryLogDetail = createAsyncThunk(
+  "superAdmin/getSessionExpiryLogDetail",
+  async (id, { rejectWithValue }) => {
+    try {
+      const response = await fetchSessionExpiryLogDetail(id);
+      return response;
+    } catch (error) {
+      return rejectWithValue(error);
+    }
+  },
+);
+
+export const purgeSessionExpiryLogsAction = createAsyncThunk(
+  "superAdmin/purgeSessionExpiryLogs",
+  async (olderThanDays, { rejectWithValue }) => {
+    try {
+      const response = await purgeSessionExpiryLogs(olderThanDays);
+      return response;
+    } catch (error) {
+      return rejectWithValue(error);
+    }
+  },
+);
+
 
 const initialState = {
   stats: null,
@@ -266,6 +319,12 @@ const initialState = {
   collegeStorageHistory: [],
   advancedAnalytics: null,
   analyticsLoading: false,
+  // Session Expiry Logs
+  sessionExpiryLogs: [],
+  sessionExpiryLogsTotal: 0,
+  sessionExpiryLogsSummary: null,
+  sessionExpiryLogDetail: null,
+  sessionExpiryLogsLoading: false,
   loading: false,
   error: null,
 };
@@ -510,6 +569,29 @@ const superAdminSlice = createSlice({
       })
       .addCase(deletePlanAction.fulfilled, (state, action) => {
         state.plans = state.plans.filter((p) => p._id !== action.payload);
+      })
+      // Session Expiry Logs
+      .addCase(getSessionExpiryLogs.pending, (state) => {
+        state.sessionExpiryLogsLoading = true;
+      })
+      .addCase(getSessionExpiryLogs.fulfilled, (state, action) => {
+        state.sessionExpiryLogsLoading = false;
+        state.sessionExpiryLogs = action.payload.logs || [];
+        state.sessionExpiryLogsTotal = action.payload.total || 0;
+      })
+      .addCase(getSessionExpiryLogs.rejected, (state) => {
+        state.sessionExpiryLogsLoading = false;
+      })
+      .addCase(getSessionExpiryLogsSummary.fulfilled, (state, action) => {
+        state.sessionExpiryLogsSummary = action.payload;
+      })
+      .addCase(getSessionExpiryLogDetail.fulfilled, (state, action) => {
+        state.sessionExpiryLogDetail = action.payload;
+      })
+      .addCase(purgeSessionExpiryLogsAction.fulfilled, (state) => {
+        state.sessionExpiryLogs = [];
+        state.sessionExpiryLogsTotal = 0;
+        state.sessionExpiryLogsSummary = null;
       });
   },
 });

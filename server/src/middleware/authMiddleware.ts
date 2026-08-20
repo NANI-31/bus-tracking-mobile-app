@@ -1,6 +1,10 @@
 import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
 import logger from "@/utils/logger";
+import {
+  logSessionExpiry,
+  SessionExpiryReason,
+} from "@/utils/sessionExpiryLogger";
 
 const JWT_SECRET = process.env.JWT_SECRET;
 if (!JWT_SECRET) {
@@ -42,6 +46,11 @@ export const protect = async (
 
       if (!user) {
         logger.warn(`Auth failed: User ${decoded.id} no longer exists`);
+        logSessionExpiry({
+          reason: SessionExpiryReason.UserDeleted,
+          decoded,
+          req,
+        });
         return res.status(401).json({ message: "User no longer exists" });
       }
 
@@ -52,6 +61,12 @@ export const protect = async (
         logger.warn(
           `Auth failed: tokenVersion mismatch for user ${user.email}. Token: ${decoded.tokenVersion}, DB: ${user.tokenVersion}`,
         );
+        logSessionExpiry({
+          reason: SessionExpiryReason.TokenVersionMismatch,
+          decoded,
+          dbUser: user,
+          req,
+        });
         return res.status(401).json({
           message:
             "Session expired. You have been logged in on another device.",
@@ -90,6 +105,21 @@ export const protect = async (
         error.name === "NotBeforeError";
 
       if (isJwtError) {
+        // Attempt to decode without verifying to extract forensic metadata
+        let partialDecoded: any;
+        try {
+          partialDecoded = jwt.decode(token as string);
+        } catch (_) {}
+
+        logSessionExpiry({
+          reason:
+            error.name === "TokenExpiredError"
+              ? SessionExpiryReason.TokenExpired
+              : SessionExpiryReason.InvalidToken,
+          decoded: partialDecoded,
+          error,
+          req,
+        });
         return res.status(401).json({
           message: "Session expired or invalid token.",
           code: "SESSION_EXPIRED",
@@ -106,6 +136,10 @@ export const protect = async (
   }
 
   if (!token) {
+    logSessionExpiry({
+      reason: SessionExpiryReason.NoToken,
+      req,
+    });
     res.status(401).json({ message: "Not authorized, no token" });
   }
 };
