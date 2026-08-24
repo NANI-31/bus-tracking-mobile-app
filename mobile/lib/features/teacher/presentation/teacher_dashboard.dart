@@ -242,7 +242,9 @@ class _TeacherDashboardState extends ConsumerState<TeacherDashboard> {
     }
     ref.read(driverLocationProvider.notifier).updateSharing(true);
 
-    ref.read(busRepositoryProvider).updateBus(_selectedBusId!, {'status': 'on-time'}).catchError((e) {
+    ref.read(busRepositoryProvider).updateBus(_selectedBusId!, {'status': 'on-time'}).then((_) {
+      ref.read(socketServiceProvider).sendBusListUpdate();
+    }).catchError((e) {
       debugPrint('Failed to update bus status: $e');
     });
 
@@ -292,7 +294,9 @@ class _TeacherDashboardState extends ConsumerState<TeacherDashboard> {
       _isTracking = false;
     }
     if (_selectedBusId != null) {
-      ref.read(busRepositoryProvider).updateBus(_selectedBusId!, {'status': 'not-running'}).catchError((e) {
+      ref.read(busRepositoryProvider).updateBus(_selectedBusId!, {'status': 'not-running'}).then((_) {
+        ref.read(socketServiceProvider).sendBusListUpdate();
+      }).catchError((e) {
         debugPrint('Failed to update bus status: $e');
       });
     }
@@ -395,6 +399,8 @@ class _TeacherDashboardState extends ConsumerState<TeacherDashboard> {
         'routeId': null,
         'trackingTeacherId': null,
       });
+
+      ref.read(socketServiceProvider).sendBusListUpdate();
 
       ref.invalidate(busListProvider);
       ref.invalidate(teacherOverrideRequestsProvider);

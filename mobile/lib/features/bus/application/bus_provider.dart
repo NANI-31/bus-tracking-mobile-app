@@ -166,7 +166,8 @@ final collegeBusLocationsProvider =
         final sub2 = socket.busUpdateStream.listen((data) {
           final busId = data['id'] ?? data['busId'];
           final status = data['status'];
-          if (status == 'not-running') {
+          final assignmentStatus = data['assignmentStatus'];
+          if (status == 'not-running' || assignmentStatus == 'unassigned') {
             _lastKnownLocations.remove(busId);
             currentLocations.removeWhere((l) => l.busId == busId);
             if (!controller.isClosed) {
@@ -175,9 +176,36 @@ final collegeBusLocationsProvider =
           }
         });
 
+        final sub3 = socket.busListUpdateStream.listen((_) async {
+          final user = ref.read(currentUserProvider);
+          if (user != null) {
+            try {
+              final repo = ref.read(busRepositoryProvider);
+              final buses = await repo.getAllBuses(collegeId: collegeId);
+              final inactiveBusIds = buses
+                  .where((b) =>
+                      b.status == 'not-running' ||
+                      b.assignmentStatus == 'unassigned' ||
+                      !b.isActive)
+                  .map((b) => b.id)
+                  .toSet();
+
+              for (final id in inactiveBusIds) {
+                _lastKnownLocations.remove(id);
+              }
+              currentLocations
+                  .removeWhere((l) => inactiveBusIds.contains(l.busId));
+              if (!controller.isClosed) {
+                controller.add(List.from(currentLocations));
+              }
+            } catch (_) {}
+          }
+        });
+
         controller.onCancel = () {
           sub1.cancel();
           sub2.cancel();
+          sub3.cancel();
         };
 
         final user = ref.read(currentUserProvider);

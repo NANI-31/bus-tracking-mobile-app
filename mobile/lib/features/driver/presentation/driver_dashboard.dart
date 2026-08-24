@@ -343,7 +343,9 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
     }
 
     // Update bus status to live
-    repo.updateBus(myBus.id, {'status': 'on-time'}).catchError((e) {
+    repo.updateBus(myBus.id, {'status': 'on-time'}).then((_) {
+      ref.read(socketServiceProvider).sendBusListUpdate();
+    }).catchError((e) {
       AppLogger.e('Failed to update bus status: $e');
     });
 
@@ -831,7 +833,9 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
 
     // Revert bus status to offline
     if (myBus != null) {
-      repo.updateBus(myBus.id, {'status': 'not-running'}).catchError((e) {
+      repo.updateBus(myBus.id, {'status': 'not-running'}).then((_) {
+        ref.read(socketServiceProvider).sendBusListUpdate();
+      }).catchError((e) {
         AppLogger.e('Failed to update bus status: $e');
       });
     }
@@ -848,6 +852,7 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
     final repo = ref.read(busRepositoryProvider);
     try {
       await repo.deleteBus(myBus.id);
+      ref.read(socketServiceProvider).sendBusListUpdate();
       await PersistenceService.remove('driver_bus_id');
       await PersistenceService.remove('driver_bus_number');
       await PersistenceService.remove('driver_route_id');
@@ -868,12 +873,14 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
     try {
       final updateData = <String, dynamic>{
         'assignmentStatus': 'accepted',
+        'status': 'on-time',
       };
       if (bus.tripType != null) {
         updateData['tripType'] = bus.tripType;
         await SecureStorageService.setDriverTripType(bus.tripType!);
       }
       await repo.updateBus(bus.id, updateData);
+      ref.read(socketServiceProvider).sendBusListUpdate();
       if (mounted) {
         _showToast(DriverLocalizations.of(context)!.assignmentAccepted);
         // Auto-start location sharing
@@ -900,6 +907,7 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
         'assignmentStatus': 'unassigned',
         'status': 'not-running',
       });
+      ref.read(socketServiceProvider).sendBusListUpdate();
       if (mounted) {
         _showToast(DriverLocalizations.of(context)!.assignmentDeclined);
       }
@@ -1378,6 +1386,8 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
           'status': 'not-running',
           'routeId': null,
         });
+
+        ref.read(socketServiceProvider).sendBusListUpdate();
 
         await PersistenceService.remove('driver_bus_id');
         await PersistenceService.remove('driver_bus_number');

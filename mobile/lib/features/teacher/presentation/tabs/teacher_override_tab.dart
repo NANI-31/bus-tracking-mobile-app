@@ -136,11 +136,15 @@ class TeacherOverrideTab extends ConsumerWidget {
                 ),
                 hint: 'Choose a vehicle'.text.make(),
                 items: buses.map((bus) {
-                  final statusSuffix = bus.assignmentStatus == 'accepted'
+                  final statusSuffix = bus.assignmentStatus == 'accepted' &&
+                          bus.status != 'not-running'
                       ? ' (Active)'
                       : bus.assignmentStatus == 'pending'
                           ? ' (Pending)'
-                          : ' (Available)';
+                          : bus.assignmentStatus == 'accepted' &&
+                                  bus.status == 'not-running'
+                              ? ' (Offline)'
+                              : ' (Available)';
                   return DropdownMenuItem<String>(
                     value: bus.id,
                     child: 'Bus ${bus.busNumber}$statusSuffix'.text.make(),
@@ -265,7 +269,8 @@ class TeacherOverrideTab extends ConsumerWidget {
                     final isLive = ref
                         .watch(studentLiveBusIdsProvider(user.collegeId))
                         .contains(bus.id);
-                    final isAssigned = bus.driverId.isNotEmpty;
+                    final isAssigned = bus.driverId.isNotEmpty &&
+                        bus.assignmentStatus != 'unassigned';
                     final isCurrentOverride = bus.trackingTeacherId == user.id;
 
                     Color statusColor = Colors.grey;
@@ -275,14 +280,16 @@ class TeacherOverrideTab extends ConsumerWidget {
                     // Show trip direction if the bus has an active assignment.
                     final tripType = bus.tripType;
                     final directionTag = tripType != null
-                        ? ' \u2014 ${tripType.toUpperCase()}'
+                        ? ' — ${tripType.toUpperCase()}'
                         : '';
 
                     if (isCurrentOverride) {
                       statusColor = Colors.green;
                       statusLabel = 'Override Active';
                       statusSubtitle = 'You are broadcasting location$directionTag';
-                    } else if (isLive) {
+                    } else if (isLive &&
+                        bus.assignmentStatus == 'accepted' &&
+                        bus.status != 'not-running') {
                       statusColor = Colors.green;
                       statusLabel = 'Live';
                       statusSubtitle = 'Currently broadcasting live$directionTag';
