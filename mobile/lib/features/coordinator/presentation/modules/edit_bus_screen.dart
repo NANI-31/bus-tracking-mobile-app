@@ -38,6 +38,9 @@ class _EditBusScreenState extends ConsumerState<EditBusScreen> {
   final _formKey = GlobalKey<FormState>();
   late TextEditingController _busNumberController;
   String? _selectedDefaultRouteId;
+  /// Active trip route — set at assignment time and changeable while a driver
+  /// is assigned. Stored in [BusModel.routeId] (not [BusModel.defaultRouteId]).
+  String? _selectedActiveRouteId;
   String? _selectedDriverId;
   bool _isSaving = false;
   bool _isRemovingDriver = false;
@@ -47,6 +50,7 @@ class _EditBusScreenState extends ConsumerState<EditBusScreen> {
     super.initState();
     _busNumberController = TextEditingController(text: widget.busNumber);
     _selectedDefaultRouteId = widget.bus?.defaultRouteId;
+    _selectedActiveRouteId = widget.bus?.routeId;
     _selectedDriverId = widget.bus?.driverId;
   }
 
@@ -69,7 +73,7 @@ class _EditBusScreenState extends ConsumerState<EditBusScreen> {
 
       final newBusNumber = _busNumberController.text.trim();
 
-      // Update bus name and route
+      // Update bus number and default route
       await collegeRepo.updateBusDetails(
         collegeId: collegeId,
         oldBusNumber: widget.busNumber,
@@ -79,13 +83,29 @@ class _EditBusScreenState extends ConsumerState<EditBusScreen> {
             : null,
       );
 
-      // Update driver assignment if changed
+      // If the coordinator changed the active trip route on an already-assigned
+      // bus (driver assigned but not re-assigning driver), patch routeId directly.
+      // This allows mid-assignment route corrections without removing the driver.
+      final driverUnchanged =
+          _selectedDriverId == widget.bus?.driverId ||
+          _selectedDriverId == null ||
+          _selectedDriverId!.isEmpty;
+      if (driverUnchanged &&
+          widget.bus != null &&
+          _selectedActiveRouteId != widget.bus!.routeId) {
+        await busRepo.updateBus(
+          widget.bus!.id,
+          {'routeId': _selectedActiveRouteId},
+        );
+      }
+
+      // Update driver assignment if changed — includes routeId at assignment time
       if (_selectedDriverId != widget.bus?.driverId && widget.bus != null) {
         if (_selectedDriverId != null && _selectedDriverId!.isNotEmpty) {
           await busRepo.assignDriverToBus(
             busId: widget.bus!.id,
             driverId: _selectedDriverId!,
-            routeId: _selectedDefaultRouteId,
+            routeId: _selectedActiveRouteId ?? _selectedDefaultRouteId,
           );
         }
       }
@@ -446,7 +466,92 @@ class _EditBusScreenState extends ConsumerState<EditBusScreen> {
                 ),
                 const SizedBox(height: 16),
 
-                // Card 2: Driver Management
+                // Card 2: Active Trip Route (only shown when a driver is assigned)
+                if (widget.bus != null &&
+                    widget.bus!.driverId.isNotEmpty)
+                  Card(
+                    elevation: 0,
+                    color: context.cardColor,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20),
+                      side: BorderSide(
+                        color: context.colorScheme.onSurface.withValues(
+                          alpha: 0.06,
+                        ),
+                        width: 1.2,
+                      ),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(20),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          _buildSectionHeader(
+                            context,
+                            icon: Icons.alt_route_outlined,
+                            title: 'Active Trip Route',
+                            subtitle:
+                                'Change the route the driver will follow for today\'s trip.'
+                                ' Updating this notifies the driver\'s map immediately.',
+                          ),
+                          const SizedBox(height: 8),
+                          // Contextual info chip
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 8,
+                            ),
+                            decoration: BoxDecoration(
+                              color: primaryColor.withValues(alpha: 0.06),
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(
+                                color: primaryColor.withValues(alpha: 0.15),
+                              ),
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.info_outline_rounded,
+                                  size: 15,
+                                  color: primaryColor.withValues(alpha: 0.8),
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    'This is separate from the Default Route. '
+                                    'It sets the route for the current assignment only.',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: context.colorScheme.onSurface
+                                          .withValues(alpha: 0.55),
+                                      height: 1.4,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          RouteSelectorWidget(
+                            routes: routes,
+                            selectedRouteId: _selectedActiveRouteId,
+                            isEditable: true,
+                            labelOverride: 'Active Trip Route',
+                            onChanged: (value) {
+                              setState(() {
+                                _selectedActiveRouteId = value;
+                              });
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                if (widget.bus != null &&
+                    widget.bus!.driverId.isNotEmpty)
+                  const SizedBox(height: 16),
+
+                // Card 3: Driver Management
                 Card(
                   elevation: 0,
                   color: context.cardColor,
@@ -773,6 +878,8 @@ class RouteSelectorWidget extends StatefulWidget {
   final String? selectedRouteId;
   final ValueChanged<String?> onChanged;
   final bool isEditable;
+  /// Optional label override for the selector header (defaults to 'Default Route').
+  final String? labelOverride;
 
   const RouteSelectorWidget({
     super.key,
@@ -780,6 +887,7 @@ class RouteSelectorWidget extends StatefulWidget {
     required this.selectedRouteId,
     required this.onChanged,
     required this.isEditable,
+    this.labelOverride,
   });
 
   @override
@@ -840,7 +948,7 @@ class _RouteSelectorWidgetState extends State<RouteSelectorWidget> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Default Route',
+                        widget.labelOverride ?? 'Default Route',
                         style: TextStyle(
                           fontSize: 12,
                           color: Theme.of(
