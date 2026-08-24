@@ -1041,11 +1041,24 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
             }
           }
 
-          // 2. Handle initial route selection if matching preference
+          // Handle route selection / mid-trip coordinator route change.
+          //
+          // We fire in two cases:
+          //   a) No route selected yet (initial assignment or app restart).
+          //   b) The bus.routeId changed to a different route than what the
+          //      driver currently has selected — i.e. a coordinator changed
+          //      the active trip route from EditBusScreen while the trip was
+          //      already in progress.
+          //
+          // Case (b) is the fix: the old guard `currentRoute == null` caused
+          // coordinator-initiated route changes to be silently dropped when
+          // the driver was already tracking.
           final currentRoute = ref.read(driverMapStateProvider).selectedRoute;
-          if (currentRoute == null && bus.routeId != null) {
+          final routeChanged =
+              bus.routeId != null && currentRoute?.id != bus.routeId;
+          if (routeChanged) {
             debugPrint(
-              '[DriverDashboard] Matching route for routeId=${bus.routeId}',
+              '[DriverDashboard] Route ${currentRoute == null ? "initial selection" : "changed by coordinator"}: routeId=${bus.routeId}',
             );
             final routesAsync = ref.read(collegeRoutesProvider(collegeId));
             final routes = routesAsync.valueOrNull;
@@ -1055,6 +1068,11 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
                 ref
                     .read(driverMapStateProvider.notifier)
                     .setSelectedRoute(route);
+                // Persist the coordinator-assigned route so it survives restart.
+                // Fire-and-forget: the listener callback is synchronous, so we
+                // intentionally do not await here.
+                // ignore: unawaited_futures
+                SecureStorageService.setDriverRouteId(route.id);
               } catch (e) {
                 AppLogger.e('Error matching route selection: $e');
               }
