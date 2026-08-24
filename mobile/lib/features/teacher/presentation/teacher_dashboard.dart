@@ -17,6 +17,7 @@ import 'package:collegebus/core/providers/socket_provider.dart';
 import 'package:collegebus/core/providers/service_providers.dart';
 import 'package:collegebus/core/constants/constants.dart';
 import 'package:collegebus/core/utils/map_marker_helper.dart';
+import 'package:collegebus/core/utils/route_math_utils.dart';
 
 import 'package:collegebus/shared/widgets/success_modal.dart';
 import 'package:collegebus/shared/widgets/api_error_modal.dart';
@@ -275,7 +276,7 @@ class _TeacherDashboardState extends ConsumerState<TeacherDashboard> {
           'speed': position.speed,
           'heading': position.heading,
           if (selectedBus?.tripType != null) 'tripType': selectedBus!.tripType,
-          'etaMinutes': _computeEtaMinutes(position, speedMs: position.speed),
+          'etaMinutes': _computeEtaMinutes(position, selectedBus, speedMs: position.speed),
         });
 
       },
@@ -457,24 +458,31 @@ class _TeacherDashboardState extends ConsumerState<TeacherDashboard> {
   // --- Location Deviation, Proximity & ETA Calculations ---
 
   void _checkRouteDeviation(Position position, BusModel selectedBus) {
-    final selectedRoute = ref.read(driverMapStateProvider).selectedRoute;
+    final mapState = ref.read(driverMapStateProvider);
+    final selectedRoute = mapState.selectedRoute;
     if (selectedRoute == null) return;
 
-    // Build ordered waypoints respecting tripType:
-    // - pickup : [startPoint, ...stopPoints, endPoint]
-    // - drop   : [endPoint, ...stopPoints.reversed, startPoint]
-    // Using getOrderedStops() prevents false off-route alerts on drop trips.
-    final orderedStops = selectedRoute.getOrderedStops(selectedBus.tripType);
-    final points = orderedStops.map((s) => LatLng(s.lat, s.lng)).toList();
+    final busPoint = LatLng(position.latitude, position.longitude);
+    double minDistance;
 
-    double minDistance = double.infinity;
-    for (int i = 0; i < points.length - 1; i++) {
-      final dist = _distanceToSegment(
-        LatLng(position.latitude, position.longitude),
-        points[i],
-        points[i + 1],
-      );
-      if (dist < minDistance) minDistance = dist;
+    // Prefer the dense Google Directions polyline for off-route checks to prevent
+    // false alerts on winding roads where sparse straight lines cut corners.
+    final directionsPolyline = mapState.directionsResult?.polylinePoints;
+    if (directionsPolyline != null && directionsPolyline.length >= 2) {
+      final routeType = selectedRoute.routeType;
+      final polyline = selectedBus.tripType != null && selectedBus.tripType != routeType
+          ? directionsPolyline.reversed.toList()
+          : directionsPolyline;
+      minDistance = minDistanceToPolyline(busPoint, polyline);
+    } else {
+      // Fallback: check against segments between ordered stop waypoints.
+      final orderedStops = selectedRoute.getOrderedStops(selectedBus.tripType);
+      final points = orderedStops.map((s) => LatLng(s.lat, s.lng)).toList();
+      minDistance = double.infinity;
+      for (int i = 0; i < points.length - 1; i++) {
+        final dist = distanceToSegment(busPoint, points[i], points[i + 1]);
+        if (dist < minDistance) minDistance = dist;
+      }
     }
 
     if (minDistance > 200) {
@@ -491,19 +499,18 @@ class _TeacherDashboardState extends ConsumerState<TeacherDashboard> {
     _calculateETA(position, selectedBus);
   }
 
-
-
-
   void _calculateETA(Position position, BusModel selectedBus) {
-    final etaMinutes = _computeEtaMinutes(position, speedMs: position.speed);
+    final etaMinutes = _computeEtaMinutes(position, selectedBus, speedMs: position.speed);
     if (etaMinutes == null) return;
 
     final selectedRoute = ref.read(driverMapStateProvider).selectedRoute;
     if (selectedRoute == null) return;
 
+    final orderedStops = selectedRoute.getOrderedStops(selectedBus.tripType);
     double minDistance = double.infinity;
     RoutePoint? nextStop;
-    for (final stop in selectedRoute.stopPoints) {
+    for (final stop in orderedStops) {
+      if (stop.lat == 0 && stop.lng == 0) continue;
       final dist = Geolocator.distanceBetween(
         position.latitude,
         position.longitude,
@@ -521,13 +528,14 @@ class _TeacherDashboardState extends ConsumerState<TeacherDashboard> {
     ref.read(driverLocationProvider.notifier).updateETA(etaStr);
   }
 
-
-  int? _computeEtaMinutes(Position position, {double? speedMs}) {
+  int? _computeEtaMinutes(Position position, BusModel? selectedBus, {double? speedMs}) {
     final selectedRoute = ref.read(driverMapStateProvider).selectedRoute;
     if (selectedRoute == null) return null;
 
+    final orderedStops = selectedRoute.getOrderedStops(selectedBus?.tripType);
     double minDistance = double.infinity;
-    for (final stop in selectedRoute.stopPoints) {
+    for (final stop in orderedStops) {
+      if (stop.lat == 0 && stop.lng == 0) continue;
       final dist = Geolocator.distanceBetween(
         position.latitude,
         position.longitude,
@@ -586,42 +594,6 @@ class _TeacherDashboardState extends ConsumerState<TeacherDashboard> {
         });
       }
     }
-  }
-
-  double _distanceToSegment(LatLng p, LatLng start, LatLng end) {
-    final double x = p.latitude;
-    final double y = p.longitude;
-    final double x1 = start.latitude;
-    final double y1 = start.longitude;
-    final double x2 = end.latitude;
-    final double y2 = end.longitude;
-
-    final double A = x - x1;
-    final double B = y - y1;
-    final double C = x2 - x1;
-    final double D = y2 - y1;
-
-    final double dot = A * C + B * D;
-    final double lenSq = C * C + D * D;
-    double param = -1;
-    if (lenSq != 0) {
-      param = dot / lenSq;
-    }
-
-    double xx, yy;
-
-    if (param < 0) {
-      xx = x1;
-      yy = y1;
-    } else if (param > 1) {
-      xx = x2;
-      yy = y2;
-    } else {
-      xx = x1 + param * C;
-      yy = y1 + param * D;
-    }
-
-    return Geolocator.distanceBetween(x, y, xx, yy);
   }
 
 

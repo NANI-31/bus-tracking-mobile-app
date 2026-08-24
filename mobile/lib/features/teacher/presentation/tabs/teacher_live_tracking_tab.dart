@@ -28,6 +28,7 @@ import 'package:collegebus/features/bus/domain/bus_model.dart';
 import 'package:collegebus/shared/widgets/sos_button.dart';
 
 import 'package:collegebus/widgets/common/common_map_view.dart';
+import 'package:collegebus/core/utils/type_converters.dart';
 
 
 class TeacherLiveTrackingTab extends ConsumerWidget {
@@ -487,7 +488,7 @@ class TeacherLiveTrackingTab extends ConsumerWidget {
     }
 
     final routeColor = route != null
-        ? Color(int.parse(route.color.replaceAll('#', '0xFF')))
+        ? parseHexColor(route.color, const Color(0xFF1565C0))
         : const Color(0xFF1565C0);
 
     return {
@@ -532,8 +533,7 @@ class TeacherLiveTrackingTab extends ConsumerWidget {
     final allPoints = points;
 
 
-    final routeColor =
-        Color(int.parse(route.color.replaceAll('#', '0xFF')));
+    final routeColor = parseHexColor(route.color, const Color(0xFF1565C0));
 
     return {
       Polyline(

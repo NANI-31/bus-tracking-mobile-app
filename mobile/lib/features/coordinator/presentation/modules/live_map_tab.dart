@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:collegebus/features/bus/domain/bus_model.dart';
+import 'package:collegebus/features/route/domain/route_model.dart';
+import 'package:collegebus/features/route/application/route_provider.dart';
 import 'package:collegebus/features/auth/application/auth_provider.dart';
 import 'package:collegebus/features/bus/application/bus_provider.dart';
 import 'package:collegebus/shared/widgets/incident_report_modal.dart';
@@ -30,10 +32,24 @@ class _LiveMapTabState extends ConsumerState<LiveMapTab> with AutomaticKeepAlive
     if (collegeId == null) return const SizedBox.shrink();
 
     final buses = ref.watch(collegeBusesStreamProvider(collegeId)).valueOrNull ?? [];
+    final routes = ref.watch(collegeRoutesProvider(collegeId)).valueOrNull ?? [];
+
+    RouteModel? activeRoute;
+    if (widget.selectedBus != null) {
+      final targetRouteId =
+          widget.selectedBus!.routeId ?? widget.selectedBus!.defaultRouteId;
+      if (targetRouteId != null) {
+        activeRoute = routes.cast<RouteModel?>().firstWhere(
+          (r) => r?.id == targetRouteId,
+          orElse: () => null,
+        );
+      }
+    }
 
     return LiveBusMap(
       buses: buses,
       selectedBus: widget.selectedBus,
+      activeRoute: activeRoute,
       onBusTap: (bus) {
         IncidentReportModal.show(context, busId: bus.id);
       },

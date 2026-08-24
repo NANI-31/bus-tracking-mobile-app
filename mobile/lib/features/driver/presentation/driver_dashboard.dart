@@ -358,7 +358,8 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
         // Falls back to 30 km/h (8.33 m/s) when stationary or speed is unreliable.
         final etaMinutes = _computeEtaMinutes(
           position,
-          speedMs: position.speed > 1.0 ? position.speed : null,
+          myBus,
+          position.speed > 1.0 ? position.speed : null,
         );
 
         socketService.updateLocation({
@@ -661,17 +662,18 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
   }
 
   void _calculateETA(Position position, BusModel? myBus) {
-    final etaMinutes = _computeEtaMinutes(position);
+    final etaMinutes = _computeEtaMinutes(position, myBus);
     if (etaMinutes == null) return;
 
     // Build the localised display string for the driver's own ETA card.
     final selectedRoute = ref.read(driverMapStateProvider).selectedRoute;
     if (selectedRoute == null) return;
 
-    // Find the nearest stop again for its name (already done inside _computeEtaMinutes)
+    final orderedStops = selectedRoute.getOrderedStops(myBus?.tripType);
     double minDistance = double.infinity;
     RoutePoint? nextStop;
-    for (final stop in selectedRoute.stopPoints) {
+    for (final stop in orderedStops) {
+      if (stop.lat == 0 && stop.lng == 0) continue;
       final dist = Geolocator.distanceBetween(
         position.latitude,
         position.longitude,
@@ -696,16 +698,18 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
   /// This is the single source of truth used by both the driver's UI card
   /// and the socket payload sent to students.
   ///
-  /// [speedMs] â€” optional GPS speed in m/s from [Position.speed].
+  /// [speedMs] — optional GPS speed in m/s from [Position.speed].
   /// Used when speed > 1.0 m/s (> 3.6 km/h) to avoid GPS jitter on stationary
   /// fixes. Falls back to 8.33 m/s (30 km/h) when null or too low.
-  int? _computeEtaMinutes(Position position, {double? speedMs}) {
+  int? _computeEtaMinutes(Position position, [BusModel? myBus, double? speedMs]) {
     final selectedRoute = ref.read(driverMapStateProvider).selectedRoute;
     if (selectedRoute == null) return null;
 
+    final orderedStops = selectedRoute.getOrderedStops(myBus?.tripType);
     double minDistance = double.infinity;
 
-    for (final stop in selectedRoute.stopPoints) {
+    for (final stop in orderedStops) {
+      if (stop.lat == 0 && stop.lng == 0) continue;
       final dist = Geolocator.distanceBetween(
         position.latitude,
         position.longitude,
@@ -718,7 +722,7 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
     if (minDistance == double.infinity) return null;
 
     // Use real GPS speed when reliable (> 1 m/s); otherwise default to 30 km/h.
-    // Threshold: 1 m/s â‰ˆ 3.6 km/h â€” below this the reading is GPS noise.
+    // Threshold: 1 m/s ≈ 3.6 km/h — below this the reading is GPS noise.
     final effectiveSpeedMs = (speedMs != null && speedMs > 1.0)
         ? speedMs
         : 8.33;

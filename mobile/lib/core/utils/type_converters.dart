@@ -1,3 +1,5 @@
+import 'package:flutter/material.dart';
+
 bool parseBool(dynamic value, [bool defaultValue = false]) {
   if (value is bool) return value;
   if (value is num) return value != 0;
@@ -16,4 +18,27 @@ DateTime parseDateTime(dynamic value, [DateTime? defaultValue]) {
     return DateTime.tryParse(value) ?? defaultValue ?? DateTime.now();
   }
   return defaultValue ?? DateTime.now();
+}
+
+Color parseHexColor(dynamic value, [Color defaultColor = const Color(0xFF0097B2)]) {
+  if (value == null) return defaultColor;
+  if (value is Color) return value;
+  if (value is! String) return defaultColor;
+  final clean = value.replaceAll('#', '').trim();
+  if (clean.isEmpty) return defaultColor;
+  try {
+    if (clean.length == 6) {
+      return Color(int.parse('FF$clean', radix: 16));
+    } else if (clean.length == 8) {
+      return Color(int.parse(clean, radix: 16));
+    } else if (clean.length == 3) {
+      final r = clean[0];
+      final g = clean[1];
+      final b = clean[2];
+      return Color(int.parse('FF$r$r$g$g$b$b', radix: 16));
+    }
+  } catch (_) {
+    return defaultColor;
+  }
+  return defaultColor;
 }
