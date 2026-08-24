@@ -131,7 +131,11 @@ class TeacherLiveTrackingTab extends ConsumerWidget {
     // Compute remaining road distance for the distance label in the ETA card.
     String distLabel = '';
     if (result != null && effectiveLocation != null) {
-      final poly = result.polylinePoints;
+      // Reverse the polyline when trip direction differs from route direction.
+      var poly = result.polylinePoints;
+      if (tripType != null && route != null && tripType != route.routeType) {
+        poly = poly.reversed.toList();
+      }
       final driverIdx = findClosestPointIndex(effectiveLocation, poly);
       final remainKm = polylineRoadDistanceKm(poly, driverIdx, poly.length);
       final totalKm = result.totalDistanceKm;
@@ -467,7 +471,11 @@ class TeacherLiveTrackingTab extends ConsumerWidget {
     if (result == null || !result.hasRoute) return {};
 
     List<LatLng> points = List<LatLng>.from(result.polylinePoints);
-    if (tripType == 'drop') {
+    // Reverse polyline when the active trip direction differs from the
+    // route's stored direction (routeType). The server always generates
+    // the polyline in startPoint → endPoint order.
+    final routeType = route?.routeType ?? 'pickup';
+    if (tripType != null && tripType != routeType) {
       points = points.reversed.toList();
     }
 
@@ -551,8 +559,14 @@ class TeacherLiveTrackingTab extends ConsumerWidget {
     DirectionsResult directionsResult,
     String? tripType,
   ) {
-    final polyline = directionsResult.polylinePoints;
+    // Reverse the polyline when the trip direction differs from the route's
+    // stored direction so that findClosestPointIndex and distance calculations
+    // operate in the correct travel direction.
+    var polyline = directionsResult.polylinePoints;
     if (polyline.isEmpty) return null;
+    if (tripType != null && tripType != selectedRoute.routeType) {
+      polyline = polyline.reversed.toList();
+    }
 
     final allStops = selectedRoute.getOrderedStops(tripType);
 

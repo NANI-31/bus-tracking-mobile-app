@@ -607,8 +607,10 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
     // between two sparse stop waypoints diverges far from the actual road.
     final directionsPolyline = mapState.directionsResult?.polylinePoints;
     if (directionsPolyline != null && directionsPolyline.length >= 2) {
-      // For 'drop' trips the bus travels the reverse of the encoded polyline.
-      final polyline = myBus?.tripType == 'drop'
+      // Reverse polyline when the active trip direction differs from the
+      // route's stored direction (routeType), instead of hardcoding 'drop'.
+      final routeType = selectedRoute.routeType;
+      final polyline = myBus?.tripType != null && myBus!.tripType != routeType
           ? directionsPolyline.reversed.toList()
           : directionsPolyline;
       minDistance = _minDistanceToPolyline(busPoint, polyline);

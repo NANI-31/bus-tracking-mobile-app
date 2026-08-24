@@ -1042,7 +1042,11 @@ class LiveBusMapState extends ConsumerState<LiveBusMap>
     }
 
     List<LatLng> points = List<LatLng>.from(_directionsResult!.polylinePoints);
-    if (widget.selectedBus?.tripType == 'drop') {
+    // The polyline is stored in the route's natural direction (routeType).
+    // Reverse only when the active trip direction differs from the stored direction.
+    final tripType = widget.selectedBus?.tripType;
+    final routeType = widget.activeRoute?.routeType ?? 'pickup';
+    if (tripType != null && tripType != routeType) {
       points = points.reversed.toList();
     }
 

@@ -134,11 +134,16 @@ class RouteModel {
   }
 
   /// Returns the ordered list of waypoints based on active trip direction.
-  /// - pickup : [startPoint, ...stopPoints, endPoint]
-  /// - drop   : [endPoint, ...stopPoints.reversed, startPoint]
+  ///
+  /// The stops are stored in the route's natural direction ([routeType]).
+  /// When the active [tripType] matches [routeType], the stops are returned
+  /// in their stored order. When they differ the order is reversed so the
+  /// polyline and stop markers reflect the actual travel direction.
   List<RoutePoint> getOrderedStops([String? tripType]) {
     final effectiveType = tripType ?? routeType;
-    if (effectiveType == 'drop') {
+    // Reverse only when the active trip direction differs from the
+    // route's stored direction — not based on a hardcoded 'drop' check.
+    if (effectiveType != routeType) {
       return [
         endPoint,
         ...stopPoints.reversed,

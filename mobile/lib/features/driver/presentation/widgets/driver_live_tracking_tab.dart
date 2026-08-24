@@ -72,7 +72,7 @@ class DriverLiveTrackingTab extends ConsumerWidget {
                 final stopMarkers = _buildStopMarkers(route, myBus?.tripType);
 
                 final polylines =
-                    _buildPolylines(result, currentLocation, routeColorTheme, myBus?.tripType);
+                    _buildPolylines(result, currentLocation, routeColorTheme, myBus?.tripType, route?.routeType);
 
 
                 final mapMarkers = {...stopMarkers};
@@ -164,7 +164,12 @@ class DriverLiveTrackingTab extends ConsumerWidget {
             // driver's nearest point index to the end.
             String distLabel = '';
             if (result != null && currentLocation != null) {
-              final poly = result.polylinePoints;
+              // Reverse the polyline when trip direction differs from route direction.
+              var poly = result.polylinePoints;
+              final rType = selectedRoute.routeType;
+              if (myBus?.tripType != null && myBus!.tripType != rType) {
+                poly = poly.reversed.toList();
+              }
               final driverIdx = findClosestPointIndex(currentLocation, poly);
               final remainKm = polylineRoadDistanceKm(
                 poly,
@@ -583,21 +588,10 @@ class DriverLiveTrackingTab extends ConsumerWidget {
   // ─────────────────────────────────────────────────────────────────────────
 
   /// Returns the ordered list of waypoints for a trip.
-  /// - pickup : [startPoint, ...stopPoints, endPoint]   (A → B)
-  /// - drop   : [endPoint, ...stopPoints.reversed, startPoint]  (B → A)
+  /// Delegates to [RouteModel.getOrderedStops] which compares the active
+  /// trip direction against the route's stored [routeType].
   List<RoutePoint> _orderedStops(RouteModel route, String? tripType) {
-    if (tripType == 'drop') {
-      return [
-        route.endPoint,
-        ...route.stopPoints.reversed,
-        route.startPoint,
-      ];
-    }
-    return [
-      route.startPoint,
-      ...route.stopPoints,
-      route.endPoint,
-    ];
+    return route.getOrderedStops(tripType);
   }
 
   Set<Marker> _buildStopMarkers(RouteModel? route, String? tripType) {
@@ -679,13 +673,18 @@ class DriverLiveTrackingTab extends ConsumerWidget {
     DirectionsResult? result,
     LatLng? currentLocation,
     Color routeColor,
-    String? tripType,
-  ) {
+    String? tripType, [
+    String? routeType,
+  ]) {
     final polylines = <Polyline>{};
     if (result == null || !result.hasRoute) return polylines;
 
     List<LatLng> points = List<LatLng>.from(result.polylinePoints);
-    if (tripType == 'drop') {
+    // Reverse polyline when the active trip direction differs from the
+    // route's stored direction (routeType). The server always generates
+    // the polyline in startPoint → endPoint order.
+    final effectiveRouteType = routeType ?? 'pickup';
+    if (tripType != null && tripType != effectiveRouteType) {
       points = points.reversed.toList();
     }
 
@@ -732,8 +731,14 @@ class DriverLiveTrackingTab extends ConsumerWidget {
     DirectionsResult directionsResult, [
     String? tripType,
   ]) {
-    final polyline = directionsResult.polylinePoints;
+    // Reverse the polyline when the trip direction differs from the route's
+    // stored direction so that findClosestPointIndex and distance calculations
+    // operate in the correct travel direction.
+    var polyline = directionsResult.polylinePoints;
     if (polyline.isEmpty) return null;
+    if (tripType != null && tripType != selectedRoute.routeType) {
+      polyline = polyline.reversed.toList();
+    }
 
     final allStops = _orderedStops(selectedRoute, myBus?.tripType);
 

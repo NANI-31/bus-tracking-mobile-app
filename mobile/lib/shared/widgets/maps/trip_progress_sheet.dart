@@ -385,11 +385,10 @@ class TripProgressSheet extends StatelessWidget {
       return lastPassedIndex;
     }
 
-    // For drop trips, the polyline from DirectionsService is always in
-    // pickup order (stops→college). Since getOrderedStops('drop') returns
-    // college first (index 0 in ordered stops), we reverse the polyline so
-    // that polyline indices and stop ordering are aligned in the same direction.
-    final points = tripType == 'drop'
+    // The polyline from DirectionsService is always in startPoint→endPoint
+    // order, which matches the route's routeType direction. Reverse it when
+    // the active trip direction differs from the route's stored direction.
+    final points = (tripType != null && tripType != route.routeType)
         ? rawPoints.reversed.toList()
         : rawPoints;
 
