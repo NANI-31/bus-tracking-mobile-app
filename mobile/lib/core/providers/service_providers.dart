@@ -15,6 +15,7 @@ import 'package:collegebus/core/services/app_permissions_service.dart';
 import 'package:collegebus/core/providers/repository_providers.dart';
 import 'socket_provider.dart';
 import 'package:collegebus/core/utils/map_style_helper.dart';
+import 'package:collegebus/features/auth/application/auth_provider.dart';
 
 
 /// VoiceRecordingService provider
@@ -87,7 +88,8 @@ final dataServiceProvider = ChangeNotifierProvider<DataService>((ref) {
 class ThemeNotifier extends Notifier<ThemeState> {
   @override
   ThemeState build() {
-    _loadTheme();
+    final user = ref.watch(currentUserProvider);
+    _loadTheme(user?.id);
     return const ThemeState();
   }
 
@@ -95,30 +97,60 @@ class ThemeNotifier extends Notifier<ThemeState> {
   static const String _mapThemeKey = 'map_theme';
   static const String _accentKey = 'accent_color';
 
-  Future<void> _loadTheme() async {
+  String _getKey(String baseKey, String? userId) {
+    if (userId != null && userId.isNotEmpty) {
+      return '${userId}_$baseKey';
+    }
+    return baseKey;
+  }
+
+  Future<void> _loadTheme([String? userId]) async {
     final prefs = await SharedPreferences.getInstance();
+    final uid = userId ?? ref.read(currentUserProvider)?.id;
+
+    final userMapTheme = uid != null ? prefs.getString(_getKey(_mapThemeKey, uid)) : null;
+    final mapTheme = userMapTheme ?? prefs.getString(_mapThemeKey) ?? 'auto';
+
+    final userDarkMode = uid != null ? prefs.getBool(_getKey(_themeKey, uid)) : null;
+    final isDarkMode = userDarkMode ?? prefs.getBool(_themeKey) ?? false;
+
+    final userAccent = uid != null ? prefs.getInt(_getKey(_accentKey, uid)) : null;
+    final accentColorValue = userAccent ?? prefs.getInt(_accentKey) ?? 0xFF00C6E6;
+
     state = state.copyWith(
-      isDarkMode: prefs.getBool(_themeKey) ?? false,
-      mapTheme: prefs.getString(_mapThemeKey) ?? 'auto',
-      accentColorValue: prefs.getInt(_accentKey) ?? 0xFF00C6E6,
+      isDarkMode: isDarkMode,
+      mapTheme: mapTheme,
+      accentColorValue: accentColorValue,
     );
   }
 
   Future<void> toggleTheme(bool isDark) async {
     state = state.copyWith(isDarkMode: isDark);
     final prefs = await SharedPreferences.getInstance();
+    final uid = ref.read(currentUserProvider)?.id;
+    if (uid != null) {
+      await prefs.setBool(_getKey(_themeKey, uid), isDark);
+    }
     await prefs.setBool(_themeKey, isDark);
   }
 
   Future<void> setMapTheme(String mapTheme) async {
     state = state.copyWith(mapTheme: mapTheme);
     final prefs = await SharedPreferences.getInstance();
+    final uid = ref.read(currentUserProvider)?.id;
+    if (uid != null) {
+      await prefs.setString(_getKey(_mapThemeKey, uid), mapTheme);
+    }
     await prefs.setString(_mapThemeKey, mapTheme);
   }
 
   Future<void> setAccentColor(int colorValue) async {
     state = state.copyWith(accentColorValue: colorValue);
     final prefs = await SharedPreferences.getInstance();
+    final uid = ref.read(currentUserProvider)?.id;
+    if (uid != null) {
+      await prefs.setInt(_getKey(_accentKey, uid), colorValue);
+    }
     await prefs.setInt(_accentKey, colorValue);
   }
 }

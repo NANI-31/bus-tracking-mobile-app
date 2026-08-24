@@ -378,11 +378,20 @@ final globalBusLocationsProvider =
 /// Derived from [collegeBusLocationsProvider] so it is updated by the socket
 /// stream. Using a [Provider] (not a [StreamProvider]) here means Riverpod
 /// will memoize the result and only propagate a change when the Set value
-/// actually differs \u2014 preventing downstream widgets from rebuilding on every
+/// actually differs — preventing downstream widgets from rebuilding on every
 /// GPS tick when the set of active bus IDs has NOT changed.
 ///
 /// Widgets that only need to know "which buses are live" should watch this
 /// instead of [collegeBusLocationsProvider] to avoid unnecessary rebuilds.
+///
+/// NOTE: We intentionally do NOT gate on `bus.status != 'not-running'` here.
+/// [collegeBusLocationsProvider] already removes a bus from the live-location
+/// set when it receives a `bus_updated` socket event with `status == 'not-running'`.
+/// Adding a second status check causes false negatives: the DB `status` field
+/// can lag behind active GPS broadcasting (e.g. driver starts sharing before
+/// the backend write completes), making buses invisible to students even though
+/// they are actively transmitting. The sole source of truth for "is this bus
+/// live right now" is the presence of a location entry in [collegeBusLocationsProvider].
 final studentLiveBusIdsProvider =
     Provider.family<Set<String>, String>((ref, collegeId) {
       final liveLocations =
@@ -390,14 +399,15 @@ final studentLiveBusIdsProvider =
       final buses =
           ref.watch(collegeBusesStreamProvider(collegeId)).valueOrNull ?? [];
 
-      final activeBusIds = buses
-          .where((b) => b.status != 'not-running' && b.assignmentStatus == 'accepted')
+      // Only require accepted assignment — status is managed by the socket stream.
+      final acceptedBusIds = buses
+          .where((b) => b.assignmentStatus == 'accepted')
           .map((b) => b.id)
           .toSet();
 
       return liveLocations
           .map((loc) => loc.busId)
-          .where((id) => activeBusIds.contains(id))
+          .where((id) => acceptedBusIds.contains(id))
           .toSet();
     });
 
