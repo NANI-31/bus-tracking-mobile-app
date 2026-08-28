@@ -75,8 +75,11 @@ export const registerTrackingHandlers = (io: Server, socket: Socket) => {
     }
 
     // IMMEDIATE LOCATION PUSH:
+    // Use assignmentStatus:'accepted' — the true real-time activity indicator.
+    // isActive is an administrative flag; a bus can be operationally live even
+    // when isActive is false. Filtering by isActive here would hide accepted buses.
     try {
-      const buses = await Bus.find({ collegeId, isActive: true });
+      const buses = await Bus.find({ collegeId, assignmentStatus: 'accepted' });
       const busIds = buses.map((b) => b._id.toString());
       const busIdSet = new Set(busIds);
 
@@ -159,7 +162,8 @@ export const registerTrackingHandlers = (io: Server, socket: Socket) => {
       socket.join("server_terminal_logs");
 
       try {
-        const buses = await Bus.find({ isActive: true });
+        // Same reasoning as join_college: filter by assignmentStatus, not isActive.
+        const buses = await Bus.find({ assignmentStatus: 'accepted' });
         const busIds = buses.map((b) => b._id.toString());
 
         const recentLocations = await BusLocation.aggregate([

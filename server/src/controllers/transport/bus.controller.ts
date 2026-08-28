@@ -250,10 +250,12 @@ export const getCollegeBusLocations = async (req: Request, res: Response) => {
   const { minLat, maxLat, minLng, maxLng } = req.query;
   logger.info(`BUS: Entering getCollegeBusLocations for college: ${collegeId}`);
   try {
-    // 1. Get all active buses for this college
-    const buses = await Bus.find({ collegeId, isActive: true });
+    // 1. Get all operationally active (accepted) buses for this college.
+    // Use assignmentStatus:'accepted' — the real-time activity indicator.
+    // isActive is an administrative flag and must NOT gate live location queries.
+    const buses = await Bus.find({ collegeId, assignmentStatus: 'accepted' });
     logger.info(
-      `BUS: Found ${buses.length} active buses for college ${collegeId}`,
+      `BUS: Found ${buses.length} accepted buses for college ${collegeId}`,
     );
 
     // 2. Get latest location for each bus using aggregation

@@ -182,11 +182,13 @@ final collegeBusLocationsProvider =
             try {
               final repo = ref.read(busRepositoryProvider);
               final buses = await repo.getAllBuses(collegeId: collegeId);
+              // Only evict buses that are genuinely not running or unassigned.
+              // Do NOT evict based on !b.isActive — isActive is an administrative
+              // flag; a bus can be operationally live with isActive==false.
               final inactiveBusIds = buses
                   .where((b) =>
                       b.status == 'not-running' ||
-                      b.assignmentStatus == 'unassigned' ||
-                      !b.isActive)
+                      b.assignmentStatus == 'unassigned')
                   .map((b) => b.id)
                   .toSet();
 

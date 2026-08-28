@@ -19,6 +19,19 @@ const lastKnownPositions = new Map<
   { lat: number; lng: number }
 >();
 
+/**
+ * Clear the cached last-known position for a bus when its driver disconnects
+ * or ends a trip. This prevents the GPS outlier guard from rejecting the first
+ * legitimate coordinate on the next trip (since the delta from a stale position
+ * in a different city/area can easily exceed OUTLIER_THRESHOLD_M).
+ */
+export function clearLastKnownPosition(busId: string): void {
+  if (lastKnownPositions.has(busId)) {
+    lastKnownPositions.delete(busId);
+    logger.info(`[Socket] Cleared stale GPS anchor for bus ${busId}`);
+  }
+}
+
 const OUTLIER_THRESHOLD_M = 500;
 
 /**

@@ -1,5 +1,7 @@
 import { Server, Socket } from "socket.io";
 import { AuthenticatedSocket } from "@/utils/socketAuth";
+import { Bus } from "@/models/Bus.model";
+import { clearLastKnownPosition } from "./location";
 import logger from "@/utils/logger";
 
 export const registerDisconnectHandler = (io: Server, socket: Socket) => {
@@ -38,6 +40,17 @@ export const registerDisconnectHandler = (io: Server, socket: Socket) => {
             logger.info(
               `${driverName} is OFFLINE (confirmed after grace period)`,
             );
+
+            // Clear the stale GPS anchor for this driver's assigned bus so the
+            // outlier guard does not reject the first coordinate of the next trip.
+            try {
+              const bus = await Bus.findOne({ driverId, assignmentStatus: 'accepted' });
+              if (bus) {
+                clearLastKnownPosition(bus._id.toString());
+              }
+            } catch (busErr) {
+              logger.warn(`[Socket] Could not clear GPS anchor on driver disconnect: ${busErr}`);
+            }
           } else {
             logger.info(
               `${driverName} reconnected within grace period, skipping offline emit`,
