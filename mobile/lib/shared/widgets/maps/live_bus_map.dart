@@ -85,6 +85,9 @@ class LiveBusMapState extends ConsumerState<LiveBusMap>
   final Map<String, Marker> _stopMarkers = {};
   DirectionsResult? _directionsResult;
   String? _loadedRouteId;
+  // Fingerprint used to debounce the build()-time polyline refresh.
+  // Only schedule a setState when tripType, route color, or selected bus changes.
+  String? _lastPolylineFingerprint;
 
   // Throttle counter — update the route polyline every N animation frames
   // so the line trims in real-time as the bus animates, without calling
@@ -193,6 +196,8 @@ class LiveBusMapState extends ConsumerState<LiveBusMap>
     super.didUpdateWidget(oldWidget);
 
     final busSelectionChanged = oldWidget.selectedBus != widget.selectedBus;
+    final tripTypeChanged =
+        oldWidget.selectedBus?.tripType != widget.selectedBus?.tripType;
 
     if (oldWidget.buses != widget.buses || busSelectionChanged) {
       // Re-seed live locations from provider so new buses immediately have data
@@ -223,6 +228,22 @@ class LiveBusMapState extends ConsumerState<LiveBusMap>
       } else {
         _clearRouteOverlay();
       }
+    } else if (tripTypeChanged && widget.activeRoute != null && _directionsResult != null) {
+      // Same route, but the coordinator changed the trip direction (pickup ↔ drop).
+      // The directions polyline itself is unchanged (same road geometry) — we only
+      // need to re-reverse it and rebuild the stop markers in the new order.
+      // Bypasses the _loadedRouteId guard in _loadRouteOverlay intentionally.
+      debugPrint(
+        '[LiveBusMap] tripType changed '
+        '(${oldWidget.selectedBus?.tripType} → ${widget.selectedBus?.tripType}) '
+        '— refreshing polyline direction and stop markers.',
+      );
+      setState(() {
+        _stopMarkers.clear();
+        _buildStopMarkers(widget.activeRoute!);
+        _updateRoutePolyline(Theme.of(context));
+      });
+      _rebuildMarkers();
     }
   }
 
@@ -835,6 +856,7 @@ class LiveBusMapState extends ConsumerState<LiveBusMap>
         setState(() {
           _directionsResult = result;
           _loadedRouteId = route.id;
+          _lastPolylineFingerprint = null; // invalidate so build() re-applies direction
 
           _updateRoutePolyline(Theme.of(context));
 
@@ -966,6 +988,7 @@ class LiveBusMapState extends ConsumerState<LiveBusMap>
       _stopMarkers.clear();
       _directionsResult = null;
       _loadedRouteId = null;
+      _lastPolylineFingerprint = null;
     });
     _rebuildMarkers();
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -1085,9 +1108,25 @@ class LiveBusMapState extends ConsumerState<LiveBusMap>
     final endColor = mapTheme?.endStopColor ?? const Color(0xFFE53935);
     _loadCustomStopMarkers(startColor, stopColor, endColor);
 
-    // Reactively update route polyline points and colors when map theme changes or location updates
+    // Reactively update route polyline direction and color when tripType, map
+    // theme, or bus position changes. _updateRoutePolyline mutates _routePolylines
+    // which is passed to CommonMapView; we must schedule a setState so the new
+    // value is submitted to the widget tree instead of being silently mutated.
+    // A fingerprint guard prevents triggering an infinite setState loop:
+    // build → postFrameCallback → setState → build → …
     if (_directionsResult != null) {
-      _updateRoutePolyline(Theme.of(context));
+      final fingerprint =
+          '${widget.selectedBus?.tripType}|${widget.activeRoute?.routeType}'
+          '|${widget.activeRoute?.color}|${widget.selectedBus?.id}';
+      if (fingerprint != _lastPolylineFingerprint) {
+        _lastPolylineFingerprint = fingerprint;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted) return;
+          setState(() {
+            _updateRoutePolyline(Theme.of(context));
+          });
+        });
+      }
     }
 
     if (collegeId != null) {
