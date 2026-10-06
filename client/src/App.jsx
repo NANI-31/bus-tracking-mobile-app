@@ -54,7 +54,7 @@ import theme from "./theme";
 
 const GOOGLE_MAPS_API_KEY =
   import.meta.env.VITE_GOOGLE_MAPS_API_KEY ||
-  "AIzaSyDsWdJ_AOzgNt-_SQk2AbTaxv1r6pShx-A";
+  "AIzaSyBNle_4M8ztZ2sPaJym6CNLUQP-aaIGl7w";
 
 function App() {
   return (
