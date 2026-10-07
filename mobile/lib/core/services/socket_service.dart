@@ -30,6 +30,12 @@ class SocketService extends ChangeNotifier {
   /// Static callback triggered when session expires via socket authentication failure
   static void Function()? onSessionExpired;
 
+  /// Static callback invoked when socket encounters an auth failure,
+  /// requesting a silent token refresh before declaring the session dead.
+  static Future<String?> Function()? onTokenRefreshRequired;
+
+  bool _isRefreshingToken = false;
+
 
 
   bool get isConnected => _isConnected;
@@ -169,6 +175,16 @@ class SocketService extends ChangeNotifier {
     _connect();
   }
 
+  void _handlePermanentSessionExpiry() {
+    AppLogger.e(
+      '[SocketService] 🔒 Session permanently expired. Clearing auth token and prompting login...',
+    );
+    _errorMessage = 'Session expired. Please log in again.';
+    _errorController.add(_errorMessage);
+    updateAuth(null);
+    onSessionExpired?.call();
+  }
+
   /// Proactively ensures the socket is connected and in the correct room.
   /// Called when app resumes from background.
   void ensureConnected() {
@@ -245,6 +261,12 @@ class SocketService extends ChangeNotifier {
       _startReconnectTimer();
     });
 
+    _socket!.on('session_terminated', (data) {
+      AppLogger.w(
+        '[SocketService] 🔒 Received session_terminated from server: $data',
+      );
+      _handlePermanentSessionExpiry();
+    });
 
     // Handle reconnection (fired when socket reconnects after a disconnect)
     _socket!.on('reconnect', (_) async {
@@ -306,11 +328,40 @@ class SocketService extends ChangeNotifier {
           errString.contains('unauthorized') ||
           errString.contains('jwt') ||
           errString.contains('token')) {
-        AppLogger.e('[SocketService] 🔒 Authentication error on connect: $err. Clearing auth token...');
-        _errorMessage = 'Session expired. Please log in again.';
-        _errorController.add(_errorMessage);
-        updateAuth(null);
-        onSessionExpired?.call();
+        AppLogger.w(
+          '[SocketService] 🔒 Authentication error on connect: $err. Attempting silent token refresh...',
+        );
+
+        if (_isRefreshingToken) {
+          AppLogger.d(
+            '[SocketService] Token refresh already in progress, ignoring duplicate error.',
+          );
+          return;
+        }
+
+        if (onTokenRefreshRequired != null) {
+          _isRefreshingToken = true;
+          onTokenRefreshRequired!().then((newToken) {
+            _isRefreshingToken = false;
+            if (newToken != null && newToken.isNotEmpty) {
+              AppLogger.i(
+                '[SocketService] ✅ Silent token refresh succeeded. Reconnecting socket with new token...',
+              );
+              _errorMessage = null;
+              _errorController.add(null);
+              updateAuth(newToken, url: _currentUrl);
+            } else {
+              _handlePermanentSessionExpiry();
+            }
+          }).catchError((error) {
+            _isRefreshingToken = false;
+            AppLogger.e('[SocketService] ❌ Silent token refresh failed: $error');
+            _handlePermanentSessionExpiry();
+          });
+          return;
+        }
+
+        _handlePermanentSessionExpiry();
         return;
       }
 
@@ -522,6 +573,15 @@ class SocketService extends ChangeNotifier {
       _socket?.emit('end_location_override', data);
     } else {
       AppLogger.w('[SocketService] location_override_ended not queued (stale on reconnect)');
+    }
+  }
+
+  /// Emits a tracking heartbeat to keep the active tracking session alive.
+  /// Refreshes lastTrackingHeartbeat on the server so the TTL cleanup cron
+  /// does not release the override during slow GPS intervals or network pauses.
+  void emitTrackingHeartbeat(Map<String, dynamic> data) {
+    if (_isConnected && _socket != null) {
+      _socket?.emit('tracking_heartbeat', data);
     }
   }
 

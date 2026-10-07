@@ -882,39 +882,42 @@ class _RoutesTabState extends ConsumerState<RoutesTab> {
             Expanded(
               flex: 3,
               child: Stack(
+                fit: StackFit.expand,
                 children: [
-                  FutureBuilder<Set<Marker>>(
-                    future: _buildMarkers(route),
-                    builder: (context, snapshot) {
-                      return GoogleMap(
-                        initialCameraPosition: CameraPosition(
-                          target: points.isNotEmpty ? points.first : const LatLng(20.5937, 78.9629),
-                          zoom: 12.0,
-                        ),
-                        markers: snapshot.data ?? {},
-                        polylines: {
-                          Polyline(
-                            polylineId: PolylineId('route-path-${route.id}'),
-                            points: points,
-                            color: routeColor,
-                            width: 5,
-                            geodesic: true,
+                  Positioned.fill(
+                    child: FutureBuilder<Set<Marker>>(
+                      future: _buildMarkers(route),
+                      builder: (context, snapshot) {
+                        return GoogleMap(
+                          initialCameraPosition: CameraPosition(
+                            target: points.isNotEmpty ? points.first : const LatLng(20.5937, 78.9629),
+                            zoom: 12.0,
                           ),
-                        },
-                        zoomControlsEnabled: true,
-                        mapToolbarEnabled: false,
-                        myLocationButtonEnabled: false,
-                        onMapCreated: (controller) {
-                          _mapController = controller;
-                          if (points.isNotEmpty) {
-                            // Delay slightly to allow map construction
-                            Future.delayed(const Duration(milliseconds: 300), () {
-                              _zoomToFitRoute(route);
-                            });
-                          }
-                        },
-                      );
-                    },
+                          markers: snapshot.data ?? {},
+                          polylines: {
+                            Polyline(
+                              polylineId: PolylineId('route-path-${route.id}'),
+                              points: points,
+                              color: routeColor,
+                              width: 5,
+                              geodesic: true,
+                            ),
+                          },
+                          zoomControlsEnabled: true,
+                          mapToolbarEnabled: false,
+                          myLocationButtonEnabled: false,
+                          onMapCreated: (controller) {
+                            _mapController = controller;
+                            if (points.isNotEmpty) {
+                              // Delay slightly to allow map construction
+                              Future.delayed(const Duration(milliseconds: 300), () {
+                                _zoomToFitRoute(route);
+                              });
+                            }
+                          },
+                        );
+                      },
+                    ),
                   ),
                   Positioned(
                     top: 12,

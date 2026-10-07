@@ -74,11 +74,6 @@ class _CoordinatorDashboardState extends ConsumerState<CoordinatorDashboard>
       _resolvedMockIds.add(sosId);
     });
   }
-
-  /// Key for the [RepaintBoundary] that wraps the mobile content body.
-  /// Passed to [CurvedBottomNavBar] so the liquid-glass lens shader can
-  /// sample the real pixels rendered behind the navigation bar.
-  final GlobalKey _backgroundKey = GlobalKey();
   StreamSubscription? _fcmTapSubscription;
 
   @override
@@ -1049,19 +1044,19 @@ class _CoordinatorDashboardState extends ConsumerState<CoordinatorDashboard>
         appBar: null,
         resizeToAvoidBottomInset: false,
         body: Stack(
+          fit: StackFit.expand,
           children: [
-            RepaintBoundary(
-              key: _backgroundKey,
+            Positioned.fill(
               child: ColoredBox(
-                // The inner Scaffold is transparent; without this the captured
-                // image has alpha=0 pixels which the GPU composites as black.
-                color: Theme.of(context).scaffoldBackgroundColor,
-                child: SafeArea(
-                  top: _bottomNavIndex == 0,
-                  bottom: false,
-                  child: mainBody,
+                  // The inner Scaffold is transparent; without this the captured
+                  // image has alpha=0 pixels which the GPU composites as black.
+                  color: Theme.of(context).scaffoldBackgroundColor,
+                  child: SafeArea(
+                    top: _bottomNavIndex == 0,
+                    bottom: false,
+                    child: mainBody,
+                  ),
                 ),
-              ),
             ),
             Align(
               alignment: Alignment.bottomCenter,
@@ -1091,7 +1086,6 @@ class _CoordinatorDashboardState extends ConsumerState<CoordinatorDashboard>
                   Colors.indigo.shade600,
                 ],
                 backgroundColor: Theme.of(context).cardColor,
-                backgroundKey: _backgroundKey,
                 items: [
                   const CurvedBottomNavItem(
                     icon: Icons.dashboard_outlined,

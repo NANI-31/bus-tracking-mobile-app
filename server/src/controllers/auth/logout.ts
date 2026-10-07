@@ -3,6 +3,7 @@ import User from "@/models/User.model";
 import { IAuthRequest } from "@/types";
 import logger from "@/utils/logger";
 import { AuditService } from "@/services/AuditService";
+import { disconnectUserSockets } from "@/socket";
 
 export const logout = async (req: Request, res: Response) => {
   try {
@@ -24,6 +25,13 @@ export const logout = async (req: Request, res: Response) => {
     });
 
     console.log(`LOGOUT: User ${userId} logged out successfully.`);
+
+    // Terminate any active WebSocket connections for this user across cluster
+    try {
+      disconnectUserSockets(userId);
+    } catch (socketErr) {
+      logger.warn(`Failed to terminate sockets during logout for user ${userId}`, socketErr);
+    }
 
     // Audit Log for logout
     try {

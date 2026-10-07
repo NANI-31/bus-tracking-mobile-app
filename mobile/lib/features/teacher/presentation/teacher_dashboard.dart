@@ -53,6 +53,7 @@ class _TeacherDashboardState extends ConsumerState<TeacherDashboard> {
   // GPS Tracking State Helpers
   DateTime? _lastDeviationAlertTime;
   final Set<String> _arrivedStopIds = {};
+  Timer? _trackingHeartbeatTimer;
 
   @override
   void initState() {
@@ -80,8 +81,30 @@ class _TeacherDashboardState extends ConsumerState<TeacherDashboard> {
 
   @override
   void dispose() {
+    _stopTrackingHeartbeat();
     _stopLocationTracking();
     super.dispose();
+  }
+
+  void _startTrackingHeartbeat() {
+    _trackingHeartbeatTimer?.cancel();
+    if (_selectedBusId != null) {
+      ref.read(socketServiceProvider).emitTrackingHeartbeat({
+        'busId': _selectedBusId,
+      });
+    }
+    _trackingHeartbeatTimer = Timer.periodic(const Duration(seconds: 30), (_) {
+      if (_isTracking && _selectedBusId != null) {
+        ref.read(socketServiceProvider).emitTrackingHeartbeat({
+          'busId': _selectedBusId,
+        });
+      }
+    });
+  }
+
+  void _stopTrackingHeartbeat() {
+    _trackingHeartbeatTimer?.cancel();
+    _trackingHeartbeatTimer = null;
   }
 
 
@@ -268,22 +291,26 @@ class _TeacherDashboardState extends ConsumerState<TeacherDashboard> {
         }
 
         // 3. Emit position and path-aware ETA payload via socket stream
-        final selectedBus = matchingBuses.isNotEmpty ? matchingBuses.first : null;
-        socketService.updateLocation({
-          'busId': _selectedBusId!,
-          'collegeId': user.collegeId,
-          'location': {'lat': position.latitude, 'lng': position.longitude},
-          'speed': position.speed,
-          'heading': position.heading,
-          if (selectedBus?.tripType != null) 'tripType': selectedBus!.tripType,
-          'etaMinutes': _computeEtaMinutes(position, selectedBus, speedMs: position.speed),
-        });
+        if (locationService.shouldEmitLocationUpdate(position)) {
+          final selectedBus = matchingBuses.isNotEmpty ? matchingBuses.first : null;
+          socketService.updateLocation({
+            'busId': _selectedBusId!,
+            'collegeId': user.collegeId,
+            'location': {'lat': position.latitude, 'lng': position.longitude},
+            'speed': position.speed,
+            'heading': position.heading,
+            if (selectedBus?.tripType != null) 'tripType': selectedBus!.tripType,
+            'etaMinutes': _computeEtaMinutes(position, selectedBus, speedMs: position.speed),
+          });
+        }
 
       },
     );
+    _startTrackingHeartbeat();
   }
 
   void _stopLocationTracking() {
+    _stopTrackingHeartbeat();
     ref.read(locationServiceProvider).stopLocationTracking();
     ref.read(driverLocationProvider.notifier).clear();
     ref.read(driverMapStateProvider.notifier).clear();
@@ -670,8 +697,10 @@ class _TeacherDashboardState extends ConsumerState<TeacherDashboard> {
 
     return Scaffold(
       body: Stack(
+        fit: StackFit.expand,
         children: [
-          IndexedStack(
+          Positioned.fill(
+            child: IndexedStack(
             index: _bottomNavIndex,
             children: [
               // Tab 0: Override Control Panel
@@ -697,6 +726,7 @@ class _TeacherDashboardState extends ConsumerState<TeacherDashboard> {
                   ? const ProfileScreen()
                   : const SizedBox.shrink(),
             ],
+            ),
           ),
 
           Align(

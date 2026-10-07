@@ -148,9 +148,12 @@ class TeacherLiveTrackingTab extends ConsumerWidget {
       }
     }
 
-    return Stack(
-      children: [
-        Column(
+    return SizedBox.expand(
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          Positioned.fill(
+            child: Column(
           children: [
             Expanded(
               child: CommonMapView(
@@ -169,9 +172,9 @@ class TeacherLiveTrackingTab extends ConsumerWidget {
               onToggleSharing: () => onToggleSharing(bus),
               onCompleteTrip: onCompleteTrip,
             ),
-
           ],
         ),
+      ),
 
         // ETA card
         if (isSharing && route != null && displayETA != null)
@@ -303,7 +306,8 @@ class TeacherLiveTrackingTab extends ConsumerWidget {
             ],
           ),
         ),
-      ],
+        ],
+      ),
     );
   }
 

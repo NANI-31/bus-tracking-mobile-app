@@ -4,6 +4,7 @@ import { TeacherOverrideRequest } from "@/models/TeacherOverrideRequest.model";
 import { IAuthRequest } from "@/types";
 import logger from "@/utils/logger";
 import { AuditService } from "@/services/AuditService";
+import { releaseTeacherOverride } from "@/services/teacherOverrideService";
 import { delCache } from "@/utils/cache";
 
 export const requestOverride = async (req: Request, res: Response) => {
@@ -118,6 +119,7 @@ export const handleOverrideRequest = async (req: Request, res: Response) => {
       if (bus) {
         bus.trackingTeacherId = request.teacherId;
         bus.assignmentStatus = "accepted"; // Active accepted tracking state
+        bus.lastTrackingHeartbeat = new Date();
         await bus.save();
 
         // Invalidate cache
@@ -143,6 +145,12 @@ export const handleOverrideRequest = async (req: Request, res: Response) => {
       io.to(request.collegeId.toString()).emit("bus_updated", {
         busId: request.busId.toString(),
       });
+      if (status === "approved") {
+        io.to(request.collegeId.toString()).emit("location_override_approved", {
+          busId: request.busId.toString(),
+          teacherId: request.teacherId.toString(),
+        });
+      }
     }
 
     res.status(200).json(request);
@@ -166,21 +174,7 @@ export const cancelOverride = async (req: Request, res: Response) => {
       return res.status(404).json({ message: "Bus not found." });
     }
 
-    bus.trackingTeacherId = undefined;
-    bus.driverId = "";
-    bus.assignmentStatus = "unassigned";
-    bus.status = "not-running";
-    await bus.save();
-
-    // Invalidate cache
-    await delCache("buses:all");
-    await delCache(`buses:${bus.collegeId}`);
-
-    // End any active override requests
-    await TeacherOverrideRequest.updateMany(
-      { busId, status: "approved" },
-      { status: "ended", updatedAt: new Date() }
-    );
+    await releaseTeacherOverride(busId, "manual_cancel");
 
     // Audit Log
     await AuditService.log({
@@ -190,15 +184,6 @@ export const cancelOverride = async (req: Request, res: Response) => {
       resourceId: bus._id.toString(),
       resourceName: bus.busNumber,
     });
-
-    // Notify all via socket
-    const io = req.app.get("io");
-    if (io && bus.collegeId) {
-      io.to(bus.collegeId.toString()).emit("bus_list_updated");
-      io.to(bus.collegeId.toString()).emit("bus_updated", {
-        busId: bus._id.toString(),
-      });
-    }
 
     res.status(200).json({ message: "Teacher override tracking cancelled." });
   } catch (error) {

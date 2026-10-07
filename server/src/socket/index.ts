@@ -27,3 +27,39 @@ export const initializeSocket = (io: Server) => {
     registerSocketHandlers(io, socket);
   });
 };
+
+/**
+ * Disconnects all active WebSocket connections for a specific user across cluster.
+ * Emits 'session_terminated' to the user's room and forcefully disconnects the sockets.
+ */
+export const disconnectUserSockets = (userId: string) => {
+  if (!ioInstance) {
+    return;
+  }
+
+  try {
+    const userRoom = String(userId);
+    // 1. Notify all client sockets belonging to this user
+    ioInstance.to(userRoom).emit("session_terminated", {
+      reason: "User logged out",
+      timestamp: new Date().toISOString(),
+    });
+
+    // 2. Disconnect all sockets currently in this user's room across cluster/adapters
+    ioInstance.in(userRoom).disconnectSockets(true);
+
+    // 3. Fallback: inspect in-memory local sockets directly
+    for (const [, socket] of ioInstance.sockets.sockets) {
+      const socketUser = (socket as any).user;
+      if (
+        socketUser &&
+        String(socketUser.id || socketUser._id) === String(userId)
+      ) {
+        socket.disconnect(true);
+      }
+    }
+  } catch (err) {
+    console.error(`[Socket] Error terminating sockets for user ${userId}:`, err);
+  }
+};
+

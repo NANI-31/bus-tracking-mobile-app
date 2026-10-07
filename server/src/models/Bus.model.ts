@@ -15,6 +15,7 @@ export interface IBus extends Document {
   delay?: number;
 
   trackingTeacherId?: string;
+  lastTrackingHeartbeat?: Date;
   createdAt: Date;
   updatedAt?: Date;
 }
@@ -46,12 +47,14 @@ const BusSchema: Schema = new Schema({
   delay: { type: Number, default: 0 },
 
   trackingTeacherId: { type: String, ref: "User", required: false },
+  lastTrackingHeartbeat: { type: Date, required: false },
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date },
 });
 
 BusSchema.index({ driverId: 1 });
 BusSchema.index({ collegeId: 1, busNumber: 1 }, { unique: true });
+BusSchema.index({ trackingTeacherId: 1, lastTrackingHeartbeat: 1 });
 export const Bus = mongoose.model<IBus>("Bus", BusSchema);
 
 export interface IBusLocation extends Document {

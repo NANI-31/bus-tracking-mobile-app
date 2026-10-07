@@ -3,7 +3,6 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:rive/rive.dart' hide LinearGradient, RadialGradient;
 import 'package:flutter/services.dart';
-import 'package:collegebus/widgets/liquid_glass/liquid_glass.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Data model
@@ -296,48 +295,6 @@ class _GlassSpecularPainter extends CustomPainter {
       old.activeColor != activeColor;
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Caustic refraction painter (lenticular lines behind glass)
-// ─────────────────────────────────────────────────────────────────────────────
-
-class _CausticPainter extends CustomPainter {
-  final bool isDark;
-  final double phase; // 0..1 oscillation
-
-  const _CausticPainter({required this.isDark, required this.phase});
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    // Draw 3 subtle diagonal light bands
-    final baseAlpha = isDark ? 0.025 : 0.06;
-    final paint = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 8;
-
-    for (int i = 0; i < 3; i++) {
-      final offset =
-          size.width *
-          (0.25 + i * 0.25 + math.sin(phase * math.pi * 2 + i) * 0.04);
-      paint.shader = LinearGradient(
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-        colors: [
-          Colors.white.withValues(alpha: 0),
-          Colors.white.withValues(alpha: baseAlpha),
-          Colors.white.withValues(alpha: 0),
-        ],
-      ).createShader(Rect.fromLTWH(offset - 20, 0, 40, size.height));
-      canvas.drawLine(
-        Offset(offset, 0),
-        Offset(offset - 10, size.height),
-        paint,
-      );
-    }
-  }
-
-  @override
-  bool shouldRepaint(_CausticPainter old) => old.phase != phase;
-}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Main widget
@@ -352,9 +309,7 @@ class CurvedBottomNavBar extends StatefulWidget {
   final Color inactiveColor;
   final List<Color>? activeColors;
 
-  /// Optional key targeting a [RepaintBoundary] that wraps the content behind
-  /// this nav bar. When provided, the bar uses the liquid-glass lens shader
-  /// for a real refractive / glassmorphic background instead of a plain blur.
+  /// Optional key preserved for backward compatibility.
   final GlobalKey? backgroundKey;
 
   const CurvedBottomNavBar({
@@ -438,24 +393,13 @@ class _CurvedBottomNavBarState extends State<CurvedBottomNavBar>
   double _gestureReleasedOffsetX = 0.0;
   double _gestureReleasedOffsetY = 0.0;
 
-  // Caustic shimmer idle animation
-  late AnimationController _causticController;
-
   // Glow fade-in after tap
   late AnimationController _glowController;
   late Animation<double> _glowAnimation;
 
-  // Liquid-glass lens shader (only initialized when backgroundKey is provided)
-  LiquidGlassLensShader? _lensShader;
-
   @override
   void initState() {
     super.initState();
-
-    // Initialize the lens shader lazily if a background key was provided.
-    if (widget.backgroundKey != null) {
-      _lensShader = LiquidGlassLensShader()..initialize();
-    }
 
     _fromIndex = widget.currentIndex.toDouble();
     _toIndex = widget.currentIndex.toDouble();
@@ -486,11 +430,6 @@ class _CurvedBottomNavBarState extends State<CurvedBottomNavBar>
         _dragOffsetY = ui.lerpDouble(_springStartY, 0.0, val)!;
       });
     });
-
-    _causticController = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 6),
-    )..repeat();
 
     _glowController = AnimationController(
       vsync: this,
@@ -619,7 +558,6 @@ class _CurvedBottomNavBarState extends State<CurvedBottomNavBar>
   void dispose() {
     _slideController.dispose();
     _springController.dispose();
-    _causticController.dispose();
     _glowController.dispose();
     super.dispose();
   }
@@ -722,20 +660,6 @@ class _CurvedBottomNavBarState extends State<CurvedBottomNavBar>
                 },
               ),
 
-              // ── B. Caustic refraction lines (behind glass, innermost) ──────
-              ClipRRect(
-                borderRadius: BorderRadius.circular(cornerRadius),
-                child: AnimatedBuilder(
-                  animation: _causticController,
-                  builder: (context, _) => CustomPaint(
-                    size: Size(dockWidth, dockHeight),
-                    painter: _CausticPainter(
-                      isDark: isDark,
-                      phase: _causticController.value,
-                    ),
-                  ),
-                ),
-              ),
 
               // ── Base shadow layer for floating elevation (refractive & fallback) ──
               Positioned.fill(
@@ -756,66 +680,7 @@ class _CurvedBottomNavBarState extends State<CurvedBottomNavBar>
                 ),
               ),
 
-              // ── C. Glass backdrop ─────────────────────────────────────────
-              // If the parent provided a RepaintBoundary key we use the real
-              // refractive liquid-glass lens shader. Otherwise fall back to a
-              // plain BackdropFilter frosted blur.
-              if (widget.backgroundKey != null && _lensShader != null)
-                Positioned.fill(
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(cornerRadius),
-                    child: Stack(
-                      children: [
-                        Positioned.fill(
-                          child: BackgroundCaptureWidget(
-                            width: dockWidth,
-                            height: dockHeight,
-                            backgroundKey: widget.backgroundKey!,
-                            shader: _lensShader!,
-                            borderRadius: BorderRadius.circular(cornerRadius),
-                            child: const SizedBox.expand(),
-                          ),
-                        ),
-                        Positioned.fill(
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(cornerRadius),
-                            child: BackdropFilter(
-                              filter: ui.ImageFilter.blur(
-                                sigmaX: 5.0,
-                                sigmaY: 5.0,
-                              ),
-                              child: Container(
-                                decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(
-                                    cornerRadius,
-                                  ),
-                                  color: isDark
-                                      ? Colors.black.withValues(alpha: 0.28)
-                                      : const ui.Color.fromARGB(
-                                          255,
-                                          255,
-                                          255,
-                                          255,
-                                        ).withValues(alpha: 0.24),
-                                  border: Border.all(
-                                    color: isDark
-                                        ? Colors.white.withValues(alpha: 0.08)
-                                        : Colors.black.withValues(alpha: 0.09),
-                                    width: 1.0,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                )
-              else
-                // Fallback container shadow placeholder (handled by unified base shadow above)
-                const SizedBox.shrink(),
-              if (widget.backgroundKey == null)
+              // ── C. Glass backdrop (transparent background + blur) ─────────
                 Positioned.fill(
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(cornerRadius),
@@ -1273,7 +1138,7 @@ class _CurvedBottomNavBarState extends State<CurvedBottomNavBar>
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Liquid glass pill – frosted inner-lens active indicator
+// Glass pill – frosted active indicator
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _GlassPill extends StatelessWidget {

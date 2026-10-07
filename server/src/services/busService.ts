@@ -115,6 +115,13 @@ export class BusService {
       throw new Error("Bus not found");
     }
 
+    if (bus.trackingTeacherId) {
+      logger.warn(
+        `[BusService] Location update rejected for bus ${busId}: Teacher override is active (${bus.trackingTeacherId})`
+      );
+      return;
+    }
+
     const collegeId = bus.collegeId.toString();
 
     // 2. Broadcast to college room

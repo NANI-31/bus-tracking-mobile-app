@@ -1,6 +1,7 @@
 import { Server, Socket } from "socket.io";
 import { AuthenticatedSocket } from "@/utils/socketAuth";
 import { Bus } from "@/models/Bus.model";
+import { releaseTeacherOverride } from "@/services/teacherOverrideService";
 import { clearLastKnownPosition } from "./location";
 import logger from "@/utils/logger";
 
@@ -58,6 +59,45 @@ export const registerDisconnectHandler = (io: Server, socket: Socket) => {
           }
         } catch (err) {
           logger.warn(`[Socket] Error checking driver reconnect: ${err}`);
+        }
+      }, disconnectDelay);
+    }
+
+    if (user && user.role === "teacher" && user.collegeId) {
+      const collegeRoom = user.collegeId.toString();
+      const teacherId = user.id;
+      const teacherName = user.fullName || "Teacher";
+      const disconnectDelay = process.env.NODE_ENV === "test" ? 100 : 30000;
+
+      setTimeout(async () => {
+        try {
+          const sockets = await io.in(collegeRoom).fetchSockets();
+          const isStillConnected = sockets.some((s: any) => {
+            const sUser = (s as any).user;
+            return sUser && sUser.id === teacherId;
+          });
+
+          if (!isStillConnected) {
+            logger.info(
+              `Teacher ${teacherName} (${teacherId}) is OFFLINE after grace period. Checking for active override...`
+            );
+            const bus = await Bus.findOne({ trackingTeacherId: teacherId });
+            if (bus) {
+              await releaseTeacherOverride(
+                bus._id.toString(),
+                "teacher_disconnect_timeout"
+              );
+              logger.info(
+                `[Socket] Released override for bus ${bus.busNumber} due to teacher ${teacherName} disconnect`
+              );
+            }
+          } else {
+            logger.info(
+              `Teacher ${teacherName} reconnected within grace period, keeping override active`
+            );
+          }
+        } catch (err) {
+          logger.warn(`[Socket] Error checking teacher reconnect: ${err}`);
         }
       }, disconnectDelay);
     }

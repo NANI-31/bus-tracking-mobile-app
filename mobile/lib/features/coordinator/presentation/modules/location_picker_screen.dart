@@ -9,8 +9,6 @@ import 'package:collegebus/core/constants/constants.dart';
 import 'package:collegebus/core/services/persistence_service.dart';
 import 'package:collegebus/shared/widgets/glass_morphic_container.dart';
 import 'package:collegebus/shared/widgets/maps/map_overlay_layout.dart';
-import 'package:collegebus/widgets/liquid_glass/liquid_glass_lens_shader.dart';
-import 'package:collegebus/widgets/liquid_glass/base_shader.dart';
 
 /// Returned when the user confirms a location.
 class LocationPickerResult {
@@ -46,9 +44,6 @@ class LocationPickerScreen extends StatefulWidget {
 
 class _LocationPickerScreenState extends State<LocationPickerScreen> {
   final GlobalKey _mapKey = GlobalKey();
-  LiquidGlassLensShader? _searchShader;
-  LiquidGlassLensShader? _backShader;
-  LiquidGlassLensShader? _myLocationShader;
 
   // ─── Map state ────────────────────────────────────────────────────────────
   GoogleMapController? _mapController;
@@ -81,9 +76,6 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
   @override
   void initState() {
     super.initState();
-    _searchShader = LiquidGlassLensShader()..initialize();
-    _backShader = LiquidGlassLensShader()..initialize();
-    _myLocationShader = LiquidGlassLensShader()..initialize();
     if (widget.initialPosition != null) _center = widget.initialPosition!;
 
     _searchFocus.addListener(() {
@@ -406,8 +398,6 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
             _GlassIconBtn(
               onTap: () => Navigator.of(context).pop(),
               icon: Icons.arrow_back_ios_new_rounded,
-              backgroundKey: _mapKey,
-              shader: _backShader,
             ),
             const SizedBox(width: 10),
             Expanded(
@@ -425,8 +415,6 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
                 },
                 isDark: isDark,
                 themeColor: color,
-                backgroundKey: _mapKey,
-                shader: _searchShader,
               ),
             ),
           ],
@@ -503,8 +491,6 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
         size: 22,
         color: color,
       ),
-      backgroundKey: _mapKey,
-      shader: _myLocationShader,
     );
 
     return MapOverlayLayout(
@@ -536,15 +522,11 @@ class _GlassIconBtn extends StatelessWidget {
   final VoidCallback onTap;
   final IconData? icon;
   final Widget? iconWidget;
-  final GlobalKey? backgroundKey;
-  final BaseShader? shader;
 
   const _GlassIconBtn({
     required this.onTap,
     this.icon,
     this.iconWidget,
-    this.backgroundKey,
-    this.shader,
   });
 
   @override
@@ -572,8 +554,6 @@ class _GlassIconBtn extends StatelessWidget {
         height: 42,
         boxShape: BoxShape.circle,
         borderRadius: borderRadius,
-        backgroundKey: backgroundKey,
-        shader: shader,
         backgroundColor: bgColor,
         borderColor: borderColor,
         blurSigma: 2.0,
@@ -591,8 +571,6 @@ class _SearchBar extends StatelessWidget {
   final VoidCallback onClear;
   final bool isDark;
   final Color themeColor;
-  final GlobalKey? backgroundKey;
-  final BaseShader? shader;
 
   const _SearchBar({
     required this.controller,
@@ -602,8 +580,6 @@ class _SearchBar extends StatelessWidget {
     required this.onClear,
     required this.isDark,
     required this.themeColor,
-    this.backgroundKey,
-    this.shader,
   });
 
   @override
@@ -676,17 +652,13 @@ class _SearchBar extends StatelessWidget {
     final Color? bgOverride = isDark
         ? null
         : const Color.fromARGB(255, 255, 255, 255).withValues(alpha: 0.6);
-    final double blurOverride = (backgroundKey != null && shader != null)
-        ? 2.0
-        : 5.0;
+    final double blurOverride = 5.0;
 
     return GlassMorphicContainer(
       height: 46,
       borderRadius: borderRadius,
       backgroundColor: bgOverride,
       blurSigma: blurOverride,
-      backgroundKey: backgroundKey,
-      shader: shader,
       child: searchContent,
     );
   }

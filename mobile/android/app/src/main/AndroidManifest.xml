@@ -1,4 +1,5 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
     <!-- Add Internet permission for Firebase Phone Authentication -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
@@ -13,6 +14,9 @@
     <!-- Required to open the system Battery Optimization settings screen.
          Without this, Permission.ignoreBatteryOptimizations.request() is a no-op. -->
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
+    <!-- Notification & Boot permissions for persistent Foreground Service -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     
     <application
         android:label="Upasthit"
@@ -52,6 +56,12 @@
             android:name="com.baseflow.geolocator.GeolocatorService"
             android:foregroundServiceType="location"
             android:exported="false" />
+        <!-- Continuous background foreground service for active trip tracking (prevents OS process suspension) -->
+        <service
+            android:name="id.flutter.flutter_background_service.BackgroundService"
+            android:foregroundServiceType="location"
+            android:exported="true"
+            tools:replace="android:exported" />
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
         <meta-data

@@ -1,6 +1,7 @@
 import { Server, Socket } from "socket.io";
 import { AuthenticatedSocket } from "@/utils/socketAuth";
 import { Bus } from "@/models/Bus.model";
+import { releaseTeacherOverride } from "@/services/teacherOverrideService";
 import { checkAndNotifyBusNearby } from "@/utils/busNearbyLogic";
 import logger from "@/utils/logger";
 import { busCache, rateLimiter } from "../config";
@@ -96,14 +97,55 @@ export const registerLocationHandlers = (io: Server, socket: Socket) => {
 
     const { collegeId, busId } = data;
 
+    const bus = await Bus.findById(busId);
+    if (!bus) {
+      logger.warn(`[Socket] Bus ${busId} not found for location update from ${user?.id}`);
+      return;
+    }
+
     if (user.role === "teacher") {
-      const bus = await Bus.findById(busId);
-      if (!bus || bus.trackingTeacherId !== user.id) {
+      if (bus.trackingTeacherId !== user.id) {
         logger.warn(
           `[Socket] Teacher ${user.id} tried to update location for bus ${busId} without authorization`,
         );
         return;
       }
+      bus.lastTrackingHeartbeat = new Date();
+      await bus.save();
+    } else if (user.role === "driver") {
+      // ── Concurrency Guard: Reject driver updates during active teacher override ──
+      // If a teacher has overridden location sharing on this bus, immediately drop
+      // driver GPS packets and instruct driver client to pause emission.
+      if (bus.trackingTeacherId) {
+        logger.warn(
+          `[Socket] Concurrency conflict prevented: Driver ${user.id} update_location rejected for bus ${busId} (active teacher override: ${bus.trackingTeacherId})`,
+        );
+        // Explicitly notify driver client so it pauses GPS sharing
+        socket.emit("location_override_approved", {
+          busId,
+          teacherId: bus.trackingTeacherId,
+        });
+        return;
+      }
+
+      // Verify that this driver is assigned to this bus and assignment is accepted
+      if (bus.driverId !== user.id) {
+        logger.warn(
+          `[Socket] Driver ${user.id} tried to update location for unassigned bus ${busId} (assigned to: ${bus.driverId || "none"})`,
+        );
+        return;
+      }
+
+      if (bus.assignmentStatus !== "accepted") {
+        logger.warn(
+          `[Socket] Driver ${user.id} tried to update location for bus ${busId} with assignmentStatus=${bus.assignmentStatus}`,
+        );
+        return;
+      }
+
+      // Refresh driver heartbeat
+      bus.lastTrackingHeartbeat = new Date();
+      await bus.save();
     }
 
     const lat = parseFloat(data.location.lat.toFixed(5));
@@ -180,11 +222,15 @@ export const registerLocationHandlers = (io: Server, socket: Socket) => {
       timestamp: new Date(),
     });
 
-    let busName = data.busId;
+    const busName = bus.busNumber;
     let busDetails = busCache.get(data.busId);
 
-    if (busDetails) {
-      busName = busDetails.busNumber;
+    if (!busDetails) {
+      busDetails = {
+        busNumber: bus.busNumber,
+        routeId: bus.routeId ? bus.routeId.toString() : null,
+      };
+      busCache.set(data.busId, busDetails);
     }
 
     logger.info(
@@ -196,35 +242,14 @@ export const registerLocationHandlers = (io: Server, socket: Socket) => {
     try {
       await rateLimiter.consume(socket.id);
 
-      if (busDetails) {
-        if (busDetails.routeId) {
-          checkAndNotifyBusNearby(
-            data.busId,
-            busDetails.busNumber,
-            data.location.lat,
-            data.location.lng,
-            busDetails.routeId,
-          );
-        }
-      } else {
-        const bus = await Bus.findById(data.busId);
-        if (bus) {
-          busDetails = {
-            busNumber: bus.busNumber,
-            routeId: bus.routeId ? bus.routeId.toString() : null,
-          };
-          busCache.set(data.busId, busDetails);
-
-          if (busDetails.routeId) {
-            checkAndNotifyBusNearby(
-              data.busId,
-              busDetails.busNumber,
-              data.location.lat,
-              data.location.lng,
-              busDetails.routeId,
-            );
-          }
-        }
+      if (busDetails && busDetails.routeId) {
+        checkAndNotifyBusNearby(
+          data.busId,
+          busDetails.busNumber,
+          data.location.lat,
+          data.location.lng,
+          busDetails.routeId,
+        );
       }
     } catch (error) {
       if (error instanceof Error) {
@@ -272,5 +297,56 @@ export const registerLocationHandlers = (io: Server, socket: Socket) => {
       distanceMeters: data.distanceMeters,
       timestamp: data.timestamp ?? new Date().toISOString(),
     });
+  });
+
+  // ── Tracking Heartbeat ───────────────────────────────────────────────────
+  // Emitted periodically by active tracker (teacher or driver) to refresh
+  // lastTrackingHeartbeat and avoid timeout cleanup.
+  socket.on("tracking_heartbeat", async (data: any) => {
+    if (!data || !data.busId) return;
+    try {
+      const bus = await Bus.findById(data.busId);
+      if (!bus) return;
+
+      // If teacher override is active, reject driver heartbeats
+      if (user?.role === "driver" && bus.trackingTeacherId) {
+        logger.debug(
+          `[Socket] Ignored driver heartbeat for bus ${data.busId}: Teacher override active`
+        );
+        return;
+      }
+
+      // If sender is teacher, verify they are the designated tracking teacher
+      if (user?.role === "teacher" && bus.trackingTeacherId !== user.id) {
+        logger.warn(
+          `[Socket] Unauthorized teacher heartbeat for bus ${data.busId} from ${user?.id}`
+        );
+        return;
+      }
+
+      bus.lastTrackingHeartbeat = new Date();
+      await bus.save();
+      logger.debug(`[Socket] Received tracking heartbeat for bus ${data.busId}`);
+    } catch (err: any) {
+      logger.warn(
+        `[Socket] Error updating tracking heartbeat for bus ${data.busId}: ${err.message}`
+      );
+    }
+  });
+
+  // ── End Location Override ────────────────────────────────────────────────
+  // Emitted by teacher client when explicitly ending override session via socket
+  socket.on("end_location_override", async (data: any) => {
+    if (!data || !data.busId) return;
+    try {
+      await releaseTeacherOverride(data.busId, "socket_end");
+      logger.info(
+        `[Socket] Teacher override cleanly released via socket for bus ${data.busId}`
+      );
+    } catch (err: any) {
+      logger.error(
+        `[Socket] Error releasing teacher override for bus ${data.busId}: ${err.message}`
+      );
+    }
   });
 };

@@ -14,6 +14,7 @@ import 'package:collegebus/features/auth/data/auth_service.dart';
 import 'package:collegebus/core/providers/repository_providers.dart';
 import 'package:collegebus/features/student/application/map_navigation_provider.dart';
 import 'package:collegebus/shared/widgets/session_expiry_dialog.dart';
+import 'package:dio/dio.dart';
 
 
 // Repository providers (moved to repository_providers.dart)
@@ -58,6 +59,11 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
           signOut();
         },
       );
+    };
+
+    // Hook silent token refresh propagation from HTTP requests
+    BaseRepository.onTokenRefreshed = (newToken) {
+      updateToken(newToken);
     };
 
 
@@ -198,6 +204,50 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
     return await _authRepo.resetPassword(email, newPassword);
   }
 
+  /// Silently refreshes the access token using the stored refresh token.
+  /// Updates local persistence, Riverpod state, and returns the new access token.
+  /// Returns null if refresh token is missing or server rejects the refresh request.
+  Future<String?> refreshToken() async {
+    final storedRefreshToken = PersistenceService.getRefreshToken();
+    if (storedRefreshToken == null || storedRefreshToken.isEmpty) {
+      debugPrint('AUTH NOTIFIER: No refresh token available for silent refresh.');
+      return null;
+    }
+
+    try {
+      final refreshDio = Dio(
+        BaseOptions(
+          baseUrl: AppConstants.apiBaseUrl,
+          connectTimeout: const Duration(seconds: 10),
+          receiveTimeout: const Duration(seconds: 10),
+        ),
+      );
+      final response = await refreshDio.post(
+        '/auth/refresh-token',
+        data: {'refreshToken': storedRefreshToken},
+      );
+
+      if (response.data != null && response.data['success'] == true) {
+        final newToken =
+            (response.data['accessToken'] ?? response.data['token']) as String?;
+        if (newToken != null && newToken.isNotEmpty) {
+          await PersistenceService.setAuthToken(newToken);
+          if (state.hasValue && state.value != null) {
+            state = AsyncValue.data(
+              state.value!.copyWith(token: newToken),
+            );
+          }
+          debugPrint('AUTH NOTIFIER: Silent token refresh succeeded.');
+          return newToken;
+        }
+      }
+      return null;
+    } catch (e) {
+      debugPrint('AUTH NOTIFIER: Silent token refresh failed: $e');
+      return null;
+    }
+  }
+
   Future<void> signOut() async {
     isExplicitLoggingOut = true;
     final currentUser = state.value?.currentUser;
@@ -254,6 +304,15 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
     if (state.hasValue) {
       state = AsyncValue.data(state.value!.copyWith(currentUser: user));
       _setupPremiumExpiryTimer(user);
+    }
+  }
+
+  /// Updates the current AuthState with a refreshed access token.
+  /// Notifies all dependent listeners (including SocketService) in real time.
+  void updateToken(String newToken) {
+    if (state.hasValue && state.value != null) {
+      debugPrint('AUTH NOTIFIER: Updating AuthState with refreshed token.');
+      state = AsyncValue.data(state.value!.copyWith(token: newToken));
     }
   }
 

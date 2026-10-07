@@ -75,7 +75,7 @@ export const login = async (req: Request, res: Response) => {
     await user.save();
 
     // 7. CREATE TOKENS
-    // Access Token (Short-lived: 15 minutes)
+    // Access Token (Configurable, default: 2 hours)
     const accessToken = jwt.sign(
       {
         id: user._id,
@@ -87,7 +87,7 @@ export const login = async (req: Request, res: Response) => {
         tokenVersion: user.tokenVersion,
       },
       JWT_SECRET,
-      { expiresIn: "2h" },
+      { expiresIn: (process.env.ACCESS_TOKEN_EXPIRY || "2h") as any },
     );
 
     // Refresh Token (Long-lived: 7 days)
@@ -97,7 +97,7 @@ export const login = async (req: Request, res: Response) => {
         tokenVersion: user.tokenVersion,
       },
       REFRESH_TOKEN_SECRET,
-      { expiresIn: "7d" },
+      { expiresIn: (process.env.REFRESH_TOKEN_EXPIRY || "7d") as any },
     );
 
     const userData = {

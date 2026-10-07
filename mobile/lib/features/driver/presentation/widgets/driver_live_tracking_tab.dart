@@ -48,10 +48,13 @@ class DriverLiveTrackingTab extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return Stack(
-      children: [
-        Column(
-          children: [
+    return SizedBox.expand(
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          Positioned.fill(
+            child: Column(
+              children: [
             Consumer(
               builder: (context, ref, child) {
                 final currentLocation = ref.watch(
@@ -124,6 +127,7 @@ class DriverLiveTrackingTab extends ConsumerWidget {
             ),
           ],
         ),
+      ),
 
         // Next-stop ETA card (navigation style — top of map above SOS button)
         Consumer(
@@ -580,8 +584,9 @@ class DriverLiveTrackingTab extends ConsumerWidget {
           },
         ),
       ],
-    );
-  }
+    ),
+  );
+}
 
   // ─────────────────────────────────────────────────────────────────────────
   // Helpers

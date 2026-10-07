@@ -19,6 +19,9 @@ final socketServiceProvider = ChangeNotifierProvider<SocketService>((ref) {
       },
     );
   };
+  SocketService.onTokenRefreshRequired = () async {
+    return await ref.read(authProvider.notifier).refreshToken();
+  };
   final socketService = SocketService();
 
 

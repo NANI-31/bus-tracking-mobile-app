@@ -543,24 +543,27 @@ class _LiveTrackingTabState extends ConsumerState<LiveTrackingTab> {
                       // Map panel
                       Expanded(
                         child: Stack(
+                          fit: StackFit.expand,
                           children: [
-                            GoogleMap(
-                              initialCameraPosition: const CameraPosition(
-                                target: LatLng(20.5937, 78.9629),
-                                zoom: 5.0,
+                            Positioned.fill(
+                              child: GoogleMap(
+                                initialCameraPosition: const CameraPosition(
+                                  target: LatLng(20.5937, 78.9629),
+                                  zoom: 5.0,
+                                ),
+                                markers: _markers,
+                                zoomControlsEnabled: true,
+                                mapToolbarEnabled: false,
+                                myLocationButtonEnabled: false,
+                                onMapCreated: (controller) => _mapController = controller,
+                                onCameraMove: (position) {
+                                  if (_zoom != position.zoom) {
+                                    setState(() {
+                                      _zoom = position.zoom;
+                                    });
+                                  }
+                                },
                               ),
-                              markers: _markers,
-                              zoomControlsEnabled: true,
-                              mapToolbarEnabled: false,
-                              myLocationButtonEnabled: false,
-                              onMapCreated: (controller) => _mapController = controller,
-                              onCameraMove: (position) {
-                                if (_zoom != position.zoom) {
-                                  setState(() {
-                                    _zoom = position.zoom;
-                                  });
-                                }
-                              },
                             ),
                             
                             // Zoom fit fleet FAB

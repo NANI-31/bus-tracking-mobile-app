@@ -7,6 +7,7 @@ import 'package:collegebus/core/constants/constants.dart';
 import 'package:collegebus/core/utils/app_logger.dart';
 import 'package:collegebus/features/notification/services/fcm_service.dart';
 import 'package:collegebus/features/notification/services/notification_service.dart';
+import 'package:collegebus/core/services/background_tracking_service.dart';
 import 'package:collegebus/shared/screens/splash_screen.dart';
 import 'package:google_maps_flutter_platform_interface/google_maps_flutter_platform_interface.dart';
 import 'package:google_maps_flutter_android/google_maps_flutter_android.dart';
@@ -19,7 +20,6 @@ import 'package:collegebus/l10n/coordinator/app_localizations.dart';
 import 'package:collegebus/l10n/admin/app_localizations.dart';
 import 'package:collegebus/l10n/notification/app_localizations.dart';
 import 'package:collegebus/l10n/common/app_localizations.dart';
-import 'package:collegebus/core/utils/shader_precompiler.dart';
 
 import 'package:collegebus/shared/widgets/global_connectivity_banner.dart';
 
@@ -63,9 +63,6 @@ class _AppInitializerState extends State<AppInitializer> {
     // Initialize Logger with File Support
     await AppLogger.init();
     debugPrint('APP INIT: Logger initialized');
-
-    // Pre-compile fragment shaders asynchronously at app startup to eliminate hiccups
-    await ShaderPrecompiler.precompileAll();
 
     // Initialize Firebase (Critical)
     try {
@@ -112,6 +109,9 @@ class _AppInitializerState extends State<AppInitializer> {
         }),
         NotificationService.initialize().catchError((e) {
           debugPrint('APP INIT: Notification Init Error: $e');
+        }),
+        BackgroundTrackingService.initialize().catchError((e) {
+          debugPrint('APP INIT: BackgroundTrackingService Init Error: $e');
         }),
       ]);
       debugPrint('APP INIT: Background Services initialized');

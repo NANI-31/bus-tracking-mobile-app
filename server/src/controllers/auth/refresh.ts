@@ -55,7 +55,7 @@ export const refreshToken = async (req: Request, res: Response) => {
       });
     }
 
-    // Issue new access token (15 minutes)
+    // Issue new access token (Configurable, default: 2 hours)
     const accessToken = jwt.sign(
       {
         id: user._id,
@@ -67,7 +67,7 @@ export const refreshToken = async (req: Request, res: Response) => {
         tokenVersion: user.tokenVersion,
       },
       JWT_SECRET,
-      { expiresIn: "2h" },
+      { expiresIn: (process.env.ACCESS_TOKEN_EXPIRY || "2h") as any },
     );
 
     res.json({

@@ -128,6 +128,7 @@ export const register = async (req: Request, res: Response) => {
     await newUser.save();
 
     // Create tokens
+    // Access Token (Configurable, default: 2 hours)
     const REFRESH_TOKEN_SECRET = process.env.REFRESH_TOKEN_SECRET!;
     const accessToken = jwt.sign(
       {
@@ -140,16 +141,17 @@ export const register = async (req: Request, res: Response) => {
         tokenVersion: newUser.tokenVersion,
       },
       JWT_SECRET,
-      { expiresIn: "2h" },
+      { expiresIn: (process.env.ACCESS_TOKEN_EXPIRY || "2h") as any },
     );
 
+    // Refresh Token (Long-lived: 7 days)
     const refreshToken = jwt.sign(
       {
         id: newUser._id,
         tokenVersion: newUser.tokenVersion,
       },
       REFRESH_TOKEN_SECRET,
-      { expiresIn: "7d" },
+      { expiresIn: (process.env.REFRESH_TOKEN_EXPIRY || "7d") as any },
     );
 
     res.status(201).json({

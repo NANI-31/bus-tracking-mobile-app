@@ -1,8 +1,6 @@
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:collegebus/core/constants/constants.dart';
-import 'package:collegebus/widgets/liquid_glass/background_capture_widget.dart';
-import 'package:collegebus/widgets/liquid_glass/base_shader.dart';
 
 /// Supported glassmorphism design variants.
 enum GlassVariant {
@@ -13,7 +11,7 @@ enum GlassVariant {
 
 /// A standardized Glassmorphic container that uses central theme parameters from
 /// [DesignSystemThemeExtension] and supports optional overrides, custom border radiuses,
-/// circular shapes, and liquid glass shader integrations.
+/// and circular shapes with transparent background and backdrop blur.
 class GlassMorphicContainer extends StatelessWidget {
   final Widget? child;
   final GlassVariant variant;
@@ -23,8 +21,6 @@ class GlassMorphicContainer extends StatelessWidget {
   final double borderWidth;
   final BorderRadius? borderRadius;
   final BoxShape boxShape;
-  final GlobalKey? backgroundKey;
-  final BaseShader? shader;
   final double? width;
   final double? height;
 
@@ -38,8 +34,6 @@ class GlassMorphicContainer extends StatelessWidget {
     this.borderWidth = 1.0,
     this.borderRadius,
     this.boxShape = BoxShape.rectangle,
-    this.backgroundKey,
-    this.shader,
     this.width,
     this.height,
   });
@@ -100,60 +94,26 @@ class GlassMorphicContainer extends StatelessWidget {
       );
     }
 
-    Widget glassBlurAndFill;
-    if (backgroundKey != null && shader != null) {
-      glassBlurAndFill = Stack(
-        children: [
-          Positioned.fill(
-            child: BackgroundCaptureWidget(
-              width: width ?? double.infinity,
-              height: height ?? double.infinity,
-              backgroundKey: backgroundKey!,
-              shader: shader!,
-              borderRadius: boxShape == BoxShape.circle
-                  ? BorderRadius.circular(9999)
-                  : effectiveRadius,
-              child: const SizedBox.expand(),
+    final Widget glassBlurAndFill = boxShape == BoxShape.circle
+        ? ClipOval(
+            child: BackdropFilter(
+              filter: ui.ImageFilter.blur(
+                sigmaX: effectiveBlur,
+                sigmaY: effectiveBlur,
+              ),
+              child: buildBackgroundFill(),
             ),
-          ),
-          Positioned.fill(
-            child: boxShape == BoxShape.circle
-                ? ClipOval(
-                    child: BackdropFilter(
-                      filter: ui.ImageFilter.blur(
-                          sigmaX: effectiveBlur, sigmaY: effectiveBlur),
-                      child: buildBackgroundFill(),
-                    ),
-                  )
-                : ClipRRect(
-                    borderRadius: effectiveRadius,
-                    child: BackdropFilter(
-                      filter: ui.ImageFilter.blur(
-                          sigmaX: effectiveBlur, sigmaY: effectiveBlur),
-                      child: buildBackgroundFill(),
-                    ),
-                  ),
-          ),
-        ],
-      );
-    } else {
-      glassBlurAndFill = boxShape == BoxShape.circle
-          ? ClipOval(
-              child: BackdropFilter(
-                filter: ui.ImageFilter.blur(
-                    sigmaX: effectiveBlur, sigmaY: effectiveBlur),
-                child: buildBackgroundFill(),
+          )
+        : ClipRRect(
+            borderRadius: effectiveRadius,
+            child: BackdropFilter(
+              filter: ui.ImageFilter.blur(
+                sigmaX: effectiveBlur,
+                sigmaY: effectiveBlur,
               ),
-            )
-          : ClipRRect(
-              borderRadius: effectiveRadius,
-              child: BackdropFilter(
-                filter: ui.ImageFilter.blur(
-                    sigmaX: effectiveBlur, sigmaY: effectiveBlur),
-                child: buildBackgroundFill(),
-              ),
-            );
-    }
+              child: buildBackgroundFill(),
+            ),
+          );
 
     return SizedBox(
       width: width,

@@ -532,9 +532,11 @@ class AppConstants {
   // Use 10.0.2.2 for Android Emulator, 192.168.x.x for physical device.
 
   // Host injected via --dart-define=API_HOST=192.168.x.x
+  // Default: '127.0.0.1' for USB connection with `adb reverse tcp:5000 tcp:5000`
+  // (Or specify your Wi-Fi LAN IP like 192.168.1.8 for wireless debugging)
   static const String apiHost = String.fromEnvironment(
     'API_HOST',
-    defaultValue: '192.168.1.4',
+    defaultValue: '127.0.0.1',
   );
 
   // Port injected via --dart-define=SERVER_PORT=XXXX
@@ -543,7 +545,7 @@ class AppConstants {
     defaultValue: '5000',
   );
 
-  // Debug Mode (Development): PC IP over Wi-Fi or Localhost (if using adb reverse)
+  // Debug Mode (Development): PC IP over Wi-Fi or Localhost (USB with adb reverse)
   static const String _devUrl = 'http://$apiHost:$serverPort';
 
   // Release Mode (Production): Render Server

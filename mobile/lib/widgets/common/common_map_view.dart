@@ -80,10 +80,13 @@ class _CommonMapViewState extends ConsumerState<CommonMapView> {
       );
     }
 
-    return Stack(
-      children: [
-        RepaintBoundary(
-          child: GoogleMap(
+    return SizedBox.expand(
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          Positioned.fill(
+            child: RepaintBoundary(
+              child: GoogleMap(
             onMapCreated: (controller) {
               _controller = controller;
               // ✅ DIAGNOSTIC: If this never prints the map SDK failed to init.
@@ -136,6 +139,7 @@ class _CommonMapViewState extends ConsumerState<CommonMapView> {
             },
           ),
         ),
+      ),
 
         // Custom My Location Button at Bottom Right
         if (widget.myLocationButtonEnabled)
@@ -163,7 +167,8 @@ class _CommonMapViewState extends ConsumerState<CommonMapView> {
               ),
             ),
           ),
-      ],
+        ],
+      ),
     );
   }
 }

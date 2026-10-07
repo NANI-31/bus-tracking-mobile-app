@@ -1197,8 +1197,10 @@ class LiveBusMapState extends ConsumerState<LiveBusMap>
           : LayoutBuilder(
               builder: (context, constraints) {
                 return Stack(
+                  fit: StackFit.expand,
                   children: [
-                    ValueListenableBuilder<Set<Marker>>(
+                    Positioned.fill(
+                      child: ValueListenableBuilder<Set<Marker>>(
                       valueListenable: _markersNotifier,
                       builder: (context, markers, child) {
                         return Listener(
@@ -1271,6 +1273,7 @@ class LiveBusMapState extends ConsumerState<LiveBusMap>
                         );
                       },
                     ),
+                  ),
 
                     // Radar pulse overlays for active SOS alerts
                     ..._sosScreenPositions.entries.map((entry) {

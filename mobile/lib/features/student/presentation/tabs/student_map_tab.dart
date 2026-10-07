@@ -109,8 +109,10 @@ class _StudentMapTabState extends ConsumerState<StudentMapTab>
         )
         .toList();
 
-    return Stack(
-      children: [
+    return SizedBox.expand(
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
         // Map as bottom layer
         Positioned.fill(
           child: widget.currentLocation != null
@@ -418,7 +420,8 @@ class _StudentMapTabState extends ConsumerState<StudentMapTab>
                       .p(AppSizes.paddingMedium),
             ),
           ),
-      ],
+        ],
+      ),
     );
   }
 

@@ -74,11 +74,6 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
   Color? _lastStopColor;
   Color? _lastEndColor;
 
-  /// Key for the [RepaintBoundary] that wraps the mobile content body.
-  /// Passed to [CurvedBottomNavBar] so the liquid-glass lens shader can
-  /// sample the real pixels rendered behind the navigation bar.
-  final GlobalKey _backgroundKey = GlobalKey();
-
   Future<void> _loadBusIcon() async {
     try {
       // MapMarkerCache deduplicates the async canvas-draw so subsequent calls
@@ -362,15 +357,18 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
           position.speed > 1.0 ? position.speed : null,
         );
 
-        socketService.updateLocation({
-          'busId': myBus.id,
-          'collegeId': user!.collegeId,
-          'location': {'lat': position.latitude, 'lng': position.longitude},
-          'speed': position.speed,
-          'heading': position.heading,
-          if (myBus.tripType != null) 'tripType': myBus.tripType,
-          if (etaMinutes != null) 'etaMinutes': etaMinutes,
-        });
+        // Gate socket emission via emission delta threshold (>= 5m, >= 15° heading, or 15s keepalive)
+        if (locationService.shouldEmitLocationUpdate(position)) {
+          socketService.updateLocation({
+            'busId': myBus.id,
+            'collegeId': user!.collegeId,
+            'location': {'lat': position.latitude, 'lng': position.longitude},
+            'speed': position.speed,
+            'heading': position.heading,
+            if (myBus.tripType != null) 'tripType': myBus.tripType,
+            if (etaMinutes != null) 'etaMinutes': etaMinutes,
+          });
+        }
 
 
         final latLng = LatLng(position.latitude, position.longitude);
@@ -1260,36 +1258,36 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       resizeToAvoidBottomInset: false,
       body: Stack(
+        fit: StackFit.expand,
         children: [
-          // Main Content â€” always inside RepaintBoundary so the nav bar's
+          // Main Content — always inside RepaintBoundary so the nav bar's
           // glass shader key is always attached regardless of loading state.
-          RepaintBoundary(
-            key: _backgroundKey,
+          Positioned.fill(
             child: ColoredBox(
-              color: Theme.of(context).scaffoldBackgroundColor,
-              child: (myBusAsync.isLoading && !myBusAsync.hasValue)
-                  ? const SafeArea(
-                      bottom: false,
-                      child: BusAssignmentSkeleton(),
-                    )
-                  : IndexedStack(
-                      index: bottomNavIndex,
-                      children: [
-                        SafeArea(
-                          bottom: false,
-                          child: _buildBusSetupTab(
-                            myBus,
-                            routesAsync,
-                            busNumbersAsync,
+                color: Theme.of(context).scaffoldBackgroundColor,
+                child: (myBusAsync.isLoading && !myBusAsync.hasValue)
+                    ? const SafeArea(
+                        bottom: false,
+                        child: BusAssignmentSkeleton(),
+                      )
+                    : IndexedStack(
+                        index: bottomNavIndex,
+                        children: [
+                          SafeArea(
+                            bottom: false,
+                            child: _buildBusSetupTab(
+                              myBus,
+                              routesAsync,
+                              busNumbersAsync,
+                            ),
                           ),
-                        ),
-                        SafeArea(
-                          bottom: false,
-                          child: _buildLiveTrackingTab(myBus),
-                        ),
-                        const ProfileScreen(),
-                      ],
-                    ),
+                          SafeArea(
+                            bottom: false,
+                            child: _buildLiveTrackingTab(myBus),
+                          ),
+                          const ProfileScreen(),
+                        ],
+                      ),
             ),
           ),
 
@@ -1312,7 +1310,6 @@ class _DriverDashboardState extends ConsumerState<DriverDashboard>
                 Colors.purple.shade400,
               ],
               backgroundColor: Theme.of(context).cardColor,
-              backgroundKey: _backgroundKey,
               items: [
                 CurvedBottomNavItem(
                   icon: Icons.settings_outlined,

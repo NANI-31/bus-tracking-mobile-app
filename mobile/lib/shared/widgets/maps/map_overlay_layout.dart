@@ -58,6 +58,7 @@ class MapOverlayLayout extends StatelessWidget {
         final currentTopVisible = controller?.isTopBarVisible ?? true;
 
         return Stack(
+          fit: StackFit.expand,
           children: [
             // 1. Google Map (Isolate repaint)
             Positioned.fill(

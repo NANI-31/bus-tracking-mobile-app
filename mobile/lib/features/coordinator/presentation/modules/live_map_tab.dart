@@ -46,15 +46,17 @@ class _LiveMapTabState extends ConsumerState<LiveMapTab> with AutomaticKeepAlive
       }
     }
 
-    return LiveBusMap(
-      buses: buses,
-      selectedBus: widget.selectedBus,
-      activeRoute: activeRoute,
-      onBusTap: (bus) {
-        IncidentReportModal.show(context, busId: bus.id);
-      },
-      showUserLocation: true,
-      bottomPadding: widget.selectedBus != null ? 180.0 : CurvedBottomNavBar.clearance(context),
+    return SizedBox.expand(
+      child: LiveBusMap(
+        buses: buses,
+        selectedBus: widget.selectedBus,
+        activeRoute: activeRoute,
+        onBusTap: (bus) {
+          IncidentReportModal.show(context, busId: bus.id);
+        },
+        showUserLocation: true,
+        bottomPadding: widget.selectedBus != null ? 180.0 : CurvedBottomNavBar.clearance(context),
+      ),
     );
   }
 }

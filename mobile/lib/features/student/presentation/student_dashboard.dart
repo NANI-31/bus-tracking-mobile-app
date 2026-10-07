@@ -47,11 +47,6 @@ class _StudentDashboardState extends ConsumerState<StudentDashboard>
   /// This prevents Google Maps + schedule streams from initializing at startup.
   final Set<int> _visitedTabs = {};
 
-  /// Key for the [RepaintBoundary] wrapping the main content.
-  /// Passed to [CurvedBottomNavBar] so the liquid-glass lens shader can
-  /// sample the real pixels rendered behind the navigation bar.
-  final GlobalKey _backgroundKey = GlobalKey();
-
   /// P2.1 fix: Guard to ensure bus-from-prefs restoration only runs once,
   /// not on every build triggered by socket events.
   bool _busRestoredFromPrefs = false;
@@ -577,13 +572,10 @@ class _StudentDashboardState extends ConsumerState<StudentDashboard>
     final isWide = context.isTabletLayout || context.isDesktopLayout;
 
     final mainBody = Stack(
+      fit: StackFit.expand,
       children: [
-        // Main content – wrapped in RepaintBoundary so the nav bar's
-        // liquid-glass shader can capture the pixels behind it.
-        // ColoredBox ensures the captured image is always opaque; without it
-        // transparent tab areas (list gaps, short pages) appear black.
-        RepaintBoundary(
-          key: _backgroundKey,
+        // Main content
+        Positioned.fill(
           child: ColoredBox(
             color: Theme.of(context).scaffoldBackgroundColor,
             // P0.3 fix: Lazy IndexedStack — only mount a tab after first visit.
@@ -701,7 +693,6 @@ class _StudentDashboardState extends ConsumerState<StudentDashboard>
                   : Theme.of(context).colorScheme.primaryContainer,
               currentIndex: _bottomNavIndex,
               onTap: _onBottomNavChanged,
-              backgroundKey: _backgroundKey,
               items: [
                 CurvedBottomNavItem(
                   icon: _bottomNavIndex == 0 ? Icons.home : Icons.home_outlined,

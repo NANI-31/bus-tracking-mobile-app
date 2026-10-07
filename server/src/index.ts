@@ -5,6 +5,7 @@ import { validateEnv } from "@/config/env";
 import { initializeFirebase } from "@/utils/firebase";
 import { initPaymentCron } from "@/cron/payment.cron";
 import { initNotificationCron } from "@/cron/notification.cron";
+import { initTrackingCleanupCron } from "@/cron/trackingCleanup.cron";
 import logger from "@/utils/logger";
 import { MetricsService } from "@/services/MetricsService";
 import { createApp } from "./app";
@@ -90,6 +91,7 @@ const startServer = async () => {
     MetricsService.init();
     initPaymentCron();
     initNotificationCron();
+    initTrackingCleanupCron();
 
     const { httpServer } = createApp();
 

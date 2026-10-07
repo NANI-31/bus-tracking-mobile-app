@@ -5,11 +5,16 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:collegebus/core/utils/app_logger.dart';
 import 'package:collegebus/core/services/persistence_service.dart';
+import 'package:collegebus/core/utils/gps_kalman_filter.dart';
+import 'package:collegebus/core/services/background_tracking_service.dart';
 
 class LocationService {
   StreamSubscription<Position>? _positionStreamSubscription;
   final StreamController<LatLng> _locationController =
       StreamController<LatLng>.broadcast();
+  final GpsKalmanFilter _kalmanFilter = GpsKalmanFilter();
+  Position? _lastEmittedPosition;
+  DateTime? _lastSocketEmitTime;
 
   Stream<LatLng> get locationStream => _locationController.stream;
 
@@ -178,8 +183,8 @@ class LocationService {
           // The foreground service notification keeps the process alive in
           // background and when the screen is off.
           foregroundNotificationConfig: const ForegroundNotificationConfig(
-            notificationTitle: "Bus Tracking Active",
-            notificationText: "Your location is being shared with students.",
+            notificationTitle: "Upasthit Bus Tracking is Active",
+            notificationText: "Sharing live location with students and coordinators.",
             enableWakeLock: true,
             enableWifiLock: true,
           ),
@@ -224,7 +229,7 @@ class LocationService {
                 return;
               }
 
-              // Time-based throttle: only emit if >= 3 seconds since last update
+              // Time-based throttle: only emit if >= minUpdateIntervalMs
               if (_lastEmitTime != null) {
                 final elapsed = now.difference(_lastEmitTime!).inMilliseconds;
                 if (elapsed < _minUpdateIntervalMs) {
@@ -234,9 +239,16 @@ class LocationService {
               }
 
               _lastEmitTime = now;
-              final latLng = LatLng(position.latitude, position.longitude);
+
+              // ── 1D Kalman Filtering & Speed Gating ─────────────────────────
+              // Smooths GPS coordinate jitter and stabilizes heading when stationary.
+              final smoothedPosition = _kalmanFilter.filter(position);
+              final latLng = LatLng(
+                smoothedPosition.latitude,
+                smoothedPosition.longitude,
+              );
               _locationController.add(latLng);
-              onLocationUpdate(position);
+              onLocationUpdate(smoothedPosition);
             },
             onError: (error) {
               AppLogger.e('DEBUG: Location stream error: $error');
@@ -247,15 +259,71 @@ class LocationService {
           );
 
       AppLogger.i('DEBUG: Location tracking started successfully');
+
+      // Start continuous foreground service to prevent OS process suspension
+      unawaited(
+        BackgroundTrackingService.start(
+          title: "Upasthit Bus Tracking is Active",
+          content: "Sharing live location with students and coordinators",
+        ),
+      );
     } catch (e) {
       AppLogger.e('DEBUG: Error starting location tracking: $e');
       // Location tracking failed, but app can continue
     }
   }
 
+  /// Evaluates the movement delta threshold (>= 5 meters, >= 15° heading delta,
+  /// or >= 15s stationary keepalive) to determine whether this position fix
+  /// warrants a new network transmission via Socket.IO.
+  bool shouldEmitLocationUpdate(
+    Position filtered, {
+    double minDistanceMeters = 5.0,
+    double minHeadingDeltaDeg = 15.0,
+    Duration maxStationaryInterval = const Duration(seconds: 15),
+  }) {
+    if (_lastEmittedPosition == null || _lastSocketEmitTime == null) {
+      _lastEmittedPosition = filtered;
+      _lastSocketEmitTime = DateTime.now();
+      return true;
+    }
+
+    final now = DateTime.now();
+    final timeSinceLastEmit = now.difference(_lastSocketEmitTime!);
+
+    final distanceMeters = Geolocator.distanceBetween(
+      _lastEmittedPosition!.latitude,
+      _lastEmittedPosition!.longitude,
+      filtered.latitude,
+      filtered.longitude,
+    );
+
+    final headingDelta = (_lastEmittedPosition!.heading - filtered.heading).abs();
+    final normalizedHeadingDelta =
+        headingDelta > 180 ? 360 - headingDelta : headingDelta;
+
+    final hasMoved = distanceMeters >= minDistanceMeters;
+    final hasTurned =
+        normalizedHeadingDelta >= minHeadingDeltaDeg && filtered.speed >= 0.8;
+    final isMoving = filtered.speed >= 1.0;
+    final isKeepaliveDue = timeSinceLastEmit >= maxStationaryInterval;
+
+    if (hasMoved || hasTurned || (isMoving && distanceMeters >= 3.0) || isKeepaliveDue) {
+      _lastEmittedPosition = filtered;
+      _lastSocketEmitTime = now;
+      return true;
+    }
+
+    return false;
+  }
+
   void stopLocationTracking() {
     _positionStreamSubscription?.cancel();
     _positionStreamSubscription = null;
+    _kalmanFilter.reset();
+    _lastEmittedPosition = null;
+    _lastSocketEmitTime = null;
+    unawaited(BackgroundTrackingService.stop());
     AppLogger.i('DEBUG: Location tracking stopped');
   }
 
